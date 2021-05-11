@@ -86,6 +86,12 @@
 
 ### Deprecated
 ### Removed
+
+* Workaround for slow resize in Sway <= 1.5, when a foot window was
+  hidden, for example, in a tabbed view
+  (https://codeberg.org/dnkl/foot/pulls/507).
+
+
 ### Fixed
 
 * Font size adjustment (“zooming”) when font is configured with a
