@@ -671,16 +671,12 @@ term_set_fonts(struct terminal *term, struct fcft_font *fonts[static 4])
 
     const struct config *conf = term->conf;
 
-    const struct fcft_glyph *M = fcft_glyph_rasterize(
-        term->fonts[0], L'M', term->font_subpixel);
+    const struct fcft_glyph *M = fcft_rasterize_char_utf32(
+        fonts[0], U'M', term->font_subpixel);
+    int advance = M != NULL ? M->advance.x : term->fonts[0]->max_advance.x;
 
-    term->cell_width =
-        (M != NULL
-         ? M->advance.x
-         : (term->fonts[0]->space_advance.x > 0
-            ? term->fonts[0]->space_advance.x
-            : term->fonts[0]->max_advance.x))
-        + term_pt_or_px_as_pixels(term, &conf->letter_spacing);
+    term->cell_width = advance +
+        term_pt_or_px_as_pixels(term, &conf->letter_spacing);
 
     term->cell_height = term->font_line_height.px >= 0
         ? term_pt_or_px_as_pixels(term, &term->font_line_height)
@@ -3208,7 +3204,7 @@ print_spacer(struct terminal *term, int col, int remaining)
 }
 
 void
-term_print(struct terminal *term, wchar_t wc, int width)
+term_print(struct terminal *term, char32_t wc, int width)
 {
     xassert(width > 0);
 
@@ -3218,11 +3214,11 @@ term_print(struct terminal *term, wchar_t wc, int width)
         wc >= 0x60 && wc <= 0x7e)
     {
         /* 0x60 - 0x7e */
-        static const wchar_t vt100_0[] = {
-            L'◆', L'▒', L'␉', L'␌', L'␍', L'␊', L'°', L'±', /* ` - g */
-            L'␤', L'␋', L'┘', L'┐', L'┌', L'└', L'┼', L'⎺', /* h - o */
-            L'⎻', L'─', L'⎼', L'⎽', L'├', L'┤', L'┴', L'┬', /* p - w */
-            L'│', L'≤', L'≥', L'π', L'≠', L'£', L'·',       /* x - ~ */
+        static const char32_t vt100_0[] = {
+            U'◆', U'▒', U'␉', U'␌', U'␍', U'␊', U'°', U'±', /* ` - g */
+            U'␤', U'␋', U'┘', U'┐', U'┌', U'└', U'┼', U'⎺', /* h - o */
+            U'⎻', U'─', U'⎼', U'⎽', U'├', U'┤', U'┴', U'┬', /* p - w */
+            U'│', U'≤', U'≥', U'π', U'≠', U'£', U'·',       /* x - ~ */
         };
 
         xassert(width == 1);
@@ -3291,13 +3287,13 @@ term_print(struct terminal *term, wchar_t wc, int width)
 }
 
 static void
-ascii_printer_generic(struct terminal *term, wchar_t wc)
+ascii_printer_generic(struct terminal *term, char32_t wc)
 {
     term_print(term, wc, 1);
 }
 
 static void
-ascii_printer_fast(struct terminal *term, wchar_t wc)
+ascii_printer_fast(struct terminal *term, char32_t wc)
 {
     struct grid *grid = term->grid;
 
@@ -3333,7 +3329,7 @@ ascii_printer_fast(struct terminal *term, wchar_t wc)
 }
 
 static void
-ascii_printer_single_shift(struct terminal *term, wchar_t wc)
+ascii_printer_single_shift(struct terminal *term, char32_t wc)
 {
     ascii_printer_generic(term, wc);
     term->charsets.selected = term->charsets.saved;
@@ -3343,7 +3339,7 @@ ascii_printer_single_shift(struct terminal *term, wchar_t wc)
 void
 term_update_ascii_printer(struct terminal *term)
 {
-    void (*new_printer)(struct terminal *term, wchar_t wc) =
+    void (*new_printer)(struct terminal *term, char32_t wc) =
         unlikely(tll_length(term->grid->sixel_images) > 0 ||
                  term->vt.osc8.uri != NULL ||
                  term->charsets.set[term->charsets.selected] == CHARSET_GRAPHIC ||

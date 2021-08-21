@@ -1123,16 +1123,15 @@ legacy_kbd_protocol(struct seat *seat, struct terminal *term,
         }
 
         else if (term->meta.eight_bit && count == 1) {
-            const wchar_t wc = 0x80 | utf8[0];
+            const char32_t wc = 0x80 | utf8[0];
 
-            char wc_as_utf8[8];
-            mbstate_t ps = {0};
-            size_t chars = wcrtomb(wc_as_utf8, wc, &ps);
+            char utf8_meta[MB_CUR_MAX];
+            size_t chars = c32rtomb(utf8_meta, wc, &(mbstate_t){0});
 
             if (chars != (size_t)-1)
-                term_to_slave(term, wc_as_utf8, chars);
+                term_to_slave(term, utf8_meta, chars);
             else
-                term_to_slave(term, wc_as_utf8, count);
+                term_to_slave(term, utf8, count);
         }
 
         else {
@@ -1585,8 +1584,8 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
         xkb_compose_state_get_utf8(
             seat->kbd.xkb_compose_state, (char *)utf8, count + 1);
 
-        wchar_t wc;
-        if (mbtowc(&wc, (const char *)utf8, count) == count)
+        char32_t wc;
+        if (mbrtoc32(&wc, (const char *)utf8, count, &(mbstate_t){0}) == count)
             utf32 = wc;
     } else {
         xkb_state_key_get_utf8(

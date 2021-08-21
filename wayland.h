@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <time.h>
+#include <uchar.h>
 
 #include <wayland-client.h>
 #include <xkbcommon/xkbcommon.h>
@@ -278,7 +279,7 @@ struct seat {
                 int32_t cursor_end;
             } pending;
 
-            wchar_t *text;
+            char32_t *text;
             struct cell *cells;
             int count;
             struct {

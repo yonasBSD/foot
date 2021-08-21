@@ -32,6 +32,11 @@ sources:
 #     to: <committer>
 
 tasks:
+  - fcft: |
+      cd foot/subprojects
+      git clone https://codeberg.org/dnkl/fcft.git
+      cd fcft && git checkout 3.0-dev && cd ..
+      cd ../..
   - debug: |
       mkdir -p bld/debug
       meson --buildtype=debug -Dgrapheme-clustering=enabled -Dfcft:grapheme-shaping=enabled -Dfcft:run-shaping=enabled  -Dfcft:test-text-shaping=true foot bld/debug

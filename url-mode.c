@@ -11,6 +11,7 @@
 #define LOG_MODULE "url-mode"
 #define LOG_ENABLE_DBG 0
 #include "log.h"
+#include "char32.h"
 #include "grid.h"
 #include "render.h"
 #include "selection.h"
@@ -150,11 +151,11 @@ urls_input(struct seat *seat, struct terminal *term, uint32_t key,
         }
     }
 
-    size_t seq_len = wcslen(term->url_keys);
+    size_t seq_len = c32len(term->url_keys);
 
     if (sym == XKB_KEY_BackSpace) {
         if (seq_len > 0) {
-            term->url_keys[seq_len - 1] = L'\0';
+            term->url_keys[seq_len - 1] = U'\0';
             render_refresh_urls(term);
         }
 
@@ -164,7 +165,7 @@ urls_input(struct seat *seat, struct terminal *term, uint32_t key,
     if (mods & ~consumed)
         return;
 
-    wchar_t wc = xkb_state_key_get_utf32(seat->kbd.xkb_state, key);
+    char32_t wc = xkb_state_key_get_utf32(seat->kbd.xkb_state, key);
 
     /*
      * Determine if this is a “valid” key. I.e. if there is an URL
@@ -180,11 +181,11 @@ urls_input(struct seat *seat, struct terminal *term, uint32_t key,
             continue;
 
         const struct url *url = &it->item;
-        const size_t key_len = wcslen(it->item.key);
+        const size_t key_len = c32len(it->item.key);
 
         if (key_len >= seq_len + 1 &&
-            wcsncasecmp(url->key, term->url_keys, seq_len) == 0 &&
-            towlower(url->key[seq_len]) == towlower(wc))
+            c32ncasecmp(url->key, term->url_keys, seq_len) == 0 &&
+            toc32lower(url->key[seq_len]) == toc32lower(wc))
         {
             is_valid = true;
             if (key_len == seq_len + 1) {
@@ -207,10 +208,10 @@ urls_input(struct seat *seat, struct terminal *term, uint32_t key,
 }
 
 static int
-wccmp(const void *_a, const void *_b)
+c32cmp_single(const void *_a, const void *_b)
 {
-    const wchar_t *a = _a;
-    const wchar_t *b = _b;
+    const char32_t *a = _a;
+    const char32_t *b = _b;
     return *a - *b;
 }
 
@@ -220,16 +221,16 @@ auto_detected(const struct terminal *term, enum url_action action,
 {
     const struct config *conf = term->conf;
 
-    const wchar_t *uri_characters = conf->url.uri_characters;
+    const char32_t *uri_characters = conf->url.uri_characters;
     if (uri_characters == NULL)
         return;
 
-    const size_t uri_characters_count = wcslen(uri_characters);
+    const size_t uri_characters_count = c32len(uri_characters);
     if (uri_characters_count == 0)
         return;
 
     size_t max_prot_len = conf->url.max_prot_len;
-    wchar_t proto_chars[max_prot_len];
+    char32_t proto_chars[max_prot_len];
     struct coord proto_start[max_prot_len];
     size_t proto_char_count = 0;
 
@@ -239,7 +240,7 @@ auto_detected(const struct terminal *term, enum url_action action,
     } state = STATE_PROTOCOL;
 
     struct coord start = {-1, -1};
-    wchar_t url[term->cols * term->rows + 1];
+    char32_t url[term->cols * term->rows + 1];
     size_t len = 0;
 
     ssize_t parenthesis = 0;
@@ -251,7 +252,7 @@ auto_detected(const struct terminal *term, enum url_action action,
 
         for (int c = 0; c < term->cols; c++) {
             const struct cell *cell = &row->cells[c];
-            wchar_t wc = cell->wc;
+            char32_t wc = cell->wc;
 
             switch (state) {
             case STATE_PROTOCOL:
@@ -268,18 +269,18 @@ auto_detected(const struct terminal *term, enum url_action action,
                 proto_char_count++;
 
                 for (size_t i = 0; i < conf->url.prot_count; i++) {
-                    size_t prot_len = wcslen(conf->url.protocols[i]);
+                    size_t prot_len = c32len(conf->url.protocols[i]);
 
                     if (proto_char_count < prot_len)
                         continue;
 
-                    const wchar_t *proto = &proto_chars[max_prot_len - prot_len];
+                    const char32_t *proto = &proto_chars[max_prot_len - prot_len];
 
-                    if (wcsncasecmp(conf->url.protocols[i], proto, prot_len) == 0) {
+                    if (c32ncasecmp(conf->url.protocols[i], proto, prot_len) == 0) {
                         state = STATE_URL;
                         start = proto_start[max_prot_len - prot_len];
 
-                        wcsncpy(url, proto, prot_len);
+                        c32ncpy(url, proto, prot_len);
                         len = prot_len;
 
                         parenthesis = brackets = ltgts = 0;
@@ -289,12 +290,12 @@ auto_detected(const struct terminal *term, enum url_action action,
                 break;
 
             case STATE_URL: {
-                const wchar_t *match = bsearch(
+                const char32_t *match = bsearch(
                     &wc,
                     uri_characters,
                     uri_characters_count,
                     sizeof(uri_characters[0]),
-                    &wccmp);
+                    &c32cmp_single);
 
                 bool emit_url = false;
 
@@ -313,36 +314,36 @@ auto_detected(const struct terminal *term, enum url_action action,
                         url[len++] = wc;
                         break;
 
-                    case L'(':
+                    case U'(':
                         parenthesis++;
                         url[len++] = wc;
                         break;
 
-                    case L'[':
+                    case U'[':
                         brackets++;
                         url[len++] = wc;
                         break;
 
-                    case L'<':
+                    case U'<':
                         ltgts++;
                         url[len++] = wc;
                         break;
 
-                    case L')':
+                    case U')':
                         if (--parenthesis < 0)
                             emit_url = true;
                         else
                             url[len++] = wc;
                         break;
 
-                    case L']':
+                    case U']':
                         if (--brackets < 0)
                             emit_url = true;
                         else
                             url[len++] = wc;
                         break;
 
-                    case L'>':
+                    case U'>':
                         if (--ltgts < 0)
                             emit_url = true;
                         else
@@ -374,8 +375,8 @@ auto_detected(const struct terminal *term, enum url_action action,
                     bool done = false;
                     do {
                         switch (url[len - 1]) {
-                        case L'.': case L',': case L':': case L';': case L'?':
-                        case L'!': case L'"': case L'\'': case L'%':
+                        case U'.': case U',': case U':': case U';': case U'?':
+                        case U'!': case U'"': case U'\'': case U'%':
                             len--;
                             end.col--;
                             if (end.col < 0) {
@@ -390,16 +391,13 @@ auto_detected(const struct terminal *term, enum url_action action,
                         }
                     } while (!done);
 
-                    url[len] = L'\0';
+                    url[len] = U'\0';
 
                     start.row += term->grid->view;
                     end.row += term->grid->view;
 
-                    size_t chars = wcstombs(NULL, url, 0);
-                    if (chars != (size_t)-1) {
-                        char *url_utf8 = xmalloc((chars + 1) * sizeof(wchar_t));
-                        wcstombs(url_utf8, url, chars + 1);
-
+                    char *url_utf8 = ac32tombs(url);
+                    if (url_utf8 != NULL) {
                         tll_push_back(
                             *urls,
                             ((struct url){
@@ -527,40 +525,40 @@ urls_collect(const struct terminal *term, enum url_action action, url_list_t *ur
 }
 
 static int
-wcscmp_qsort_wrapper(const void *_a, const void *_b)
+c32cmp_qsort_wrapper(const void *_a, const void *_b)
 {
-    const wchar_t *a = *(const wchar_t **)_a;
-    const wchar_t *b = *(const wchar_t **)_b;
-    return wcscmp(a, b);
+    const char32_t *a = *(const char32_t **)_a;
+    const char32_t *b = *(const char32_t **)_b;
+    return c32cmp(a, b);
 }
 
 static void
 generate_key_combos(const struct config *conf,
-                    size_t count, wchar_t *combos[static count])
+                    size_t count, char32_t *combos[static count])
 {
-    const wchar_t *alphabet = conf->url.label_letters;
-    const size_t alphabet_len = wcslen(alphabet);
+    const char32_t *alphabet = conf->url.label_letters;
+    const size_t alphabet_len = c32len(alphabet);
 
     size_t hints_count = 1;
-    wchar_t **hints = xmalloc(hints_count * sizeof(hints[0]));
+    char32_t **hints = xmalloc(hints_count * sizeof(hints[0]));
 
-    hints[0] = xwcsdup(L"");
+    hints[0] = xc32dup(U"");
 
     size_t offset = 0;
     do {
-        const wchar_t *prefix = hints[offset++];
-        const size_t prefix_len = wcslen(prefix);
+        const char32_t *prefix = hints[offset++];
+        const size_t prefix_len = c32len(prefix);
 
         hints = xrealloc(hints, (hints_count + alphabet_len) * sizeof(hints[0]));
 
-        const wchar_t *wc = &alphabet[0];
+        const char32_t *wc = &alphabet[0];
         for (size_t i = 0; i < alphabet_len; i++, wc++) {
-            wchar_t *hint = xmalloc((prefix_len + 1 + 1) * sizeof(wchar_t));
+            char32_t *hint = xmalloc((prefix_len + 1 + 1) * sizeof(char32_t));
             hints[hints_count + i] = hint;
 
             /* Will be reversed later */
             hint[0] = *wc;
-            wcscpy(&hint[1], prefix);
+            c32cpy(&hint[1], prefix);
         }
         hints_count += alphabet_len;
     } while (hints_count - offset < count);
@@ -578,13 +576,13 @@ generate_key_combos(const struct config *conf,
 
     /* Sorting is a kind of shuffle, since we’re sorting on the
      * *reversed* strings */
-    qsort(combos, count, sizeof(wchar_t *), &wcscmp_qsort_wrapper);
+    qsort(combos, count, sizeof(char32_t *), &c32cmp_qsort_wrapper);
 
     /* Reverse all strings */
     for (size_t i = 0; i < count; i++) {
-        const size_t len = wcslen(combos[i]);
+        const size_t len = c32len(combos[i]);
         for (size_t j = 0; j < len / 2; j++) {
-            wchar_t tmp = combos[i][j];
+            char32_t tmp = combos[i][j];
             combos[i][j] = combos[i][len - j - 1];
             combos[i][len - j - 1] = tmp;
         }
@@ -599,7 +597,7 @@ urls_assign_key_combos(const struct config *conf, url_list_t *urls)
         return;
 
     uint64_t seen_ids[count];
-    wchar_t *combos[count];
+    char32_t *combos[count];
     generate_key_combos(conf, count, combos);
 
     size_t combo_idx = 0;
@@ -629,7 +627,7 @@ urls_assign_key_combos(const struct config *conf, url_list_t *urls)
                 break;
 
             if (strcmp(it->item.url, it2->item.url) == 0) {
-                it->item.key = xwcsdup(it2->item.key);
+                it->item.key = xc32dup(it2->item.key);
                 url_already_seen = true;
                 break;
             }
@@ -648,9 +646,11 @@ urls_assign_key_combos(const struct config *conf, url_list_t *urls)
         if (it->item.key == NULL)
             continue;
 
-        char key[32];
-        wcstombs(key, it->item.key, sizeof(key) - 1);
+        char *key = ac32tombs(it->item.key);
+        xassert(key != NULL);
+
         LOG_DBG("URL: %s (%s)", it->item.url, key);
+        free(key);
     }
 #endif
 }

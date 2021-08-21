@@ -14,6 +14,7 @@
 #define LOG_MODULE "csi"
 #define LOG_ENABLE_DBG 0
 #include "log.h"
+#include "char32.h"
 #include "config.h"
 #include "debug.h"
 #include "grid.h"
@@ -742,7 +743,7 @@ csi_dispatch(struct terminal *term, uint8_t final)
                 int count = vt_param_get(term, 0, 1);
                 LOG_DBG("REP: '%lc' %d times", (wint_t)term->vt.last_printed, count);
 
-                const int width = wcwidth(term->vt.last_printed);
+                const int width = c32width(term->vt.last_printed);
                 if (width > 0) {
                     for (int i = 0; i < count; i++)
                         term_print(term, term->vt.last_printed, width);

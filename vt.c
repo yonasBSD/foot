@@ -11,6 +11,7 @@
 #define LOG_MODULE "vt"
 #define LOG_ENABLE_DBG 0
 #include "log.h"
+#include "char32.h"
 #include "config.h"
 #include "csi.h"
 #include "dcs.h"
@@ -182,14 +183,14 @@ action_execute(struct terminal *term, uint8_t c)
         struct row *row = term->grid->cur_row;
 
         bool emit_tab_char = (row->cells[start_col].wc == 0 ||
-                              row->cells[start_col].wc == L' ');
+                              row->cells[start_col].wc == U' ');
 
         /* Check if all cells from here until the next tab stop are empty */
         for (const struct cell *cell = &row->cells[start_col + 1];
              cell < &row->cells[new_col];
              cell++)
         {
-            if (!(cell->wc == 0 || cell->wc == L' ')) {
+            if (!(cell->wc == 0 || cell->wc == U' ')) {
                 emit_tab_char = false;
                 break;
             }
@@ -202,14 +203,14 @@ action_execute(struct terminal *term, uint8_t c)
         if (emit_tab_char) {
             row->dirty = true;
 
-            row->cells[start_col].wc = '\t';
+            row->cells[start_col].wc = U'\t';
             row->cells[start_col].attrs.clean = 0;
 
             for (struct cell *cell = &row->cells[start_col + 1];
                  cell < &row->cells[new_col];
                  cell++)
             {
-                cell->wc = L' ';
+                cell->wc = U' ';
                 cell->attrs.clean = 0;
             }
         }
@@ -549,7 +550,7 @@ action_esc_dispatch(struct terminal *term, uint8_t final)
             for (int r = 0; r < term->rows; r++) {
                 struct row *row = grid_row(term->grid, r);
                 for (int c = 0; c < term->cols; c++) {
-                    row->cells[c].wc = L'E';
+                    row->cells[c].wc = U'E';
                     row->cells[c].attrs = (struct attributes){0};
                 }
                 row->dirty = true;
@@ -617,9 +618,9 @@ chain_key(uint32_t old_key, uint32_t new_wc)
 }
 
 static void
-action_utf8_print(struct terminal *term, wchar_t wc)
+action_utf8_print(struct terminal *term, char32_t wc)
 {
-    int width = wcwidth(wc);
+    int width = c32width(wc);
     const bool grapheme_clustering = term->conf->tweak.grapheme_shaping;
 
 #if !defined(FOOT_GRAPHEME_CLUSTERING)
@@ -640,8 +641,8 @@ action_utf8_print(struct terminal *term, wchar_t wc)
             col--;
 
         xassert(col >= 0 && col < term->cols);
-        wchar_t base = row->cells[col].wc;
-        wchar_t UNUSED last = base;
+        char32_t base = row->cells[col].wc;
+        char32_t UNUSED last = base;
 
         /* Is base cell already a cluster? */
         const struct composed *composed =
@@ -672,7 +673,7 @@ action_utf8_print(struct terminal *term, wchar_t wc)
         }
 #endif
 
-        int base_width = wcwidth(base);
+        int base_width = c32width(base);
         if (base_width > 0) {
             term->grid->cursor.point.col = col;
             term->grid->cursor.lcf = false;
@@ -682,11 +683,11 @@ action_utf8_print(struct terminal *term, wchar_t wc)
                 bool comb_from_primary;
                 bool pre_from_primary;
 
-                wchar_t precomposed = fcft_precompose(
+                char32_t precomposed = fcft_precompose(
                     term->fonts[0], base, wc, &base_from_primary,
                     &comb_from_primary, &pre_from_primary);
 
-                int precomposed_width = wcwidth(precomposed);
+                int precomposed_width = c32width(precomposed);
 
                 /*
                  * Only use the pre-composed character if:
@@ -698,7 +699,7 @@ action_utf8_print(struct terminal *term, wchar_t wc)
                  *     font
                  */
 
-                if (precomposed != (wchar_t)-1 &&
+                if (precomposed != (char32_t)-1 &&
                     precomposed_width == base_width &&
                     (pre_from_primary ||
                      !base_from_primary ||

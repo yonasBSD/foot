@@ -34,6 +34,12 @@
 #include "xmalloc.h"
 #include "xsnprintf.h"
 
+#include "char32.h"
+
+#if !defined(__STDC_UTF_32__) || !__STDC_UTF_32__
+ #error "char32_t does not use UTF-32"
+#endif
+
 static bool
 fdm_sigint(struct fdm *fdm, int signo, void *data)
 {
@@ -90,16 +96,14 @@ print_usage(const char *prog_name)
 bool
 locale_is_utf8(void)
 {
-    xassert(strlen(u8"ö") == 2);
+    static const char u8[] = u8"ö";
+    xassert(strlen(u8) == 2);
 
-    wchar_t w;
-    if (mbtowc(&w, u8"ö", 2) != 2)
+    char32_t w;
+    if (mbrtoc32(&w, u8, 2, &(mbstate_t){0}) != 2)
         return false;
 
-    if (w != U'ö')
-        return false;
-
-    return true;
+    return w == U'ö';
 }
 
 struct shutdown_context {
@@ -408,15 +412,6 @@ main(int argc, char *const *argv)
     log_init(log_colorize, as_server && log_syslog,
              as_server ? LOG_FACILITY_DAEMON : LOG_FACILITY_USER, log_level);
 
-    _Static_assert((int)LOG_CLASS_ERROR == (int)FCFT_LOG_CLASS_ERROR,
-                   "fcft log level enum offset");
-    _Static_assert((int)LOG_COLORIZE_ALWAYS == (int)FCFT_LOG_COLORIZE_ALWAYS,
-                   "fcft colorize enum mismatch");
-    fcft_log_init(
-        (enum fcft_log_colorize)log_colorize,
-        as_server && log_syslog,
-        (enum fcft_log_class)log_level);
-
     if (argc > 0) {
         argc -= optind;
         argv += optind;
@@ -499,6 +494,14 @@ main(int argc, char *const *argv)
         return EXIT_SUCCESS;
     }
 
+    _Static_assert((int)LOG_CLASS_ERROR == (int)FCFT_LOG_CLASS_ERROR,
+                   "fcft log level enum offset");
+    _Static_assert((int)LOG_COLORIZE_ALWAYS == (int)FCFT_LOG_COLORIZE_ALWAYS,
+                   "fcft colorize enum mismatch");
+    fcft_init(
+        (enum fcft_log_colorize)log_colorize,
+        as_server && log_syslog,
+        (enum fcft_log_class)log_level);
     fcft_set_scaling_filter(conf.tweak.fcft_filter);
 
     if (conf_term != NULL) {
@@ -646,6 +649,8 @@ main(int argc, char *const *argv)
     if (aborted || tll_length(wayl->terms) == 0)
         ret = EXIT_SUCCESS;
 
+    LOG_INFO("%zu", c32len(U"foobar"));
+
 out:
     free(_cwd);
     server_destroy(server);
@@ -665,6 +670,7 @@ out:
         unlink(pid_file);
 
     LOG_INFO("goodbye");
+    fcft_fini();
     log_deinit();
     return ret == EXIT_SUCCESS && !as_server ? shutdown_ctx.exit_code : ret;
 }

@@ -9,6 +9,7 @@
 #define LOG_MODULE "ime"
 #define LOG_ENABLE_DBG 0
 #include "log.h"
+#include "char32.h"
 #include "render.h"
 #include "search.h"
 #include "terminal.h"
@@ -159,26 +160,29 @@ done(void *data, struct zwp_text_input_v3 *zwp_text_input_v3,
     /* 4. Calculate surrounding text to send - not supported */
 
     /* 5. Insert new pre-edit text */
-    size_t wchars = seat->ime.preedit.pending.text != NULL
-        ? mbstowcs(NULL, seat->ime.preedit.pending.text, 0)
-        : 0;
+    char32_t *allocated_preedit_text = NULL;
 
-    if (wchars == 0 || wchars == (size_t)-1) {
+    if (seat->ime.preedit.pending.text == NULL ||
+        seat->ime.preedit.pending.text[0] == '\0' ||
+        (allocated_preedit_text = ambstoc32(seat->ime.preedit.pending.text)) == NULL)
+    {
         ime_reset_pending_preedit(seat);
         return;
     }
 
-    /* First, convert to unicode */
-    seat->ime.preedit.text = xmalloc((wchars + 1) * sizeof(wchar_t));
-    mbstowcs(seat->ime.preedit.text, seat->ime.preedit.pending.text, wchars);
-    seat->ime.preedit.text[wchars] = L'\0';
+    xassert(seat->ime.preedit.pending.text != NULL);
+    xassert(allocated_preedit_text != NULL);
+
+    seat->ime.preedit.text = allocated_preedit_text;
+
+    size_t wchars = c32len(seat->ime.preedit.text);
 
     /* Next, count number of cells needed */
     size_t cell_count = 0;
     size_t widths[wchars + 1];
 
     for (size_t i = 0; i < wchars; i++) {
-        int width = max(wcwidth(seat->ime.preedit.text[i]), 1);
+        int width = max(c32width(seat->ime.preedit.text[i]), 1);
         widths[i] = width;
         cell_count += width;
     }
@@ -238,7 +242,7 @@ done(void *data, struct zwp_text_input_v3 *zwp_text_input_v3,
          *
          * To do this, we use mblen() to step though the utf-8
          * pre-edit string, advancing a unicode character index as
-         * we go, *and* advancing a *cell* index using wcwidth()
+         * we go, *and* advancing a *cell* index using c32width()
          * of the unicode character.
          *
          * When we find the matching *byte* index, we at the same

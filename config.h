@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <uchar.h>
 
 #include <tllist.h>
 
@@ -80,7 +81,7 @@ struct config {
     char *shell;
     char *title;
     char *app_id;
-    wchar_t *word_delimiters;
+    char32_t *word_delimiters;
     bool login_shell;
     bool locked_title;
 
@@ -142,21 +143,21 @@ struct config {
                 SCROLLBACK_INDICATOR_FORMAT_TEXT,
             } format;
 
-            wchar_t *text;
+            char32_t *text;
         } indicator;
         float multiplier;
     } scrollback;
 
     struct {
-        wchar_t *label_letters;
+        char32_t *label_letters;
         struct config_spawn_template launch;
         enum {
             OSC8_UNDERLINE_URL_MODE,
             OSC8_UNDERLINE_ALWAYS,
         } osc8_underline;
 
-        wchar_t **protocols;
-        wchar_t *uri_characters;
+        char32_t **protocols;
+        char32_t *uri_characters;
         size_t prot_count;
         size_t max_prot_len;
     } url;

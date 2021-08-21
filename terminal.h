@@ -3,7 +3,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <wchar.h>
 
 #include <threads.h>
 #include <semaphore.h>
@@ -65,7 +64,7 @@ static_assert(sizeof(struct attributes) == 8, "VT attribute struct too large");
 #define CELL_SPACER                 (CELL_COMB_CHARS_HI + 1)
 
 struct cell {
-    wchar_t wc;
+    char32_t wc;
     struct attributes attrs;
 };
 static_assert(sizeof(struct cell) == 12, "bad size");
@@ -182,11 +181,11 @@ struct vt_param {
 
 struct vt {
     int state;  /* enum state */
-    wchar_t last_printed;
+    char32_t last_printed;
 #if defined(FOOT_GRAPHEME_CLUSTERING)
     utf8proc_int32_t grapheme_state;
 #endif
-    wchar_t utf8;
+    char32_t utf8;
     struct {
         struct vt_param v[16];
         uint8_t idx;
@@ -290,7 +289,7 @@ enum url_action { URL_ACTION_COPY, URL_ACTION_LAUNCH };
 struct url {
     uint64_t id;
     char *url;
-    wchar_t *key;
+    char32_t *key;
     struct coord start;
     struct coord end;
     enum url_action action;
@@ -311,7 +310,7 @@ struct terminal {
     struct reaper *reaper;
     const struct config *conf;
 
-    void (*ascii_printer)(struct terminal *term, wchar_t c);
+    void (*ascii_printer)(struct terminal *term, char32_t c);
 
     pid_t slave;
     int ptmx;
@@ -504,7 +503,7 @@ struct terminal {
 
     bool is_searching;
     struct {
-        wchar_t *buf;
+        char32_t *buf;
         size_t len;
         size_t sz;
         size_t cursor;
@@ -516,7 +515,7 @@ struct terminal {
         size_t match_len;
 
         struct {
-            wchar_t *buf;
+            char32_t *buf;
             size_t len;
         } last;
     } search;
@@ -639,7 +638,7 @@ struct terminal {
 
     /* TODO: wrap in a struct */
     url_list_t urls;
-    wchar_t url_keys[5];
+    char32_t url_keys[5];
     bool urls_show_uri_on_jump_label;
     struct grid *url_grid_snapshot;
 
@@ -734,7 +733,7 @@ void term_cursor_up(struct terminal *term, int count);
 void term_cursor_down(struct terminal *term, int count);
 void term_cursor_blink_update(struct terminal *term);
 
-void term_print(struct terminal *term, wchar_t wc, int width);
+void term_print(struct terminal *term, char32_t wc, int width);
 
 void term_scroll(struct terminal *term, int rows);
 void term_scroll_reverse(struct terminal *term, int rows);

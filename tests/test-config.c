@@ -70,17 +70,17 @@ test_string(struct context *ctx, bool (*parse_fun)(struct context *ctx),
 }
 
 static void
-test_wstring(struct context *ctx, bool (*parse_fun)(struct context *ctx),
-             const char *key, wchar_t *const *ptr)
+test_c32string(struct context *ctx, bool (*parse_fun)(struct context *ctx),
+               const char *key, char32_t *const *ptr)
 {
     ctx->key = key;
 
     static const struct {
         const char *option_string;
-        const wchar_t *value;
+        const char32_t *value;
         bool invalid;
     } input[] = {
-        {"a string", L"a string"},
+        {"a string", U"a string"},
     };
 
     for (size_t i = 0; i < ALEN(input); i++) {
@@ -96,10 +96,11 @@ test_wstring(struct context *ctx, bool (*parse_fun)(struct context *ctx),
                 BUG("[%s].%s=%s: failed to parse",
                     ctx->section, ctx->key, ctx->value);
             }
-            if (wcscmp(*ptr, input[i].value) != 0) {
+            if (c32cmp(*ptr, input[i].value) != 0) {
                 BUG("[%s].%s=%s: set value (%ls) not the expected one (%ls)",
                     ctx->section, ctx->key, ctx->value,
-                    *ptr, input[i].value);
+                    (const wchar_t *)*ptr,
+                    (const wchar_t *)input[i].value);
             }
         }
     }
@@ -412,7 +413,7 @@ test_section_main(void)
     test_string(&ctx, &parse_section_main, "term", &conf.term);
     test_string(&ctx, &parse_section_main, "app-id", &conf.app_id);
 
-    test_wstring(&ctx, &parse_section_main, "word-delimiters", &conf.word_delimiters);
+    test_c32string(&ctx, &parse_section_main, "word-delimiters", &conf.word_delimiters);
 
     test_boolean(&ctx, &parse_section_main, "login-shell", &conf.login_shell);
     test_boolean(&ctx, &parse_section_main, "box-drawings-uses-font-glyphs", &conf.box_drawings_uses_font_glyphs);
@@ -526,7 +527,7 @@ test_section_url(void)
               (const char *[]){"url-mode", "always"},
               (int []){OSC8_UNDERLINE_URL_MODE, OSC8_UNDERLINE_ALWAYS},
               (int *)&conf.url.osc8_underline);
-    test_wstring(&ctx, &parse_section_url, "label-letters", &conf.url.label_letters);
+    test_c32string(&ctx, &parse_section_url, "label-letters", &conf.url.label_letters);
 
     /* TODO: protocols (list of wchars) */
     /* TODO: uri-characters (wchar string, but sorted) */

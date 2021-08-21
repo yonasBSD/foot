@@ -17,6 +17,10 @@ debug-x64:
   image: alpine:edge
   stage: build
   script:
+    - cd subprojects
+    - git clone https://codeberg.org/dnkl/fcft.git
+    - cd fcft && git checkout 3.0-dev && cd ..
+    - cd ..
     - mkdir -p bld/debug
     - cd bld/debug
     - meson --buildtype=debug -Dgrapheme-clustering=enabled -Dfcft:grapheme-shaping=enabled -Dfcft:run-shaping=enabled -Dfcft:test-text-shaping=true ../../
@@ -31,6 +35,10 @@ debug-x64-no-grapheme-clustering:
   stage: build
   script:
     - apk del harfbuzz harfbuzz-dev utf8proc utf8proc-dev
+    - cd subprojects
+    - git clone https://codeberg.org/dnkl/fcft.git
+    - cd fcft && git checkout 3.0-dev && cd ..
+    - cd ..
     - mkdir -p bld/debug
     - cd bld/debug
     - meson --buildtype=debug -Dgrapheme-clustering=disabled -Dfcft:grapheme-shaping=disabled -Dfcft:run-shaping=disabled -Dfcft:test-text-shaping=false ../../
@@ -46,6 +54,10 @@ release-x64:
   image: alpine:edge
   stage: build
   script:
+    - cd subprojects
+    - git clone https://codeberg.org/dnkl/fcft.git
+    - cd fcft && git checkout 3.0-dev && cd ..
+    - cd ..
     - mkdir -p bld/release
     - cd bld/release
     - meson --buildtype=release -Dgrapheme-clustering=enabled -Dfcft:grapheme-shaping=enabled -Dfcft:run-shaping=enabled  -Dfcft:test-text-shaping=true ../../
@@ -61,6 +73,10 @@ debug-x86:
   image: i386/alpine:edge
   stage: build
   script:
+    - cd subprojects
+    - git clone https://codeberg.org/dnkl/fcft.git
+    - cd fcft && git checkout 3.0-dev && cd ..
+    - cd ..
     - mkdir -p bld/debug
     - cd bld/debug
     - meson --buildtype=debug -Dgrapheme-clustering=enabled -Dfcft:grapheme-shaping=enabled -Dfcft:run-shaping=enabled  -Dfcft:test-text-shaping=true ../../
@@ -76,6 +92,10 @@ release-x86:
   image: i386/alpine:edge
   stage: build
   script:
+    - cd subprojects
+    - git clone https://codeberg.org/dnkl/fcft.git
+    - cd fcft && git checkout 3.0-dev && cd ..
+    - cd ..
     - mkdir -p bld/release
     - cd bld/release
     - meson --buildtype=release -Dgrapheme-clustering=enabled -Dfcft:grapheme-shaping=enabled -Dfcft:run-shaping=enabled  -Dfcft:test-text-shaping=true ../../
