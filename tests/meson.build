@@ -3,6 +3,6 @@ config_test = executable(
   'test-config.c', '../tokenize.c',
   wl_proto_headers,
   link_with: [common],
-  dependencies: [pixman, xkb, fcft])
+  dependencies: [pixman, xkb, fcft, tllist])
 
 test('config', config_test)
