@@ -1,0 +1,8 @@
+config_test = executable(
+  'test-config',
+  'test-config.c', '../tokenize.c',
+  wl_proto_headers,
+  link_with: [common],
+  dependencies: [pixman, xkb, fcft])
+
+test('config', config_test)
