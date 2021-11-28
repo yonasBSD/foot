@@ -1151,7 +1151,7 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
     const bool disambiguate = flags & KITTY_KBD_DISAMBIGUATE;
     const bool report_events = flags & KITTY_KBD_REPORT_EVENT;
 
-    if (!report_events && !pressed)
+    if (!report_events && released)
         return false;
 
     /* TODO: should we even bother with this, or just say it’s not supported? */
