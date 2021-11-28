@@ -1026,6 +1026,9 @@ static bool
 legacy_kbd_protocol(struct seat *seat, struct terminal *term,
                     const struct kbd_ctx *ctx)
 {
+    if (ctx->key_state != WL_KEYBOARD_KEY_STATE_PRESSED)
+        return;
+
     enum modifier keymap_mods = MOD_NONE;
     keymap_mods |= seat->kbd.shift ? MOD_SHIFT : MOD_NONE;
     keymap_mods |= seat->kbd.alt ? MOD_ALT : MOD_NONE;
@@ -1418,15 +1421,20 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
         return;
     }
 
-    if (state == XKB_KEY_UP) {
-        stop_repeater(seat, key);
-        return;
-    }
+    const bool pressed = state == WL_KEYBOARD_KEY_STATE_PRESSED;
+    //const bool repeated = pressed && seat->kbd.repeat.dont_re_repeat;
+    const bool released = state == WL_KEYBOARD_KEY_STATE_RELEASED;
 
-    bool should_repeat = xkb_keymap_key_repeats(seat->kbd.xkb_keymap, key);
+    if (released)
+        stop_repeater(seat, key);
+
+    bool should_repeat =
+        pressed && xkb_keymap_key_repeats(seat->kbd.xkb_keymap, key);
+
     xkb_keysym_t sym = xkb_state_key_get_one_sym(seat->kbd.xkb_state, key);
 
-    if (state == XKB_KEY_DOWN && term->conf->mouse.hide_when_typing &&
+    if (pressed && term->conf->mouse.hide_when_typing &&
+
         /* TODO: better way to detect modifiers */
         sym != XKB_KEY_Shift_L && sym != XKB_KEY_Shift_R &&
         sym != XKB_KEY_Control_L && sym != XKB_KEY_Control_R &&
@@ -1443,7 +1451,8 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
     enum xkb_compose_status compose_status = XKB_COMPOSE_NOTHING;
 
     if (seat->kbd.xkb_compose_state != NULL) {
-        xkb_compose_state_feed(seat->kbd.xkb_compose_state, sym);
+        if (pressed)
+            xkb_compose_state_feed(seat->kbd.xkb_compose_state, sym);
         compose_status = xkb_compose_state_get_status(
             seat->kbd.xkb_compose_state);
     }
@@ -1464,18 +1473,26 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
     size_t raw_count = xkb_keymap_key_get_syms_by_level(
         seat->kbd.xkb_keymap, key, layout_idx, 0, &raw_syms);
 
-    if (term->is_searching) {
-        if (should_repeat)
-            start_repeater(seat, key);
-        search_input(
-            seat, term, key, sym, bind_mods, bind_consumed, raw_syms, raw_count, serial);
-        return;
-    } else  if (urls_mode_is_active(term)) {
-        if (should_repeat)
-            start_repeater(seat, key);
-        urls_input(
-            seat, term, key, sym, bind_mods, bind_consumed, raw_syms, raw_count, serial);
-        return;
+    if (pressed) {
+        if (term->is_searching) {
+            if (should_repeat)
+                start_repeater(seat, key);
+
+            search_input(
+                seat, term, key, sym, bind_mods, bind_consumed,
+                raw_syms, raw_count, serial);
+            return;
+        }
+
+        else  if (urls_mode_is_active(term)) {
+            if (should_repeat)
+                start_repeater(seat, key);
+
+            urls_input(
+                seat, term, key, sym, bind_mods, bind_consumed,
+                raw_syms, raw_count, serial);
+            return;
+        }
     }
 
 #if 0
@@ -1499,36 +1516,38 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
     /*
      * User configurable bindings
      */
-    tll_foreach(seat->kbd.bindings.key, it) {
-        const struct key_binding *bind = &it->item;
+    if (pressed) {
+        tll_foreach(seat->kbd.bindings.key, it) {
+            const struct key_binding *bind = &it->item;
 
-        /* Match translated symbol */
-        if (bind->sym == sym &&
-            bind->mods == (bind_mods & ~bind_consumed) &&
-            execute_binding(
-                seat, term, bind->action, bind->pipe_argv, serial))
-        {
-            goto maybe_repeat;
-        }
-
-        if (bind->mods != bind_mods)
-            continue;
-
-        /* Match untranslated symbols */
-        for (size_t i = 0; i < raw_count; i++) {
-            if (bind->sym == raw_syms[i] && execute_binding(
+            /* Match translated symbol */
+            if (bind->sym == sym &&
+                bind->mods == (bind_mods & ~bind_consumed) &&
+                execute_binding(
                     seat, term, bind->action, bind->pipe_argv, serial))
             {
                 goto maybe_repeat;
             }
-        }
 
-        /* Match raw key code */
-        tll_foreach(bind->key_codes, code) {
-            if (code->item == key && execute_binding(
-                    seat, term, bind->action, bind->pipe_argv, serial))
-            {
-                goto maybe_repeat;
+            if (bind->mods != bind_mods)
+                continue;
+
+            /* Match untranslated symbols */
+            for (size_t i = 0; i < raw_count; i++) {
+                if (bind->sym == raw_syms[i] && execute_binding(
+                        seat, term, bind->action, bind->pipe_argv, serial))
+                {
+                    goto maybe_repeat;
+                }
+            }
+
+            /* Match raw key code */
+            tll_foreach(bind->key_codes, code) {
+                if (code->item == key && execute_binding(
+                        seat, term, bind->action, bind->pipe_argv, serial))
+                {
+                    goto maybe_repeat;
+                }
             }
         }
     }
@@ -1590,7 +1609,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
         ? kitty_kbd_protocol(seat, term, &ctx)
         : legacy_kbd_protocol(seat, term, &ctx);
 
-    if (seat->kbd.xkb_compose_state != NULL)
+    if (seat->kbd.xkb_compose_state != NULL && pressed)
         xkb_compose_state_reset(seat->kbd.xkb_compose_state);
 
     if (utf8 != buf)
