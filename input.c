@@ -1027,7 +1027,7 @@ legacy_kbd_protocol(struct seat *seat, struct terminal *term,
                     const struct kbd_ctx *ctx)
 {
     if (ctx->key_state != WL_KEYBOARD_KEY_STATE_PRESSED)
-        return;
+        return false;
 
     enum modifier keymap_mods = MOD_NONE;
     keymap_mods |= seat->kbd.shift ? MOD_SHIFT : MOD_NONE;
@@ -1143,6 +1143,21 @@ static bool
 kitty_kbd_protocol(struct seat *seat, struct terminal *term,
                    const struct kbd_ctx *ctx)
 {
+    const bool repeating = seat->kbd.repeat.dont_re_repeat;
+    const bool pressed = ctx->key_state == WL_KEYBOARD_KEY_STATE_PRESSED && !repeating;
+    const bool released = ctx->key_state == WL_KEYBOARD_KEY_STATE_RELEASED;
+
+    const enum kitty_kbd_flags flags = term->grid->kitty_kbd.flags[term->grid->kitty_kbd.idx];
+    const bool disambiguate = flags & KITTY_KBD_DISAMBIGUATE;
+    const bool report_events = flags & KITTY_KBD_REPORT_EVENT;
+
+    if (!report_events && !pressed)
+        return false;
+
+    /* TODO: should we even bother with this, or just say it’s not supported? */
+    if (!disambiguate && pressed)
+        return legacy_kbd_protocol(seat, term, ctx);
+
     const xkb_mod_mask_t mods = ctx->mods & seat->kbd.kitty_significant;
     const xkb_mod_mask_t consumed = xkb_state_key_get_consumed_mods2(
         seat->kbd.xkb_state, ctx->key, XKB_CONSUMED_MODE_GTK) & seat->kbd.kitty_significant;
@@ -1155,17 +1170,17 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
     const uint8_t *const utf8 = ctx->utf8.buf;
     const size_t count = ctx->utf8.count;
 
-    if (ctx->compose_status == XKB_COMPOSE_COMPOSED) {
-        term_to_slave(term, utf8, count);
-        return true;
-    }
-
     if (effective == 0) {
         switch (sym) {
         case XKB_KEY_Return:    term_to_slave(term, "\r", 1); return  true;
         case XKB_KEY_BackSpace: term_to_slave(term, "\x7f", 1); return true;
         case XKB_KEY_Tab:       term_to_slave(term, "\t", 1); return true;
         }
+    }
+
+    if (ctx->compose_status == XKB_COMPOSE_COMPOSED && !released) {
+        term_to_slave(term, utf8, count);
+        return true;
     }
 
     /*
@@ -1177,7 +1192,7 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
      * keys, like Return and Backspace; figure out if there’s some
      * better magic than filtering out Caps- and Num-Lock here..
      */
-    if (iswprint(utf32) && (effective & ~caps_num) == 0) {
+    if (iswprint(utf32) && (effective & ~caps_num) == 0 && !released) {
         term_to_slave(term, utf8, count);
         return true;
     }
@@ -1319,7 +1334,7 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
 
     default:
         if (count > 0) {
-            if (effective == 0) {
+            if (effective == 0 && !released) {
                 term_to_slave(term, utf8, count);
                 return true;
             }
@@ -1386,6 +1401,16 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
 
     xassert(encoded_mods >= 1);
 
+    char event[4];
+    if (report_events) {
+        /* Note: this deviates slightly from Kitty, which omits the
+         * “:1” subparameter for key press events */
+        event[0] = ':';
+        event[1] = '0' + (pressed ? 1 : repeating ? 2 : 3);
+        event[2] = '\0';
+    } else
+        event[0] = '\0';
+
     char buf[16];
     int bytes;
 
@@ -1393,14 +1418,14 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
         return false;
 
     if (final == 'u' || final == '~') {
-        if (encoded_mods > 1)
-            bytes = snprintf(buf, sizeof(buf), "\x1b[%u;%u%c",
-                             key, encoded_mods, final);
+        if (encoded_mods > 1 || event[0] != '\0')
+            bytes = snprintf(buf, sizeof(buf), "\x1b[%u;%u%s%c",
+                             key, encoded_mods, event, final);
         else
             bytes = snprintf(buf, sizeof(buf), "\x1b[%u%c", key, final);
     } else {
-        if (encoded_mods > 1)
-            bytes = snprintf(buf, sizeof(buf), "\x1b[1;%u%c", encoded_mods, final);
+        if (encoded_mods > 1 || event[0] != '\0')
+            bytes = snprintf(buf, sizeof(buf), "\x1b[1;%u%s%c", encoded_mods, event, final);
         else
             bytes = snprintf(buf, sizeof(buf), "\x1b[%c", final);
     }
