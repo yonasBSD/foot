@@ -1634,7 +1634,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
         ? kitty_kbd_protocol(seat, term, &ctx)
         : legacy_kbd_protocol(seat, term, &ctx);
 
-    if (seat->kbd.xkb_compose_state != NULL && pressed)
+    if (seat->kbd.xkb_compose_state != NULL && released)
         xkb_compose_state_reset(seat->kbd.xkb_compose_state);
 
     if (utf8 != buf)
