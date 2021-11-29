@@ -1146,12 +1146,16 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
     const bool repeating = seat->kbd.repeat.dont_re_repeat;
     const bool pressed = ctx->key_state == WL_KEYBOARD_KEY_STATE_PRESSED && !repeating;
     const bool released = ctx->key_state == WL_KEYBOARD_KEY_STATE_RELEASED;
+    const bool composed = ctx->compose_status == XKB_COMPOSE_COMPOSED;
 
     const enum kitty_kbd_flags flags = term->grid->kitty_kbd.flags[term->grid->kitty_kbd.idx];
     const bool disambiguate = flags & KITTY_KBD_DISAMBIGUATE;
     const bool report_events = flags & KITTY_KBD_REPORT_EVENT;
 
     if (!report_events && released)
+        return false;
+
+    if (composed && released)
         return false;
 
     /* TODO: should we even bother with this, or just say it’s not supported? */
@@ -1178,21 +1182,10 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
         }
     }
 
-    if (ctx->compose_status == XKB_COMPOSE_COMPOSED && !released) {
-        term_to_slave(term, utf8, count);
-        return true;
-    }
-
-    /*
-     * Printables without any modifiers are printed as is.
-     *
-     * TODO: plain text keys (a-z, 0-9 etc) are still printed as text,
-     * even when NumLock is active, despite NumLock being a
-     * significant modifier, *and* despite NumLock affecting other
-     * keys, like Return and Backspace; figure out if there’s some
-     * better magic than filtering out Caps- and Num-Lock here..
-     */
-    if (iswprint(utf32) && (effective & ~caps_num) == 0 && !released) {
+    /* Plain-text without modifiers, or commposed text, is emitted as-is */
+    if (((iswprint(utf32) && (effective & ~caps_num) == 0) || composed)
+        && !released)
+    {
         term_to_slave(term, utf8, count);
         return true;
     }
@@ -1314,89 +1307,95 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
     case XKB_KEY_XF86AudioRaiseVolume: key = 57439; final = 'u'; break;
     case XKB_KEY_XF86AudioMute:        key = 57440; final = 'u'; break;
 
-#if 0  /* TODO: enable when “Report all keys as escape codes” is enabled */
-    case XKB_KEY_Caps_Lock: key = 57358; final = 'u'; break;
-    case XKB_KEY_Num_Lock:  key = 57360; final = 'u'; break;
+    case XKB_KEY_Caps_Lock: if (false) {key = 57358; final = 'u';} break;
+    case XKB_KEY_Num_Lock:  if (false) {key = 57360; final = 'u';} break;
 
-    case XKB_KEY_Shift_L:   key = 57441; final = 'u'; break;
-    case XKB_KEY_Control_L: key = 57442; final = 'u'; break;
-    case XKB_KEY_Alt_L:     key = 57443; final = 'u'; break;
-    case XKB_KEY_Super_L:   key = 57444; final = 'u'; break;
-    case XKB_KEY_Hyper_L:   key = 57445; final = 'u'; break;
-    case XKB_KEY_Meta_L:    key = 57446; final = 'u'; break;
-    case XKB_KEY_Shift_R:   key = 57447; final = 'u'; break;
-    case XKB_KEY_Control_R: key = 57448; final = 'u'; break;
-    case XKB_KEY_Alt_R:     key = 57449; final = 'u'; break;
-    case XKB_KEY_Super_R:   key = 57450; final = 'u'; break;
-    case XKB_KEY_Hyper_R:   key = 57451; final = 'u'; break;
-    case XKB_KEY_Meta_R:    key = 57452; final = 'u'; break;
-#endif
+    case XKB_KEY_Shift_L:   if (false) {key = 57441; final = 'u';} break;
+    case XKB_KEY_Control_L: if (false) {key = 57442; final = 'u';} break;
+    case XKB_KEY_Alt_L:     if (false) {key = 57443; final = 'u';} break;
+    case XKB_KEY_Super_L:   if (false) {key = 57444; final = 'u';} break;
+    case XKB_KEY_Hyper_L:   if (false) {key = 57445; final = 'u';} break;
+    case XKB_KEY_Meta_L:    if (false) {key = 57446; final = 'u';} break;
+    case XKB_KEY_Shift_R:   if (false) {key = 57447; final = 'u';} break;
+    case XKB_KEY_Control_R: if (false) {key = 57448; final = 'u';} break;
+    case XKB_KEY_Alt_R:     if (false) {key = 57449; final = 'u';} break;
+    case XKB_KEY_Super_R:   if (false) {key = 57450; final = 'u';} break;
+    case XKB_KEY_Hyper_R:   if (false) {key = 57451; final = 'u';} break;
+    case XKB_KEY_Meta_R:    if (false) {key = 57452; final = 'u';} break;
 
-    default:
-        if (count > 0) {
-            if (effective == 0 && !released) {
-                term_to_slave(term, utf8, count);
-                return true;
+    default: {
+        /*
+         * Use keysym (typically its Unicode codepoint value).
+         *
+         * If the keysym is shifted, use its unshifted codepoint
+         * instead. In other words, ctrl+a and ctrl+shift+a should
+         * both use the same value for ‘key’ (97 - i.a. ‘a’).
+         *
+         * However, if a non-significant modifier was used to
+         * generate the symbol. This is needed since we cannot
+         * encode non-significant modifiers, and thus the “extra”
+         * modifier(s) would get lost.
+         *
+         * Example:
+         *
+         * the Swedish layout has ‘2’, QUOTATION MARK (“double
+         * quote”), ‘@’, and ‘²’ on the same key. ‘2’ is the base
+         * symbol.
+         *
+         * Shift+2 results in QUOTATION MARK
+         * AltGr+2 results in ‘@’
+         * AltGr+Shift+2 results in ‘²’
+         *
+         * The kitty kbd protocol can’t encode AltGr. So, if we
+         * always used the base symbol (‘2’), Alt+Shift+2 would
+         * result in the same escape sequence as
+         * AltGr+Alt+Shift+2.
+         *
+         * (yes, this matches what kitty does, as of 0.23.1)
+         */
+
+        /* Get the key’s shift level */
+        xkb_level_index_t lvl = xkb_state_key_get_level(
+            seat->kbd.xkb_state, ctx->key, ctx->layout);
+
+        /* And get all modifier combinations that, combined with
+         * the pressed key, results in the current shift level */
+        xkb_mod_mask_t masks[32];
+        size_t mask_count = xkb_keymap_key_get_mods_for_level(
+            seat->kbd.xkb_keymap, ctx->key, ctx->layout, lvl,
+            masks, ALEN(masks));
+
+        /* Check modifier combinations - if a combination has
+         * modifiers not in our set of ‘significant’ modifiers,
+         * use key sym as-is */
+        bool use_level0_sym = true;
+        for (size_t i = 0; i < mask_count; i++) {
+            if ((masks[i] & ~seat->kbd.kitty_significant) > 0) {
+                use_level0_sym = false;
+                break;
             }
-
-            /*
-             * Use keysym (typically its Unicode codepoint value).
-             *
-             * If the keysym is shifted, use its unshifted codepoint
-             * instead. In other words, ctrl+a and ctrl+shift+a should
-             * both use the same value for ‘key’ (97 - i.a. ‘a’).
-             *
-             * However, if a non-significant modifier was used to
-             * generate the symbol. This is needed since we cannot
-             * encode non-significant modifiers, and thus the “extra”
-             * modifier(s) would get lost.
-             *
-             * Example:
-             *
-             * the Swedish layout has ‘2’, QUOTATION MARK (“double
-             * quote”), ‘@’, and ‘²’ on the same key. ‘2’ is the base
-             * symbol.
-             *
-             * Shift+2 results in QUOTATION MARK
-             * AltGr+2 results in ‘@’
-             * AltGr+Shift+2 results in ‘²’
-             *
-             * The kitty kbd protocol can’t encode AltGr. So, if we
-             * always used the base symbol (‘2’), Alt+Shift+2 would
-             * result in the same escape sequence as
-             * AltGr+Alt+Shift+2.
-             *
-             * (yes, this matches what kitty does, as of 0.23.1)
-             */
-
-            /* Get the key’s shift level */
-            xkb_level_index_t lvl = xkb_state_key_get_level(
-                seat->kbd.xkb_state, ctx->key, ctx->layout);
-
-            /* And get all modifier combinations that, combined with
-             * the pressed key, results in the current shift level */
-            xkb_mod_mask_t masks[32];
-            size_t mask_count = xkb_keymap_key_get_mods_for_level(
-                seat->kbd.xkb_keymap, ctx->key, ctx->layout, lvl,
-                masks, ALEN(masks));
-
-            /* Check modifier combinations - if a combination has
-             * modifiers not in our set of ‘significant’ modifiers,
-             * use key sym as-is */
-            bool use_level0_sym = true;
-            for (size_t i = 0; i < mask_count; i++) {
-                if ((masks[i] & ~seat->kbd.kitty_significant) > 0) {
-                    use_level0_sym = false;
-                    break;
-                }
-            }
-
-            key = use_level0_sym && ctx->level0_syms.count > 0
-                ? ctx->level0_syms.syms[0]
-                : sym;
-            final = 'u';
         }
+
+        xkb_keysym_t sym_to_use = use_level0_sym && ctx->level0_syms.count > 0
+            ? ctx->level0_syms.syms[0]
+            : sym;
+
+        if (composed) {
+            wchar_t wc;
+            if (mbtowc(&wc, (const char *)utf8, count) == count) {
+                xassert(false);
+                key = wc;
+            }
+        }
+
+        if (key < 0) {
+            key = xkb_keysym_to_utf32(sym_to_use);
+            if (key == 0)
+                key = sym_to_use;
+        }
+        final = 'u';
         break;
+    }
     }
 
     xassert(encoded_mods >= 1);
