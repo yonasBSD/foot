@@ -1028,6 +1028,8 @@ legacy_kbd_protocol(struct seat *seat, struct terminal *term,
 {
     if (ctx->key_state != WL_KEYBOARD_KEY_STATE_PRESSED)
         return false;
+    if (ctx->compose_status == XKB_COMPOSE_COMPOSING)
+        return false;
 
     enum modifier keymap_mods = MOD_NONE;
     keymap_mods |= seat->kbd.shift ? MOD_SHIFT : MOD_NONE;
@@ -1146,11 +1148,13 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
     const bool repeating = seat->kbd.repeat.dont_re_repeat;
     const bool pressed = ctx->key_state == WL_KEYBOARD_KEY_STATE_PRESSED && !repeating;
     const bool released = ctx->key_state == WL_KEYBOARD_KEY_STATE_RELEASED;
+    const bool composing = ctx->compose_status == XKB_COMPOSE_COMPOSING;
     const bool composed = ctx->compose_status == XKB_COMPOSE_COMPOSED;
 
     const enum kitty_kbd_flags flags = term->grid->kitty_kbd.flags[term->grid->kitty_kbd.idx];
     const bool disambiguate = flags & KITTY_KBD_DISAMBIGUATE;
     const bool report_events = flags & KITTY_KBD_REPORT_EVENT;
+    const bool report_all_as_escapes = flags & KITTY_KBD_REPORT_ALL;
 
     if (!report_events && released)
         return false;
@@ -1159,7 +1163,7 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
         return false;
 
     /* TODO: should we even bother with this, or just say it’s not supported? */
-    if (!disambiguate && pressed)
+    if (!disambiguate && !report_all_as_escapes && pressed)
         return legacy_kbd_protocol(seat, term, ctx);
 
     const xkb_mod_mask_t mods = ctx->mods & seat->kbd.kitty_significant;
@@ -1173,6 +1177,34 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
     const uint32_t utf32 = ctx->utf32;
     const uint8_t *const utf8 = ctx->utf8.buf;
     const size_t count = ctx->utf8.count;
+
+    if (composing) {
+        /* We never emit anything while composing, *except* modifiers
+         * (and only in report-all-keys-as-escape-codes mode) */
+        switch (sym) {
+        case XKB_KEY_Caps_Lock:
+        case XKB_KEY_Num_Lock:
+        case XKB_KEY_Shift_L:
+        case XKB_KEY_Control_L:
+        case XKB_KEY_Alt_L:
+        case XKB_KEY_Super_L:
+        case XKB_KEY_Hyper_L:
+        case XKB_KEY_Meta_L:
+        case XKB_KEY_Shift_R:
+        case XKB_KEY_Control_R:
+        case XKB_KEY_Alt_R:
+        case XKB_KEY_Super_R:
+        case XKB_KEY_Hyper_R:
+        case XKB_KEY_Meta_R:
+            goto emit_escapes;
+
+        default:
+            return false;
+        }
+    }
+
+    if (report_all_as_escapes)
+        goto emit_escapes;
 
     if (effective == 0) {
         switch (sym) {
@@ -1190,6 +1222,8 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
         return true;
     }
 
+emit_escapes:
+    ;
     unsigned int encoded_mods = 0;
     if (seat->kbd.mod_shift != XKB_MOD_INVALID)
         encoded_mods |= mods & (1 << seat->kbd.mod_shift) ? (1 << 0) : 0;
@@ -1307,21 +1341,21 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
     case XKB_KEY_XF86AudioRaiseVolume: key = 57439; final = 'u'; break;
     case XKB_KEY_XF86AudioMute:        key = 57440; final = 'u'; break;
 
-    case XKB_KEY_Caps_Lock: if (false) {key = 57358; final = 'u';} break;
-    case XKB_KEY_Num_Lock:  if (false) {key = 57360; final = 'u';} break;
+    case XKB_KEY_Caps_Lock: if (report_all_as_escapes) {key = 57358; final = 'u';} break;
+    case XKB_KEY_Num_Lock:  if (report_all_as_escapes) {key = 57360; final = 'u';} break;
 
-    case XKB_KEY_Shift_L:   if (false) {key = 57441; final = 'u';} break;
-    case XKB_KEY_Control_L: if (false) {key = 57442; final = 'u';} break;
-    case XKB_KEY_Alt_L:     if (false) {key = 57443; final = 'u';} break;
-    case XKB_KEY_Super_L:   if (false) {key = 57444; final = 'u';} break;
-    case XKB_KEY_Hyper_L:   if (false) {key = 57445; final = 'u';} break;
-    case XKB_KEY_Meta_L:    if (false) {key = 57446; final = 'u';} break;
-    case XKB_KEY_Shift_R:   if (false) {key = 57447; final = 'u';} break;
-    case XKB_KEY_Control_R: if (false) {key = 57448; final = 'u';} break;
-    case XKB_KEY_Alt_R:     if (false) {key = 57449; final = 'u';} break;
-    case XKB_KEY_Super_R:   if (false) {key = 57450; final = 'u';} break;
-    case XKB_KEY_Hyper_R:   if (false) {key = 57451; final = 'u';} break;
-    case XKB_KEY_Meta_R:    if (false) {key = 57452; final = 'u';} break;
+    case XKB_KEY_Shift_L:   if (report_all_as_escapes) {key = 57441; final = 'u';} break;
+    case XKB_KEY_Control_L: if (report_all_as_escapes) {key = 57442; final = 'u';} break;
+    case XKB_KEY_Alt_L:     if (report_all_as_escapes) {key = 57443; final = 'u';} break;
+    case XKB_KEY_Super_L:   if (report_all_as_escapes) {key = 57444; final = 'u';} break;
+    case XKB_KEY_Hyper_L:   if (report_all_as_escapes) {key = 57445; final = 'u';} break;
+    case XKB_KEY_Meta_L:    if (report_all_as_escapes) {key = 57446; final = 'u';} break;
+    case XKB_KEY_Shift_R:   if (report_all_as_escapes) {key = 57447; final = 'u';} break;
+    case XKB_KEY_Control_R: if (report_all_as_escapes) {key = 57448; final = 'u';} break;
+    case XKB_KEY_Alt_R:     if (report_all_as_escapes) {key = 57449; final = 'u';} break;
+    case XKB_KEY_Super_R:   if (report_all_as_escapes) {key = 57450; final = 'u';} break;
+    case XKB_KEY_Hyper_R:   if (report_all_as_escapes) {key = 57451; final = 'u';} break;
+    case XKB_KEY_Meta_R:    if (report_all_as_escapes) {key = 57452; final = 'u';} break;
 
     default: {
         /*
@@ -1382,10 +1416,8 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
 
         if (composed) {
             wchar_t wc;
-            if (mbtowc(&wc, (const char *)utf8, count) == count) {
-                xassert(false);
+            if (mbtowc(&wc, (const char *)utf8, count) == count)
                 key = wc;
-            }
         }
 
         if (key < 0) {
@@ -1481,8 +1513,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
             seat->kbd.xkb_compose_state);
     }
 
-    if (compose_status == XKB_COMPOSE_COMPOSING)
-        goto maybe_repeat;
+    const bool composed = compose_status == XKB_COMPOSE_COMPOSED;
 
     xkb_mod_mask_t mods, consumed;
     get_current_modifiers(seat, &mods, &consumed, key);
@@ -1585,13 +1616,12 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
      * Compose, and maybe emit "normal" character
      */
 
-    xassert(seat->kbd.xkb_compose_state != NULL ||
-           compose_status != XKB_COMPOSE_COMPOSED);
+    xassert(seat->kbd.xkb_compose_state != NULL || !composed);
 
     if (compose_status == XKB_COMPOSE_CANCELLED)
         goto maybe_repeat;
 
-    int count = compose_status == XKB_COMPOSE_COMPOSED
+    int count = composed
         ? xkb_compose_state_get_utf8(seat->kbd.xkb_compose_state, NULL, 0)
         : xkb_state_key_get_utf8(seat->kbd.xkb_state, key, NULL, 0);
 
@@ -1601,7 +1631,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
     uint8_t *utf8 = count < sizeof(buf) ? buf : xmalloc(count + 1);
     uint32_t utf32 = (uint32_t)-1;
 
-    if (compose_status == XKB_COMPOSE_COMPOSED) {
+    if (composed) {
         xkb_compose_state_get_utf8(
             seat->kbd.xkb_compose_state, (char *)utf8, count + 1);
     } else {
@@ -1633,7 +1663,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
         ? kitty_kbd_protocol(seat, term, &ctx)
         : legacy_kbd_protocol(seat, term, &ctx);
 
-    if (seat->kbd.xkb_compose_state != NULL && released)
+    if (composed && released)
         xkb_compose_state_reset(seat->kbd.xkb_compose_state);
 
     if (utf8 != buf)

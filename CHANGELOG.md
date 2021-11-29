@@ -41,6 +41,8 @@
 * Kitty keyboard protocol:
   - [Report event types](https://sw.kovidgoyal.net/kitty/keyboard-protocol/#report-events)
     (mode `0b10`)
+  - [Report all keys as escape codes](https://sw.kovidgoyal.net/kitty/keyboard-protocol/#report-all-keys)
+    (mode `0b1000`)
 
 
 ### Changed
