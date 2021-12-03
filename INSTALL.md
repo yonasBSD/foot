@@ -39,6 +39,7 @@ subprojects.
 
 ### Running
 
+* UTF-8 locale
 * fontconfig
 * freetype
 * pixman
