@@ -449,19 +449,14 @@ sed 's/@default_terminfo@/foot/g' foot.info | \
 ```
 
 Where _”output-directory”_ **must** match the value passed to
-`-Dcustom-terminfo-install-location` in the foot build.
-
-To compile and install directly (assuming the default
-`-Dcustom-terminfo-install-location`):
-
-```sh
-sudo tic -o /usr/share/foot/terminfo ...
-```
+`-Dcustom-terminfo-install-location` in the foot build. If
+`-Dcustom-terminfo-install-location` has not been set, `-o
+<output-directoty>` can simply be omitted.
 
 Or, if packaging:
 
 ```sh
-tic -o ${DESTDIR}/usr/share/foot/terminfo ...
+tic -o ${DESTDIR}/usr/share/terminfo ...
 ```
 
 
