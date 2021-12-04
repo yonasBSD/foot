@@ -47,6 +47,11 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* Crash when bitmap fonts are scaled down to very small font sizes
+  (https://codeberg.org/dnkl/foot/issues/830).
+
+
 ### Security
 ### Contributors
 

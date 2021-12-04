@@ -688,6 +688,11 @@ term_set_fonts(struct terminal *term, struct fcft_font *fonts[static 4])
         : max(term->fonts[0]->height,
               term->fonts[0]->ascent + term->fonts[0]->descent);
 
+    if (term->cell_width <= 0)
+        term->cell_width = 1;
+    if (term->cell_height <= 0)
+        term->cell_height = 1;
+
     term->font_x_ofs = term_pt_or_px_as_pixels(term, &conf->horizontal_letter_offset);
     term->font_y_ofs = term_pt_or_px_as_pixels(term, &conf->vertical_letter_offset);
 
