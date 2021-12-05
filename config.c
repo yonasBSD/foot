@@ -119,8 +119,40 @@ static const char *const binding_action_map[] = {
     [BIND_ACTION_SELECT_ROW] = "select-row",
 };
 
+static const char *const search_binding_action_map[] = {
+    [BIND_ACTION_SEARCH_NONE] = NULL,
+    [BIND_ACTION_SEARCH_CANCEL] = "cancel",
+    [BIND_ACTION_SEARCH_COMMIT] = "commit",
+    [BIND_ACTION_SEARCH_FIND_PREV] = "find-prev",
+    [BIND_ACTION_SEARCH_FIND_NEXT] = "find-next",
+    [BIND_ACTION_SEARCH_EDIT_LEFT] = "cursor-left",
+    [BIND_ACTION_SEARCH_EDIT_LEFT_WORD] = "cursor-left-word",
+    [BIND_ACTION_SEARCH_EDIT_RIGHT] = "cursor-right",
+    [BIND_ACTION_SEARCH_EDIT_RIGHT_WORD] = "cursor-right-word",
+    [BIND_ACTION_SEARCH_EDIT_HOME] = "cursor-home",
+    [BIND_ACTION_SEARCH_EDIT_END] = "cursor-end",
+    [BIND_ACTION_SEARCH_DELETE_PREV] = "delete-prev",
+    [BIND_ACTION_SEARCH_DELETE_PREV_WORD] = "delete-prev-word",
+    [BIND_ACTION_SEARCH_DELETE_NEXT] = "delete-next",
+    [BIND_ACTION_SEARCH_DELETE_NEXT_WORD] = "delete-next-word",
+    [BIND_ACTION_SEARCH_EXTEND_WORD] = "extend-to-word-boundary",
+    [BIND_ACTION_SEARCH_EXTEND_WORD_WS] = "extend-to-next-whitespace",
+    [BIND_ACTION_SEARCH_CLIPBOARD_PASTE] = "clipboard-paste",
+    [BIND_ACTION_SEARCH_PRIMARY_PASTE] = "primary-paste",
+};
+
+static const char *const url_binding_action_map[] = {
+    [BIND_ACTION_URL_NONE] = NULL,
+    [BIND_ACTION_URL_CANCEL] = "cancel",
+    [BIND_ACTION_URL_TOGGLE_URL_ON_JUMP_LABEL] = "toggle-url-visible",
+};
+
 static_assert(ALEN(binding_action_map) == BIND_ACTION_COUNT,
               "binding action map size mismatch");
+static_assert(ALEN(search_binding_action_map) == BIND_ACTION_SEARCH_COUNT,
+              "search binding action map size mismatch");
+static_assert(ALEN(url_binding_action_map) == BIND_ACTION_URL_COUNT,
+              "URL binding action map size mismatch");
 
 struct context {
     struct config *conf;
@@ -1444,26 +1476,48 @@ parse_section_csd(struct context *ctx)
 }
 
 static void
-binding_pipe_free(struct config_binding_pipe *pipe)
+free_binding_pipe(struct config_binding_pipe *pipe)
 {
     if (pipe->master_copy)
         free_argv(&pipe->argv);
 }
 
-static void NOINLINE
-key_binding_list_free(struct config_key_binding_list *bindings)
+static void
+free_key_binding(struct config_key_binding *binding)
 {
-    for (size_t i = 0; i < bindings->count; i++)
-        binding_pipe_free(&bindings->arr[i].pipe);
+    free_binding_pipe(&binding->pipe);
+}
+
+static void NOINLINE
+free_key_binding_list(struct config_key_binding_list *bindings)
+{
+    struct config_key_binding *binding = &bindings->arr[0];
+
+    for (size_t i = 0; i < bindings->count; i++, binding++)
+        free_key_binding(binding);
     free(bindings->arr);
+
+    bindings->arr = NULL;
+    bindings->count = 0;
+}
+
+static void
+free_mouse_binding(struct config_mouse_binding *binding)
+{
+    free_binding_pipe(&binding->pipe);
 }
 
 static void
 mouse_binding_list_free(struct config_mouse_binding_list *bindings)
 {
-    for (size_t i = 0; i < bindings->count; i++)
-        binding_pipe_free(&bindings->arr[i].pipe);
+    struct config_mouse_binding *binding = &bindings->arr[0];
+
+    for (size_t i = 0; i < bindings->count; i++, binding++)
+        free_mouse_binding(binding);
     free(bindings->arr);
+
+    bindings->arr = NULL;
+    bindings->count = 0;
 }
 
 static bool
@@ -1505,63 +1559,7 @@ out:
     return ret;
 }
 
-static bool
-value_to_key_combos(struct context *ctx,
-                    struct config_key_binding_list *key_combos)
-{
-    xassert(key_combos != NULL);
-    xassert(key_combos->count == 0 && key_combos->arr == NULL);
-
-    size_t size = 0;  /* Size of ‘combos’ array in the key-combo list */
-
-    char *copy = xstrdup(ctx->value);
-
-    for (char *tok_ctx = NULL, *combo = strtok_r(copy, " ", &tok_ctx);
-         combo != NULL;
-         combo = strtok_r(NULL, " ", &tok_ctx))
-    {
-        struct config_key_modifiers modifiers = {0};
-        char *key = strrchr(combo, '+');
-
-        if (key == NULL) {
-            /* No modifiers */
-            key = combo;
-        } else {
-            if (!parse_modifiers(ctx, combo, key - combo, &modifiers))
-                goto err;
-            key++;  /* Skip past the '+' */
-        }
-
-        /* Translate key name to symbol */
-        xkb_keysym_t sym = xkb_keysym_from_name(key, 0);
-        if (sym == XKB_KEY_NoSymbol) {
-            LOG_CONTEXTUAL_ERR("not a valid XKB key name: %s", key);
-            goto err;
-        }
-
-        if (key_combos->count + 1 > size) {
-            size += 4;
-            key_combos->arr = xrealloc(
-                key_combos->arr, size * sizeof(key_combos->arr[0]));
-        }
-
-        xassert(key_combos->count + 1 <= size);
-        key_combos->arr[key_combos->count++] = (struct config_key_binding){
-            .modifiers = modifiers,
-            .sym = sym,
-        };
-    }
-
-    free(copy);
-    return true;
-
-err:
-    key_binding_list_free(key_combos);
-    free(copy);
-    return false;
-}
-
-static int
+static int NOINLINE
 argv_compare(const struct argv *argv1, const struct argv *argv2)
 {
     if (argv1->args == NULL && argv2->args == NULL)
@@ -1587,6 +1585,113 @@ argv_compare(const struct argv *argv1, const struct argv *argv2)
 
     BUG("unexpected loop break");
     return 1;
+}
+
+static void NOINLINE
+remove_action_from_key_bindings_list(struct config_key_binding_list *bindings,
+                                     int action, const struct argv *pipe_argv)
+{
+    size_t remove_first_idx = 0;
+    size_t remove_count = 0;
+
+    for (size_t i = 0; i < bindings->count; i++) {
+        struct config_key_binding *binding = &bindings->arr[i];
+
+        if (binding->action != action)
+            continue;
+
+        if (argv_compare(&binding->pipe.argv, pipe_argv) == 0) {
+            if (remove_count++ == 0)
+                remove_first_idx = i;
+
+            xassert(remove_first_idx + remove_count - 1 == i);
+            free_key_binding(binding);
+        }
+    }
+
+    if (remove_count == 0)
+        return;
+
+    size_t move_count = bindings->count - (remove_first_idx + remove_count);
+
+    memmove(
+        &bindings->arr[remove_first_idx],
+        &bindings->arr[remove_first_idx + remove_count],
+        move_count * sizeof(bindings->arr[0]));
+    bindings->count -= remove_count;
+}
+
+static bool NOINLINE
+value_to_key_combos(struct context *ctx, int action, struct argv *argv,
+                    struct config_key_binding_list *bindings)
+{
+    if (strcasecmp(ctx->value, "none") == 0) {
+        remove_action_from_key_bindings_list(bindings, action, argv);
+        return true;
+    }
+
+    /* Count number of combinations */
+    size_t combo_count = 1;
+    for (const char *p = strchr(ctx->value, ' ');
+         p != NULL;
+         p = strchr(p + 1, ' '))
+    {
+        combo_count++;
+    }
+
+    struct config_key_binding new_combos[combo_count];
+
+    char *copy = xstrdup(ctx->value);
+    size_t idx = 0;
+
+    for (char *tok_ctx = NULL, *combo = strtok_r(copy, " ", &tok_ctx);
+         combo != NULL;
+         combo = strtok_r(NULL, " ", &tok_ctx),
+             idx++)
+    {
+        struct config_key_binding *new_combo = &new_combos[idx];
+        new_combo->action = action;
+        new_combo->pipe.master_copy = idx == 0;
+        new_combo->pipe.argv = *argv;
+        new_combo->path = ctx->path;
+        new_combo->lineno = ctx->lineno;
+
+        char *key = strrchr(combo, '+');
+
+        if (key == NULL) {
+            /* No modifiers */
+            key = combo;
+        } else {
+            if (!parse_modifiers(ctx, combo, key - combo, &new_combo->modifiers))
+                goto err;
+            key++;  /* Skip past the '+' */
+        }
+
+        /* Translate key name to symbol */
+        new_combo->sym = xkb_keysym_from_name(key, 0);
+        if (new_combo->sym == XKB_KEY_NoSymbol) {
+            LOG_CONTEXTUAL_ERR("not a valid XKB key name: %s", key);
+            goto err;
+        }
+    }
+
+    remove_action_from_key_bindings_list(bindings, action, argv);
+
+    bindings->arr = xrealloc(
+        bindings->arr,
+        (bindings->count + combo_count) * sizeof(bindings->arr[0]));
+
+    memcpy(&bindings->arr[bindings->count],
+           new_combos,
+           combo_count * sizeof(bindings->arr[0]));
+    bindings->count += combo_count;
+
+    free(copy);
+    return true;
+
+err:
+    free(copy);
+    return false;
 }
 
 static bool
@@ -1624,53 +1729,78 @@ modifiers_to_str(const struct config_key_modifiers *mods)
 }
 
 static bool
-has_key_binding_collisions(struct context *ctx,
-                           int action, const char *const action_map[],
-                           const struct config_key_binding_list *bindings,
-                           const struct config_key_binding_list *key_combos,
-                           const struct argv *pipe_argv)
+resolve_key_binding_collisions(struct config *conf, const char *section_name,
+                               const char *const action_map[],
+                               struct config_key_binding_list *bindings)
 {
-    for (size_t j = 0; j < bindings->count; j++) {
-        const struct config_key_binding *combo1 = &bindings->arr[j];
+    bool ret = true;
 
-        if (combo1->action == BIND_ACTION_NONE)
-            continue;
+    for (size_t i = 1; i < bindings->count; i++) {
+        struct config_key_binding *binding1 = &bindings->arr[i];
+        xassert(binding1->action != BIND_ACTION_NONE);
 
-        if (combo1->action == action) {
-            if (argv_compare(&combo1->pipe.argv, pipe_argv) == 0)
-                continue;
-        }
+        for (ssize_t j = i - 1; j >= 0; j--) {
+            const struct config_key_binding *binding2 = &bindings->arr[j];
+            xassert(binding2->action != BIND_ACTION_NONE);
 
-        for (size_t i = 0; i < key_combos->count; i++) {
-            const struct config_key_binding *combo2 = &key_combos->arr[i];
+            if (binding2->action == binding1->action) {
+                if (argv_compare(&binding1->pipe.argv, &binding2->pipe.argv))
+                    continue;
+            }
 
-            const struct config_key_modifiers *mods1 = &combo1->modifiers;
-            const struct config_key_modifiers *mods2 = &combo2->modifiers;
+            const struct config_key_modifiers *mods1 = &binding1->modifiers;
+            const struct config_key_modifiers *mods2 = &binding2->modifiers;
 
             bool mods_equal = modifiers_equal(mods1, mods2);
-            bool sym_equal = combo1->sym == combo2->sym;
+            bool sym_equal = binding1->sym == binding2->sym;
 
-            if (mods_equal && sym_equal) {
-                bool has_pipe = combo1->pipe.argv.args != NULL;
+            if (!mods_equal || !sym_equal)
+                continue;
 
-                char *modifier_names = modifiers_to_str(mods2);
-                char sym_name[64];
-                xkb_keysym_get_name(combo2->sym, sym_name, sizeof(sym_name));
+            bool has_pipe = binding2->pipe.argv.args != NULL;
 
-                LOG_CONTEXTUAL_ERR("%s+%s already mapped to '%s%s%s%s'",
-                                   modifier_names, sym_name,
-                                   action_map[combo1->action],
-                                   has_pipe ? " [" : "",
-                                   has_pipe ? combo1->pipe.argv.args[0] : "",
-                                   has_pipe ? "]" : "");
+            char *modifier_names = modifiers_to_str(mods2);
+            char sym_name[64];
+            xkb_keysym_get_name(binding2->sym, sym_name, sizeof(sym_name));
 
-                free(modifier_names);
-                return true;
+            LOG_AND_NOTIFY_ERR(
+                "%s:%d: [%s].%s: %s+%s already mapped to '%s%s%s%s'",
+                binding1->path, binding1->lineno, section_name,
+                action_map[binding1->action],
+                modifier_names, sym_name,
+                action_map[binding2->action],
+                has_pipe ? " [" : "",
+                has_pipe ? binding2->pipe.argv.args[0] : "",
+                has_pipe ? "]" : "");
+
+            free(modifier_names);
+            ret = false;
+
+            if (binding1->pipe.master_copy && i + 1 < bindings->count) {
+                struct config_key_binding *next = &bindings->arr[i + 1];
+
+                if (next->action == binding1->action &&
+                    argv_compare(&binding1->pipe.argv, &next->pipe.argv) == 0)
+                {
+                    /* Transfer ownership to next binding */
+                    next->pipe.master_copy = true;
+                    binding1->pipe.master_copy = false;
+                }
             }
+
+            free_key_binding(binding1);
+
+            /* Remove the most recent binding */
+            size_t move_count = bindings->count - (i + 1);
+            memmove(&bindings->arr[i], &bindings->arr[i + 1],
+                    move_count * sizeof(bindings->arr[0]));
+            bindings->count--;
+            i--;
+            break;
         }
     }
 
-    return false;
+    return ret;
 }
 
 /*
@@ -1728,42 +1858,6 @@ pipe_argv_from_value(struct context *ctx, struct argv *argv)
     return remove_len;
 }
 
-static void NOINLINE
-remove_action_from_key_bindings_list(struct config_key_binding_list *bindings,
-                                     int action, const struct argv *pipe_argv)
-{
-    size_t remove_first_idx = 0;
-    size_t remove_count = 0;
-
-    for (size_t i = 0; i < bindings->count; i++) {
-        struct config_key_binding *binding = &bindings->arr[i];
-
-        if (binding->action != action)
-            continue;
-
-        if (argv_compare(&binding->pipe.argv, pipe_argv) == 0) {
-            if (remove_count++ == 0)
-                remove_first_idx = i;
-
-            xassert(remove_first_idx + remove_count - 1 == i);
-
-            if (binding->pipe.master_copy)
-                free_argv(&binding->pipe.argv);
-        }
-    }
-
-    if (remove_count == 0)
-        return;
-
-    size_t move_count = bindings->count - (remove_first_idx + remove_count);
-
-    memmove(
-        &bindings->arr[remove_first_idx],
-        &bindings->arr[remove_first_idx + remove_count],
-        move_count * sizeof(bindings->arr[0]));
-    bindings->count -= remove_count;
-}
-
 static bool NOINLINE
 parse_key_binding_section(struct context *ctx,
                           int action_count,
@@ -1783,43 +1877,11 @@ parse_key_binding_section(struct context *ctx,
         if (strcmp(ctx->key, action_map[action]) != 0)
             continue;
 
-        /* Unset binding */
-        if (strcasecmp(ctx->value, "none") == 0) {
-            remove_action_from_key_bindings_list(bindings, action, &pipe_argv);
+        if (!value_to_key_combos(ctx, action, &pipe_argv, bindings)) {
             free_argv(&pipe_argv);
-            return true;
-        }
-
-        struct config_key_binding_list key_combos = {0};
-        if (!value_to_key_combos(ctx, &key_combos) ||
-            has_key_binding_collisions(ctx, action, action_map, bindings, &key_combos, &pipe_argv))
-        {
-            free_argv(&pipe_argv);
-            key_binding_list_free(&key_combos);
             return false;
         }
 
-        remove_action_from_key_bindings_list(bindings, action, &pipe_argv);
-
-        /* Emit key bindings */
-        size_t ofs = bindings->count;
-        bindings->count += key_combos.count;
-        bindings->arr = xrealloc(
-            bindings->arr, bindings->count * sizeof(bindings->arr[0]));
-
-        bool first = true;
-        for (size_t i = 0; i < key_combos.count; i++) {
-            struct config_key_binding *binding = &bindings->arr[ofs + i];
-
-            *binding = key_combos.arr[i];
-            binding->action = action;
-            binding->pipe.argv = pipe_argv;
-            binding->pipe.master_copy = first;
-
-            first = false;
-        }
-
-        key_binding_list_free(&key_combos);
         return true;
     }
 
@@ -1933,31 +1995,6 @@ parse_section_key_bindings(struct context *ctx)
 static bool
 parse_section_search_bindings(struct context *ctx)
 {
-    static const char *const search_binding_action_map[] = {
-        [BIND_ACTION_SEARCH_NONE] = NULL,
-        [BIND_ACTION_SEARCH_CANCEL] = "cancel",
-        [BIND_ACTION_SEARCH_COMMIT] = "commit",
-        [BIND_ACTION_SEARCH_FIND_PREV] = "find-prev",
-        [BIND_ACTION_SEARCH_FIND_NEXT] = "find-next",
-        [BIND_ACTION_SEARCH_EDIT_LEFT] = "cursor-left",
-        [BIND_ACTION_SEARCH_EDIT_LEFT_WORD] = "cursor-left-word",
-        [BIND_ACTION_SEARCH_EDIT_RIGHT] = "cursor-right",
-        [BIND_ACTION_SEARCH_EDIT_RIGHT_WORD] = "cursor-right-word",
-        [BIND_ACTION_SEARCH_EDIT_HOME] = "cursor-home",
-        [BIND_ACTION_SEARCH_EDIT_END] = "cursor-end",
-        [BIND_ACTION_SEARCH_DELETE_PREV] = "delete-prev",
-        [BIND_ACTION_SEARCH_DELETE_PREV_WORD] = "delete-prev-word",
-        [BIND_ACTION_SEARCH_DELETE_NEXT] = "delete-next",
-        [BIND_ACTION_SEARCH_DELETE_NEXT_WORD] = "delete-next-word",
-        [BIND_ACTION_SEARCH_EXTEND_WORD] = "extend-to-word-boundary",
-        [BIND_ACTION_SEARCH_EXTEND_WORD_WS] = "extend-to-next-whitespace",
-        [BIND_ACTION_SEARCH_CLIPBOARD_PASTE] = "clipboard-paste",
-        [BIND_ACTION_SEARCH_PRIMARY_PASTE] = "primary-paste",
-    };
-
-    static_assert(ALEN(search_binding_action_map) == BIND_ACTION_SEARCH_COUNT,
-                  "search binding action map size mismatch");
-
     return parse_key_binding_section(
         ctx,
         BIND_ACTION_SEARCH_COUNT, search_binding_action_map,
@@ -1967,15 +2004,6 @@ parse_section_search_bindings(struct context *ctx)
 static bool
 parse_section_url_bindings(struct context *ctx)
 {
-    static const char *const url_binding_action_map[] = {
-        [BIND_ACTION_URL_NONE] = NULL,
-        [BIND_ACTION_URL_CANCEL] = "cancel",
-        [BIND_ACTION_URL_TOGGLE_URL_ON_JUMP_LABEL] = "toggle-url-visible",
-    };
-
-    static_assert(ALEN(url_binding_action_map) == BIND_ACTION_URL_COUNT,
-                  "URL binding action map size mismatch");
-
     return parse_key_binding_section(
         ctx,
         BIND_ACTION_URL_COUNT, url_binding_action_map,
@@ -2709,8 +2737,8 @@ static void
 add_default_key_bindings(struct config *conf)
 {
     static const struct config_key_binding bindings[] = {
-        {BIND_ACTION_SCROLLBACK_UP_PAGE, m_shift, XKB_KEY_Page_Up},
-        {BIND_ACTION_SCROLLBACK_DOWN_PAGE, m_shift, XKB_KEY_Page_Down},
+        {BIND_ACTION_SCROLLBACK_UP_PAGE, m_shift, XKB_KEY_Prior},
+        {BIND_ACTION_SCROLLBACK_DOWN_PAGE, m_shift, XKB_KEY_Next},
         {BIND_ACTION_CLIPBOARD_COPY, m_ctrl_shift, XKB_KEY_c},
         {BIND_ACTION_CLIPBOARD_PASTE, m_ctrl_shift, XKB_KEY_v},
         {BIND_ACTION_PRIMARY_PASTE, m_shift, XKB_KEY_Insert},
@@ -3027,7 +3055,22 @@ config_load(struct config *conf, const char *conf_path,
     }
 
     ret = parse_config_file(f, conf, conf_file.path, errors_are_fatal) &&
-          config_override_apply(conf, overrides, errors_are_fatal);
+        config_override_apply(conf, overrides, errors_are_fatal);
+
+    if (ret &&
+        (!resolve_key_binding_collisions(
+            conf, section_info[SECTION_KEY_BINDINGS].name,
+            binding_action_map, &conf->bindings.key) ||
+         !resolve_key_binding_collisions(
+             conf, section_info[SECTION_SEARCH_BINDINGS].name,
+             search_binding_action_map, &conf->bindings.search) ||
+         !resolve_key_binding_collisions(
+             conf, section_info[SECTION_URL_BINDINGS].name,
+             url_binding_action_map, &conf->bindings.url)))
+    {
+        ret = !errors_are_fatal;
+    }
+
     fclose(f);
 
     conf->colors.use_custom.selection =
@@ -3067,7 +3110,8 @@ out:
 }
 
 bool
-config_override_apply(struct config *conf, config_override_t *overrides, bool errors_are_fatal)
+config_override_apply(struct config *conf, config_override_t *overrides,
+                      bool errors_are_fatal)
 {
     struct context context = {
         .conf = conf,
@@ -3105,6 +3149,7 @@ config_override_apply(struct config *conf, config_override_t *overrides, bool er
             continue;
         }
     }
+
     return true;
 }
 
@@ -3260,9 +3305,9 @@ config_free(struct config conf)
     free(conf.url.protocols);
     free(conf.url.uri_characters);
 
-    key_binding_list_free(&conf.bindings.key);
-    key_binding_list_free(&conf.bindings.search);
-    key_binding_list_free(&conf.bindings.url);
+    free_key_binding_list(&conf.bindings.key);
+    free_key_binding_list(&conf.bindings.search);
+    free_key_binding_list(&conf.bindings.url);
     mouse_binding_list_free(&conf.bindings.mouse);
 
     user_notifications_free(&conf.notifications);

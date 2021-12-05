@@ -45,6 +45,10 @@ struct config_key_binding {
     struct config_key_modifiers modifiers;
     xkb_keysym_t sym;
     struct config_binding_pipe pipe;
+
+    /* For error messages in collision handling */
+    const char *path;
+    int lineno;
 };
 DEFINE_LIST(struct config_key_binding);
 
