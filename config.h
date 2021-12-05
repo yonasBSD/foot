@@ -28,7 +28,7 @@ struct config_key_modifiers {
     bool shift;
     bool alt;
     bool ctrl;
-    bool meta;
+    bool super;
 };
 
 struct argv {
@@ -58,6 +58,10 @@ struct config_mouse_binding {
     int button;
     int count;
     struct config_binding_pipe pipe;
+
+    /* For error messages in collision handling */
+    const char *path;
+    int lineno;
 };
 DEFINE_LIST(struct config_mouse_binding);
 

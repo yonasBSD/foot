@@ -369,7 +369,7 @@ conf_modifiers_to_mask(const struct seat *seat,
     if (seat->kbd.mod_alt != XKB_MOD_INVALID)
         mods |= modifiers->alt << seat->kbd.mod_alt;
     if (seat->kbd.mod_super != XKB_MOD_INVALID)
-        mods |= modifiers->meta << seat->kbd.mod_super;
+        mods |= modifiers->super << seat->kbd.mod_super;
     return mods;
 }
 

@@ -1507,8 +1507,8 @@ free_mouse_binding(struct config_mouse_binding *binding)
     free_binding_pipe(&binding->pipe);
 }
 
-static void
-mouse_binding_list_free(struct config_mouse_binding_list *bindings)
+static void NOINLINE
+free_mouse_binding_list(struct config_mouse_binding_list *bindings)
 {
     struct config_mouse_binding *binding = &bindings->arr[0];
 
@@ -1545,7 +1545,7 @@ parse_modifiers(struct context *ctx, const char *text, size_t len,
         else if (strcmp(key, XKB_MOD_NAME_ALT) == 0)
             modifiers->alt = true;
         else if (strcmp(key, XKB_MOD_NAME_LOGO) == 0)
-            modifiers->meta = true;
+            modifiers->super = true;
         else {
             LOG_CONTEXTUAL_ERR("not a valid modifier name: %s", key);
             goto out;
@@ -1702,8 +1702,8 @@ modifiers_equal(const struct config_key_modifiers *mods1,
     bool shift = mods1->shift == mods2->shift;
     bool alt = mods1->alt == mods2->alt;
     bool ctrl = mods1->ctrl == mods2->ctrl;
-    bool meta = mods1->meta == mods2->meta;
-    return shift && alt && ctrl && meta;
+    bool super = mods1->super == mods2->super;
+    return shift && alt && ctrl && super;
 }
 
 static bool
@@ -1713,19 +1713,19 @@ modifiers_disjoint(const struct config_key_modifiers *mods1,
     bool shift = mods1->shift && mods2->shift;
     bool alt = mods1->alt && mods2->alt;
     bool ctrl = mods1->ctrl && mods2->ctrl;
-    bool meta = mods1->meta && mods2->meta;
-    return !(shift || alt || ctrl || meta);
+    bool super = mods1->super && mods2->super;
+    return !(shift || alt || ctrl || super);
 }
 
 static char *
 modifiers_to_str(const struct config_key_modifiers *mods)
 {
-    char *ret = xasprintf("%s%s%s%s",
-        mods->ctrl ? "Control+" : "",
-        mods->alt ? "Alt+": "",
-        mods->meta ? "Meta+": "",
-        mods->shift ? "Shift+": "");
-    ret[strlen(ret) - 1] = '\0';
+    char *ret = xasprintf(
+        "%s%s%s%s",
+        mods->ctrl ? XKB_MOD_NAME_CTRL "+" : "",
+        mods->alt ? XKB_MOD_NAME_ALT "+": "",
+        mods->super ? XKB_MOD_NAME_LOGO "+": "",
+        mods->shift ? XKB_MOD_NAME_SHIFT "+": "");
     return ret;
 }
 
@@ -1765,7 +1765,7 @@ resolve_key_binding_collisions(struct config *conf, const char *section_name,
             xkb_keysym_get_name(binding2->sym, sym_name, sizeof(sym_name));
 
             LOG_AND_NOTIFY_ERR(
-                "%s:%d: [%s].%s: %s+%s already mapped to '%s%s%s%s'",
+                "%s:%d: [%s].%s: %s%s already mapped to '%s%s%s%s'",
                 binding1->path, binding1->lineno, section_name,
                 action_map[binding1->action],
                 modifier_names, sym_name,
@@ -2025,8 +2025,18 @@ static const struct {
     {"BTN_TASK", BTN_TASK},
 };
 
+static int
+mouse_button_name_to_code(const char *name)
+{
+    for (size_t i = 0; i < ALEN(button_map); i++) {
+        if (strcmp(button_map[i].name, name) == 0)
+            return button_map[i].code;
+    }
+    return -1;
+}
+
 static const char*
-mouse_event_code_get_name(int code)
+mouse_button_code_to_name(int code)
 {
     for (size_t i = 0; i < ALEN(button_map); i++) {
         if (code == button_map[i].code)
@@ -2036,35 +2046,90 @@ mouse_event_code_get_name(int code)
     return NULL;
 }
 
-static bool
-value_to_mouse_combos(struct context *ctx,
-                      struct config_mouse_binding_list *mouse_combos)
+static void NOINLINE
+remove_action_from_mouse_bindings_list(
+    struct config_mouse_binding_list *bindings,
+    int action, const struct argv *pipe_argv)
 {
-    xassert(mouse_combos != NULL);
-    xassert(mouse_combos->count == 0 && mouse_combos->arr == NULL);
+    size_t remove_first_idx = 0;
+    size_t remove_count = 0;
 
-    size_t size = 0;  /* Size of the ‘combos’ array in key_combos */
+    for (size_t i = 0; i < bindings->count; i++) {
+        struct config_mouse_binding *binding = &bindings->arr[i];
+
+        if (binding->action != action)
+            continue;
+
+        if (argv_compare(&binding->pipe.argv, pipe_argv) == 0) {
+            if (remove_count++ == 0)
+                remove_first_idx = i;
+
+            xassert(remove_first_idx + remove_count - 1 == i);
+            free_mouse_binding(binding);
+        }
+    }
+
+    if (remove_count == 0)
+        return;
+
+    size_t move_count = bindings->count - (remove_first_idx + remove_count);
+
+    memmove(
+        &bindings->arr[remove_first_idx],
+        &bindings->arr[remove_first_idx + remove_count],
+        move_count * sizeof(bindings->arr[0]));
+    bindings->count -= remove_count;
+}
+
+static bool
+value_to_mouse_combos(struct context *ctx, int action, struct argv *argv,
+                      struct config_mouse_binding_list *bindings)
+{
+    if (strcasecmp(ctx->value, "none") == 0) {
+        remove_action_from_mouse_bindings_list(bindings, action, argv);
+        return true;
+    }
+
+    /* Count number of combinations */
+    size_t combo_count = 1;
+    for (const char *p = strchr(ctx->value, ' ');
+         p != NULL;
+         p = strchr(p + 1, ' '))
+    {
+        combo_count++;
+    }
+
+    struct config_mouse_binding new_combos[combo_count];
 
     char *copy = xstrdup(ctx->value);
+    size_t idx = 0;
 
     for (char *tok_ctx = NULL, *combo = strtok_r(copy, " ", &tok_ctx);
          combo != NULL;
-         combo = strtok_r(NULL, " ", &tok_ctx))
+         combo = strtok_r(NULL, " ", &tok_ctx),
+             idx++)
     {
-        struct config_key_modifiers modifiers = {0};
+        struct config_mouse_binding *new_combo = &new_combos[idx];
+        new_combo->action = action;
+        new_combo->pipe.master_copy = idx == 0;
+        new_combo->pipe.argv = *argv;
+        new_combo->path = ctx->path;
+        new_combo->lineno = ctx->lineno;
+
         char *key = strrchr(combo, '+');
 
         if (key == NULL) {
             /* No modifiers */
             key = combo;
+            new_combo->modifiers = (struct config_key_modifiers){0};
         } else {
             *key = '\0';
-            if (!parse_modifiers(ctx, combo, key - combo, &modifiers))
+            if (!parse_modifiers(ctx, combo, key - combo, &new_combo->modifiers))
                 goto err;
             key++;  /* Skip past the '+' */
         }
 
-        size_t count = 1;
+        new_combo->count = 1;
         {
             char *_count = strrchr(key, '-');
             if (_count != NULL) {
@@ -2081,152 +2146,161 @@ value_to_mouse_combos(struct context *ctx,
                         LOG_CONTEXTUAL_ERR("invalid click count: %s", _count);
                     goto err;
                 }
-                count = value;
+
+                new_combo->count = value;
             }
         }
 
-        int button = 0;
-        for (size_t i = 0; i < ALEN(button_map); i++) {
-            if (strcmp(key, button_map[i].name) == 0) {
-                button = button_map[i].code;
-                break;
-            }
-        }
-
-        if (button == 0) {
+        new_combo->button = mouse_button_name_to_code(key);
+        if (new_combo->button < 0) {
             LOG_CONTEXTUAL_ERR("invalid mouse button name: %s", key);
             goto err;
         }
-
-        struct config_mouse_binding new = {
-            .modifiers = modifiers,
-            .button = button,
-            .count = count,
-        };
-
-        if (mouse_combos->count + 1 > size) {
-            size += 4;
-            mouse_combos->arr = xrealloc(
-                mouse_combos->arr, size * sizeof(mouse_combos->arr[0]));
-        }
-
-        xassert(mouse_combos->count + 1 <= size);
-        mouse_combos->arr[mouse_combos->count++] = new;
     }
+
+    remove_action_from_mouse_bindings_list(bindings, action, argv);
+
+    bindings->arr = xrealloc(
+        bindings->arr,
+        (bindings->count + combo_count) * sizeof(bindings->arr[0]));
+
+    memcpy(&bindings->arr[bindings->count],
+           new_combos,
+           combo_count * sizeof(bindings->arr[0]));
+    bindings->count += combo_count;
 
     free(copy);
     return true;
 
 err:
-    mouse_binding_list_free(mouse_combos);
     free(copy);
     return false;
 }
 
-static char *
-mouse_combo_to_str(const struct config_mouse_binding *combo)
-{
-    char *combo_modifiers_str = modifiers_to_str(&combo->modifiers);
-    const char *combo_button_str = mouse_event_code_get_name(combo->button);
-    xassert(combo_button_str != NULL);
-
-    char *ret;
-    if (combo->count == 1)
-        ret = xasprintf("%s+%s", combo_modifiers_str, combo_button_str);
-    else
-        ret = xasprintf("%s+%s-%d",
-                        combo_modifiers_str,
-                        combo_button_str,
-                        combo->count);
-
-   free (combo_modifiers_str);
-   return ret;
-}
-
 static bool
-selection_override_interferes_with_mouse_binding(
-    struct context *ctx, int action,
-    const struct config_mouse_binding_list *mouse_combos, bool blame_modifiers)
+resolve_mouse_binding_collisions(struct config *conf, const char *section_name,
+                                 const char *const action_map[],
+                                 struct config_mouse_binding_list *bindings)
 {
-    struct config *conf = ctx->conf;
+    bool ret = true;
 
-    if (action == BIND_ACTION_NONE)
-        return false;
+    for (size_t i = 1; i < bindings->count; i++) {
+        enum {COLLISION_NONE,
+            COLLISION_OVERRIDE,
+            COLLISION_BINDING} collision_type = COLLISION_NONE;
+        const struct config_mouse_binding *collision_binding = NULL;
 
-    const struct config_key_modifiers *override_mods =
-        &conf->mouse.selection_override_modifiers;
-    for (size_t i = 0; i < mouse_combos->count; i++) {
-        const struct config_mouse_binding *combo = &mouse_combos->arr[i];
+        struct config_mouse_binding *binding1 = &bindings->arr[i];
+        xassert(binding1->action != BIND_ACTION_NONE);
 
-        if (!modifiers_disjoint(&combo->modifiers, override_mods)) {
-            char *modifiers_str = modifiers_to_str(override_mods);
-            char *combo_str = mouse_combo_to_str(combo);
-            if (blame_modifiers) {
-                LOG_CONTEXTUAL_ERR(
-                    "modifiers conflict with existing binding %s=%s",
-                    binding_action_map[action],
-                    combo_str);
-            } else {
-                LOG_CONTEXTUAL_ERR(
-                    "binding conflicts with selection override modifiers (%s)",
-                    modifiers_str);
+        const struct config_key_modifiers *mods1 = &binding1->modifiers;
+
+        /* Does our modifiers collide with the selection override mods? */
+        if (!modifiers_disjoint(mods1, &conf->mouse.selection_override_modifiers))
+            collision_type = COLLISION_OVERRIDE;
+
+        /* Does our binding collide with another binding? */
+        for (ssize_t j = i - 1;
+             collision_type == COLLISION_NONE && j >= 0;
+             j--)
+        {
+            const struct config_mouse_binding *binding2 = &bindings->arr[j];
+            xassert(binding2->action != BIND_ACTION_NONE);
+
+            if (binding2->action == binding1->action) {
+                if (argv_compare(&binding1->pipe.argv, &binding2->pipe.argv))
+                    continue;
             }
-            free (modifiers_str);
-            free (combo_str);
-            return false;
+
+            const struct config_key_modifiers *mods2 = &binding2->modifiers;
+
+            bool mods_equal = modifiers_equal(mods1, mods2);
+            bool button_equal = binding1->button == binding2->button;
+            bool count_equal = binding1->count == binding2->count;
+
+            if (!mods_equal || !button_equal || !count_equal)
+                continue;
+
+            collision_binding = binding2;
+            collision_type = COLLISION_BINDING;
+            break;
         }
+
+        if (collision_type != COLLISION_NONE) {
+            char *modifier_names = modifiers_to_str(mods1);
+            const char *button_name = mouse_button_code_to_name(binding1->button);
+
+            char click_count[16];
+            if (binding1->count > 1)
+                sprintf(click_count, "-%d", binding1->count);
+            else
+                click_count[0] = '\0';
+
+            switch (collision_type) {
+            case COLLISION_NONE:
+                break;
+
+            case COLLISION_BINDING: {
+                bool has_pipe = collision_binding->pipe.argv.args != NULL;
+                LOG_AND_NOTIFY_ERR(
+                    "%s:%d: [%s].%s: %s%s%s already mapped to '%s%s%s%s'",
+                    binding1->path, binding1->lineno, section_name,
+                    action_map[binding1->action],
+                    modifier_names, button_name, click_count,
+                    action_map[collision_binding->action],
+                    has_pipe ? " [" : "",
+                    has_pipe ? collision_binding->pipe.argv.args[0] : "",
+                    has_pipe ? "]" : "");
+                break;
+            }
+
+            case COLLISION_OVERRIDE: {
+                char *override_names = modifiers_to_str(
+                    &conf->mouse.selection_override_modifiers);
+
+                if (override_names[0] != '\0')
+                    override_names[strlen(override_names) - 1] = '\0';
+
+                LOG_AND_NOTIFY_ERR(
+                    "%s:%d: [%s].%s: %s%s%s: "
+                    "modifiers conflict with 'selection-override-modifiers=%s'",
+                    binding1->path, binding1->lineno, section_name,
+                    action_map[binding1->action],
+                    modifier_names, button_name, click_count,
+                    override_names);
+                free(override_names);
+                break;
+            }
+            }
+            free(modifier_names);
+
+            if (binding1->pipe.master_copy && i + 1 < bindings->count) {
+                struct config_mouse_binding *next = &bindings->arr[i + 1];
+
+                if (next->action == binding1->action &&
+                    argv_compare(&binding1->pipe.argv, &next->pipe.argv) == 0)
+                {
+                    /* Transfer ownership to next binding */
+                    next->pipe.master_copy = true;
+                    binding1->pipe.master_copy = false;
+                }
+            }
+
+            free_mouse_binding(binding1);
+
+            /* Remove the most recent binding */
+            size_t move_count = bindings->count - (i + 1);
+            memmove(&bindings->arr[i], &bindings->arr[i + 1],
+                    move_count * sizeof(bindings->arr[0]));
+            bindings->count--;
+
+            i--;
+        }
+
     }
 
-    return false;
+    return ret;
 }
-
-static bool
-has_mouse_binding_collisions(
-    struct context *ctx,
-    const struct config_mouse_binding_list *mouse_combos)
-{
-    struct config *conf = ctx->conf;
-
-    for (size_t j = 0; j < conf->bindings.mouse.count; j++) {
-        const struct config_mouse_binding *combo1 = &conf->bindings.mouse.arr[j];
-        if (combo1->action == BIND_ACTION_NONE)
-            continue;
-
-        for (size_t i = 0; i < mouse_combos->count; i++) {
-            const struct config_mouse_binding *combo2 = &mouse_combos->arr[i];
-
-            const struct config_key_modifiers *mods1 = &combo1->modifiers;
-            const struct config_key_modifiers *mods2 = &combo2->modifiers;
-
-            bool button = combo1->button == combo2->button;
-            bool count = combo1->count == combo2->count;
-
-            if (modifiers_equal(mods1, mods2) && button && count) {
-                bool has_pipe = combo1->pipe.argv.args != NULL;
-
-                char *modifier_names = modifiers_to_str(mods2);
-                const char *btn_name = mouse_event_code_get_name(combo2->button);
-
-                char count_string[16] = {0};
-                if (combo2->count > 1)
-                    sprintf(count_string, "-%d", combo2->count);
-
-                LOG_CONTEXTUAL_ERR("%s+%s%s already mapped to '%s%s%s%s'",
-                                   modifier_names, btn_name, count_string,
-                                   binding_action_map[combo1->action],
-                                   has_pipe ? " [" : "",
-                                   has_pipe ? combo1->pipe.argv.args[0] : "",
-                                   has_pipe ? "]" : "");
-
-                free(modifier_names);
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
-
 
 static bool
 parse_section_mouse_bindings(struct context *ctx)
@@ -2235,28 +2309,14 @@ parse_section_mouse_bindings(struct context *ctx)
     const char *key = ctx->key;
     const char *value = ctx->value;
 
-    if (strcmp(ctx->key, "selection-override-modifiers") == 0) {
-        if (!parse_modifiers(ctx, ctx->value, strlen(ctx->value),
-            &conf->mouse.selection_override_modifiers)) {
+    if (strcmp(key, "selection-override-modifiers") == 0) {
+        if (!parse_modifiers(
+                ctx, ctx->value, strlen(value),
+                &conf->mouse.selection_override_modifiers))
+        {
             LOG_CONTEXTUAL_ERR("%s: invalid modifiers '%s'", key, ctx->value);
             return false;
         }
-
-        /* Ensure no existing bindings use these modifiers */
-        for (size_t i = 0; i < conf->bindings.mouse.count; i++) {
-            struct config_mouse_binding *binding = &conf->bindings.mouse.arr[i];
-            struct config_mouse_binding_list mouse_combos = {
-                .count = 1,
-                .arr = binding,
-            };
-
-            if (selection_override_interferes_with_mouse_binding(
-                    ctx, binding->action, &mouse_combos, true))
-            {
-                return false;
-            }
-        }
-
         return true;
     }
 
@@ -2276,68 +2336,13 @@ parse_section_mouse_bindings(struct context *ctx)
         if (strcmp(key, binding_action_map[action]) != 0)
             continue;
 
-        /* Unset binding */
-        if (strcasecmp(value, "none") == 0) {
-            for (size_t i = 0; i < conf->bindings.mouse.count; i++) {
-                struct config_mouse_binding *binding =
-                    &conf->bindings.mouse.arr[i];
-
-                if (binding->action == action) {
-                    if (binding->pipe.master_copy)
-                        free_argv(&binding->pipe.argv);
-                    binding->action = BIND_ACTION_NONE;
-                }
-            }
-            free_argv(&pipe_argv);
-            return true;
-        }
-
-        struct config_mouse_binding_list mouse_combos = {0};
-        if (!value_to_mouse_combos(ctx, &mouse_combos) ||
-            has_mouse_binding_collisions(ctx, &mouse_combos) ||
-            selection_override_interferes_with_mouse_binding(
-                ctx, action, &mouse_combos, false))
+        if (!value_to_mouse_combos(
+                ctx, action, &pipe_argv, &conf->bindings.mouse))
         {
             free_argv(&pipe_argv);
-            mouse_binding_list_free(&mouse_combos);
             return false;
         }
 
-        /* Remove existing bindings for this action */
-        for (size_t i = 0; i < conf->bindings.mouse.count; i++) {
-            struct config_mouse_binding *binding = &conf->bindings.mouse.arr[i];
-
-            if (binding->action != action)
-                continue;
-
-            if (argv_compare(&binding->pipe.argv, &pipe_argv) == 0) {
-                if (binding->pipe.master_copy)
-                    free_argv(&binding->pipe.argv);
-                binding->action = BIND_ACTION_NONE;
-            }
-        }
-
-        /* Emit mouse bindings */
-        size_t ofs = conf->bindings.mouse.count;
-        conf->bindings.mouse.count += mouse_combos.count;
-        conf->bindings.mouse.arr = xrealloc(
-            conf->bindings.mouse.arr,
-            conf->bindings.mouse.count * sizeof(conf->bindings.mouse.arr[0]));
-
-        bool first = true;
-        for (size_t i = 0; i < mouse_combos.count; i++) {
-            struct config_mouse_binding *binding =
-                &conf->bindings.mouse.arr[ofs + i];
-
-            *binding = mouse_combos.arr[i];
-            binding->action = action;
-            binding->pipe.argv = pipe_argv;
-            binding->pipe.master_copy = first;
-
-            first = false;
-        }
-
-        mouse_binding_list_free(&mouse_combos);
         return true;
     }
 
@@ -2939,7 +2944,7 @@ config_load(struct config *conf, const char *conf_path,
                 .shift = true,
                 .alt = false,
                 .ctrl = false,
-                .meta = false,
+                .super = false,
             },
         },
         .csd = {
@@ -3067,7 +3072,10 @@ config_load(struct config *conf, const char *conf_path,
              search_binding_action_map, &conf->bindings.search) ||
          !resolve_key_binding_collisions(
              conf, section_info[SECTION_URL_BINDINGS].name,
-             url_binding_action_map, &conf->bindings.url)))
+             url_binding_action_map, &conf->bindings.url) ||
+         !resolve_mouse_binding_collisions(
+             conf, section_info[SECTION_MOUSE_BINDINGS].name,
+             binding_action_map, &conf->bindings.mouse)))
     {
         ret = !errors_are_fatal;
     }
@@ -3309,7 +3317,7 @@ config_free(struct config conf)
     free_key_binding_list(&conf.bindings.key);
     free_key_binding_list(&conf.bindings.search);
     free_key_binding_list(&conf.bindings.url);
-    mouse_binding_list_free(&conf.bindings.mouse);
+    free_mouse_binding_list(&conf.bindings.mouse);
 
     user_notifications_free(&conf.notifications);
 }
