@@ -556,8 +556,11 @@ main(int argc, char *const *argv)
         goto out;
     }
 
-    if (sigaction(SIGHUP, &(struct sigaction){.sa_handler = SIG_IGN}, NULL) < 0) {
-        LOG_ERRNO("failed to ignore SIGHUP");
+    const struct sigaction sig_ign = {.sa_handler = SIG_IGN};
+    if (sigaction(SIGHUP, &sig_ign, NULL) < 0 ||
+        sigaction(SIGPIPE, &sig_ign, NULL) < 0)
+    {
+        LOG_ERRNO("failed to ignore SIGHUP+SIGPIPE");
         goto out;
     }
 
