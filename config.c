@@ -1661,6 +1661,7 @@ value_to_key_combos(struct context *ctx, int action, struct argv *argv,
         if (key == NULL) {
             /* No modifiers */
             key = combo;
+            new_combo->modifiers = (struct config_key_modifiers){0};
         } else {
             if (!parse_modifiers(ctx, combo, key - combo, &new_combo->modifiers))
                 goto err;
