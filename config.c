@@ -1366,10 +1366,6 @@ parse_section_cursor(struct context *ctx)
 }
 
 static bool
-parse_modifiers(struct context *ctx, const char *text, size_t len,
-                struct config_key_modifiers *modifiers);
-
-static bool
 parse_section_mouse(struct context *ctx)
 {
     struct config *conf = ctx->conf;
