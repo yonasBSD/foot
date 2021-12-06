@@ -2102,7 +2102,8 @@ resolve_key_binding_collisions(struct config *conf, const char *section_name,
                 LOG_AND_NOTIFY_ERR(
                     "%s:%d: [%s].%s: %s%s: "
                     "modifiers conflict with 'selection-override-modifiers=%s'",
-                    binding1->path, binding1->lineno, section_name,
+                    binding1->path != NULL ? binding1->path : "(default)",
+                    binding1->lineno, section_name,
                     action_map[binding1->action],
                     modifier_names, sym_name, override_names);
                 free(override_names);
