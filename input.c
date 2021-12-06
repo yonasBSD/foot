@@ -1156,10 +1156,18 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
     const bool composing = ctx->compose_status == XKB_COMPOSE_COMPOSING;
     const bool composed = ctx->compose_status == XKB_COMPOSE_COMPOSED;
 
+    const xkb_keysym_t sym = ctx->sym;
+    const uint32_t utf32 = ctx->utf32;
+    const uint8_t *const utf8 = ctx->utf8.buf;
+    const bool is_text = iswprint(utf32);
+    const size_t count = ctx->utf8.count;
+
     const enum kitty_kbd_flags flags = term->grid->kitty_kbd.flags[term->grid->kitty_kbd.idx];
     const bool disambiguate = flags & KITTY_KBD_DISAMBIGUATE;
     const bool report_events = flags & KITTY_KBD_REPORT_EVENT;
     const bool report_all_as_escapes = flags & KITTY_KBD_REPORT_ALL;
+    const bool report_associated_text =
+        (flags & KITTY_KBD_REPORT_ASSOCIATED) && is_text && !released;
 
     if (!report_events && released)
         return false;
@@ -1178,10 +1186,6 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
     const xkb_mod_mask_t caps_num =
         (seat->kbd.mod_caps != XKB_MOD_INVALID ? 1 << seat->kbd.mod_caps : 0) |
         (seat->kbd.mod_num != XKB_MOD_INVALID ? 1 << seat->kbd.mod_num : 0);
-    const xkb_keysym_t sym = ctx->sym;
-    const uint32_t utf32 = ctx->utf32;
-    const uint8_t *const utf8 = ctx->utf8.buf;
-    const size_t count = ctx->utf8.count;
 
     if (composing) {
         /* We never emit anything while composing, *except* modifiers
@@ -1220,7 +1224,7 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
     }
 
     /* Plain-text without modifiers, or commposed text, is emitted as-is */
-    if (((iswprint(utf32) && (effective & ~caps_num) == 0) || composed)
+    if (((is_text && (effective & ~caps_num) == 0) || composed)
         && !released)
     {
         term_to_slave(term, utf8, count);
@@ -1430,6 +1434,7 @@ emit_escapes:
             if (key == 0)
                 key = sym_to_use;
         }
+
         final = 'u';
         break;
     }
@@ -1447,26 +1452,40 @@ emit_escapes:
     } else
         event[0] = '\0';
 
-    char buf[16];
-    int bytes;
+    char buf[64], *p = buf;
+    size_t left = sizeof(buf);
+    size_t bytes;
 
     if (key < 0)
         return false;
 
     if (final == 'u' || final == '~') {
-        if (encoded_mods > 1 || event[0] != '\0')
-            bytes = snprintf(buf, sizeof(buf), "\x1b[%u;%u%s%c",
-                             key, encoded_mods, event, final);
-        else
-            bytes = snprintf(buf, sizeof(buf), "\x1b[%u%c", key, final);
+        bytes = snprintf(p, left, "\x1b[%u", key);
+        p += bytes; left -= bytes;
+
+        if (encoded_mods > 1 || event[0] != '\0' || report_associated_text) {
+            bytes = snprintf(p, left, ";%u%s", encoded_mods, event);
+            p += bytes; left -= bytes;
+
+            if (report_associated_text) {
+                bytes = snprintf(p, left, ";%u", utf32);
+                p += bytes; left -= bytes;
+            }
+        }
+
+        bytes = snprintf(p, left, "%c", final);
+        p += bytes; left -= bytes;
     } else {
-        if (encoded_mods > 1 || event[0] != '\0')
-            bytes = snprintf(buf, sizeof(buf), "\x1b[1;%u%s%c", encoded_mods, event, final);
-        else
-            bytes = snprintf(buf, sizeof(buf), "\x1b[%c", final);
+        if (encoded_mods > 1 || event[0] != '\0') {
+            bytes = snprintf(p, left, "\x1b[1;%u%s%c", encoded_mods, event, final);
+            p += bytes; left -= bytes;
+        } else {
+            bytes = snprintf(p, left, "\x1b[%c", final);
+            p += bytes; left -= bytes;
+        }
     }
 
-    term_to_slave(term, buf, bytes);
+    term_to_slave(term, buf, sizeof(buf) - left);
     return true;
 }
 
