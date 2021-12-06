@@ -135,7 +135,8 @@ enum kitty_kbd_flags {
     KITTY_KBD_REPORT_ASSOCIATED = 0x10,
     KITTY_KBD_SUPPORTED = (KITTY_KBD_DISAMBIGUATE |
                            KITTY_KBD_REPORT_EVENT |
-                           KITTY_KBD_REPORT_ALL),
+                           KITTY_KBD_REPORT_ALL |
+                           KITTY_KBD_REPORT_ASSOCIATED),
 };
 
 struct grid {

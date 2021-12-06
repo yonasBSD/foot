@@ -43,6 +43,8 @@
     (mode `0b10`)
   - [Report all keys as escape codes](https://sw.kovidgoyal.net/kitty/keyboard-protocol/#report-all-keys)
     (mode `0b1000`)
+  - [Report associated text](https://sw.kovidgoyal.net/kitty/keyboard-protocol/#report-text)
+    (mode `0b10000`)
 
 
 ### Changed
