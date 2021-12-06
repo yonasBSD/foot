@@ -40,10 +40,27 @@ struct config_binding_pipe {
     bool master_copy;
 };
 
+enum config_key_binding_type {
+    KEY_BINDING,
+    MOUSE_BINDING,
+};
+
 struct config_key_binding {
     int action;  /* One of the varios bind_action_* enums from wayland.h */
     struct config_key_modifiers modifiers;
-    xkb_keysym_t sym;
+    union {
+        /* Key bindings */
+        struct {
+            xkb_keysym_t sym;
+        } k;
+
+        /* Mouse bindings */
+        struct {
+            int button;
+            int count;
+        } m;
+    };
+
     struct config_binding_pipe pipe;
 
     /* For error messages in collision handling */
@@ -52,6 +69,7 @@ struct config_key_binding {
 };
 DEFINE_LIST(struct config_key_binding);
 
+#if 0
 struct config_mouse_binding {
     enum bind_action_normal action;
     struct config_key_modifiers modifiers;
@@ -64,6 +82,7 @@ struct config_mouse_binding {
     int lineno;
 };
 DEFINE_LIST(struct config_mouse_binding);
+#endif
 
 typedef tll(char *) config_override_t;
 
@@ -207,7 +226,7 @@ struct config {
     struct {
         /* Bindings for "normal" mode */
         struct config_key_binding_list key;
-        struct config_mouse_binding_list mouse;
+        struct config_key_binding_list mouse;
 
         /*
          * Special modes
