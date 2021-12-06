@@ -69,21 +69,6 @@ struct config_key_binding {
 };
 DEFINE_LIST(struct config_key_binding);
 
-#if 0
-struct config_mouse_binding {
-    enum bind_action_normal action;
-    struct config_key_modifiers modifiers;
-    int button;
-    int count;
-    struct config_binding_pipe pipe;
-
-    /* For error messages in collision handling */
-    const char *path;
-    int lineno;
-};
-DEFINE_LIST(struct config_mouse_binding);
-#endif
-
 typedef tll(char *) config_override_t;
 
 struct config_spawn_template {
