@@ -1204,6 +1204,8 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
         case XKB_KEY_Super_R:
         case XKB_KEY_Hyper_R:
         case XKB_KEY_Meta_R:
+        case XKB_KEY_ISO_Level3_Shift:
+        case XKB_KEY_ISO_Level5_Shift:
             goto emit_escapes;
 
         default:
@@ -1362,6 +1364,8 @@ emit_escapes:
     case XKB_KEY_Super_R:   if (report_all_as_escapes) {key = 57450; final = 'u';} break;
     case XKB_KEY_Hyper_R:   if (report_all_as_escapes) {key = 57451; final = 'u';} break;
     case XKB_KEY_Meta_R:    if (report_all_as_escapes) {key = 57452; final = 'u';} break;
+    case XKB_KEY_ISO_Level3_Shift: if (report_all_as_escapes) {key = 57453; final = 'u';} break;
+    case XKB_KEY_ISO_Level5_Shift: if (report_all_as_escapes) {key = 57454; final = 'u';} break;
 
     default: {
         /*
