@@ -1437,25 +1437,20 @@ emit_escapes:
             if (key == 0)
                 key = sym_to_use;
 
-            if (report_alternate)
-                alternate = xkb_keysym_to_utf32(sym);
-        }
-
-        if (report_alternate) {
             /* The *shifted* key. May be the same as the unshifted
              * key - if so, this is filtered out below, when
              * emitting the CSI */
-
-            /* Base layout key. I.e the symbol the pressed key
-             * produces in the base/default layout (layout idx
-             * 0) */
-            const xkb_keysym_t *base_syms;
-            int base_sym_count = xkb_keymap_key_get_syms_by_level(
-                seat->kbd.xkb_keymap, ctx->key, 0, 0, &base_syms);
-
-            if (base_sym_count > 0)
-                base = xkb_keysym_to_utf32(base_syms[0]);
+            alternate = xkb_keysym_to_utf32(sym);
         }
+
+        /* Base layout key. I.e the symbol the pressed key produces in
+         * the base/default layout (layout idx 0) */
+        const xkb_keysym_t *base_syms;
+        int base_sym_count = xkb_keymap_key_get_syms_by_level(
+            seat->kbd.xkb_keymap, ctx->key, 0, 0, &base_syms);
+
+        if (base_sym_count > 0)
+            base = xkb_keysym_to_utf32(base_syms[0]);
 
         final = 'u';
         break;
