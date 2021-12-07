@@ -1161,6 +1161,7 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
 
     const bool disambiguate = flags & KITTY_KBD_DISAMBIGUATE;
     const bool report_events = flags & KITTY_KBD_REPORT_EVENT;
+    const bool report_alternate = flags & KITTY_KBD_REPORT_ALTERNATE;
     const bool report_all_as_escapes = flags & KITTY_KBD_REPORT_ALL;
 
     if (!report_events && released)
@@ -1252,7 +1253,7 @@ emit_escapes:
         encoded_mods |= mods & (1 << seat->kbd.mod_num)   ? (1 << 7) : 0;
     encoded_mods++;
 
-    int key = -1;
+    int key = -1, alternate = -1;
     char final;
 
     switch (sym) {
@@ -1435,6 +1436,8 @@ emit_escapes:
             key = xkb_keysym_to_utf32(sym_to_use);
             if (key == 0)
                 key = sym_to_use;
+            else
+                alternate = xkb_keysym_to_utf32(sym);
         }
 
         final = 'u';
@@ -1464,6 +1467,11 @@ emit_escapes:
     if (final == 'u' || final == '~') {
         bytes = snprintf(p, left, "\x1b[%u", key);
         p += bytes; left -= bytes;
+
+        if (report_alternate && alternate > 0 && alternate != key) {
+            bytes = snprintf(p, left, ":%u", alternate);
+            p += bytes; left -= bytes;
+        }
 
         if (encoded_mods > 1 || event[0] != '\0' || report_associated_text) {
             bytes = snprintf(p, left, ";%u%s", encoded_mods, event);
