@@ -1253,7 +1253,7 @@ emit_escapes:
         encoded_mods |= mods & (1 << seat->kbd.mod_num)   ? (1 << 7) : 0;
     encoded_mods++;
 
-    int key = -1, alternate = -1;
+    int key = -1, alternate = -1, base = -1;
     char final;
 
     switch (sym) {
@@ -1436,8 +1436,23 @@ emit_escapes:
             key = xkb_keysym_to_utf32(sym_to_use);
             if (key == 0)
                 key = sym_to_use;
-            else
+
+            if (report_alternate) {
+                /* The *shifted* key. May be the same as the unshifted
+                 * key - if so, this is filtered out below, when
+                 * emitting the CSI */
                 alternate = xkb_keysym_to_utf32(sym);
+
+                /* Base layout key. I.e the symbol the pressed key
+                 * produces in the base/default layout (layout idx
+                 * 0) */
+                const xkb_keysym_t *base_syms;
+                int base_sym_count = xkb_keymap_key_get_syms_by_level(
+                    seat->kbd.xkb_keymap, ctx->key, 0, 0, &base_syms);
+
+                if (base_sym_count > 0)
+                    base = xkb_keysym_to_utf32(base_syms[0]);
+            }
         }
 
         final = 'u';
@@ -1468,9 +1483,20 @@ emit_escapes:
         bytes = snprintf(p, left, "\x1b[%u", key);
         p += bytes; left -= bytes;
 
-        if (report_alternate && alternate > 0 && alternate != key) {
-            bytes = snprintf(p, left, ":%u", alternate);
-            p += bytes; left -= bytes;
+        if (report_alternate) {
+            bool emit_alternate = alternate > 0 && alternate != key;
+            bool emit_base = base > 0 && base != key && base != alternate;
+
+            if (emit_alternate) {
+                bytes = snprintf(p, left, ":%u", alternate);
+                p += bytes; left -= bytes;
+            }
+
+            if (emit_base) {
+                bytes = snprintf(
+                    p, left, "%s:%u", !emit_alternate ? ":" : "", base);
+                p += bytes; left -= bytes;
+            }
         }
 
         if (encoded_mods > 1 || event[0] != '\0' || report_associated_text) {
