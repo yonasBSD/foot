@@ -1151,18 +1151,12 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
     const bool composing = ctx->compose_status == XKB_COMPOSE_COMPOSING;
     const bool composed = ctx->compose_status == XKB_COMPOSE_COMPOSED;
 
-    const xkb_keysym_t sym = ctx->sym;
-    const uint32_t utf32 = ctx->utf32;
-    const uint8_t *const utf8 = ctx->utf8.buf;
-    const bool is_text = iswprint(utf32);
-    const size_t count = ctx->utf8.count;
+    const enum kitty_kbd_flags flags =
+        term->grid->kitty_kbd.flags[term->grid->kitty_kbd.idx];
 
-    const enum kitty_kbd_flags flags = term->grid->kitty_kbd.flags[term->grid->kitty_kbd.idx];
     const bool disambiguate = flags & KITTY_KBD_DISAMBIGUATE;
     const bool report_events = flags & KITTY_KBD_REPORT_EVENT;
     const bool report_all_as_escapes = flags & KITTY_KBD_REPORT_ALL;
-    const bool report_associated_text =
-        (flags & KITTY_KBD_REPORT_ASSOCIATED) && is_text && !released;
 
     if (!report_events && released)
         return false;
@@ -1181,6 +1175,16 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
     const xkb_mod_mask_t caps_num =
         (seat->kbd.mod_caps != XKB_MOD_INVALID ? 1 << seat->kbd.mod_caps : 0) |
         (seat->kbd.mod_num != XKB_MOD_INVALID ? 1 << seat->kbd.mod_num : 0);
+
+    const xkb_keysym_t sym = ctx->sym;
+    const uint32_t utf32 = ctx->utf32;
+    const uint8_t *const utf8 = ctx->utf8.buf;
+
+    const bool is_text = iswprint(utf32) && (effective & ~caps_num) == 0;
+    const size_t count = ctx->utf8.count;
+
+    const bool report_associated_text =
+        (flags & KITTY_KBD_REPORT_ASSOCIATED) && is_text && !released;
 
     if (composing) {
         /* We never emit anything while composing, *except* modifiers
@@ -1219,9 +1223,7 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
     }
 
     /* Plain-text without modifiers, or commposed text, is emitted as-is */
-    if (((is_text && (effective & ~caps_num) == 0) || composed)
-        && !released)
-    {
+    if (is_text) {
         term_to_slave(term, utf8, count);
         return true;
     }
@@ -1418,13 +1420,9 @@ emit_escapes:
             ? ctx->level0_syms.syms[0]
             : sym;
 
-        if (composed) {
-            wchar_t wc;
-            if (mbtowc(&wc, (const char *)utf8, count) == count)
-                key = wc;
-        }
-
-        if (key < 0) {
+        if (composed && is_text)
+            key = utf32;
+        else {
             key = xkb_keysym_to_utf32(sym_to_use);
             if (key == 0)
                 key = sym_to_use;
@@ -1653,6 +1651,10 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
     if (composed) {
         xkb_compose_state_get_utf8(
             seat->kbd.xkb_compose_state, (char *)utf8, count + 1);
+
+        wchar_t wc;
+        if (mbtowc(&wc, (const char *)utf8, count) == count)
+            utf32 = wc;
     } else {
         xkb_state_key_get_utf8(
             seat->kbd.xkb_state, key, (char *)utf8, count + 1);
