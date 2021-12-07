@@ -1460,7 +1460,7 @@ emit_escapes:
     xassert(encoded_mods >= 1);
 
     char event[4];
-    if (report_events) {
+    if (report_events /*&& !pressed*/) {
         /* Note: this deviates slightly from Kitty, which omits the
          * “:1” subparameter for key press events */
         event[0] = ':';
@@ -1496,14 +1496,16 @@ emit_escapes:
             }
         }
 
-        if (encoded_mods > 1 || event[0] != '\0' || report_associated_text) {
+        bool emit_mods = encoded_mods > 1 || event[0] != '\0';
+
+        if (emit_mods) {
             bytes = snprintf(p, left, ";%u%s", encoded_mods, event);
             p += bytes; left -= bytes;
+        }
 
-            if (report_associated_text) {
-                bytes = snprintf(p, left, ";%u", utf32);
-                p += bytes; left -= bytes;
-            }
+        if (report_associated_text) {
+            bytes = snprintf(p, left, "%s;%u", !emit_mods ? ";" : "", utf32);
+            p += bytes; left -= bytes;
         }
 
         bytes = snprintf(p, left, "%c", final);
