@@ -1230,7 +1230,7 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
     }
 
     /* Plain-text without modifiers, or commposed text, is emitted as-is */
-    if (is_text) {
+    if (is_text && !released) {
         term_to_slave(term, utf8, count);
         return true;
     }
