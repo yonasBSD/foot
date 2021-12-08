@@ -69,10 +69,10 @@ verify_uris_are_sorted(const struct row_data *extra)
 }
 
 static void
-uri_range_ensure_size(struct row_data *extra, size_t count_to_add)
+uri_range_ensure_size(struct row_data *extra, uint32_t count_to_add)
 {
     if (extra->uri_ranges.count + count_to_add > extra->uri_ranges.size) {
-        extra->uri_ranges.size += count_to_add + count_to_add;
+        extra->uri_ranges.size = extra->uri_ranges.count + count_to_add;
         extra->uri_ranges.v = xrealloc(
             extra->uri_ranges.v,
             extra->uri_ranges.size * sizeof(extra->uri_ranges.v[0]));
@@ -81,6 +81,10 @@ uri_range_ensure_size(struct row_data *extra, size_t count_to_add)
     xassert(extra->uri_ranges.count + count_to_add <= extra->uri_ranges.size);
 }
 
+/*
+ * Be careful! This function may xrealloc() the URI range vector, thus
+ * invalidating pointers into it.
+ */
 static void
 uri_range_insert(struct row_data *extra, size_t idx, int start, int end,
                  uint64_t id, const char *uri)
@@ -1028,6 +1032,9 @@ grid_row_uri_range_put(struct row *row, int col, const char *uri, uint64_t id)
 
                 uri_range_insert(extra, i + 1, col + 1, r->end, r->id, r->uri);
 
+                /* The insertion may xrealloc() the vector, making our
+                 * ‘old’ pointer invalid */
+                r = &extra->uri_ranges.v[i];
                 r->end = col - 1;
                 xassert(r->start <= r->end);
 
@@ -1161,6 +1168,10 @@ grid_row_uri_range_erase(struct row *row, int start, int end)
             /* Erase range erases a part in the middle of the URI */
             uri_range_insert(
                 extra, i + 1, end + 1, old->end, old->id, old->uri);
+
+            /* The insertion may xrealloc() the vector, making our
+             * ‘old’ pointer invalid */
+            old = &extra->uri_ranges.v[i];
             old->end = start - 1;
             return;  /* There can be no more URIs affected by the erase range */
         }
@@ -1230,6 +1241,33 @@ UNITTEST
     xassert(row_data.uri_ranges.v[1].end == 10);
     verify_no_overlapping_uris(&row_data);
     verify_uris_are_sorted(&row_data);
+
+    grid_row_uri_range_destroy(&row_data.uri_ranges.v[0]);
+    grid_row_uri_range_destroy(&row_data.uri_ranges.v[1]);
+    row_data.uri_ranges.count = 0;
+
+    /*
+     * Regression test: erasing the middle part of an URI causes us to
+     * insert a new URI (we split the partly erased URI into two).
+     *
+     * The insertion logic typically triggers an xrealloc(), which, in
+     * some cases, *moves* the entire URI vector to a new base
+     * address. grid_row_uri_range_erase() did not account for this,
+     * and tried to update the ‘end’ member in the URI range we just
+     * split. This causes foot to crash when the xrealloc() has moved
+     * the URI range vector.
+     *
+     * (note: we’re only verifying we don’t crash here, hence the lack
+     * of assertions).
+     */
+    free(row_data.uri_ranges.v);
+    row_data.uri_ranges.v = NULL;
+    row_data.uri_ranges.size = 0;
+    uri_range_append(&row_data, 1, 10, 0, "dummy");
+    xassert(row_data.uri_ranges.size == 1);
+
+    grid_row_uri_range_erase(&row, 5, 7);
+    xassert(row_data.uri_ranges.count == 2);
 
     for (size_t i = 0; i < row_data.uri_ranges.count; i++)
         grid_row_uri_range_destroy(&row_data.uri_ranges.v[i]);
