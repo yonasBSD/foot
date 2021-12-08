@@ -1,6 +1,6 @@
 # Changelog
 
-* [Unreleased](#unreleased)
+* [1.10.3](#1-10-3)
 * [1.10.2](#1-10-2)
 * [1.10.1](#1-10-1)
 * [1.10.0](#1-10-0)
@@ -35,7 +35,8 @@
 * [1.2.0](#1-2-0)
 
 
-## Unreleased
+## 1.10.3
+
 ### Added
 
 * Kitty keyboard protocol:
@@ -50,18 +51,11 @@
     (mode `0b10000`)
 
 
-### Changed
-### Deprecated
-### Removed
 ### Fixed
 
 * Crash when bitmap fonts are scaled down to very small font sizes
   (https://codeberg.org/dnkl/foot/issues/830).
 * Crash when overwriting/erasing an OSC-8 URL.
-
-
-### Security
-### Contributors
 
 
 ## 1.10.2
