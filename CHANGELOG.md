@@ -60,8 +60,7 @@
   - [Report event types](https://sw.kovidgoyal.net/kitty/keyboard-protocol/#report-events)
     (mode `0b10`)
   - [Report alternate keys](https://sw.kovidgoyal.net/kitty/keyboard-protocol/#report-alternates)
-    (mode `0b100`, but not that only the _shifted_ key is reported,
-    not the _base layout key_)
+    (mode `0b100`)
   - [Report all keys as escape codes](https://sw.kovidgoyal.net/kitty/keyboard-protocol/#report-all-keys)
     (mode `0b1000`)
   - [Report associated text](https://sw.kovidgoyal.net/kitty/keyboard-protocol/#report-text)
