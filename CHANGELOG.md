@@ -1,6 +1,7 @@
 # Changelog
 
 * [Unreleased](#unreleased)
+* [1.10.3](#1-10-3)
 * [1.10.2](#1-10-2)
 * [1.10.1](#1-10-1)
 * [1.10.0](#1-10-0)
@@ -41,6 +42,20 @@
 * `[mouse-bindings].selection-override-modifiers` option, specifying
   which modifiers to hold to override mouse grabs by client
   applications and force selection instead.
+
+
+### Changed
+### Deprecated
+### Removed
+### Fixed
+### Security
+### Contributors
+
+
+## 1.10.3
+
+### Added
+
 * Kitty keyboard protocol:
   - [Report event types](https://sw.kovidgoyal.net/kitty/keyboard-protocol/#report-events)
     (mode `0b10`)
@@ -53,18 +68,11 @@
     (mode `0b10000`)
 
 
-### Changed
-### Deprecated
-### Removed
 ### Fixed
 
 * Crash when bitmap fonts are scaled down to very small font sizes
   (https://codeberg.org/dnkl/foot/issues/830).
 * Crash when overwriting/erasing an OSC-8 URL.
-
-
-### Security
-### Contributors
 
 
 ## 1.10.2
