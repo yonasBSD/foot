@@ -56,7 +56,7 @@
 
 ### Added
 
-* Kitty keyboard protocol:
+* Kitty keyboard protocol (https://codeberg.org/dnkl/foot/issues/319):
   - [Report event types](https://sw.kovidgoyal.net/kitty/keyboard-protocol/#report-events)
     (mode `0b10`)
   - [Report alternate keys](https://sw.kovidgoyal.net/kitty/keyboard-protocol/#report-alternates)
