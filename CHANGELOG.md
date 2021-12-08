@@ -52,6 +52,7 @@
 
 * Crash when bitmap fonts are scaled down to very small font sizes
   (https://codeberg.org/dnkl/foot/issues/830).
+* Crash when overwriting/erasing an OSC-8 URL.
 
 
 ### Security
