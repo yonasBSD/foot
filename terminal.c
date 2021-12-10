@@ -367,6 +367,8 @@ fdm_ptmx(struct fdm *fdm, int fd, int events, void *data)
         del_utmp_record(term->conf, term->reaper, term->ptmx);
         fdm_del(fdm, fd);
         term->ptmx = -1;
+        if (!term->conf->hold_at_exit)
+            term_shutdown(term);
     }
 
     return true;
@@ -1062,10 +1064,13 @@ load_fonts_from_conf(struct terminal *term)
 static void fdm_client_terminated(
     struct reaper *reaper, pid_t pid, int status, void *data);
 
+static const int PTY_OPEN_FLAGS = O_RDWR | O_NOCTTY;
+
 struct terminal *
 term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
           struct wayland *wayl, const char *foot_exe, const char *cwd,
-          const char *token, int argc, char *const *argv, const char *const *envp,
+          const char *token, const char *pty_path,
+          int argc, char *const *argv, const char *const *envp,
           void (*shutdown_cb)(void *data, int exit_code), void *shutdown_data)
 {
     int ptmx = -1;
@@ -1082,7 +1087,8 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
         return NULL;
     }
 
-    if ((ptmx = posix_openpt(O_RDWR | O_NOCTTY)) < 0) {
+    ptmx = pty_path ? open(pty_path, PTY_OPEN_FLAGS) : posix_openpt(PTY_OPEN_FLAGS);
+    if (ptmx < 0) {
         LOG_ERRNO("failed to open PTY");
         goto close_fds;
     }
@@ -1156,6 +1162,7 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
         .fdm = fdm,
         .reaper = reaper,
         .conf = conf,
+        .slave = -1,
         .ptmx = ptmx,
         .ptmx_buffers = tll_init(),
         .ptmx_paste_buffers = tll_init(),
@@ -1290,16 +1297,18 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
 
     add_utmp_record(conf, reaper, ptmx);
 
-    /* Start the slave/client */
-    if ((term->slave = slave_spawn(
-             term->ptmx, argc, term->cwd, argv, envp, &conf->env_vars,
-             conf->term, conf->shell, conf->login_shell,
-             &conf->notifications)) == -1)
-    {
-        goto err;
-    }
+    if (!pty_path) {
+        /* Start the slave/client */
+        if ((term->slave = slave_spawn(
+                 term->ptmx, argc, term->cwd, argv, envp, &conf->env_vars,
+                 conf->term, conf->shell, conf->login_shell,
+                 &conf->notifications)) == -1)
+        {
+            goto err;
+        }
 
-    reaper_add(term->reaper, term->slave, &fdm_client_terminated, term);
+        reaper_add(term->reaper, term->slave, &fdm_client_terminated, term);
+    }
 
     /* Guess scale; we're not mapped yet, so we don't know on which
      * output we'll be. Use scaling factor from first monitor */
@@ -1561,26 +1570,30 @@ term_shutdown(struct terminal *term)
         close(term->ptmx);
 
     if (!term->shutdown.client_has_terminated) {
-        LOG_DBG("initiating asynchronous terminate of slave; "
-                "sending SIGTERM to PID=%u", term->slave);
+        if (term->slave <= 0) {
+            term->shutdown.client_has_terminated = true;
+        } else {
+            LOG_DBG("initiating asynchronous terminate of slave; "
+                    "sending SIGTERM to PID=%u", term->slave);
 
-        kill(-term->slave, SIGTERM);
+            kill(-term->slave, SIGTERM);
 
-        const struct itimerspec timeout = {.it_value = {.tv_sec = 60}};
+            const struct itimerspec timeout = {.it_value = {.tv_sec = 60}};
 
-        int timeout_fd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC | TFD_NONBLOCK);
-        if (timeout_fd < 0 ||
-            timerfd_settime(timeout_fd, 0, &timeout, NULL) < 0 ||
-            !fdm_add(term->fdm, timeout_fd, EPOLLIN, &fdm_terminate_timeout, term))
-        {
-            if (timeout_fd >= 0)
-                close(timeout_fd);
-            LOG_ERRNO("failed to create slave terminate timeout FD");
-            return false;
+            int timeout_fd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC | TFD_NONBLOCK);
+            if (timeout_fd < 0 ||
+                timerfd_settime(timeout_fd, 0, &timeout, NULL) < 0 ||
+                !fdm_add(term->fdm, timeout_fd, EPOLLIN, &fdm_terminate_timeout, term))
+            {
+                if (timeout_fd >= 0)
+                    close(timeout_fd);
+                LOG_ERRNO("failed to create slave terminate timeout FD");
+                return false;
+            }
+
+            xassert(term->shutdown.terminate_timeout_fd < 0);
+            term->shutdown.terminate_timeout_fd = timeout_fd;
         }
-
-        xassert(term->shutdown.terminate_timeout_fd < 0);
-        term->shutdown.terminate_timeout_fd = timeout_fd;
     }
 
     term->selection.auto_scroll.fd = -1;

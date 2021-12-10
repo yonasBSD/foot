@@ -52,6 +52,8 @@
 ## Unreleased
 ### Added
 
+- Support for opening an existing PTY, e.g. a VM console.
+  ([#1564][1564])
 * Unicode input mode now accepts input from the numpad as well,
   numlock is ignored.
 * A new `resize-by-cells` option, enabled by default, allows the size
@@ -69,6 +71,7 @@
 [1348]: https://codeberg.org/dnkl/foot/issues/1348
 [1633]: https://codeberg.org/dnkl/foot/issues/1633
 
+[1564]: https://codeberg.org/dnkl/foot/pulls/1564
 
 ### Changed
 

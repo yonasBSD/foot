@@ -3,6 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdbool.h>
+#include <limits.h>
 #include <locale.h>
 #include <getopt.h>
 #include <signal.h>
@@ -77,6 +78,7 @@ print_usage(const char *prog_name)
         "  -m,--maximized                           start in maximized mode\n"
         "  -F,--fullscreen                          start in fullscreen mode\n"
         "  -L,--login-shell                         start shell as a login shell\n"
+        "  --pty=PATH                               display an existing PTY instead of creating one\n"
         "  -D,--working-directory=DIR               directory to start in (CWD)\n"
         "  -w,--window-size-pixels=WIDTHxHEIGHT     initial width and height, in pixels\n"
         "  -W,--window-size-chars=WIDTHxHEIGHT      initial width and height, in characters\n"
@@ -172,6 +174,10 @@ sanitize_signals(void)
         sigaction(i, &dfl, NULL);
 }
 
+enum {
+    PTY_OPTION = CHAR_MAX + 1,
+};
+
 int
 main(int argc, char *const *argv)
 {
@@ -209,6 +215,7 @@ main(int argc, char *const *argv)
         {"maximized",              no_argument,       NULL, 'm'},
         {"fullscreen",             no_argument,       NULL, 'F'},
         {"presentation-timings",   no_argument,       NULL, 'P'}, /* Undocumented */
+        {"pty",                    required_argument, NULL, PTY_OPTION},
         {"print-pid",              required_argument, NULL, 'p'},
         {"log-level",              required_argument, NULL, 'd'},
         {"log-colorize",           optional_argument, NULL, 'l'},
@@ -221,6 +228,7 @@ main(int argc, char *const *argv)
     bool check_config = false;
     const char *conf_path = NULL;
     const char *custom_cwd = NULL;
+    const char *pty_path = NULL;
     bool as_server = false;
     const char *conf_server_socket_path = NULL;
     bool presentation_timings = false;
@@ -316,6 +324,10 @@ main(int argc, char *const *argv)
                 conf_server_socket_path = optarg;
             break;
 
+        case PTY_OPTION:
+            pty_path = optarg;
+            break;
+
         case 'P':
             presentation_timings = true;
             break;
@@ -381,6 +393,11 @@ main(int argc, char *const *argv)
         case '?':
             return ret;
         }
+    }
+
+    if (as_server && pty_path) {
+        fputs("error: --pty is incompatible with server mode\n", stderr);
+        return ret;
     }
 
     log_init(log_colorize, as_server && log_syslog,
@@ -574,7 +591,7 @@ main(int argc, char *const *argv)
         goto out;
 
     if (!as_server && (term = term_init(
-                           &conf, fdm, reaper, wayl, "foot", cwd, token,
+                           &conf, fdm, reaper, wayl, "foot", cwd, token, pty_path,
                            argc, argv, NULL,
                            &term_shutdown_cb, &shutdown_ctx)) == NULL) {
         goto out;

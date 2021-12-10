@@ -78,6 +78,13 @@ the foot command line
 *-L*,*--login-shell*
 	Start a login shell, by prepending a '-' to argv[0].
 
+*--pty*
+	Display an existing pty instead of creating one. This is useful
+	for interacting with VM consoles.
+
+	This option is not currently supported in combination with
+	*-s*,*--server*.
+
 *-D*,*--working-directory*=_DIR_
 	Initial working directory for the client application. Default:
 	_CWD of foot_.
