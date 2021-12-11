@@ -380,7 +380,8 @@ test_key_binding(struct context *ctx, bool (*parse_fun)(struct context *ctx),
 enum collision_test_mode {
     FAIL_DIFFERENT_ACTION,
     FAIL_DIFFERENT_ARGV,
-    SUCCED_SAME_ACTION_AND_ARGV
+    FAIL_MOUSE_OVERRIDE,
+    SUCCED_SAME_ACTION_AND_ARGV,
 };
 
 static void
@@ -427,6 +428,10 @@ _test_binding_collisions(struct context *ctx,
 
     switch (test_mode) {
     case FAIL_DIFFERENT_ACTION:
+        break;
+
+    case FAIL_MOUSE_OVERRIDE:
+        ctx->conf->mouse.selection_override_modifiers.ctrl = true;
         break;
 
     case FAIL_DIFFERENT_ARGV:
@@ -484,6 +489,11 @@ test_binding_collisions(struct context *ctx,
     _test_binding_collisions(ctx, max_action, map, type, FAIL_DIFFERENT_ACTION);
     _test_binding_collisions(ctx, max_action, map, type, FAIL_DIFFERENT_ARGV);
     _test_binding_collisions(ctx, max_action, map, type, SUCCED_SAME_ACTION_AND_ARGV);
+
+    if (type == MOUSE_BINDING) {
+        _test_binding_collisions(
+            ctx, max_action, map, type, FAIL_MOUSE_OVERRIDE);
+    }
 }
 
 static void
