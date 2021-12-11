@@ -119,8 +119,40 @@ static const char *const binding_action_map[] = {
     [BIND_ACTION_SELECT_ROW] = "select-row",
 };
 
+static const char *const search_binding_action_map[] = {
+    [BIND_ACTION_SEARCH_NONE] = NULL,
+    [BIND_ACTION_SEARCH_CANCEL] = "cancel",
+    [BIND_ACTION_SEARCH_COMMIT] = "commit",
+    [BIND_ACTION_SEARCH_FIND_PREV] = "find-prev",
+    [BIND_ACTION_SEARCH_FIND_NEXT] = "find-next",
+    [BIND_ACTION_SEARCH_EDIT_LEFT] = "cursor-left",
+    [BIND_ACTION_SEARCH_EDIT_LEFT_WORD] = "cursor-left-word",
+    [BIND_ACTION_SEARCH_EDIT_RIGHT] = "cursor-right",
+    [BIND_ACTION_SEARCH_EDIT_RIGHT_WORD] = "cursor-right-word",
+    [BIND_ACTION_SEARCH_EDIT_HOME] = "cursor-home",
+    [BIND_ACTION_SEARCH_EDIT_END] = "cursor-end",
+    [BIND_ACTION_SEARCH_DELETE_PREV] = "delete-prev",
+    [BIND_ACTION_SEARCH_DELETE_PREV_WORD] = "delete-prev-word",
+    [BIND_ACTION_SEARCH_DELETE_NEXT] = "delete-next",
+    [BIND_ACTION_SEARCH_DELETE_NEXT_WORD] = "delete-next-word",
+    [BIND_ACTION_SEARCH_EXTEND_WORD] = "extend-to-word-boundary",
+    [BIND_ACTION_SEARCH_EXTEND_WORD_WS] = "extend-to-next-whitespace",
+    [BIND_ACTION_SEARCH_CLIPBOARD_PASTE] = "clipboard-paste",
+    [BIND_ACTION_SEARCH_PRIMARY_PASTE] = "primary-paste",
+};
+
+static const char *const url_binding_action_map[] = {
+    [BIND_ACTION_URL_NONE] = NULL,
+    [BIND_ACTION_URL_CANCEL] = "cancel",
+    [BIND_ACTION_URL_TOGGLE_URL_ON_JUMP_LABEL] = "toggle-url-visible",
+};
+
 static_assert(ALEN(binding_action_map) == BIND_ACTION_COUNT,
               "binding action map size mismatch");
+static_assert(ALEN(search_binding_action_map) == BIND_ACTION_SEARCH_COUNT,
+              "search binding action map size mismatch");
+static_assert(ALEN(url_binding_action_map) == BIND_ACTION_URL_COUNT,
+              "URL binding action map size mismatch");
 
 struct context {
     struct config *conf;
@@ -1334,10 +1366,6 @@ parse_section_cursor(struct context *ctx)
 }
 
 static bool
-parse_modifiers(struct context *ctx, const char *text, size_t len,
-                struct config_key_modifiers *modifiers);
-
-static bool
 parse_section_mouse(struct context *ctx)
 {
     struct config *conf = ctx->conf;
@@ -1443,35 +1471,33 @@ parse_section_csd(struct context *ctx)
     return true;
 }
 
-/* Struct that holds temporary key/mouse binding parsed data */
-struct key_combo {
-    char *text;          /* Raw text, e.g. "Control+Shift+V" */
-    struct config_key_modifiers modifiers;
-    union {
-        xkb_keysym_t sym;    /* Key converted to an XKB symbol, e.g. XKB_KEY_V */
-        struct {
-            int button;
-            int count;
-        } m;
-    };
-};
-
-struct key_combo_list {
-    size_t count;
-    struct key_combo *combos;
-};
-
-static void NOINLINE
-free_key_combo_list(struct key_combo_list *key_combos)
+static void
+free_binding_pipe(struct config_binding_pipe *pipe)
 {
-    for (size_t i = 0; i < key_combos->count; i++)
-        free(key_combos->combos[i].text);
-    free(key_combos->combos);
-    key_combos->count = 0;
-    key_combos->combos = NULL;
+    if (pipe->master_copy)
+        free_argv(&pipe->argv);
 }
 
-static bool
+static void
+free_key_binding(struct config_key_binding *binding)
+{
+    free_binding_pipe(&binding->pipe);
+}
+
+static void NOINLINE
+free_key_binding_list(struct config_key_binding_list *bindings)
+{
+    struct config_key_binding *binding = &bindings->arr[0];
+
+    for (size_t i = 0; i < bindings->count; i++, binding++)
+        free_key_binding(binding);
+    free(bindings->arr);
+
+    bindings->arr = NULL;
+    bindings->count = 0;
+}
+
+static bool NOINLINE
 parse_modifiers(struct context *ctx, const char *text, size_t len,
                 struct config_key_modifiers *modifiers)
 {
@@ -1496,7 +1522,7 @@ parse_modifiers(struct context *ctx, const char *text, size_t len,
         else if (strcmp(key, XKB_MOD_NAME_ALT) == 0)
             modifiers->alt = true;
         else if (strcmp(key, XKB_MOD_NAME_LOGO) == 0)
-            modifiers->meta = true;
+            modifiers->super = true;
         else {
             LOG_CONTEXTUAL_ERR("not a valid modifier name: %s", key);
             goto out;
@@ -1510,63 +1536,7 @@ out:
     return ret;
 }
 
-static bool
-value_to_key_combos(struct context *ctx, struct key_combo_list *key_combos)
-{
-    xassert(key_combos != NULL);
-    xassert(key_combos->count == 0 && key_combos->combos == NULL);
-
-    size_t size = 0;  /* Size of ‘combos’ array in the key-combo list */
-
-    char *copy = xstrdup(ctx->value);
-
-    for (char *tok_ctx = NULL, *combo = strtok_r(copy, " ", &tok_ctx);
-         combo != NULL;
-         combo = strtok_r(NULL, " ", &tok_ctx))
-    {
-        struct config_key_modifiers modifiers = {0};
-        char *key = strrchr(combo, '+');
-
-        if (key == NULL) {
-            /* No modifiers */
-            key = combo;
-        } else {
-            if (!parse_modifiers(ctx, combo, key - combo, &modifiers))
-                goto err;
-            key++;  /* Skip past the '+' */
-        }
-
-        /* Translate key name to symbol */
-        xkb_keysym_t sym = xkb_keysym_from_name(key, 0);
-        if (sym == XKB_KEY_NoSymbol) {
-            LOG_CONTEXTUAL_ERR("not a valid XKB key name: %s", key);
-            goto err;
-        }
-
-        if (key_combos->count + 1 > size) {
-            size += 4;
-            key_combos->combos = xrealloc(
-                key_combos->combos, size * sizeof(key_combos->combos[0]));
-        }
-
-        xassert(key_combos->count + 1 <= size);
-        key_combos->combos[key_combos->count++] = (struct key_combo){
-            .text = xstrdup(combo),
-            .modifiers = modifiers,
-            .sym = sym,
-        };
-    }
-
-    free(copy);
-    return true;
-
-err:
-    free_key_combo_list(key_combos);
-    free(copy);
-    return false;
-}
-
-static int
+static int NOINLINE
 argv_compare(const struct argv *argv1, const struct argv *argv2)
 {
     if (argv1->args == NULL && argv2->args == NULL)
@@ -1594,50 +1564,219 @@ argv_compare(const struct argv *argv1, const struct argv *argv2)
     return 1;
 }
 
-static bool
-has_key_binding_collisions(struct context *ctx,
-                           int action, const char *const action_map[],
-                           const struct config_key_binding_list *bindings,
-                           const struct key_combo_list *key_combos,
-                           const struct argv *pipe_argv)
+static void NOINLINE
+remove_from_key_bindings_list(struct config_key_binding_list *bindings,
+                              int action, const struct argv *pipe_argv)
 {
-    for (size_t j = 0; j < bindings->count; j++) {
-        const struct config_key_binding *combo1 = &bindings->arr[j];
+    size_t remove_first_idx = 0;
+    size_t remove_count = 0;
 
-        if (combo1->action == BIND_ACTION_NONE)
+    for (size_t i = 0; i < bindings->count; i++) {
+        struct config_key_binding *binding = &bindings->arr[i];
+
+        if (binding->action != action)
             continue;
 
-        if (combo1->action == action) {
-            if (argv_compare(&combo1->pipe.argv, pipe_argv) == 0)
-                continue;
-        }
+        if (argv_compare(&binding->pipe.argv, pipe_argv) == 0) {
+            if (remove_count++ == 0)
+                remove_first_idx = i;
 
-        for (size_t i = 0; i < key_combos->count; i++) {
-            const struct key_combo *combo2 = &key_combos->combos[i];
-
-            const struct config_key_modifiers *mods1 = &combo1->modifiers;
-            const struct config_key_modifiers *mods2 = &combo2->modifiers;
-
-            bool shift = mods1->shift == mods2->shift;
-            bool alt = mods1->alt == mods2->alt;
-            bool ctrl = mods1->ctrl == mods2->ctrl;
-            bool meta = mods1->meta == mods2->meta;
-            bool sym = combo1->sym == combo2->sym;
-
-            if (shift && alt && ctrl && meta && sym) {
-                bool has_pipe = combo1->pipe.argv.args != NULL;
-                LOG_CONTEXTUAL_ERR("%s already mapped to '%s%s%s%s'",
-                                   combo2->text,
-                                   action_map[combo1->action],
-                                   has_pipe ? " [" : "",
-                                   has_pipe ? combo1->pipe.argv.args[0] : "",
-                                   has_pipe ? "]" : "");
-                return true;
-            }
+            xassert(remove_first_idx + remove_count - 1 == i);
+            free_key_binding(binding);
         }
     }
 
+    if (remove_count == 0)
+        return;
+
+    size_t move_count = bindings->count - (remove_first_idx + remove_count);
+
+    memmove(
+        &bindings->arr[remove_first_idx],
+        &bindings->arr[remove_first_idx + remove_count],
+        move_count * sizeof(bindings->arr[0]));
+    bindings->count -= remove_count;
+}
+
+static const struct {
+    const char *name;
+    int code;
+} button_map[] = {
+    {"BTN_LEFT", BTN_LEFT},
+    {"BTN_RIGHT", BTN_RIGHT},
+    {"BTN_MIDDLE", BTN_MIDDLE},
+    {"BTN_SIDE", BTN_SIDE},
+    {"BTN_EXTRA", BTN_EXTRA},
+    {"BTN_FORWARD", BTN_FORWARD},
+    {"BTN_BACK", BTN_BACK},
+    {"BTN_TASK", BTN_TASK},
+};
+
+static int
+mouse_button_name_to_code(const char *name)
+{
+    for (size_t i = 0; i < ALEN(button_map); i++) {
+        if (strcmp(button_map[i].name, name) == 0)
+            return button_map[i].code;
+    }
+    return -1;
+}
+
+static const char*
+mouse_button_code_to_name(int code)
+{
+    for (size_t i = 0; i < ALEN(button_map); i++) {
+        if (code == button_map[i].code)
+            return button_map[i].name;
+    }
+
+    return NULL;
+}
+
+static bool NOINLINE
+value_to_key_combos(struct context *ctx, int action, struct argv *argv,
+                    struct config_key_binding_list *bindings,
+                    enum config_key_binding_type type)
+{
+    if (strcasecmp(ctx->value, "none") == 0) {
+        remove_from_key_bindings_list(bindings, action, argv);
+        return true;
+    }
+
+    /* Count number of combinations */
+    size_t combo_count = 1;
+    for (const char *p = strchr(ctx->value, ' ');
+         p != NULL;
+         p = strchr(p + 1, ' '))
+    {
+        combo_count++;
+    }
+
+    struct config_key_binding new_combos[combo_count];
+
+    char *copy = xstrdup(ctx->value);
+    size_t idx = 0;
+
+    for (char *tok_ctx = NULL, *combo = strtok_r(copy, " ", &tok_ctx);
+         combo != NULL;
+         combo = strtok_r(NULL, " ", &tok_ctx),
+             idx++)
+    {
+        struct config_key_binding *new_combo = &new_combos[idx];
+        new_combo->action = action;
+        new_combo->pipe.master_copy = idx == 0;
+        new_combo->pipe.argv = *argv;
+        new_combo->path = ctx->path;
+        new_combo->lineno = ctx->lineno;
+
+        char *key = strrchr(combo, '+');
+
+        if (key == NULL) {
+            /* No modifiers */
+            key = combo;
+            new_combo->modifiers = (struct config_key_modifiers){0};
+        } else {
+            *key = '\0';
+            if (!parse_modifiers(ctx, combo, key - combo, &new_combo->modifiers))
+                goto err;
+            key++;  /* Skip past the '+' */
+        }
+
+        switch (type) {
+        case KEY_BINDING:
+            /* Translate key name to symbol */
+            new_combo->k.sym = xkb_keysym_from_name(key, 0);
+            if (new_combo->k.sym == XKB_KEY_NoSymbol) {
+                LOG_CONTEXTUAL_ERR("not a valid XKB key name: %s", key);
+                goto err;
+            }
+            break;
+
+        case MOUSE_BINDING: {
+            new_combo->m.count = 1;
+
+            char *_count = strrchr(key, '-');
+            if (_count != NULL) {
+                *_count = '\0';
+                _count++;
+
+                errno = 0;
+                char *end;
+                unsigned long value = strtoul(_count, &end, 10);
+                if (_count[0] == '\0' || *end != '\0' || errno != 0) {
+                    if (errno != 0)
+                        LOG_CONTEXTUAL_ERRNO("invalid click count: %s", _count);
+                    else
+                        LOG_CONTEXTUAL_ERR("invalid click count: %s", _count);
+                    goto err;
+                }
+
+                new_combo->m.count = value;
+            }
+
+            new_combo->m.button = mouse_button_name_to_code(key);
+            if (new_combo->m.button < 0) {
+                LOG_CONTEXTUAL_ERR("invalid mouse button name: %s", key);
+                goto err;
+            }
+
+            break;
+        }
+        }
+
+    }
+
+    remove_from_key_bindings_list(bindings, action, argv);
+
+    bindings->arr = xrealloc(
+        bindings->arr,
+        (bindings->count + combo_count) * sizeof(bindings->arr[0]));
+
+    memcpy(&bindings->arr[bindings->count],
+           new_combos,
+           combo_count * sizeof(bindings->arr[0]));
+    bindings->count += combo_count;
+
+    free(copy);
+    return true;
+
+err:
+    free(copy);
     return false;
+}
+
+static bool
+modifiers_equal(const struct config_key_modifiers *mods1,
+                const struct config_key_modifiers *mods2)
+{
+    bool shift = mods1->shift == mods2->shift;
+    bool alt = mods1->alt == mods2->alt;
+    bool ctrl = mods1->ctrl == mods2->ctrl;
+    bool super = mods1->super == mods2->super;
+    return shift && alt && ctrl && super;
+}
+
+static bool
+modifiers_disjoint(const struct config_key_modifiers *mods1,
+                const struct config_key_modifiers *mods2)
+{
+    bool shift = mods1->shift && mods2->shift;
+    bool alt = mods1->alt && mods2->alt;
+    bool ctrl = mods1->ctrl && mods2->ctrl;
+    bool super = mods1->super && mods2->super;
+    return !(shift || alt || ctrl || super);
+}
+
+static char * NOINLINE
+modifiers_to_str(const struct config_key_modifiers *mods)
+{
+    char *ret = xasprintf(
+        "%s%s%s%s",
+        mods->ctrl ? XKB_MOD_NAME_CTRL "+" : "",
+        mods->alt ? XKB_MOD_NAME_ALT "+": "",
+        mods->super ? XKB_MOD_NAME_LOGO "+": "",
+        mods->shift ? XKB_MOD_NAME_SHIFT "+": "");
+    return ret;
 }
 
 /*
@@ -1661,7 +1800,7 @@ has_key_binding_collisions(struct context *ctx,
  *  - cmd: allocated string containing "cmd arg1 arg2...". Caller frees.
  *  - argv: allocated array containing {"cmd", "arg1", "arg2", NULL}. Caller frees.
  */
-static ssize_t
+static ssize_t NOINLINE
 pipe_argv_from_value(struct context *ctx, struct argv *argv)
 {
     argv->args = NULL;
@@ -1695,42 +1834,6 @@ pipe_argv_from_value(struct context *ctx, struct argv *argv)
     return remove_len;
 }
 
-static void NOINLINE
-remove_action_from_key_bindings_list(struct config_key_binding_list *bindings,
-                                     int action, const struct argv *pipe_argv)
-{
-    size_t remove_first_idx = 0;
-    size_t remove_count = 0;
-
-    for (size_t i = 0; i < bindings->count; i++) {
-        struct config_key_binding *binding = &bindings->arr[i];
-
-        if (binding->action != action)
-            continue;
-
-        if (argv_compare(&binding->pipe.argv, pipe_argv) == 0) {
-            if (remove_count++ == 0)
-                remove_first_idx = i;
-
-            xassert(remove_first_idx + remove_count - 1 == i);
-
-            if (binding->pipe.master_copy)
-                free_argv(&binding->pipe.argv);
-        }
-    }
-
-    if (remove_count == 0)
-        return;
-
-    size_t move_count = bindings->count - (remove_first_idx + remove_count);
-
-    memmove(
-        &bindings->arr[remove_first_idx],
-        &bindings->arr[remove_first_idx + remove_count],
-        move_count * sizeof(bindings->arr[0]));
-    bindings->count -= remove_count;
-}
-
 static bool NOINLINE
 parse_key_binding_section(struct context *ctx,
                           int action_count,
@@ -1750,50 +1853,13 @@ parse_key_binding_section(struct context *ctx,
         if (strcmp(ctx->key, action_map[action]) != 0)
             continue;
 
-        /* Unset binding */
-        if (strcasecmp(ctx->value, "none") == 0) {
-            remove_action_from_key_bindings_list(bindings, action, &pipe_argv);
-            free_argv(&pipe_argv);
-            return true;
-        }
-
-        struct key_combo_list key_combos = {0};
-        if (!value_to_key_combos(ctx, &key_combos) ||
-            has_key_binding_collisions(
-                ctx, action, action_map, bindings, &key_combos, &pipe_argv))
+        if (!value_to_key_combos(
+                ctx, action, &pipe_argv, bindings, KEY_BINDING))
         {
             free_argv(&pipe_argv);
-            free_key_combo_list(&key_combos);
             return false;
         }
 
-        remove_action_from_key_bindings_list(bindings, action, &pipe_argv);
-
-        /* Emit key bindings */
-        size_t ofs = bindings->count;
-        bindings->count += key_combos.count;
-        bindings->arr = xrealloc(
-            bindings->arr, bindings->count * sizeof(bindings->arr[0]));
-
-        bool first = true;
-        for (size_t i = 0; i < key_combos.count; i++) {
-            const struct key_combo *combo = &key_combos.combos[i];
-            struct config_key_binding binding = {
-                .action = action,
-                .modifiers = combo->modifiers,
-                .sym = combo->sym,
-                .pipe = {
-                    .argv = pipe_argv,
-                    .master_copy = first,
-                },
-            };
-
-            /* TODO: we could re-use free:d slots */
-            bindings->arr[ofs + i] = binding;
-            first = false;
-        }
-
-        free_key_combo_list(&key_combos);
         return true;
     }
 
@@ -1836,7 +1902,7 @@ UNITTEST
     xassert(parse_key_binding_section(&ctx, ALEN(map), map, &bindings));
     xassert(bindings.count == 1);
     xassert(bindings.arr[0].action == TEST_ACTION_FOO);
-    xassert(bindings.arr[0].sym == XKB_KEY_Escape);
+    xassert(bindings.arr[0].k.sym == XKB_KEY_Escape);
 
     /*
      * ADD bar=Control+g Control+Shift+x
@@ -1849,10 +1915,10 @@ UNITTEST
     xassert(bindings.count == 3);
     xassert(bindings.arr[0].action == TEST_ACTION_FOO);
     xassert(bindings.arr[1].action == TEST_ACTION_BAR);
-    xassert(bindings.arr[1].sym == XKB_KEY_g);
+    xassert(bindings.arr[1].k.sym == XKB_KEY_g);
     xassert(bindings.arr[1].modifiers.ctrl);
     xassert(bindings.arr[2].action == TEST_ACTION_BAR);
-    xassert(bindings.arr[2].sym == XKB_KEY_x);
+    xassert(bindings.arr[2].k.sym == XKB_KEY_x);
     xassert(bindings.arr[2].modifiers.ctrl && bindings.arr[2].modifiers.shift);
 
     /*
@@ -1868,10 +1934,10 @@ UNITTEST
     xassert(bindings.arr[0].action == TEST_ACTION_BAR);
     xassert(bindings.arr[1].action == TEST_ACTION_BAR);
     xassert(bindings.arr[2].action == TEST_ACTION_FOO);
-    xassert(bindings.arr[2].sym == XKB_KEY_v);
+    xassert(bindings.arr[2].k.sym == XKB_KEY_v);
     xassert(bindings.arr[2].modifiers.alt);
     xassert(bindings.arr[3].action == TEST_ACTION_FOO);
-    xassert(bindings.arr[3].sym == XKB_KEY_q);
+    xassert(bindings.arr[3].k.sym == XKB_KEY_q);
     xassert(bindings.arr[3].modifiers.shift);
 
     /*
@@ -1907,31 +1973,6 @@ parse_section_key_bindings(struct context *ctx)
 static bool
 parse_section_search_bindings(struct context *ctx)
 {
-    static const char *const search_binding_action_map[] = {
-        [BIND_ACTION_SEARCH_NONE] = NULL,
-        [BIND_ACTION_SEARCH_CANCEL] = "cancel",
-        [BIND_ACTION_SEARCH_COMMIT] = "commit",
-        [BIND_ACTION_SEARCH_FIND_PREV] = "find-prev",
-        [BIND_ACTION_SEARCH_FIND_NEXT] = "find-next",
-        [BIND_ACTION_SEARCH_EDIT_LEFT] = "cursor-left",
-        [BIND_ACTION_SEARCH_EDIT_LEFT_WORD] = "cursor-left-word",
-        [BIND_ACTION_SEARCH_EDIT_RIGHT] = "cursor-right",
-        [BIND_ACTION_SEARCH_EDIT_RIGHT_WORD] = "cursor-right-word",
-        [BIND_ACTION_SEARCH_EDIT_HOME] = "cursor-home",
-        [BIND_ACTION_SEARCH_EDIT_END] = "cursor-end",
-        [BIND_ACTION_SEARCH_DELETE_PREV] = "delete-prev",
-        [BIND_ACTION_SEARCH_DELETE_PREV_WORD] = "delete-prev-word",
-        [BIND_ACTION_SEARCH_DELETE_NEXT] = "delete-next",
-        [BIND_ACTION_SEARCH_DELETE_NEXT_WORD] = "delete-next-word",
-        [BIND_ACTION_SEARCH_EXTEND_WORD] = "extend-to-word-boundary",
-        [BIND_ACTION_SEARCH_EXTEND_WORD_WS] = "extend-to-next-whitespace",
-        [BIND_ACTION_SEARCH_CLIPBOARD_PASTE] = "clipboard-paste",
-        [BIND_ACTION_SEARCH_PRIMARY_PASTE] = "primary-paste",
-    };
-
-    static_assert(ALEN(search_binding_action_map) == BIND_ACTION_SEARCH_COUNT,
-                  "search binding action map size mismatch");
-
     return parse_key_binding_section(
         ctx,
         BIND_ACTION_SEARCH_COUNT, search_binding_action_map,
@@ -1941,263 +1982,169 @@ parse_section_search_bindings(struct context *ctx)
 static bool
 parse_section_url_bindings(struct context *ctx)
 {
-    static const char *const url_binding_action_map[] = {
-        [BIND_ACTION_URL_NONE] = NULL,
-        [BIND_ACTION_URL_CANCEL] = "cancel",
-        [BIND_ACTION_URL_TOGGLE_URL_ON_JUMP_LABEL] = "toggle-url-visible",
-    };
-
-    static_assert(ALEN(url_binding_action_map) == BIND_ACTION_URL_COUNT,
-                  "URL binding action map size mismatch");
-
     return parse_key_binding_section(
         ctx,
         BIND_ACTION_URL_COUNT, url_binding_action_map,
         &ctx->conf->bindings.url);
 }
 
-static const struct {
-    const char *name;
-    int code;
-} button_map[] = {
-    {"BTN_LEFT", BTN_LEFT},
-    {"BTN_RIGHT", BTN_RIGHT},
-    {"BTN_MIDDLE", BTN_MIDDLE},
-    {"BTN_SIDE", BTN_SIDE},
-    {"BTN_EXTRA", BTN_EXTRA},
-    {"BTN_FORWARD", BTN_FORWARD},
-    {"BTN_BACK", BTN_BACK},
-    {"BTN_TASK", BTN_TASK},
-};
-
-static const char*
-mouse_event_code_get_name(int code)
+static bool NOINLINE
+resolve_key_binding_collisions(struct config *conf, const char *section_name,
+                               const char *const action_map[],
+                               struct config_key_binding_list *bindings,
+                               enum config_key_binding_type type)
 {
-    for (size_t i = 0; i < ALEN(button_map); i++) {
-        if (code == button_map[i].code)
-            return button_map[i].name;
-    }
+    bool ret = true;
 
-    return NULL;
-}
+    for (size_t i = 1; i < bindings->count; i++) {
+        enum {COLLISION_NONE,
+            COLLISION_OVERRIDE,
+            COLLISION_BINDING} collision_type = COLLISION_NONE;
+        const struct config_key_binding *collision_binding = NULL;
 
-static bool
-value_to_mouse_combos(struct context *ctx, struct key_combo_list *key_combos)
-{
-    xassert(key_combos != NULL);
-    xassert(key_combos->count == 0 && key_combos->combos == NULL);
+        struct config_key_binding *binding1 = &bindings->arr[i];
+        xassert(binding1->action != BIND_ACTION_NONE);
 
-    size_t size = 0;  /* Size of the ‘combos’ array in key_combos */
+        const struct config_key_modifiers *mods1 = &binding1->modifiers;
 
-    char *copy = xstrdup(ctx->value);
-
-    for (char *tok_ctx = NULL, *combo = strtok_r(copy, " ", &tok_ctx);
-         combo != NULL;
-         combo = strtok_r(NULL, " ", &tok_ctx))
-    {
-        struct config_key_modifiers modifiers = {0};
-        char *key = strrchr(combo, '+');
-
-        if (key == NULL) {
-            /* No modifiers */
-            key = combo;
-        } else {
-            *key = '\0';
-            if (!parse_modifiers(ctx, combo, key - combo, &modifiers))
-                goto err;
-            key++;  /* Skip past the '+' */
-        }
-
-        size_t count = 1;
+        /* Does our modifiers collide with the selection override mods? */
+        if (type == MOUSE_BINDING &&
+            !modifiers_disjoint(
+                mods1, &conf->mouse.selection_override_modifiers))
         {
-            char *_count = strrchr(key, '-');
-            if (_count != NULL) {
-                *_count = '\0';
-                _count++;
-
-                errno = 0;
-                char *end;
-                unsigned long value = strtoul(_count, &end, 10);
-                if (_count[0] == '\0' || *end != '\0' || errno != 0) {
-                    if (errno != 0)
-                        LOG_CONTEXTUAL_ERRNO("invalid click count: %s", _count);
-                    else
-                        LOG_CONTEXTUAL_ERR("invalid click count: %s", _count);
-                    goto err;
-                }
-                count = value;
-            }
+            collision_type = COLLISION_OVERRIDE;
         }
 
-        int button = 0;
-        for (size_t i = 0; i < ALEN(button_map); i++) {
-            if (strcmp(key, button_map[i].name) == 0) {
-                button = button_map[i].code;
+        /* Does our binding collide with another binding? */
+        for (ssize_t j = i - 1;
+             collision_type == COLLISION_NONE && j >= 0;
+             j--)
+        {
+            const struct config_key_binding *binding2 = &bindings->arr[j];
+            xassert(binding2->action != BIND_ACTION_NONE);
+
+            if (binding2->action == binding1->action) {
+                if (argv_compare(
+                        &binding1->pipe.argv, &binding2->pipe.argv) == 0)
+                {
+                    continue;
+                }
+            }
+
+            const struct config_key_modifiers *mods2 = &binding2->modifiers;
+
+            bool mods_equal = modifiers_equal(mods1, mods2);
+            bool sym_equal;
+
+            switch (type) {
+            case KEY_BINDING:
+                sym_equal = binding1->k.sym == binding2->k.sym;
+                break;
+
+            case MOUSE_BINDING:
+                sym_equal = (binding1->m.button == binding2->m.button &&
+                             binding1->m.count == binding2->m.count);
                 break;
             }
+
+            if (!mods_equal || !sym_equal)
+                continue;
+
+            collision_binding = binding2;
+            collision_type = COLLISION_BINDING;
+            break;
         }
 
-        if (button == 0) {
-            LOG_CONTEXTUAL_ERR("invalid mouse button name: %s", key);
-            goto err;
+        if (collision_type != COLLISION_NONE) {
+            char *modifier_names = modifiers_to_str(mods1);
+            char sym_name[64];
+
+            switch (type){
+            case KEY_BINDING:
+                xkb_keysym_get_name(binding1->k.sym, sym_name, sizeof(sym_name));
+                break;
+
+            case MOUSE_BINDING: {
+                const char *button_name =
+                    mouse_button_code_to_name(binding1->m.button);
+
+                if (binding1->m.count > 1) {
+                    snprintf(sym_name, sizeof(sym_name), "%s-%d",
+                             button_name, binding1->m.count);
+                } else
+                    strcpy(sym_name, button_name);
+                break;
+            }
+            }
+
+            switch (collision_type) {
+            case COLLISION_NONE:
+                break;
+
+            case COLLISION_BINDING: {
+                bool has_pipe = collision_binding->pipe.argv.args != NULL;
+                LOG_AND_NOTIFY_ERR(
+                    "%s:%d: [%s].%s: %s%s already mapped to '%s%s%s%s'",
+                    binding1->path, binding1->lineno, section_name,
+                    action_map[binding1->action],
+                    modifier_names, sym_name,
+                    action_map[collision_binding->action],
+                    has_pipe ? " [" : "",
+                    has_pipe ? collision_binding->pipe.argv.args[0] : "",
+                    has_pipe ? "]" : "");
+                ret = false;
+                break;
+            }
+
+            case COLLISION_OVERRIDE: {
+                char *override_names = modifiers_to_str(
+                    &conf->mouse.selection_override_modifiers);
+
+                if (override_names[0] != '\0')
+                    override_names[strlen(override_names) - 1] = '\0';
+
+                LOG_AND_NOTIFY_ERR(
+                    "%s:%d: [%s].%s: %s%s: "
+                    "modifiers conflict with 'selection-override-modifiers=%s'",
+                    binding1->path != NULL ? binding1->path : "(default)",
+                    binding1->lineno, section_name,
+                    action_map[binding1->action],
+                    modifier_names, sym_name, override_names);
+                ret = false;
+                free(override_names);
+                break;
+            }
+            }
+
+            free(modifier_names);
+
+            if (binding1->pipe.master_copy && i + 1 < bindings->count) {
+                struct config_key_binding *next = &bindings->arr[i + 1];
+
+                if (next->action == binding1->action &&
+                    argv_compare(&binding1->pipe.argv, &next->pipe.argv) == 0)
+                {
+                    /* Transfer ownership to next binding */
+                    next->pipe.master_copy = true;
+                    binding1->pipe.master_copy = false;
+                }
+            }
+
+            free_key_binding(binding1);
+
+            /* Remove the most recent binding */
+            size_t move_count = bindings->count - (i + 1);
+            memmove(&bindings->arr[i], &bindings->arr[i + 1],
+                    move_count * sizeof(bindings->arr[0]));
+            bindings->count--;
+
+            i--;
         }
 
-        struct key_combo new = {
-            .text = xstrdup(combo),
-            .modifiers = modifiers,
-            .m = {
-                .button = button,
-                .count = count,
-            },
-        };
-
-        if (key_combos->count + 1 > size) {
-            size += 4;
-            key_combos->combos = xrealloc(
-                key_combos->combos, size * sizeof(key_combos->combos[0]));
-        }
-
-        xassert(key_combos->count + 1 <= size);
-        key_combos->combos[key_combos->count++] = new;
     }
 
-    free(copy);
-    return true;
-
-err:
-    free_key_combo_list(key_combos);
-    free(copy);
-    return false;
-}
-
-static bool
-modifiers_equal(const struct config_key_modifiers *mods1,
-                const struct config_key_modifiers *mods2)
-{
-    bool shift = mods1->shift == mods2->shift;
-    bool alt = mods1->alt == mods2->alt;
-    bool ctrl = mods1->ctrl == mods2->ctrl;
-    bool meta = mods1->meta == mods2->meta;
-    return shift && alt && ctrl && meta;
-}
-
-static bool
-modifiers_disjoint(const struct config_key_modifiers *mods1,
-                const struct config_key_modifiers *mods2)
-{
-    bool shift = mods1->shift && mods2->shift;
-    bool alt = mods1->alt && mods2->alt;
-    bool ctrl = mods1->ctrl && mods2->ctrl;
-    bool meta = mods1->meta && mods2->meta;
-    return !(shift || alt || ctrl || meta);
-}
-
-static char *
-modifiers_to_str(const struct config_key_modifiers *mods)
-{
-    char *ret = xasprintf("%s%s%s%s",
-        mods->ctrl ? "Control+" : "",
-        mods->alt ? "Alt+": "",
-        mods->meta ? "Meta+": "",
-        mods->shift ? "Shift+": "");
-    ret[strlen(ret) - 1] = '\0';
     return ret;
 }
-
-static char *
-mouse_combo_to_str(const struct key_combo *combo)
-{
-    char *combo_modifiers_str = modifiers_to_str(&combo->modifiers);
-    const char *combo_button_str = mouse_event_code_get_name(combo->m.button);
-    xassert(combo_button_str != NULL);
-
-    char *ret;
-    if (combo->m.count == 1)
-        ret = xasprintf("%s+%s", combo_modifiers_str, combo_button_str);
-    else
-        ret = xasprintf("%s+%s-%d",
-                        combo_modifiers_str,
-                        combo_button_str,
-                        combo->m.count);
-
-   free (combo_modifiers_str);
-   return ret;
-}
-
-static bool
-selection_override_interferes_with_mouse_binding(struct context *ctx,
-                                                 int action,
-                                                 const struct key_combo_list *key_combos,
-                                                 bool blame_modifiers)
-{
-    struct config *conf = ctx->conf;
-
-    if (action == BIND_ACTION_NONE)
-        return false;
-
-    const struct config_key_modifiers *override_mods =
-        &conf->mouse.selection_override_modifiers;
-    for (size_t i = 0; i < key_combos->count; i++) {
-        const struct key_combo *combo = &key_combos->combos[i];
-
-        if (!modifiers_disjoint(&combo->modifiers, override_mods)) {
-            char *modifiers_str = modifiers_to_str(override_mods);
-            char *combo_str = mouse_combo_to_str(combo);
-            if (blame_modifiers) {
-                LOG_CONTEXTUAL_ERR(
-                    "modifiers conflict with existing binding %s=%s",
-                    binding_action_map[action],
-                    combo_str);
-            } else {
-                LOG_CONTEXTUAL_ERR(
-                    "binding conflicts with selection override modifiers (%s)",
-                    modifiers_str);
-            }
-            free (modifiers_str);
-            free (combo_str);
-            return false;
-        }
-    }
-
-    return false;
-}
-
-static bool
-has_mouse_binding_collisions(struct context *ctx,
-                             const struct key_combo_list *key_combos)
-{
-    struct config *conf = ctx->conf;
-
-    for (size_t j = 0; j < conf->bindings.mouse.count; j++) {
-        const struct config_mouse_binding *combo1 = &conf->bindings.mouse.arr[j];
-        if (combo1->action == BIND_ACTION_NONE)
-            continue;
-
-        for (size_t i = 0; i < key_combos->count; i++) {
-            const struct key_combo *combo2 = &key_combos->combos[i];
-
-            const struct config_key_modifiers *mods1 = &combo1->modifiers;
-            const struct config_key_modifiers *mods2 = &combo2->modifiers;
-
-            bool button = combo1->button == combo2->m.button;
-            bool count = combo1->count == combo2->m.count;
-
-            if (modifiers_equal(mods1, mods2) && button && count) {
-                bool has_pipe = combo1->pipe.argv.args != NULL;
-                LOG_CONTEXTUAL_ERR("%s already mapped to '%s%s%s%s'",
-                                   combo2->text,
-                                   binding_action_map[combo1->action],
-                                   has_pipe ? " [" : "",
-                                   has_pipe ? combo1->pipe.argv.args[0] : "",
-                                   has_pipe ? "]" : "");
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
-
 
 static bool
 parse_section_mouse_bindings(struct context *ctx)
@@ -2206,34 +2153,14 @@ parse_section_mouse_bindings(struct context *ctx)
     const char *key = ctx->key;
     const char *value = ctx->value;
 
-    if (strcmp(ctx->key, "selection-override-modifiers") == 0) {
-        if (!parse_modifiers(ctx, ctx->value, strlen(ctx->value),
-            &conf->mouse.selection_override_modifiers)) {
+    if (strcmp(key, "selection-override-modifiers") == 0) {
+        if (!parse_modifiers(
+                ctx, ctx->value, strlen(value),
+                &conf->mouse.selection_override_modifiers))
+        {
             LOG_CONTEXTUAL_ERR("%s: invalid modifiers '%s'", key, ctx->value);
             return false;
         }
-
-        /* Ensure no existing bindings use these modifiers */
-        for (size_t i = 0; i < conf->bindings.mouse.count; i++) {
-            const struct config_mouse_binding *binding = &conf->bindings.mouse.arr[i];
-            struct key_combo combo = {
-                .modifiers = binding->modifiers,
-                .m = {
-                    .button = binding->button,
-                    .count = binding->count,
-                },
-            };
-
-            struct key_combo_list key_combos = {
-                .count = 1,
-                .combos = &combo,
-            };
-
-            if (selection_override_interferes_with_mouse_binding(ctx, binding->action, &key_combos, true)) {
-                return false;
-            }
-        }
-
         return true;
     }
 
@@ -2253,72 +2180,13 @@ parse_section_mouse_bindings(struct context *ctx)
         if (strcmp(key, binding_action_map[action]) != 0)
             continue;
 
-        /* Unset binding */
-        if (strcasecmp(value, "none") == 0) {
-            for (size_t i = 0; i < conf->bindings.mouse.count; i++) {
-                struct config_mouse_binding *binding =
-                    &conf->bindings.mouse.arr[i];
-
-                if (binding->action == action) {
-                    if (binding->pipe.master_copy)
-                        free_argv(&binding->pipe.argv);
-                    binding->action = BIND_ACTION_NONE;
-                }
-            }
-            free_argv(&pipe_argv);
-            return true;
-        }
-
-        struct key_combo_list key_combos = {0};
-        if (!value_to_mouse_combos(ctx, &key_combos) ||
-            has_mouse_binding_collisions(ctx, &key_combos) ||
-            selection_override_interferes_with_mouse_binding(ctx, action, &key_combos, false))
+        if (!value_to_key_combos(
+                ctx, action, &pipe_argv, &conf->bindings.mouse, MOUSE_BINDING))
         {
             free_argv(&pipe_argv);
-            free_key_combo_list(&key_combos);
             return false;
         }
 
-        /* Remove existing bindings for this action */
-        for (size_t i = 0; i < conf->bindings.mouse.count; i++) {
-            struct config_mouse_binding *binding = &conf->bindings.mouse.arr[i];
-
-            if (binding->action != action)
-                continue;
-
-            if (argv_compare(&binding->pipe.argv, &pipe_argv) == 0) {
-                if (binding->pipe.master_copy)
-                    free_argv(&binding->pipe.argv);
-                binding->action = BIND_ACTION_NONE;
-            }
-        }
-
-        /* Emit mouse bindings */
-        size_t ofs = conf->bindings.mouse.count;
-        conf->bindings.mouse.count += key_combos.count;
-        conf->bindings.mouse.arr = xrealloc(
-            conf->bindings.mouse.arr,
-            conf->bindings.mouse.count * sizeof(conf->bindings.mouse.arr[0]));
-
-        bool first = true;
-        for (size_t i = 0; i < key_combos.count; i++) {
-            const struct key_combo *combo = &key_combos.combos[i];
-            struct config_mouse_binding binding = {
-                .action = action,
-                .modifiers = combo->modifiers,
-                .button = combo->m.button,
-                .count = combo->m.count,
-                .pipe = {
-                    .argv = pipe_argv,
-                    .master_copy = first,
-                },
-            };
-
-            conf->bindings.mouse.arr[ofs + i] = binding;
-            first = false;
-        }
-
-        free_key_combo_list(&key_combos);
         return true;
     }
 
@@ -2719,21 +2587,21 @@ static void
 add_default_key_bindings(struct config *conf)
 {
     static const struct config_key_binding bindings[] = {
-        {BIND_ACTION_SCROLLBACK_UP_PAGE, m_shift, XKB_KEY_Page_Up},
-        {BIND_ACTION_SCROLLBACK_DOWN_PAGE, m_shift, XKB_KEY_Page_Down},
-        {BIND_ACTION_CLIPBOARD_COPY, m_ctrl_shift, XKB_KEY_c},
-        {BIND_ACTION_CLIPBOARD_PASTE, m_ctrl_shift, XKB_KEY_v},
-        {BIND_ACTION_PRIMARY_PASTE, m_shift, XKB_KEY_Insert},
-        {BIND_ACTION_SEARCH_START, m_ctrl_shift, XKB_KEY_r},
-        {BIND_ACTION_FONT_SIZE_UP, m_ctrl, XKB_KEY_plus},
-        {BIND_ACTION_FONT_SIZE_UP, m_ctrl, XKB_KEY_equal},
-        {BIND_ACTION_FONT_SIZE_UP, m_ctrl, XKB_KEY_KP_Add},
-        {BIND_ACTION_FONT_SIZE_DOWN, m_ctrl, XKB_KEY_minus},
-        {BIND_ACTION_FONT_SIZE_DOWN, m_ctrl, XKB_KEY_KP_Subtract},
-        {BIND_ACTION_FONT_SIZE_RESET, m_ctrl, XKB_KEY_0},
-        {BIND_ACTION_FONT_SIZE_RESET, m_ctrl, XKB_KEY_KP_0},
-        {BIND_ACTION_SPAWN_TERMINAL, m_ctrl_shift, XKB_KEY_n},
-        {BIND_ACTION_SHOW_URLS_LAUNCH, m_ctrl_shift, XKB_KEY_u},
+        {BIND_ACTION_SCROLLBACK_UP_PAGE, m_shift, {{XKB_KEY_Prior}}},
+        {BIND_ACTION_SCROLLBACK_DOWN_PAGE, m_shift, {{XKB_KEY_Next}}},
+        {BIND_ACTION_CLIPBOARD_COPY, m_ctrl_shift, {{XKB_KEY_c}}},
+        {BIND_ACTION_CLIPBOARD_PASTE, m_ctrl_shift, {{XKB_KEY_v}}},
+        {BIND_ACTION_PRIMARY_PASTE, m_shift, {{XKB_KEY_Insert}}},
+        {BIND_ACTION_SEARCH_START, m_ctrl_shift, {{XKB_KEY_r}}},
+        {BIND_ACTION_FONT_SIZE_UP, m_ctrl, {{XKB_KEY_plus}}},
+        {BIND_ACTION_FONT_SIZE_UP, m_ctrl, {{XKB_KEY_equal}}},
+        {BIND_ACTION_FONT_SIZE_UP, m_ctrl, {{XKB_KEY_KP_Add}}},
+        {BIND_ACTION_FONT_SIZE_DOWN, m_ctrl, {{XKB_KEY_minus}}},
+        {BIND_ACTION_FONT_SIZE_DOWN, m_ctrl, {{XKB_KEY_KP_Subtract}}},
+        {BIND_ACTION_FONT_SIZE_RESET, m_ctrl, {{XKB_KEY_0}}},
+        {BIND_ACTION_FONT_SIZE_RESET, m_ctrl, {{XKB_KEY_KP_0}}},
+        {BIND_ACTION_SPAWN_TERMINAL, m_ctrl_shift, {{XKB_KEY_n}}},
+        {BIND_ACTION_SHOW_URLS_LAUNCH, m_ctrl_shift, {{XKB_KEY_u}}},
     };
 
     conf->bindings.key.count = ALEN(bindings);
@@ -2746,35 +2614,35 @@ static void
 add_default_search_bindings(struct config *conf)
 {
     static const struct config_key_binding bindings[] = {
-        {BIND_ACTION_SEARCH_CANCEL, m_ctrl, XKB_KEY_c},
-        {BIND_ACTION_SEARCH_CANCEL, m_ctrl, XKB_KEY_g},
-        {BIND_ACTION_SEARCH_CANCEL, m_none, XKB_KEY_Escape},
-        {BIND_ACTION_SEARCH_COMMIT, m_none, XKB_KEY_Return},
-        {BIND_ACTION_SEARCH_FIND_PREV, m_ctrl, XKB_KEY_r},
-        {BIND_ACTION_SEARCH_FIND_NEXT, m_ctrl, XKB_KEY_s},
-        {BIND_ACTION_SEARCH_EDIT_LEFT, m_none, XKB_KEY_Left},
-        {BIND_ACTION_SEARCH_EDIT_LEFT, m_ctrl, XKB_KEY_b},
-        {BIND_ACTION_SEARCH_EDIT_LEFT_WORD, m_ctrl, XKB_KEY_Left},
-        {BIND_ACTION_SEARCH_EDIT_LEFT_WORD, m_alt, XKB_KEY_b},
-        {BIND_ACTION_SEARCH_EDIT_RIGHT, m_none, XKB_KEY_Right},
-        {BIND_ACTION_SEARCH_EDIT_RIGHT, m_ctrl, XKB_KEY_f},
-        {BIND_ACTION_SEARCH_EDIT_RIGHT_WORD, m_ctrl, XKB_KEY_Right},
-        {BIND_ACTION_SEARCH_EDIT_RIGHT_WORD, m_alt, XKB_KEY_f},
-        {BIND_ACTION_SEARCH_EDIT_HOME, m_none, XKB_KEY_Home},
-        {BIND_ACTION_SEARCH_EDIT_HOME, m_ctrl, XKB_KEY_a},
-        {BIND_ACTION_SEARCH_EDIT_END, m_none, XKB_KEY_End},
-        {BIND_ACTION_SEARCH_EDIT_END, m_ctrl, XKB_KEY_e},
-        {BIND_ACTION_SEARCH_DELETE_PREV, m_none, XKB_KEY_BackSpace},
-        {BIND_ACTION_SEARCH_DELETE_PREV_WORD, m_ctrl, XKB_KEY_BackSpace},
-        {BIND_ACTION_SEARCH_DELETE_PREV_WORD, m_alt, XKB_KEY_BackSpace},
-        {BIND_ACTION_SEARCH_DELETE_NEXT, m_none, XKB_KEY_Delete},
-        {BIND_ACTION_SEARCH_DELETE_NEXT_WORD, m_ctrl, XKB_KEY_Delete},
-        {BIND_ACTION_SEARCH_DELETE_NEXT_WORD, m_alt, XKB_KEY_d},
-        {BIND_ACTION_SEARCH_EXTEND_WORD, m_ctrl, XKB_KEY_w},
-        {BIND_ACTION_SEARCH_EXTEND_WORD_WS, m_ctrl_shift, XKB_KEY_w},
-        {BIND_ACTION_SEARCH_CLIPBOARD_PASTE, m_ctrl, XKB_KEY_v},
-        {BIND_ACTION_SEARCH_CLIPBOARD_PASTE, m_ctrl, XKB_KEY_y},
-        {BIND_ACTION_SEARCH_PRIMARY_PASTE, m_shift, XKB_KEY_Insert},
+        {BIND_ACTION_SEARCH_CANCEL, m_ctrl, {{XKB_KEY_c}}},
+        {BIND_ACTION_SEARCH_CANCEL, m_ctrl, {{XKB_KEY_g}}},
+        {BIND_ACTION_SEARCH_CANCEL, m_none, {{XKB_KEY_Escape}}},
+        {BIND_ACTION_SEARCH_COMMIT, m_none, {{XKB_KEY_Return}}},
+        {BIND_ACTION_SEARCH_FIND_PREV, m_ctrl, {{XKB_KEY_r}}},
+        {BIND_ACTION_SEARCH_FIND_NEXT, m_ctrl, {{XKB_KEY_s}}},
+        {BIND_ACTION_SEARCH_EDIT_LEFT, m_none, {{XKB_KEY_Left}}},
+        {BIND_ACTION_SEARCH_EDIT_LEFT, m_ctrl, {{XKB_KEY_b}}},
+        {BIND_ACTION_SEARCH_EDIT_LEFT_WORD, m_ctrl, {{XKB_KEY_Left}}},
+        {BIND_ACTION_SEARCH_EDIT_LEFT_WORD, m_alt, {{XKB_KEY_b}}},
+        {BIND_ACTION_SEARCH_EDIT_RIGHT, m_none, {{XKB_KEY_Right}}},
+        {BIND_ACTION_SEARCH_EDIT_RIGHT, m_ctrl, {{XKB_KEY_f}}},
+        {BIND_ACTION_SEARCH_EDIT_RIGHT_WORD, m_ctrl, {{XKB_KEY_Right}}},
+        {BIND_ACTION_SEARCH_EDIT_RIGHT_WORD, m_alt, {{XKB_KEY_f}}},
+        {BIND_ACTION_SEARCH_EDIT_HOME, m_none, {{XKB_KEY_Home}}},
+        {BIND_ACTION_SEARCH_EDIT_HOME, m_ctrl, {{XKB_KEY_a}}},
+        {BIND_ACTION_SEARCH_EDIT_END, m_none, {{XKB_KEY_End}}},
+        {BIND_ACTION_SEARCH_EDIT_END, m_ctrl, {{XKB_KEY_e}}},
+        {BIND_ACTION_SEARCH_DELETE_PREV, m_none, {{XKB_KEY_BackSpace}}},
+        {BIND_ACTION_SEARCH_DELETE_PREV_WORD, m_ctrl, {{XKB_KEY_BackSpace}}},
+        {BIND_ACTION_SEARCH_DELETE_PREV_WORD, m_alt, {{XKB_KEY_BackSpace}}},
+        {BIND_ACTION_SEARCH_DELETE_NEXT, m_none, {{XKB_KEY_Delete}}},
+        {BIND_ACTION_SEARCH_DELETE_NEXT_WORD, m_ctrl, {{XKB_KEY_Delete}}},
+        {BIND_ACTION_SEARCH_DELETE_NEXT_WORD, m_alt, {{XKB_KEY_d}}},
+        {BIND_ACTION_SEARCH_EXTEND_WORD, m_ctrl, {{XKB_KEY_w}}},
+        {BIND_ACTION_SEARCH_EXTEND_WORD_WS, m_ctrl_shift, {{XKB_KEY_w}}},
+        {BIND_ACTION_SEARCH_CLIPBOARD_PASTE, m_ctrl, {{XKB_KEY_v}}},
+        {BIND_ACTION_SEARCH_CLIPBOARD_PASTE, m_ctrl, {{XKB_KEY_y}}},
+        {BIND_ACTION_SEARCH_PRIMARY_PASTE, m_shift, {{XKB_KEY_Insert}}},
     };
 
     conf->bindings.search.count = ALEN(bindings);
@@ -2786,11 +2654,11 @@ static void
 add_default_url_bindings(struct config *conf)
 {
     static const struct config_key_binding bindings[] = {
-        {BIND_ACTION_URL_CANCEL, m_ctrl, XKB_KEY_c},
-        {BIND_ACTION_URL_CANCEL, m_ctrl, XKB_KEY_g},
-        {BIND_ACTION_URL_CANCEL, m_ctrl, XKB_KEY_d},
-        {BIND_ACTION_URL_CANCEL, m_none, XKB_KEY_Escape},
-        {BIND_ACTION_URL_TOGGLE_URL_ON_JUMP_LABEL, m_none, XKB_KEY_t},
+        {BIND_ACTION_URL_CANCEL, m_ctrl, {{XKB_KEY_c}}},
+        {BIND_ACTION_URL_CANCEL, m_ctrl, {{XKB_KEY_g}}},
+        {BIND_ACTION_URL_CANCEL, m_ctrl, {{XKB_KEY_d}}},
+        {BIND_ACTION_URL_CANCEL, m_none, {{XKB_KEY_Escape}}},
+        {BIND_ACTION_URL_TOGGLE_URL_ON_JUMP_LABEL, m_none, {{XKB_KEY_t}}},
     };
 
     conf->bindings.url.count = ALEN(bindings);
@@ -2801,15 +2669,15 @@ add_default_url_bindings(struct config *conf)
 static void
 add_default_mouse_bindings(struct config *conf)
 {
-    static const struct config_mouse_binding bindings[] = {
-        {BIND_ACTION_PRIMARY_PASTE, m_none, BTN_MIDDLE, 1},
-        {BIND_ACTION_SELECT_BEGIN, m_none, BTN_LEFT, 1},
-        {BIND_ACTION_SELECT_BEGIN_BLOCK, m_ctrl, BTN_LEFT, 1},
-        {BIND_ACTION_SELECT_EXTEND, m_none, BTN_RIGHT, 1},
-        {BIND_ACTION_SELECT_EXTEND_CHAR_WISE, m_ctrl, BTN_RIGHT, 1},
-        {BIND_ACTION_SELECT_WORD, m_none, BTN_LEFT, 2},
-        {BIND_ACTION_SELECT_WORD_WS, m_ctrl, BTN_LEFT, 2},
-        {BIND_ACTION_SELECT_ROW, m_none, BTN_LEFT, 3},
+    static const struct config_key_binding bindings[] = {
+        {BIND_ACTION_PRIMARY_PASTE, m_none, {.m = {BTN_MIDDLE, 1}}},
+        {BIND_ACTION_SELECT_BEGIN, m_none, {.m = {BTN_LEFT, 1}}},
+        {BIND_ACTION_SELECT_BEGIN_BLOCK, m_ctrl, {.m = {BTN_LEFT, 1}}},
+        {BIND_ACTION_SELECT_EXTEND, m_none, {.m = {BTN_RIGHT, 1}}},
+        {BIND_ACTION_SELECT_EXTEND_CHAR_WISE, m_ctrl, {.m = {BTN_RIGHT, 1}}},
+        {BIND_ACTION_SELECT_WORD, m_none, {.m = {BTN_LEFT, 2}}},
+        {BIND_ACTION_SELECT_WORD_WS, m_ctrl, {.m = {BTN_LEFT, 2}}},
+        {BIND_ACTION_SELECT_ROW, m_none, {.m = {BTN_LEFT, 3}}},
     };
 
     conf->bindings.mouse.count = ALEN(bindings);
@@ -2920,7 +2788,7 @@ config_load(struct config *conf, const char *conf_path,
                 .shift = true,
                 .alt = false,
                 .ctrl = false,
-                .meta = false,
+                .super = false,
             },
         },
         .csd = {
@@ -3037,7 +2905,25 @@ config_load(struct config *conf, const char *conf_path,
     }
 
     ret = parse_config_file(f, conf, conf_file.path, errors_are_fatal) &&
-          config_override_apply(conf, overrides, errors_are_fatal);
+        config_override_apply(conf, overrides, errors_are_fatal);
+
+    if (ret &&
+        (!resolve_key_binding_collisions(
+            conf, section_info[SECTION_KEY_BINDINGS].name,
+            binding_action_map, &conf->bindings.key, KEY_BINDING) ||
+         !resolve_key_binding_collisions(
+             conf, section_info[SECTION_SEARCH_BINDINGS].name,
+             search_binding_action_map, &conf->bindings.search, KEY_BINDING) ||
+         !resolve_key_binding_collisions(
+             conf, section_info[SECTION_URL_BINDINGS].name,
+             url_binding_action_map, &conf->bindings.url, KEY_BINDING) ||
+         !resolve_key_binding_collisions(
+             conf, section_info[SECTION_MOUSE_BINDINGS].name,
+             binding_action_map, &conf->bindings.mouse, MOUSE_BINDING)))
+    {
+        ret = !errors_are_fatal;
+    }
+
     fclose(f);
 
     conf->colors.use_custom.selection =
@@ -3077,7 +2963,8 @@ out:
 }
 
 bool
-config_override_apply(struct config *conf, config_override_t *overrides, bool errors_are_fatal)
+config_override_apply(struct config *conf, config_override_t *overrides,
+                      bool errors_are_fatal)
 {
     struct context context = {
         .conf = conf,
@@ -3115,14 +3002,8 @@ config_override_apply(struct config *conf, config_override_t *overrides, bool er
             continue;
         }
     }
-    return true;
-}
 
-static void
-binding_pipe_free(struct config_binding_pipe *pipe)
-{
-    if (pipe->master_copy)
-        free_argv(&pipe->argv);
+    return true;
 }
 
 static void
@@ -3131,14 +3012,6 @@ binding_pipe_clone(struct config_binding_pipe *dst,
 {
     xassert(src->master_copy);
     clone_argv(&dst->argv, &src->argv);
-}
-
-static void NOINLINE
-key_binding_list_free(struct config_key_binding_list *bindings)
-{
-    for (size_t i = 0; i < bindings->count; i++)
-        binding_pipe_free(&bindings->arr[i].pipe);
-    free(bindings->arr);
 }
 
 static void NOINLINE
@@ -3153,42 +3026,6 @@ key_binding_list_clone(struct config_key_binding_list *dst,
     for (size_t i = 0; i < src->count; i++) {
         const struct config_key_binding *old = &src->arr[i];
         struct config_key_binding *new = &dst->arr[i];
-
-        *new = *old;
-
-        if (old->pipe.argv.args == NULL)
-            continue;
-
-        if (old->pipe.master_copy) {
-            binding_pipe_clone(&new->pipe, &old->pipe);
-            last_master_argv = &new->pipe.argv;
-        } else {
-            xassert(last_master_argv != NULL);
-            new->pipe.argv = *last_master_argv;
-        }
-    }
-}
-
-static void
-mouse_binding_list_free(struct config_mouse_binding_list *bindings)
-{
-    for (size_t i = 0; i < bindings->count; i++)
-        binding_pipe_free(&bindings->arr[i].pipe);
-    free(bindings->arr);
-}
-
-static void NOINLINE
-mouse_binding_list_clone(struct config_mouse_binding_list *dst,
-                         const struct config_mouse_binding_list *src)
-{
-    struct argv *last_master_argv = NULL;
-
-    dst->count = src->count;
-    dst->arr = xmalloc(src->count * sizeof(dst->arr[0]));
-
-    for (size_t i = 0; i < src->count; i++) {
-        const struct config_mouse_binding *old = &src->arr[i];
-        struct config_mouse_binding *new = &dst->arr[i];
 
         *new = *old;
 
@@ -3236,7 +3073,7 @@ config_clone(const struct config *old)
     key_binding_list_clone(&conf->bindings.key, &old->bindings.key);
     key_binding_list_clone(&conf->bindings.search, &old->bindings.search);
     key_binding_list_clone(&conf->bindings.url, &old->bindings.url);
-    mouse_binding_list_clone(&conf->bindings.mouse, &old->bindings.mouse);
+    key_binding_list_clone(&conf->bindings.mouse, &old->bindings.mouse);
 
     conf->notifications.length = 0;
     conf->notifications.head = conf->notifications.tail = 0;
@@ -3293,10 +3130,10 @@ config_free(struct config conf)
     free(conf.url.protocols);
     free(conf.url.uri_characters);
 
-    key_binding_list_free(&conf.bindings.key);
-    key_binding_list_free(&conf.bindings.search);
-    key_binding_list_free(&conf.bindings.url);
-    mouse_binding_list_free(&conf.bindings.mouse);
+    free_key_binding_list(&conf.bindings.key);
+    free_key_binding_list(&conf.bindings.search);
+    free_key_binding_list(&conf.bindings.url);
+    free_key_binding_list(&conf.bindings.mouse);
 
     user_notifications_free(&conf.notifications);
 }

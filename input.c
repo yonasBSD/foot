@@ -369,7 +369,7 @@ conf_modifiers_to_mask(const struct seat *seat,
     if (seat->kbd.mod_alt != XKB_MOD_INVALID)
         mods |= modifiers->alt << seat->kbd.mod_alt;
     if (seat->kbd.mod_super != XKB_MOD_INVALID)
-        mods |= modifiers->meta << seat->kbd.mod_super;
+        mods |= modifiers->super << seat->kbd.mod_super;
     return mods;
 }
 
@@ -520,7 +520,7 @@ convert_key_binding(const struct seat *seat,
                     key_binding_list_t *bindings)
 {
     xkb_mod_mask_t mods = conf_modifiers_to_mask(seat, &conf_binding->modifiers);
-    xkb_keysym_t sym = maybe_repair_key_combo(seat, conf_binding->sym, mods);
+    xkb_keysym_t sym = maybe_repair_key_combo(seat, conf_binding->k.sym, mods);
 
     struct key_binding binding = {
         .mods = mods,
@@ -561,13 +561,13 @@ convert_url_bindings(const struct config *conf, struct seat *seat)
 
 static void
 convert_mouse_binding(struct seat *seat,
-                      const struct config_mouse_binding *conf_binding)
+                      const struct config_key_binding *conf_binding)
 {
     struct mouse_binding binding = {
         .action = conf_binding->action,
         .mods = conf_modifiers_to_mask(seat, &conf_binding->modifiers),
-        .button = conf_binding->button,
-        .count = conf_binding->count,
+        .button = conf_binding->m.button,
+        .count = conf_binding->m.count,
         .pipe_argv = conf_binding->pipe.argv.args,
     };
     tll_push_back(seat->mouse.bindings, binding);
@@ -577,9 +577,7 @@ static void
 convert_mouse_bindings(const struct config *conf, struct seat *seat)
 {
     for (size_t i = 0; i < conf->bindings.mouse.count; i++) {
-        const struct config_mouse_binding *binding = &conf->bindings.mouse.arr[i];
-        if (binding->action == BIND_ACTION_NONE)
-            continue;
+        const struct config_key_binding *binding = &conf->bindings.mouse.arr[i];
         convert_mouse_binding(seat, binding);
     }
 }
@@ -2543,19 +2541,19 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
 
                 else {
                     /* Seat does NOT have a keyboard - use mouse bindings *without* modifiers */
-                    const struct config_mouse_binding *match = NULL;
+                    const struct config_key_binding *match = NULL;
                     const struct config *conf = seat->wayl->conf;
 
                     for (size_t i = 0; i < conf->bindings.mouse.count; i++) {
-                        const struct config_mouse_binding *binding =
+                        const struct config_key_binding *binding =
                             &conf->bindings.mouse.arr[i];
 
-                        if (binding->button != button) {
+                        if (binding->m.button != button) {
                             /* Wrong button */
                             continue;
                         }
 
-                        if (binding->count > seat->mouse.count) {
+                        if (binding->m.count > seat->mouse.count) {
                             /* Incorrect click count */
                             continue;
                         }
@@ -2566,7 +2564,7 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
                             continue;
                         }
 
-                        if (match == NULL || binding->count > match->count)
+                        if (match == NULL || binding->m.count > match->m.count)
                             match = binding;
                     }
 
