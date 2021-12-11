@@ -32,8 +32,13 @@ tasks:
       meson --buildtype=debug -Dterminfo=disabled -Dgrapheme-clustering=enabled -Dfcft:grapheme-shaping=enabled -Dfcft:run-shaping=enabled -Dfcft:test-text-shaping=true foot bld/debug
       ninja -C bld/debug -k0
       meson test -C bld/debug --print-errorlogs
+      bld/debug/foot --version
+      bld/debug/footclient --version
+
   - release: |
       mkdir -p bld/release
       meson --buildtype=minsize -Dterminfo=disabled -Dgrapheme-clustering=enabled -Dfcft:grapheme-shaping=enabled -Dfcft:run-shaping=enabled  -Dfcft:test-text-shaping=true foot bld/release
       ninja -C bld/release -k0
       meson test -C bld/release --print-errorlogs
+      bld/release/foot --version
+      bld/release/footclient --version

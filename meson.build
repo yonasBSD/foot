@@ -272,6 +272,7 @@ endif
 
 subdir('completions')
 subdir('icons')
+subdir('tests')
 
 summary(
   {

@@ -36,6 +36,8 @@ debug-x64-no-grapheme-clustering:
     - meson --buildtype=debug -Dgrapheme-clustering=disabled -Dfcft:grapheme-shaping=disabled -Dfcft:run-shaping=disabled -Dfcft:test-text-shaping=false ../../
     - ninja -v -k0
     - ninja -v test
+    - ./foot --version
+    - ./footclient --version
   artifacts:
     reports:
       junit: bld/debug/meson-logs/testlog.junit.xml
@@ -49,6 +51,8 @@ release-x64:
     - meson --buildtype=release -Dgrapheme-clustering=enabled -Dfcft:grapheme-shaping=enabled -Dfcft:run-shaping=enabled  -Dfcft:test-text-shaping=true ../../
     - ninja -v -k0
     - ninja -v test
+    - ./foot --version
+    - ./footclient --version
   artifacts:
     reports:
       junit: bld/release/meson-logs/testlog.junit.xml
@@ -62,6 +66,8 @@ debug-x86:
     - meson --buildtype=debug -Dgrapheme-clustering=enabled -Dfcft:grapheme-shaping=enabled -Dfcft:run-shaping=enabled  -Dfcft:test-text-shaping=true ../../
     - ninja -v -k0
     - ninja -v test
+    - ./foot --version
+    - ./footclient --version
   artifacts:
     reports:
       junit: bld/debug/meson-logs/testlog.junit.xml
@@ -75,6 +81,8 @@ release-x86:
     - meson --buildtype=release -Dgrapheme-clustering=enabled -Dfcft:grapheme-shaping=enabled -Dfcft:run-shaping=enabled  -Dfcft:test-text-shaping=true ../../
     - ninja -v -k0
     - ninja -v test
+    - ./foot --version
+    - ./footclient --version
   artifacts:
     reports:
       junit: bld/release/meson-logs/testlog.junit.xml
