@@ -2024,8 +2024,11 @@ resolve_key_binding_collisions(struct config *conf, const char *section_name,
             xassert(binding2->action != BIND_ACTION_NONE);
 
             if (binding2->action == binding1->action) {
-                if (argv_compare(&binding1->pipe.argv, &binding2->pipe.argv))
+                if (argv_compare(
+                        &binding1->pipe.argv, &binding2->pipe.argv) == 0)
+                {
                     continue;
+                }
             }
 
             const struct config_key_modifiers *mods2 = &binding2->modifiers;
