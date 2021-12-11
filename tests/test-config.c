@@ -263,10 +263,6 @@ test_section_main(void)
 }
 
 static void
-test_uint16(struct context *ctx, bool (*parse_fun)(struct context *ctx),
-            const char *key, const uint16_t *conf_ptr);
-
-static void
 test_key_binding(struct context *ctx, bool (*parse_fun)(struct context *ctx),
                  int action, int max_action, const char *const *map,
                  struct config_key_binding_list *bindings)
@@ -408,6 +404,154 @@ test_key_binding(struct context *ctx, bool (*parse_fun)(struct context *ctx),
 }
 
 static void
+test_mouse_binding(struct context *ctx, bool (*parse_fun)(struct context *ctx),
+                   int action, int max_action, const char *const *map,
+                   struct config_mouse_binding_list *bindings)
+{
+    xassert(map[action] != NULL);
+    xassert(bindings->count == 0);
+
+    const char *key = map[action];
+
+    /* “Randomize” which modifiers to enable */
+    const bool ctrl = action % 2;
+    const bool alt = action % 3;
+    const bool shift = action % 4;
+    const bool super = action % 5;
+
+    /* Generate the modifier part of the ‘value’ */
+    char modifier_string[32];
+    int chars = sprintf(modifier_string, "%s%s%s%s",
+                        ctrl ? XKB_MOD_NAME_CTRL "+" : "",
+                        alt ? XKB_MOD_NAME_ALT "+" : "",
+                        shift ? XKB_MOD_NAME_SHIFT "+" : "",
+                        super ? XKB_MOD_NAME_LOGO "+" : "");
+
+    const int button_idx = action % ALEN(button_map);
+    const int button = button_map[button_idx].code;
+    const char *const button_name = button_map[button_idx].name;
+    const int click_count = action % 3 + 1;
+
+    xassert(click_count > 0);
+
+    /* Finally, generate the ‘value’ (e.g. “Control+shift+x”) */
+    char value[chars + strlen(button_name) + 2 + 1];
+    chars = sprintf(value, "%s%s", modifier_string, button_name);
+    if (click_count > 1)
+        sprintf(&value[chars], "-%d", click_count);
+
+    ctx->key = key;
+    ctx->value = value;
+
+    if (!parse_fun(ctx)) {
+        BUG("[%s].%s=%s failed to parse",
+            ctx->section, ctx->key, ctx->value);
+    }
+
+    const struct config_mouse_binding *binding =
+        &bindings->arr[bindings->count - 1];
+
+    xassert(binding->pipe.argv.args == NULL);
+
+    if (binding->action != action) {
+        BUG("[%s].%s=%s: action mismatch: %d != %d",
+            ctx->section, ctx->key, ctx->value, binding->action, action);
+    }
+
+    if (binding->button != button) {
+        BUG("[%s].%s=%s: button mismatch: %d != %d",
+            ctx->section, ctx->key, ctx->value, binding->button, button);
+    }
+
+    if (binding->count != click_count) {
+        BUG("[%s].%s=%s: button click count mismatch: %d != %d",
+            ctx->section, ctx->key, ctx->value, binding->count, click_count);
+    }
+
+    if (binding->modifiers.ctrl != ctrl ||
+        binding->modifiers.alt != alt ||
+        binding->modifiers.shift != shift ||
+        binding->modifiers.meta != super)
+    {
+        BUG("[%s].%s=%s: modifier mismatch:\n"
+            "  have:     ctrl=%d, alt=%d, shift=%d, super=%d\n"
+            "  expected: ctrl=%d, alt=%d, shift=%d, super=%d",
+            ctx->section, ctx->key, ctx->value,
+            binding->modifiers.ctrl, binding->modifiers.alt,
+            binding->modifiers.shift, binding->modifiers.meta,
+            ctrl, alt, shift, super);
+    }
+
+    mouse_binding_list_free(bindings);
+    bindings->arr = NULL;
+    bindings->count = 0;
+
+    if (action >= max_action)
+        return;
+
+    /*
+     * Test collisions
+     */
+
+    /* First, verify we get a collision when trying to assign the same
+     * key combo to multiple actions */
+    bindings->count = 1;
+    bindings->arr = xmalloc(sizeof(bindings->arr[0]));
+    bindings->arr[0] = (struct config_mouse_binding){
+        .action = action + 1,
+        .button = BTN_LEFT,
+        .count = 1,
+        .modifiers = {
+            .ctrl = true,
+        },
+    };
+
+    char collision[128];
+    snprintf(collision, sizeof(collision), "%s+BTN_LEFT", XKB_MOD_NAME_CTRL);
+
+    ctx->value = collision;
+    if (parse_fun(ctx)) {
+        BUG("[%s].%s=%s: mouse combo collision not detected",
+            ctx->section, ctx->key, ctx->value);
+    }
+
+    /* Next, verify we get a collision when trying to assign the same
+     * key combo to the same action, but with different pipe argvs */
+    bindings->arr[0].action = action;
+    bindings->arr[0].pipe.master_copy = true;
+    bindings->arr[0].pipe.argv.args = xmalloc(4 * sizeof(bindings->arr[0].pipe.argv.args[0]));
+    bindings->arr[0].pipe.argv.args[0] = xstrdup("/usr/bin/foobar");
+    bindings->arr[0].pipe.argv.args[1] = xstrdup("hello");
+    bindings->arr[0].pipe.argv.args[2] = xstrdup("world");
+    bindings->arr[0].pipe.argv.args[3] = NULL;
+
+    snprintf(collision, sizeof(collision),
+             "[/usr/bin/foobar hello] %s+BTN_LEFT", XKB_MOD_NAME_CTRL);
+
+    ctx->value = collision;
+    if (parse_fun(ctx)) {
+        BUG("[%s].%s=%s: key combo collision not detected",
+            ctx->section, ctx->key, ctx->value);
+    }
+
+#if 0 /* BUG! (should be fixed by https://codeberg.org/dnkl/foot/pulls/832) */
+    /* Finally, verify we do *not* get a collision when assigning the
+     * same key combo to the same action, with matching argvs */
+    snprintf(collision, sizeof(collision),
+             "[/usr/bin/foobar hello world] %s+BTN_LEFT", XKB_MOD_NAME_CTRL);
+
+    ctx->value = collision;
+    if (!parse_fun(ctx)) {
+        BUG("[%s].%s=%s: invalid mouse combo collision",
+            ctx->section, ctx->key, ctx->value);
+    }
+#endif
+    mouse_binding_list_free(bindings);
+    bindings->arr = NULL;
+    bindings->count = 0;
+}
+
+static void
 test_section_key_bindings(void)
 {
     struct config conf = {0};
@@ -475,6 +619,28 @@ test_section_url_bindings(void)
 }
 #endif
 
+static void
+test_section_mouse_bindings(void)
+{
+    struct config conf = {0};
+    struct context ctx = {
+        .conf = &conf, .section = "mouse-bindings", .path = "unittest"};
+
+    test_invalid_key(&ctx, &parse_section_mouse_bindings, "invalid-key");
+
+    for (int action = 0; action < BIND_ACTION_COUNT; action++) {
+        if (binding_action_map[action] == NULL)
+            continue;
+
+        test_mouse_binding(
+            &ctx, &parse_section_mouse_bindings,
+            action, BIND_ACTION_COUNT - 1,
+            binding_action_map, &conf.bindings.mouse);
+    }
+
+    config_free(conf);
+}
+
 int
 main(int argc, const char *const *argv)
 {
@@ -485,6 +651,7 @@ main(int argc, const char *const *argv)
     test_section_search_bindings();
     test_section_url_bindings();
 #endif
+    test_section_mouse_bindings();
     log_deinit();
     return 0;
 }
