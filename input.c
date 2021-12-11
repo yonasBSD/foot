@@ -27,6 +27,7 @@
 #include "config.h"
 #include "commands.h"
 #include "keymap.h"
+#include "kitty-keymap.h"
 #include "macros.h"
 #include "quirks.h"
 #include "render.h"
@@ -1144,6 +1145,25 @@ legacy_kbd_protocol(struct seat *seat, struct terminal *term,
     return true;
 }
 
+UNITTEST
+{
+    /* Verify the kitty keymap is sorted */
+    xkb_keysym_t last = 0;
+    for (size_t i = 0; i < ALEN(kitty_keymap); i++) {
+        const struct kitty_key_data *e = &kitty_keymap[i];
+        xassert(e->sym > last);
+        last = e->sym;
+    }
+}
+
+static int
+kitty_search(const void *_key, const void *_e)
+{
+    const xkb_keysym_t *key = _key;
+    const struct kitty_key_data *e = _e;
+    return *key - e->sym;
+}
+
 static bool
 kitty_kbd_protocol(struct seat *seat, struct terminal *term,
                    const struct kbd_ctx *ctx)
@@ -1190,31 +1210,19 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
     const bool report_associated_text =
         (flags & KITTY_KBD_REPORT_ASSOCIATED) && is_text && !released;
 
+    /* Lookup sym in the pre-defined keysym table */
+    const struct kitty_key_data *info = bsearch(
+        &sym, kitty_keymap, ALEN(kitty_keymap), sizeof(kitty_keymap[0]),
+        &kitty_search);
+    xassert(info == NULL || info->sym == sym);
+
     if (composing) {
         /* We never emit anything while composing, *except* modifiers
          * (and only in report-all-keys-as-escape-codes mode) */
-        switch (sym) {
-        case XKB_KEY_Caps_Lock:
-        case XKB_KEY_Num_Lock:
-        case XKB_KEY_Shift_L:
-        case XKB_KEY_Control_L:
-        case XKB_KEY_Alt_L:
-        case XKB_KEY_Super_L:
-        case XKB_KEY_Hyper_L:
-        case XKB_KEY_Meta_L:
-        case XKB_KEY_Shift_R:
-        case XKB_KEY_Control_R:
-        case XKB_KEY_Alt_R:
-        case XKB_KEY_Super_R:
-        case XKB_KEY_Hyper_R:
-        case XKB_KEY_Meta_R:
-        case XKB_KEY_ISO_Level3_Shift:
-        case XKB_KEY_ISO_Level5_Shift:
+        if (info != NULL && info->is_modifier)
             goto emit_escapes;
 
-        default:
-            return false;
-        }
+        return false;
     }
 
     if (report_all_as_escapes)
@@ -1254,124 +1262,12 @@ emit_escapes:
     int key = -1, alternate = -1, base = -1;
     char final;
 
-    switch (sym) {
-    case XKB_KEY_Escape:       key = 27;    final = 'u'; break;
-    case XKB_KEY_Return:       key = 13;    final = 'u'; break;
-    case XKB_KEY_Tab:          key = 9;     final = 'u'; break;
-    case XKB_KEY_ISO_Left_Tab: key = 9;     final = 'u'; break;
-    case XKB_KEY_BackSpace:    key = 127;   final = 'u'; break;
-    case XKB_KEY_Insert:       key = 2;     final = '~'; break;
-    case XKB_KEY_Delete:       key = 3;     final = '~'; break;
-    case XKB_KEY_Left:         key = 1;     final = 'D'; break;
-    case XKB_KEY_Right:        key = 1;     final = 'C'; break;
-    case XKB_KEY_Up:           key = 1;     final = 'A'; break;
-    case XKB_KEY_Down:         key = 1;     final = 'B'; break;
-    case XKB_KEY_Page_Up:      key = 5;     final = '~'; break;
-    case XKB_KEY_Page_Down:    key = 6;     final = '~'; break;
-    case XKB_KEY_Home:         key = 1;     final = 'H'; break;
-    case XKB_KEY_End:          key = 1;     final = 'F'; break;
-    case XKB_KEY_Scroll_Lock:  key = 57359; final = 'u'; break;
-    case XKB_KEY_Print:        key = 57361; final = 'u'; break;
-    case XKB_KEY_Pause:        key = 57362; final = 'u'; break;
-    case XKB_KEY_Menu:         key = 57363; final = 'u'; break;
-    case XKB_KEY_F1:           key = 1;     final = 'P'; break;
-    case XKB_KEY_F2:           key = 1;     final = 'Q'; break;
-    case XKB_KEY_F3:           key = 1;     final = 'R'; break;
-    case XKB_KEY_F4:           key = 1;     final = 'S'; break;
-    case XKB_KEY_F5:           key = 15;    final = '~'; break;
-    case XKB_KEY_F6:           key = 17;    final = '~'; break;
-    case XKB_KEY_F7:           key = 18;    final = '~'; break;
-    case XKB_KEY_F8:           key = 19;    final = '~'; break;
-    case XKB_KEY_F9:           key = 20;    final = '~'; break;
-    case XKB_KEY_F10:          key = 21;    final = '~'; break;
-    case XKB_KEY_F11:          key = 23;    final = '~'; break;
-    case XKB_KEY_F12:          key = 24;    final = '~'; break;
-    case XKB_KEY_F13:          key = 57376; final = 'u'; break;
-    case XKB_KEY_F14:          key = 57377; final = 'u'; break;
-    case XKB_KEY_F15:          key = 57378; final = 'u'; break;
-    case XKB_KEY_F16:          key = 57379; final = 'u'; break;
-    case XKB_KEY_F17:          key = 57380; final = 'u'; break;
-    case XKB_KEY_F18:          key = 57381; final = 'u'; break;
-    case XKB_KEY_F19:          key = 57382; final = 'u'; break;
-    case XKB_KEY_F20:          key = 57383; final = 'u'; break;
-    case XKB_KEY_F21:          key = 57384; final = 'u'; break;
-    case XKB_KEY_F22:          key = 57385; final = 'u'; break;
-    case XKB_KEY_F23:          key = 57386; final = 'u'; break;
-    case XKB_KEY_F24:          key = 57387; final = 'u'; break;
-    case XKB_KEY_F25:          key = 57388; final = 'u'; break;
-    case XKB_KEY_F26:          key = 57389; final = 'u'; break;
-    case XKB_KEY_F27:          key = 57390; final = 'u'; break;
-    case XKB_KEY_F28:          key = 57391; final = 'u'; break;
-    case XKB_KEY_F29:          key = 57392; final = 'u'; break;
-    case XKB_KEY_F30:          key = 57393; final = 'u'; break;
-    case XKB_KEY_F31:          key = 57394; final = 'u'; break;
-    case XKB_KEY_F32:          key = 57395; final = 'u'; break;
-    case XKB_KEY_F33:          key = 57396; final = 'u'; break;
-    case XKB_KEY_F34:          key = 57397; final = 'u'; break;
-    case XKB_KEY_F35:          key = 57398; final = 'u'; break;
-    case XKB_KEY_KP_0:         key = 57399; final = 'u'; break;
-    case XKB_KEY_KP_1:         key = 57400; final = 'u'; break;
-    case XKB_KEY_KP_2:         key = 57401; final = 'u'; break;
-    case XKB_KEY_KP_3:         key = 57402; final = 'u'; break;
-    case XKB_KEY_KP_4:         key = 57403; final = 'u'; break;
-    case XKB_KEY_KP_5:         key = 57404; final = 'u'; break;
-    case XKB_KEY_KP_6:         key = 57405; final = 'u'; break;
-    case XKB_KEY_KP_7:         key = 57406; final = 'u'; break;
-    case XKB_KEY_KP_8:         key = 57407; final = 'u'; break;
-    case XKB_KEY_KP_9:         key = 57408; final = 'u'; break;
-    case XKB_KEY_KP_Decimal:   key = 57409; final = 'u'; break;
-    case XKB_KEY_KP_Divide:    key = 57410; final = 'u'; break;
-    case XKB_KEY_KP_Multiply:  key = 57411; final = 'u'; break;
-    case XKB_KEY_KP_Subtract:  key = 57412; final = 'u'; break;
-    case XKB_KEY_KP_Add:       key = 57413; final = 'u'; break;
-    case XKB_KEY_KP_Enter:     key = 57414; final = 'u'; break;
-    case XKB_KEY_KP_Equal:     key = 57415; final = 'u'; break;
-    case XKB_KEY_KP_Separator: key = 57416; final = 'u'; break;
-    case XKB_KEY_KP_Left:      key = 57417; final = 'u'; break;
-    case XKB_KEY_KP_Right:     key = 57418; final = 'u'; break;
-    case XKB_KEY_KP_Up:        key = 57419; final = 'u'; break;
-    case XKB_KEY_KP_Down:      key = 57420; final = 'u'; break;
-    case XKB_KEY_KP_Page_Up:   key = 57421; final = 'u'; break;
-    case XKB_KEY_KP_Page_Down: key = 57422; final = 'u'; break;
-    case XKB_KEY_KP_Home:      key = 57423; final = 'u'; break;
-    case XKB_KEY_KP_End:       key = 57424; final = 'u'; break;
-    case XKB_KEY_KP_Insert:    key = 57425; final = 'u'; break;
-    case XKB_KEY_KP_Delete:    key = 57426; final = 'u'; break;
-    case XKB_KEY_KP_Begin:     key = 1;     final = 'E'; break;
-
-    case XKB_KEY_XF86AudioPlay:        key = 57428; final = 'u'; break;
-    case XKB_KEY_XF86AudioPause:       key = 57429; final = 'u'; break;
-        //case XKB_KEY_XF86AudioPlayPause: key = 57430; final = 'u'; break;
-        //case XKB_KEY_XF86AudioReverse: key = 57431; final = 'u'; break;
-    case XKB_KEY_XF86AudioStop:        key = 57432; final = 'u'; break;
-    case XKB_KEY_XF86AudioForward:     key = 57433; final = 'u'; break;
-    case XKB_KEY_XF86AudioRewind:      key = 57434; final = 'u'; break;
-    case XKB_KEY_XF86AudioNext:        key = 57435; final = 'u'; break;
-    case XKB_KEY_XF86AudioPrev:        key = 57436; final = 'u'; break;
-    case XKB_KEY_XF86AudioRecord:      key = 57437; final = 'u'; break;
-    case XKB_KEY_XF86AudioLowerVolume: key = 57438; final = 'u'; break;
-    case XKB_KEY_XF86AudioRaiseVolume: key = 57439; final = 'u'; break;
-    case XKB_KEY_XF86AudioMute:        key = 57440; final = 'u'; break;
-
-    case XKB_KEY_Caps_Lock: if (report_all_as_escapes) {key = 57358; final = 'u';} break;
-    case XKB_KEY_Num_Lock:  if (report_all_as_escapes) {key = 57360; final = 'u';} break;
-
-    case XKB_KEY_Shift_L:   if (report_all_as_escapes) {key = 57441; final = 'u';} break;
-    case XKB_KEY_Control_L: if (report_all_as_escapes) {key = 57442; final = 'u';} break;
-    case XKB_KEY_Alt_L:     if (report_all_as_escapes) {key = 57443; final = 'u';} break;
-    case XKB_KEY_Super_L:   if (report_all_as_escapes) {key = 57444; final = 'u';} break;
-    case XKB_KEY_Hyper_L:   if (report_all_as_escapes) {key = 57445; final = 'u';} break;
-    case XKB_KEY_Meta_L:    if (report_all_as_escapes) {key = 57446; final = 'u';} break;
-    case XKB_KEY_Shift_R:   if (report_all_as_escapes) {key = 57447; final = 'u';} break;
-    case XKB_KEY_Control_R: if (report_all_as_escapes) {key = 57448; final = 'u';} break;
-    case XKB_KEY_Alt_R:     if (report_all_as_escapes) {key = 57449; final = 'u';} break;
-    case XKB_KEY_Super_R:   if (report_all_as_escapes) {key = 57450; final = 'u';} break;
-    case XKB_KEY_Hyper_R:   if (report_all_as_escapes) {key = 57451; final = 'u';} break;
-    case XKB_KEY_Meta_R:    if (report_all_as_escapes) {key = 57452; final = 'u';} break;
-    case XKB_KEY_ISO_Level3_Shift: if (report_all_as_escapes) {key = 57453; final = 'u';} break;
-    case XKB_KEY_ISO_Level5_Shift: if (report_all_as_escapes) {key = 57454; final = 'u';} break;
-
-    default: {
+    if (info != NULL) {
+        if (!info->is_modifier || report_all_as_escapes) {
+            key = info->key;
+            final = info->final;
+        }
+    } else {
         /*
          * Use keysym (typically its Unicode codepoint value).
          *
@@ -1379,8 +1275,8 @@ emit_escapes:
          * instead. In other words, ctrl+a and ctrl+shift+a should
          * both use the same value for ‘key’ (97 - i.a. ‘a’).
          *
-         * However, if a non-significant modifier was used to
-         * generate the symbol. This is needed since we cannot
+         * However, don’t do this if a non-significant modifier was
+         * used to generate the symbol. This is needed since we cannot
          * encode non-significant modifiers, and thus the “extra”
          * modifier(s) would get lost.
          *
@@ -1451,8 +1347,6 @@ emit_escapes:
             base = xkb_keysym_to_utf32(base_syms[0]);
 
         final = 'u';
-        break;
-    }
     }
 
     xassert(encoded_mods >= 1);
