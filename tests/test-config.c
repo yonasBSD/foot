@@ -262,11 +262,229 @@ test_section_main(void)
     config_free(conf);
 }
 
+static void
+test_uint16(struct context *ctx, bool (*parse_fun)(struct context *ctx),
+            const char *key, const uint16_t *conf_ptr);
+
+static void
+test_key_binding(struct context *ctx, bool (*parse_fun)(struct context *ctx),
+                 int action, int max_action, const char *const *map,
+                 struct config_key_binding_list *bindings)
+{
+    xassert(map[action] != NULL);
+    xassert(bindings->count == 0);
+
+    const char *key = map[action];
+
+    /* “Randomize” which modifiers to enable */
+    const bool ctrl = action % 2;
+    const bool alt = action % 3;
+    const bool shift = action % 4;
+    const bool super = action % 5;
+
+    /* Generate the modifier part of the ‘value’ */
+    char modifier_string[32];
+    int chars = sprintf(modifier_string, "%s%s%s%s",
+                        ctrl ? XKB_MOD_NAME_CTRL "+" : "",
+                        alt ? XKB_MOD_NAME_ALT "+" : "",
+                        shift ? XKB_MOD_NAME_SHIFT "+" : "",
+                        super ? XKB_MOD_NAME_LOGO "+" : "");
+
+    /* Use a unique symbol for this action */
+    xkb_keysym_t sym = XKB_KEY_a + action;
+    char sym_name[8];
+    xkb_keysym_get_name(sym, sym_name, sizeof(sym_name));
+
+    /* Finally, generate the ‘value’ (e.g. “Control+shift+x”) */
+    char value[chars + strlen(sym_name) + 1];
+    sprintf(value, "%s%s", modifier_string, sym_name);
+
+    ctx->key = key;
+    ctx->value = value;
+
+    if (!parse_fun(ctx)) {
+        BUG("[%s].%s=%s failed to parse",
+            ctx->section, ctx->key, ctx->value);
+    }
+
+    const struct config_key_binding *binding =
+        &bindings->arr[bindings->count - 1];
+
+    xassert(binding->pipe.argv.args == NULL);
+
+    if (binding->action != action) {
+        BUG("[%s].%s=%s: action mismatch: %d != %d",
+            ctx->section, ctx->key, ctx->value, binding->action, action);
+    }
+
+    if (binding->sym != sym) {
+        BUG("[%s].%s=%s: key symbol mismatch: %d != %d",
+            ctx->section, ctx->key, ctx->value, binding->sym, sym);
+    }
+
+    if (binding->modifiers.ctrl != ctrl ||
+        binding->modifiers.alt != alt ||
+        binding->modifiers.shift != shift ||
+        binding->modifiers.meta != super)
+    {
+        BUG("[%s].%s=%s: modifier mismatch:\n"
+            "  have:     ctrl=%d, alt=%d, shift=%d, super=%d\n"
+            "  expected: ctrl=%d, alt=%d, shift=%d, super=%d",
+            ctx->section, ctx->key, ctx->value,
+            binding->modifiers.ctrl, binding->modifiers.alt,
+            binding->modifiers.shift, binding->modifiers.meta,
+            ctrl, alt, shift, super);
+    }
+
+    key_binding_list_free(bindings);
+    bindings->arr = NULL;
+    bindings->count = 0;
+
+    if (action >= max_action)
+        return;
+
+    /*
+     * Test collisions
+     */
+
+    /* First, verify we get a collision when trying to assign the same
+     * key combo to multiple actions */
+    bindings->count = 1;
+    bindings->arr = xmalloc(sizeof(bindings->arr[0]));
+    bindings->arr[0] = (struct config_key_binding){
+        .action = action + 1,
+        .sym = XKB_KEY_a,
+        .modifiers = {
+            .ctrl = true,
+        },
+    };
+
+    xkb_keysym_get_name(XKB_KEY_a, sym_name, sizeof(sym_name));
+
+    char collision[128];
+    snprintf(collision, sizeof(collision), "%s+%s", XKB_MOD_NAME_CTRL, sym_name);
+
+    ctx->value = collision;
+    if (parse_fun(ctx)) {
+        BUG("[%s].%s=%s: key combo collision not detected",
+            ctx->section, ctx->key, ctx->value);
+    }
+
+    /* Next, verify we get a collision when trying to assign the same
+     * key combo to the same action, but with different pipe argvs */
+    bindings->arr[0].action = action;
+    bindings->arr[0].pipe.master_copy = true;
+    bindings->arr[0].pipe.argv.args = xmalloc(4 * sizeof(bindings->arr[0].pipe.argv.args[0]));
+    bindings->arr[0].pipe.argv.args[0] = xstrdup("/usr/bin/foobar");
+    bindings->arr[0].pipe.argv.args[1] = xstrdup("hello");
+    bindings->arr[0].pipe.argv.args[2] = xstrdup("world");
+    bindings->arr[0].pipe.argv.args[3] = NULL;
+
+    snprintf(collision, sizeof(collision),
+             "[/usr/bin/foobar hello] %s+%s",
+             XKB_MOD_NAME_CTRL, sym_name);
+
+    ctx->value = collision;
+    if (parse_fun(ctx)) {
+        BUG("[%s].%s=%s: key combo collision not detected",
+            ctx->section, ctx->key, ctx->value);
+    }
+
+    /* Finally, verify we do *not* get a collision when assigning the
+     * same key combo to the same action, with matching argvs */
+    snprintf(collision, sizeof(collision),
+             "[/usr/bin/foobar hello world] %s+%s",
+             XKB_MOD_NAME_CTRL, sym_name);
+
+    ctx->value = collision;
+    if (!parse_fun(ctx)) {
+        BUG("[%s].%s=%s: invalid key combo collision",
+            ctx->section, ctx->key, ctx->value);
+    }
+
+    key_binding_list_free(bindings);
+    bindings->arr = NULL;
+    bindings->count = 0;
+}
+
+static void
+test_section_key_bindings(void)
+{
+    struct config conf = {0};
+    struct context ctx = {
+        .conf = &conf, .section = "key-bindings", .path = "unittest"};
+
+    test_invalid_key(&ctx, &parse_section_key_bindings, "invalid-key");
+
+    for (int action = 0; action < BIND_ACTION_KEY_COUNT; action++) {
+        if (binding_action_map[action] == NULL)
+            continue;
+
+        test_key_binding(
+            &ctx, &parse_section_key_bindings,
+            action, BIND_ACTION_KEY_COUNT - 1,
+            binding_action_map, &conf.bindings.key);
+    }
+
+    config_free(conf);
+}
+
+#if 0
+static void
+test_section_search_bindings(void)
+{
+    struct config conf = {0};
+    struct context ctx = {
+        .conf = &conf, .section = "search-bindings", .path = "unittest"};
+
+    test_invalid_key(&ctx, &parse_section_search_bindings, "invalid-key");
+
+    for (int action = 0; action < BIND_ACTION_SEARCH_COUNT; action++) {
+        if (search_binding_action_map[action] == NULL)
+            continue;
+
+        test_key_binding(
+            &ctx, &parse_section_search_bindings,
+            action, BIND_ACTION_SEARCH_COUNT - 1,
+            search_binding_action_map, &conf.bindings.search);
+    }
+
+    config_free(conf);
+}
+
+static void
+test_section_url_bindings(void)
+{
+    struct config conf = {0};
+    struct context ctx = {
+        .conf = &conf, .section = "rul-bindings", .path = "unittest"};
+
+    test_invalid_key(&ctx, &parse_section_url_bindings, "invalid-key");
+
+    for (int action = 0; action < BIND_ACTION_URL_COUNT; action++) {
+        if (url_binding_action_map[action] == NULL)
+            continue;
+
+        test_key_binding(
+            &ctx, &parse_section_url_bindings,
+            action, BIND_ACTION_URL_COUNT - 1,
+            url_binding_action_map, &conf.bindings.url);
+    }
+
+    config_free(conf);
+}
+#endif
+
 int
 main(int argc, const char *const *argv)
 {
     log_init(LOG_COLORIZE_AUTO, false, 0, LOG_CLASS_ERROR);
     test_section_main();
+    test_section_key_bindings();
+#if 0
+    test_section_search_bindings();
+    test_section_url_bindings();
+#endif
     log_deinit();
     return 0;
 }
