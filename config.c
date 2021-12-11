@@ -2089,6 +2089,7 @@ resolve_key_binding_collisions(struct config *conf, const char *section_name,
                     has_pipe ? " [" : "",
                     has_pipe ? collision_binding->pipe.argv.args[0] : "",
                     has_pipe ? "]" : "");
+                ret = false;
                 break;
             }
 
@@ -2106,6 +2107,7 @@ resolve_key_binding_collisions(struct config *conf, const char *section_name,
                     binding1->lineno, section_name,
                     action_map[binding1->action],
                     modifier_names, sym_name, override_names);
+                ret = false;
                 free(override_names);
                 break;
             }
