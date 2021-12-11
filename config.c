@@ -1767,7 +1767,7 @@ modifiers_disjoint(const struct config_key_modifiers *mods1,
     return !(shift || alt || ctrl || super);
 }
 
-static char *
+static char * NOINLINE
 modifiers_to_str(const struct config_key_modifiers *mods)
 {
     char *ret = xasprintf(
