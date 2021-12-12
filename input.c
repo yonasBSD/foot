@@ -1412,8 +1412,7 @@ emit_escapes:
         }
     }
 
-    term_to_slave(term, buf, sizeof(buf) - left);
-    return true;
+    return term_to_slave(term, buf, sizeof(buf) - left);
 }
 
 static void
