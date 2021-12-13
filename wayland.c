@@ -452,11 +452,38 @@ output_scale(void *data, struct wl_output *wl_output, int32_t factor)
     output_update_ppi(mon);
 }
 
+#if defined(WL_OUTPUT_NAME_SINCE_VERSION)
+static void
+output_name(void *data, struct wl_output *wl_output, const char *name)
+{
+    struct monitor *mon = data;
+    free(mon->name);
+    mon->name = name != NULL ? xstrdup(name) : NULL;
+}
+#endif
+
+#if defined(WL_OUTPUT_DESCRIPTION_SINCE_VERSION)
+static void
+output_description(void *data, struct wl_output *wl_output,
+                   const char *description)
+{
+    struct monitor *mon = data;
+    free(mon->description);
+    mon->description = description != NULL ? xstrdup(description) : NULL;
+}
+#endif
+
 static const struct wl_output_listener output_listener = {
     .geometry = &output_geometry,
     .mode = &output_mode,
     .done = &output_done,
     .scale = &output_scale,
+#if defined(WL_OUTPUT_NAME_SINCE_VERSION)
+    .name = &output_name,
+#endif
+#if defined(WL_OUTPUT_DESCRIPTION_SINCE_VERSION)
+    .description = &output_description,
+#endif
 };
 
 static void
@@ -970,7 +997,7 @@ handle_global(void *data, struct wl_registry *registry,
             return;
 
         struct wl_output *output = wl_registry_bind(
-            wayl->registry, name, &wl_output_interface, min(version, 3));
+            wayl->registry, name, &wl_output_interface, min(version, 4));
 
         tll_push_back(
             wayl->monitors,
