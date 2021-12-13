@@ -385,13 +385,19 @@ output_update_ppi(struct monitor *mon)
         break;
     }
 
-    mon->ppi.scaled.x = mon->dim.px_scaled.width / x_inches;
-    mon->ppi.scaled.y = mon->dim.px_scaled.height / y_inches;
+    int scaled_width = mon->dim.px_scaled.width;
+    int scaled_height = mon->dim.px_scaled.height;
 
-    float px_diag = sqrt(
-        pow(mon->dim.px_scaled.width, 2) +
-        pow(mon->dim.px_scaled.height, 2));
+    if (scaled_width == 0 && scaled_height == 0 && mon->scale > 0) {
+        /* Estimate scaled width/height if none has been provided */
+        scaled_width = mon->dim.px_real.width / mon->scale;
+        scaled_height = mon->dim.px_real.height / mon->scale;
+    }
 
+    mon->ppi.scaled.x = scaled_width / x_inches;
+    mon->ppi.scaled.y = scaled_height / y_inches;
+
+    float px_diag = sqrt(pow(scaled_width, 2) + pow(scaled_height, 2));
     mon->dpi = px_diag / mon->inch * mon->scale;
 }
 
