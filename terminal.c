@@ -1917,11 +1917,13 @@ term_font_size_adjust(struct terminal *term, double amount)
 {
     const struct config *conf = term->conf;
 
+    const float dpi = term->font_is_sized_by_dpi ? term->font_dpi : 96.;
+
     for (size_t i = 0; i < 4; i++) {
         const struct config_font_list *font_list = &conf->fonts[i];
 
         for (size_t j = 0; j < font_list->count; j++) {
-            double old_pt_size = term->font_sizes[i][j].pt_size;
+            float old_pt_size = term->font_sizes[i][j].pt_size;
 
             /*
              * To ensure primary and user-configured fallback fonts are
@@ -1929,23 +1931,21 @@ term_font_size_adjust(struct terminal *term, double amount)
              * sizes, and to the adjustment on point sizes only.
              */
 
-            if (term->font_sizes[i][j].px_size > 0) {
-                double dpi = term->font_dpi;
+            if (term->font_sizes[i][j].px_size > 0)
                 old_pt_size = term->font_sizes[i][j].px_size * 72. / dpi;
-            }
 
-            term->font_sizes[i][j].pt_size = fmax(old_pt_size + amount, 0);
+            term->font_sizes[i][j].pt_size = fmaxf(old_pt_size + amount, 0.);
             term->font_sizes[i][j].px_size = -1;
         }
     }
 
     if (term->font_line_height.px >= 0) {
-        double old_pt_size = term->font_line_height.px > 0
-            ? term->font_line_height.px * 72. / term->font_dpi
+        float old_pt_size = term->font_line_height.px > 0
+            ? term->font_line_height.px * 72. / dpi
             : term->font_line_height.pt;
 
         term->font_line_height.px = 0;
-        term->font_line_height.pt = fmax(old_pt_size + amount, 0);
+        term->font_line_height.pt = fmaxf(old_pt_size + amount, 0.);
     }
 
     return reload_fonts(term);
