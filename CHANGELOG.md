@@ -48,6 +48,12 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* Font size adjustment (“zooming”) when font is configured with a
+  **pixelsize**, and `dpi-aware=no`
+  (https://codeberg.org/dnkl/foot/issues/842).
+
+
 ### Security
 ### Contributors
 
