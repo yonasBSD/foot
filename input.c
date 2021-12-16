@@ -1329,7 +1329,7 @@ emit_escapes:
         else {
             key = xkb_keysym_to_utf32(sym_to_use);
             if (key == 0)
-                key = sym_to_use;
+                return false;
 
             /* The *shifted* key. May be the same as the unshifted
              * key - if so, this is filtered out below, when
@@ -1349,6 +1349,9 @@ emit_escapes:
         final = 'u';
     }
 
+    if (key < 0)
+        return false;
+
     xassert(encoded_mods >= 1);
 
     char event[4];
@@ -1364,9 +1367,6 @@ emit_escapes:
     char buf[64], *p = buf;
     size_t left = sizeof(buf);
     size_t bytes;
-
-    if (key < 0)
-        return false;
 
     if (final == 'u' || final == '~') {
         bytes = snprintf(p, left, "\x1b[%u", key);
