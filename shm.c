@@ -546,15 +546,9 @@ shm_get_buffer(struct buffer_chain *chain, int width, int height)
             else
 #endif
             {
-                if (cached == NULL) {
-                    LOG_DBG("re-using buffer %p from cache", (void *)buf);
-                    buf->busy = true;
-                    pixman_region32_clear(&buf->public.dirty);
-                    free(buf->public.scroll_damage);
-                    buf->public.scroll_damage = NULL;
-                    xassert(buf->public.pix_instances == chain->pix_instances);
-                    cached = it->item;
-                } else {
+                if (cached == NULL)
+                    cached = buf;
+                else {
                     /* We have multiple buffers eligible for
                      * re-use. Pick the “youngest” one, and mark the
                      * other one for purging */
@@ -562,6 +556,14 @@ shm_get_buffer(struct buffer_chain *chain, int width, int height)
                         shm_unref(&cached->public);
                         cached = buf;
                     } else {
+                        /*
+                         * TODO: I think we _can_ use shm_unref()
+                         * here...
+                         *
+                         * shm_unref() may remove ‘it’, but that
+                         * should be safe; “our” tll_foreach() already
+                         * holds the next pointer.
+                         */
                         if (buffer_unref_no_remove_from_chain(buf))
                             tll_remove(chain->bufs, it);
                     }
@@ -569,8 +571,15 @@ shm_get_buffer(struct buffer_chain *chain, int width, int height)
             }
     }
 
-    if (cached != NULL)
+    if (cached != NULL) {
+        LOG_DBG("re-using buffer %p from cache", (void *)cached);
+        cached->busy = true;
+        pixman_region32_clear(&cached->public.dirty);
+        free(cached->public.scroll_damage);
+        cached->public.scroll_damage = NULL;
+        xassert(cached->public.pix_instances == chain->pix_instances);
         return &cached->public;
+    }
 
     struct buffer *ret;
     get_new_buffers(chain, 1, &width, &height, &ret, false);

@@ -60,6 +60,8 @@
   (https://codeberg.org/dnkl/foot/issues/842).
 * Key presses triggering keyboard layout switches also being emitted
   CSI codes in the Kitty keyboard protocol.
+* Assertion in `shm.c:buffer_release()`
+  (https://codeberg.org/dnkl/foot/issues/844).
 
 
 ### Security
