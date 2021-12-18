@@ -45,6 +45,12 @@
 
 
 ### Changed
+
+* PaperColorDark and PaperColorLight themes renamed to
+  paper-color-dark and paper-color-light, for consistency with other
+  theme names.
+
+
 ### Deprecated
 ### Removed
 ### Fixed
