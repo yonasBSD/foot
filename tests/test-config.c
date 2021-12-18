@@ -296,7 +296,16 @@ test_key_binding(struct context *ctx, bool (*parse_fun)(struct context *ctx),
     const int click_count = action % 3 + 1;
 
     /* Finally, generate the ‘value’ (e.g. “Control+shift+x”) */
-    char value[128];
+    char value[128] = {0};
+
+    ctx->key = key;
+    ctx->value = value;
+
+    /* First, try setting the empty string */
+    if (parse_fun(ctx)) {
+        BUG("[%s].%s=<empty>: did not fail to parse as expected",
+            ctx->section, ctx->key);
+    }
 
     switch (type) {
     case KEY_BINDING: {
@@ -318,9 +327,6 @@ test_key_binding(struct context *ctx, bool (*parse_fun)(struct context *ctx),
         break;
     }
     }
-
-    ctx->key = key;
-    ctx->value = value;
 
     if (!parse_fun(ctx)) {
         BUG("[%s].%s=%s failed to parse",

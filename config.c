@@ -1726,6 +1726,12 @@ value_to_key_combos(struct context *ctx, int action, struct argv *argv,
 
     }
 
+    if (idx == 0) {
+        LOG_CONTEXTUAL_ERR(
+            "empty binding not allowed (set to 'none' to unmap)");
+        goto err;
+    }
+
     remove_from_key_bindings_list(bindings, action, argv);
 
     bindings->arr = xrealloc(
