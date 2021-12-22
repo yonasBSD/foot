@@ -32,6 +32,8 @@
 static const uint32_t default_foreground = 0xdcdccc;
 static const uint32_t default_background = 0x111111;
 
+static const size_t min_csd_border_width = 5;
+
 #define cube6(r, g) \
     r|g|0x00, r|g|0x5f, r|g|0x87, r|g|0xaf, r|g|0xd7, r|g|0xff
 
@@ -2802,6 +2804,7 @@ config_load(struct config *conf, const char *conf_path,
             .font = {0},
             .title_height = 26,
             .border_width = 5,
+            .border_width_visible = 0,
             .button_width = 26,
         },
 
@@ -3008,6 +3011,9 @@ config_override_apply(struct config *conf, config_override_t *overrides,
             continue;
         }
     }
+
+    conf->csd.border_width = max(
+        min_csd_border_width, conf->csd.border_width_visible);
 
     return true;
 }

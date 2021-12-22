@@ -1528,8 +1528,7 @@ get_csd_data(const struct terminal *term, enum csd_surface surf_idx)
 
     /* Only title bar is rendered in maximized mode */
     const int border_width = !term->window->is_maximized
-        ? max(term->conf->csd.border_width,
-              term->conf->csd.border_width_visible) * term->scale : 0;
+        ? term->conf->csd.border_width * term->scale : 0;
 
     const int title_height = term->window->is_fullscreen
         ? 0
@@ -1756,9 +1755,10 @@ render_csd_border(struct terminal *term, enum csd_surface surf_idx,
      * The “visible” border.
      */
 
-    int bwidth = max(term->conf->csd.border_width,
-                     term->conf->csd.border_width_visible); /* Full border size */
+    int bwidth = term->conf->csd.border_width;
     int vwidth = term->conf->csd.border_width_visible;      /* Visibls size */
+
+    xassert(bwidth >= vwidth);
 
     if (vwidth > 0) {
 
