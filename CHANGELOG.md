@@ -64,6 +64,8 @@
   (https://codeberg.org/dnkl/foot/issues/844).
 * Crash when setting a key- or mouse binding to the empty string
   (https://codeberg.org/dnkl/foot/issues/851).
+* Crash when maximizing the window and `[csd].size=1`
+  (https://codeberg.org/dnkl/foot/issues/857).
 
 
 ### Security
