@@ -1528,8 +1528,7 @@ get_csd_data(const struct terminal *term, enum csd_surface surf_idx)
 
     /* Only title bar is rendered in maximized mode */
     const int border_width = !term->window->is_maximized
-        ? max(term->conf->csd.border_width,
-              term->conf->csd.border_width_visible) * term->scale : 0;
+        ? term->conf->csd.border_width * term->scale : 0;
 
     const int title_height = term->window->is_fullscreen
         ? 0
@@ -1756,9 +1755,10 @@ render_csd_border(struct terminal *term, enum csd_surface surf_idx,
      * The “visible” border.
      */
 
-    int bwidth = max(term->conf->csd.border_width,
-                     term->conf->csd.border_width_visible); /* Full border size */
+    int bwidth = term->conf->csd.border_width;
     int vwidth = term->conf->csd.border_width_visible;      /* Visibls size */
+
+    xassert(bwidth >= vwidth);
 
     if (vwidth > 0) {
 
@@ -1887,10 +1887,14 @@ render_csd_button_maximize_maximized(
     const int max_width = buf->width / 3;
 
     int width = min(max_height, max_width);
-    int thick = 1 * term->scale;
+    int thick = min(width / 2, 1 * term->scale);
 
     const int x_margin = (buf->width - width) / 2;
     const int y_margin = (buf->height - width) / 2;
+
+    xassert(x_margin + width - thick >= 0);
+    xassert(width - 2 * thick >= 0);
+    xassert(y_margin + width - thick >= 0);
 
     pixman_image_fill_rectangles(
         PIXMAN_OP_SRC, buf->pix[0], &color, 4,

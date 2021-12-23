@@ -429,7 +429,9 @@ main(int argc, char *const *argv)
     }
 
     struct config conf = {NULL};
-    bool conf_successful = config_load(&conf, conf_path, &user_notifications, &overrides, check_config);
+    bool conf_successful = config_load(
+        &conf, conf_path, &user_notifications, &overrides, check_config);
+
     tll_free(overrides);
     if (!conf_successful) {
         config_free(conf);
