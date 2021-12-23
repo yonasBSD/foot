@@ -58,8 +58,8 @@
 * Font size adjustment (“zooming”) when font is configured with a
   **pixelsize**, and `dpi-aware=no`
   (https://codeberg.org/dnkl/foot/issues/842).
-* Key presses triggering keyboard layout switches also being emitted
-  CSI codes in the Kitty keyboard protocol.
+* Key presses triggering keyboard layout switches also emitting CSI
+  codes in the Kitty keyboard protocol.
 * Assertion in `shm.c:buffer_release()`
   (https://codeberg.org/dnkl/foot/issues/844).
 * Crash when setting a key- or mouse binding to the empty string
