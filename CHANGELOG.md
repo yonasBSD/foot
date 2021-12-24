@@ -51,6 +51,9 @@
 * PaperColorDark and PaperColorLight themes renamed to
   paper-color-dark and paper-color-light, for consistency with other
   theme names.
+* `[scrollback].multiplier` is now applied in “alternate scroll” mode,
+  where scroll events are translated to fake arrow key presses on the
+  alt screen (https://codeberg.org/dnkl/foot/issues/859).
 
 
 ### Deprecated
