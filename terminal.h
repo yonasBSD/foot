@@ -759,7 +759,7 @@ void term_mouse_up(
 void term_mouse_motion(
     struct terminal *term, int button, int row, int col,
     bool shift, bool alt, bool ctrl);
-bool term_mouse_grabbed(const struct terminal *term, struct seat *seat);
+bool term_mouse_grabbed(const struct terminal *term, const struct seat *seat);
 void term_xcursor_update(struct terminal *term);
 void term_xcursor_update_for_seat(struct terminal *term, struct seat *seat);
 
