@@ -494,8 +494,37 @@ render_cell(struct terminal *term, pixman_image_t *pix,
         _bg = term->colors.selection_bg;
     } else {
         /* Use cell specific color, if set, otherwise the default colors (possible reversed) */
-        _fg = cell->attrs.fg_src != COLOR_DEFAULT ? cell->attrs.fg : term->reverse ? term->colors.bg : term->colors.fg;
-        _bg = cell->attrs.bg_src != COLOR_DEFAULT ? cell->attrs.bg : term->reverse ? term->colors.fg : term->colors.bg;
+        switch (cell->attrs.fg_src) {
+        case COLOR_RGB:
+            _fg = cell->attrs.fg;
+            break;
+
+        case COLOR_BASE16:
+        case COLOR_BASE256:
+            xassert(cell->attrs.fg < ALEN(term->colors.table));
+            _fg = term->colors.table[cell->attrs.fg];
+            break;
+
+        case COLOR_DEFAULT:
+            _fg = term->reverse ? term->colors.bg : term->colors.fg;
+            break;
+        }
+
+        switch (cell->attrs.bg_src) {
+        case COLOR_RGB:
+            _bg = cell->attrs.bg;
+            break;
+
+        case COLOR_BASE16:
+        case COLOR_BASE256:
+            xassert(cell->attrs.bg < ALEN(term->colors.table));
+            _bg = term->colors.table[cell->attrs.bg];
+            break;
+
+        case COLOR_DEFAULT:
+            _bg = term->reverse ? term->colors.fg : term->colors.bg;
+            break;
+        }
 
         if (cell->attrs.reverse ^ is_selected) {
             uint32_t swap = _fg;
