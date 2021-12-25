@@ -222,6 +222,48 @@ test_pt_or_px(struct context *ctx, bool (*parse_fun)(struct context *ctx),
 }
 
 static void
+test_spawn_template(struct context *ctx, bool (*parse_fun)(struct context *ctx),
+                    const char *key, const struct config_spawn_template *ptr)
+{
+    static const char *const args[] = {
+        "command", "arg1", "arg2", "arg3 has spaces"};
+
+    ctx->key = key;
+    ctx->value = "command arg1 arg2 \"arg3 has spaces\"";
+
+    if (!parse_fun(ctx))
+        BUG("[%s].%s=%s: failed to parse", ctx->section, ctx->key, ctx->value);
+
+    if (ptr->argv.args == NULL)
+        BUG("[%s].%s=%s: argv is NULL", ctx->section, ctx->key, ctx->value);
+
+    for (size_t i = 0; i < ALEN(args); i++) {
+        if (ptr->argv.args[i] == NULL ||
+            strcmp(ptr->argv.args[i], args[i]) != 0)
+        {
+            BUG("[%s].%s=%s: set value not the expected one: "
+                "mismatch of arg #%zu: expected=\"%s\", got=\"%s\"",
+                ctx->section, ctx->key, ctx->value, i,
+                args[i], ptr->argv.args[i]);
+        }
+    }
+
+    if (ptr->argv.args[ALEN(args)] != NULL) {
+        BUG("[%s].%s=%s: set value not the expected one: "
+            "expected NULL terminator at arg #%zu, got=\"%s\"",
+            ctx->section, ctx->key, ctx->value,
+            ALEN(args), ptr->argv.args[ALEN(args)]);
+    }
+
+    /* Trigger parse failure */
+    ctx->value = "command with \"unterminated quote";
+    if (parse_fun(ctx)) {
+        BUG("[%s].%s=%s: did not fail to parse as expected",
+            ctx->section, ctx->key, ctx->value);
+    }
+}
+
+static void
 test_section_main(void)
 {
     struct config conf = {0};
