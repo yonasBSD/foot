@@ -290,6 +290,8 @@ test_section_main(void)
     test_uint16(&ctx, &parse_section_main, "resize-delay-ms", &conf.resize_delay_ms);
     test_uint16(&ctx, &parse_section_main, "workers", &conf.render_worker_count);
 
+    test_spawn_template(&ctx, &parse_section_main, "notify", &conf.notify);
+
     /* TODO: font (custom) */
     /* TODO: include (custom) */
     /* TODO: dpi-aware (enum/boolean) */
@@ -297,7 +299,6 @@ test_section_main(void)
     /* TODO: pad (geometry + optional string)*/
     /* TODO: initial-window-size-pixels (geometry) */
     /* TODO: initial-window-size-chars (geometry) */
-    /* TODO: notify (spawn template)*/
     /* TODO: selection-target (enum) */
     /* TODO: initial-window-mode (enum) */
 
