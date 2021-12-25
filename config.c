@@ -1060,17 +1060,14 @@ parse_section_bell(struct context *ctx)
         return value_to_bool(ctx, &conf->bell.urgent);
     else if (strcmp(key, "notify") == 0)
         return value_to_bool(ctx, &conf->bell.notify);
-    else if (strcmp(key, "command") == 0) {
-        if (!value_to_spawn_template(ctx, &conf->bell.command))
-            return false;
-    } else if (strcmp(key, "command-focused") == 0)
+    else if (strcmp(key, "command") == 0)
+        return value_to_spawn_template(ctx, &conf->bell.command);
+    else if (strcmp(key, "command-focused") == 0)
         return value_to_bool(ctx, &conf->bell.command_focused);
     else {
         LOG_CONTEXTUAL_ERR("not a valid option: %s", key);
         return false;
     }
-
-    return true;
 }
 
 static bool
@@ -1098,9 +1095,11 @@ parse_section_scrollback(struct context *ctx)
         if (strcmp(value, "percentage") == 0) {
             conf->scrollback.indicator.format
                 = SCROLLBACK_INDICATOR_FORMAT_PERCENTAGE;
+            return true;
         } else if (strcmp(value, "line") == 0) {
             conf->scrollback.indicator.format
                 = SCROLLBACK_INDICATOR_FORMAT_LINENO;
+            return true;
         } else
             return value_to_wchars(ctx, &conf->scrollback.indicator.text);
     }
@@ -1112,8 +1111,6 @@ parse_section_scrollback(struct context *ctx)
         LOG_CONTEXTUAL_ERR("not a valid option: %s", key);
         return false;
     }
-
-    return true;
 }
 
 static bool
@@ -1123,10 +1120,8 @@ parse_section_url(struct context *ctx)
     const char *key = ctx->key;
     const char *value = ctx->value;
 
-    if (strcmp(key, "launch") == 0) {
-        if (!value_to_spawn_template(ctx, &conf->url.launch))
-            return false;
-    }
+    if (strcmp(key, "launch") == 0)
+        return value_to_spawn_template(ctx, &conf->url.launch);
 
     else if (strcmp(key, "label-letters") == 0)
         return value_to_wchars(ctx, &conf->url.label_letters);
@@ -1189,6 +1184,7 @@ parse_section_url(struct context *ctx)
         }
 
         free(copy);
+        return true;
     }
 
     else if (strcmp(key, "uri-characters") == 0) {
@@ -1207,8 +1203,6 @@ parse_section_url(struct context *ctx)
         LOG_CONTEXTUAL_ERR("not a valid option: %s", key);
         return false;
     }
-
-    return true;
 }
 
 static bool
@@ -1347,24 +1341,19 @@ parse_section_cursor(struct context *ctx)
 
         conf->cursor.color.text |= 1u << 31;
         conf->cursor.color.cursor |= 1u << 31;
+        return true;
     }
 
-    else if (strcmp(key, "beam-thickness") == 0) {
-        if (!value_to_pt_or_px(ctx, &conf->cursor.beam_thickness))
-            return false;
-    }
+    else if (strcmp(key, "beam-thickness") == 0)
+        return value_to_pt_or_px(ctx, &conf->cursor.beam_thickness);
 
-    else if (strcmp(key, "underline-thickness") == 0) {
-        if (!value_to_pt_or_px(ctx, &conf->cursor.underline_thickness))
-            return false;
-    }
+    else if (strcmp(key, "underline-thickness") == 0)
+        return value_to_pt_or_px(ctx, &conf->cursor.underline_thickness);
 
     else {
         LOG_CONTEXTUAL_ERR("not a valid option: %s", key);
         return false;
     }
-
-    return true;
 }
 
 static bool
@@ -1383,8 +1372,6 @@ parse_section_mouse(struct context *ctx)
         LOG_CONTEXTUAL_ERR("not a valid option: %s", key);
         return false;
     }
-
-    return true;
 }
 
 static bool
@@ -1410,6 +1397,7 @@ parse_section_csd(struct context *ctx)
 
         config_font_list_destroy(&conf->csd.font);
         conf->csd.font = new_list;
+        return true;
     }
 
     else if (strcmp(key, "color") == 0) {
@@ -1419,6 +1407,7 @@ parse_section_csd(struct context *ctx)
 
         conf->csd.color.title_set = true;
         conf->csd.color.title = color;
+        return true;
     }
 
     else if (strcmp(key, "size") == 0)
@@ -1432,6 +1421,7 @@ parse_section_csd(struct context *ctx)
             return false;
 
         conf->csd.color.buttons_set = true;
+        return true;
     }
 
     else if (strcmp(key, "button-minimize-color") == 0) {
@@ -1439,6 +1429,7 @@ parse_section_csd(struct context *ctx)
             return false;
 
         conf->csd.color.minimize_set = true;
+        return true;
     }
 
     else if (strcmp(key, "button-maximize-color") == 0) {
@@ -1446,6 +1437,7 @@ parse_section_csd(struct context *ctx)
             return false;
 
         conf->csd.color.maximize_set = true;
+        return true;
     }
 
     else if (strcmp(key, "button-close-color") == 0) {
@@ -1453,6 +1445,7 @@ parse_section_csd(struct context *ctx)
             return false;
 
         conf->csd.color.close_set = true;
+        return true;
     }
 
     else if (strcmp(key, "border-color") == 0) {
@@ -1460,6 +1453,7 @@ parse_section_csd(struct context *ctx)
             return false;
 
         conf->csd.color.border_set = true;
+        return true;
     }
 
     else if (strcmp(key, "border-width") == 0)
@@ -1469,8 +1463,6 @@ parse_section_csd(struct context *ctx)
         LOG_CONTEXTUAL_ERR("not a valid action: %s", key);
         return false;
     }
-
-    return true;
 }
 
 static void
