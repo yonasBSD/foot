@@ -317,8 +317,8 @@ test_section_bell(void)
     test_boolean(&ctx, &parse_section_bell, "notify", &conf.bell.notify);
     test_boolean(&ctx, &parse_section_bell, "command-focused",
                  &conf.bell.command_focused);
-
-    /* TODO: command (spawn tepmlate) */
+    test_spawn_template(&ctx, &parse_section_bell, "command",
+                        &conf.bell.command);
 
     config_free(conf);
 }
