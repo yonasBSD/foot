@@ -339,6 +339,10 @@ test_key_binding(struct context *ctx, bool (*parse_fun)(struct context *ctx),
     const bool alt = action % 3;
     const bool shift = action % 4;
     const bool super = action % 5;
+    const bool argv = action % 6;
+
+    static const char *const args[] = {
+        "command", "arg1", "arg2", "arg3 has spaces"};
 
     /* Generate the modifier part of the ‘value’ */
     char modifier_string[32];
@@ -373,14 +377,18 @@ test_key_binding(struct context *ctx, bool (*parse_fun)(struct context *ctx),
         char sym_name[16];
         xkb_keysym_get_name(sym, sym_name, sizeof(sym_name));
 
-        snprintf(value, sizeof(value), "%s%s", modifier_string, sym_name);
+        snprintf(value, sizeof(value), "%s%s%s",
+                 argv ? "[command arg1 arg2 \"arg3 has spaces\"] " : "",
+                 modifier_string, sym_name);
         break;
     }
 
     case MOUSE_BINDING: {
         const char *const button_name = button_map[button_idx].name;
         int chars = snprintf(
-            value, sizeof(value), "%s%s", modifier_string, button_name);
+            value, sizeof(value), "%s%s%s",
+            argv ? "[command arg1 arg2 \"arg3 has spaces\"] " : "",
+            modifier_string, button_name);
 
         xassert(click_count > 0);
         if (click_count > 1)
@@ -397,7 +405,35 @@ test_key_binding(struct context *ctx, bool (*parse_fun)(struct context *ctx),
     const struct config_key_binding *binding =
         &bindings->arr[bindings->count - 1];
 
-    xassert(binding->pipe.argv.args == NULL);
+    if (argv) {
+        if (binding->pipe.argv.args == NULL) {
+            BUG("[%s].%s=%s: pipe argv is NULL",
+                ctx->section, ctx->key, ctx->value);
+        }
+
+        for (size_t i = 0; i < ALEN(args); i++) {
+            if (binding->pipe.argv.args[i] == NULL ||
+                strcmp(binding->pipe.argv.args[i], args[i]) != 0)
+            {
+                BUG("[%s].%s=%s: pipe argv not the expected one: "
+                    "mismatch of arg #%zu: expected=\"%s\", got=\"%s\"",
+                    ctx->section, ctx->key, ctx->value, i,
+                    args[i], binding->pipe.argv.args[i]);
+            }
+        }
+
+        if (binding->pipe.argv.args[ALEN(args)] != NULL) {
+            BUG("[%s].%s=%s: pipe argv not the expected one: "
+                "expected NULL terminator at arg #%zu, got=\"%s\"",
+                ctx->section, ctx->key, ctx->value,
+                ALEN(args), binding->pipe.argv.args[ALEN(args)]);
+        }
+    } else {
+        if (binding->pipe.argv.args != NULL) {
+            BUG("[%s].%s=%s: pipe argv not NULL",
+                ctx->section, ctx->key, ctx->value);
+        }
+    }
 
     if (binding->action != action) {
         BUG("[%s].%s=%s: action mismatch: %d != %d",
