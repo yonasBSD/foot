@@ -263,6 +263,24 @@ test_section_main(void)
 }
 
 static void
+test_section_bell(void)
+{
+    struct config conf = {0};
+    struct context ctx = {.conf = &conf, .section = "bell", .path = "unittest"};
+
+    test_invalid_key(&ctx, &parse_section_bell, "invalid-key");
+
+    test_boolean(&ctx, &parse_section_bell, "urgent", &conf.bell.urgent);
+    test_boolean(&ctx, &parse_section_bell, "notify", &conf.bell.notify);
+    test_boolean(&ctx, &parse_section_bell, "command-focused",
+                 &conf.bell.command_focused);
+
+    /* TODO: command (spawn tepmlate) */
+
+    config_free(conf);
+}
+
+static void
 test_key_binding(struct context *ctx, bool (*parse_fun)(struct context *ctx),
                  int action, int max_action, const char *const *map,
                  struct config_key_binding_list *bindings,
@@ -650,6 +668,7 @@ main(int argc, const char *const *argv)
 {
     log_init(LOG_COLORIZE_AUTO, false, 0, LOG_CLASS_ERROR);
     test_section_main();
+    test_section_bell();
     test_section_key_bindings();
     test_section_key_bindings_collisions();
     test_section_search_bindings();
