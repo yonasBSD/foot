@@ -32,8 +32,6 @@ static void
 sgr_reset(struct terminal *term)
 {
     memset(&term->vt.attrs, 0, sizeof(term->vt.attrs));
-    term->vt.attrs.fg = term->colors.fg;
-    term->vt.attrs.bg = term->colors.bg;
 }
 
 static const char *
