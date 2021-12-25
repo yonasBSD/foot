@@ -713,7 +713,9 @@ void term_damage_scroll(
     struct scroll_region region, int lines);
 
 void term_erase(
-    struct terminal *term, const struct coord *start, const struct coord *end);
+    struct terminal *term,
+    int start_row, int start_col,
+    int end_row, int end_col);
 void term_erase_scrollback(struct terminal *term);
 
 int term_row_rel_to_abs(const struct terminal *term, int row);

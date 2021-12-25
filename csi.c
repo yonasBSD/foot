@@ -339,10 +339,7 @@ decset_decrst(struct terminal *term, unsigned param, bool enable)
         if (enable)
             LOG_WARN("unimplemented: 132 column mode (DECCOLM)");
 
-        term_erase(
-            term,
-            &(struct coord){0, 0},
-            &(struct coord){term->cols - 1, term->rows - 1});
+        term_erase(term, 0, 0, term->rows - 1, term->cols - 1);
         term_cursor_home(term);
         break;
 
@@ -512,10 +509,7 @@ decset_decrst(struct terminal *term, unsigned param, bool enable)
                 min(term->normal.cursor.point.col, term->cols - 1));
 
             tll_free(term->normal.scroll_damage);
-            term_erase(
-                term,
-                &(struct coord){0, 0},
-                &(struct coord){term->cols - 1, term->rows - 1});
+            term_erase(term, 0, 0, term->rows - 1, term->cols - 1);
         }
 
         else if (!enable && term->grid == &term->alt) {
@@ -885,27 +879,28 @@ csi_dispatch(struct terminal *term, uint8_t final)
 
             int param = vt_param_get(term, 0, 0);
             switch (param) {
-            case 0:
+            case 0: {
                 /* From cursor to end of screen */
+                const struct coord *cursor = &term->grid->cursor.point;
                 term_erase(
                     term,
-                    &term->grid->cursor.point,
-                    &(struct coord){term->cols - 1, term->rows - 1});
+                    cursor->row, cursor->col,
+                    term->rows - 1, term->cols - 1);
                 term->grid->cursor.lcf = false;
                 break;
+            }
 
-            case 1:
+            case 1: {
                 /* From start of screen to cursor */
-                term_erase(term, &(struct coord){0, 0}, &term->grid->cursor.point);
+                const struct coord *cursor = &term->grid->cursor.point;
+                term_erase(term, 0, 0, cursor->row, cursor->col);
                 term->grid->cursor.lcf = false;
                 break;
+            }
 
             case 2:
                 /* Erase entire screen */
-                term_erase(
-                    term,
-                    &(struct coord){0, 0},
-                    &(struct coord){term->cols - 1, term->rows - 1});
+                term_erase(term, 0, 0, term->rows - 1, term->cols - 1);
                 term->grid->cursor.lcf = false;
                 break;
 
@@ -927,30 +922,32 @@ csi_dispatch(struct terminal *term, uint8_t final)
 
             int param = vt_param_get(term, 0, 0);
             switch (param) {
-            case 0:
+            case 0: {
                 /* From cursor to end of line */
+                const struct coord *cursor = &term->grid->cursor.point;
                 term_erase(
                     term,
-                    &term->grid->cursor.point,
-                    &(struct coord){term->cols - 1, term->grid->cursor.point.row});
+                    cursor->row, cursor->col,
+                    cursor->row, term->cols - 1);
                 term->grid->cursor.lcf = false;
                 break;
+            }
 
-            case 1:
+            case 1: {
                 /* From start of line to cursor */
-                term_erase(
-                    term, &(struct coord){0, term->grid->cursor.point.row}, &term->grid->cursor.point);
+                const struct coord *cursor = &term->grid->cursor.point;
+                term_erase(term, cursor->row, 0, cursor->row, cursor->col);
                 term->grid->cursor.lcf = false;
                 break;
+            }
 
-            case 2:
+            case 2: {
                 /* Entire line */
-                term_erase(
-                    term,
-                    &(struct coord){0, term->grid->cursor.point.row},
-                    &(struct coord){term->cols - 1, term->grid->cursor.point.row});
+                const struct coord *cursor = &term->grid->cursor.point;
+                term_erase(term, cursor->row, 0, cursor->row, term->cols - 1);
                 term->grid->cursor.lcf = false;
                 break;
+            }
 
             default:
                 UNHANDLED();
@@ -1020,10 +1017,11 @@ csi_dispatch(struct terminal *term, uint8_t final)
             term->grid->cur_row->dirty = true;
 
             /* Erase the remainder of the line */
+            const struct coord *cursor = &term->grid->cursor.point;
             term_erase(
                 term,
-                &(struct coord){term->grid->cursor.point.col + remaining, term->grid->cursor.point.row},
-                &(struct coord){term->cols - 1, term->grid->cursor.point.row});
+                cursor->row, cursor->col + remaining,
+                cursor->row, term->cols - 1);
             term->grid->cursor.lcf = false;
             break;
         }
@@ -1047,10 +1045,11 @@ csi_dispatch(struct terminal *term, uint8_t final)
             term->grid->cur_row->dirty = true;
 
             /* Erase (insert space characters) */
+            const struct coord *cursor = &term->grid->cursor.point;
             term_erase(
                 term,
-                &term->grid->cursor.point,
-                &(struct coord){term->grid->cursor.point.col + count - 1, term->grid->cursor.point.row});
+                cursor->row, cursor->col,
+                cursor->row, cursor->col + count - 1);
             term->grid->cursor.lcf = false;
             break;
         }
@@ -1074,10 +1073,11 @@ csi_dispatch(struct terminal *term, uint8_t final)
             int count = min(
                 vt_param_get(term, 0, 1), term->cols - term->grid->cursor.point.col);
 
+            const struct coord *cursor = &term->grid->cursor.point;
             term_erase(
                 term,
-                &term->grid->cursor.point,
-                &(struct coord){term->grid->cursor.point.col + count - 1, term->grid->cursor.point.row});
+                cursor->row, cursor->col,
+                cursor->row, cursor->col + count - 1);
             term->grid->cursor.lcf = false;
             break;
         }

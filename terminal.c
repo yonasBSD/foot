@@ -2108,31 +2108,32 @@ term_damage_scroll(struct terminal *term, enum damage_type damage_type,
 }
 
 void
-term_erase(struct terminal *term, const struct coord *start, const struct coord *end)
+term_erase(struct terminal *term, int start_row, int start_col,
+           int end_row, int end_col)
 {
-    xassert(start->row <= end->row);
-    xassert(start->col <= end->col || start->row < end->row);
+    xassert(start_row <= end_row);
+    xassert(start_col <= end_col || start_row < end_row);
 
-    if (start->row == end->row) {
-        struct row *row = grid_row(term->grid, start->row);
-        erase_cell_range(term, row, start->col, end->col);
-        sixel_overwrite_by_row(term, start->row, start->col, end->col - start->col + 1);
+    if (start_row == end_row) {
+        struct row *row = grid_row(term->grid, start_row);
+        erase_cell_range(term, row, start_col, end_col);
+        sixel_overwrite_by_row(term, start_row, start_col, end_col - start_col + 1);
         return;
     }
 
-    xassert(end->row > start->row);
+    xassert(end_row > start_row);
 
     erase_cell_range(
-        term, grid_row(term->grid, start->row), start->col, term->cols - 1);
-    sixel_overwrite_by_row(term, start->row, start->col, term->cols - start->col);
+        term, grid_row(term->grid, start_row), start_col, term->cols - 1);
+    sixel_overwrite_by_row(term, start_row, start_col, term->cols - start_col);
 
-    for (int r = start->row + 1; r < end->row; r++)
+    for (int r = start_row + 1; r < end_row; r++)
         erase_line(term, grid_row(term->grid, r));
     sixel_overwrite_by_rectangle(
-        term, start->row + 1, 0, end->row - start->row, term->cols);
+        term, start_row + 1, 0, end_row - start_row, term->cols);
 
-    erase_cell_range(term, grid_row(term->grid, end->row), 0, end->col);
-    sixel_overwrite_by_row(term, end->row, 0, end->col + 1);
+    erase_cell_range(term, grid_row(term->grid, end_row), 0, end_col);
+    sixel_overwrite_by_row(term, end_row, 0, end_col + 1);
 }
 
 void
