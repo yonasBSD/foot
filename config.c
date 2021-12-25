@@ -1081,7 +1081,7 @@ parse_section_scrollback(struct context *ctx)
     const char *value = ctx->value;
 
     if (strcmp(key, "lines") == 0)
-        value_to_uint32(ctx, 10, &conf->scrollback.lines);
+        return value_to_uint32(ctx, 10, &conf->scrollback.lines);
 
     else if (strcmp(key, "indicator-position") == 0) {
         _Static_assert(
