@@ -3506,33 +3506,39 @@ print_spacer(struct terminal *term, int col, int remaining)
  *  - update the cursor
  *  - linewrap
  *  - erase sixels
- *  - erase URIs (but it _does_ emit them if one is active)
  *
  * Limitations:
  *   - double width characters not supported
  */
 void
-term_put_char(struct terminal *term, int r, int c, wchar_t wc)
+term_fill(struct terminal *term, int r, int c, char data, size_t count)
 {
     struct row *row = grid_row(term->grid, r);
     row->dirty = true;
 
-    struct cell *cell = &row->cells[c];
-    cell->wc = wc;
-    cell->attrs = term->vt.attrs;
+    xassert(c + count <= term->cols);
 
-    if (unlikely(term->vt.osc8.uri != NULL)) {
-        grid_row_uri_range_put(row, c, term->vt.osc8.uri, term->vt.osc8.id);
+    const struct cell *last = &row->cells[c + count];
+    for (struct cell *cell = &row->cells[c]; cell < last; cell++) {
+        cell->wc = data;
+        cell->attrs = term->vt.attrs;
 
-        switch (term->conf->url.osc8_underline) {
-        case OSC8_UNDERLINE_ALWAYS:
-            cell->attrs.url = true;
-            break;
+        if (unlikely(term->vt.osc8.uri != NULL)) {
+            grid_row_uri_range_put(row, c, term->vt.osc8.uri, term->vt.osc8.id);
 
-        case OSC8_UNDERLINE_URL_MODE:
-            break;
+            switch (term->conf->url.osc8_underline) {
+            case OSC8_UNDERLINE_ALWAYS:
+                cell->attrs.url = true;
+                break;
+
+            case OSC8_UNDERLINE_URL_MODE:
+                break;
+            }
         }
     }
+
+    if (unlikely(row->extra != NULL))
+        grid_row_uri_range_erase(row, c, c + count - 1);
 }
 
 void

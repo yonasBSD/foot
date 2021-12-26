@@ -1941,15 +1941,8 @@ csi_dispatch(struct terminal *term, uint8_t final)
                 sixel_overwrite_by_rectangle(
                     term, top, left, bottom - top + 1, right - left + 1);
 
-                for (int r = top; r <= bottom; r++) {
-                    struct row *row = grid_row(term->grid, r);
-
-                    if (unlikely(row->extra != NULL))
-                        grid_row_uri_range_erase(row, left, right);
-
-                    for (int col = left; col <= right; col++)
-                        term_put_char(term, r, col, (wchar_t)c);
-                }
+                for (int r = top; r <= bottom; r++)
+                    term_fill(term, r, left, c, right - left + 1);
             }
             break;
         }
