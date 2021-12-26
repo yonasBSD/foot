@@ -183,6 +183,43 @@ test_uint16(struct context *ctx, bool (*parse_fun)(struct context *ctx),
 }
 
 static void
+test_uint32(struct context *ctx, bool (*parse_fun)(struct context *ctx),
+            const char *key, const uint32_t *conf_ptr)
+{
+    ctx->key = key;
+
+    static const struct {
+        const char *option_string;
+        uint32_t value;
+        bool invalid;
+    } input[] = {
+        {"0", 0}, {"65536", 65536}, {"4294967295", 4294967295},
+         {"4294967296", 0, true}, {"abc", 0, true}, {"true", 0, true},
+    };
+
+    for (size_t i = 0; i < ALEN(input); i++) {
+        ctx->value = input[i].option_string;
+
+        if (input[i].invalid) {
+            if (parse_fun(ctx)) {
+                BUG("[%s].%s=%s: did not fail to parse as expected",
+                    ctx->section, ctx->key, ctx->value);
+            }
+        } else {
+            if (!parse_fun(ctx)) {
+                BUG("[%s].%s=%s: failed to parse",
+                    ctx->section, ctx->key, ctx->value);
+            }
+            if (*conf_ptr != input[i].value) {
+                BUG("[%s].%s=%s: set value (%hu) not the expected one (%hu)",
+                    ctx->section, ctx->key, ctx->value,
+                    *conf_ptr, input[i].value);
+            }
+        }
+    }
+}
+
+static void
 test_pt_or_px(struct context *ctx, bool (*parse_fun)(struct context *ctx),
               const char *key, const struct pt_or_px *conf_ptr)
 {
