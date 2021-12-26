@@ -211,7 +211,7 @@ test_uint32(struct context *ctx, bool (*parse_fun)(struct context *ctx),
                     ctx->section, ctx->key, ctx->value);
             }
             if (*conf_ptr != input[i].value) {
-                BUG("[%s].%s=%s: set value (%hu) not the expected one (%hu)",
+                BUG("[%s].%s=%s: set value (%u) not the expected one (%u)",
                     ctx->section, ctx->key, ctx->value,
                     *conf_ptr, input[i].value);
             }
