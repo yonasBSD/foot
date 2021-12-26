@@ -68,11 +68,26 @@ sixel_init(struct terminal *term, int p1, int p2, int p3)
         term->sixel.palette = term->sixel.shared_palette;
     }
 
+    uint32_t bg = 0;
+
+    switch (term->vt.attrs.bg_src) {
+    case COLOR_RGB:
+        bg = term->vt.attrs.bg;
+        break;
+
+    case COLOR_BASE16:
+    case COLOR_BASE256:
+        bg = term->colors.table[term->vt.attrs.bg];
+        break;
+
+    case COLOR_DEFAULT:
+        bg = term->colors.bg;
+        break;
+    }
+
     term->sixel.default_bg = term->sixel.transparent_bg
         ? 0x00000000u
-        : 0xffu << 24 | (term->vt.attrs.bg_src != COLOR_DEFAULT
-                         ? term->vt.attrs.bg
-                         : term->colors.bg);
+        : 0xffu << 24 | bg;
 
     for (size_t i = 0; i < 1 * 6; i++)
         term->sixel.image.data[i] = term->sixel.default_bg;

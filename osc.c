@@ -527,61 +527,6 @@ osc_notify(struct terminal *term, char *string)
     notify_notify(term, title, msg != NULL ? msg : "");
 }
 
-static void
-update_color_in_grids(struct terminal *term, int palette_idx, uint32_t new_color)
-{
-    /*
-     * Update color of already rendered cells.
-     *
-     * Note that we do *not* store the original palette
-     * index. Therefore, the best we can do is compare colors - if
-     * they match, assume "our" palette index was the one used to
-     * render the cell.
-     *
-     * There are a couple of cases where this isn't necessarily true:
-     * - user has configured the 16 base colors with non-unique
-     * colors.  - the client has used 24-bit escapes for colors
-     *
-     * In general though, if the client configures the palette, it is
-     * very likely only using index:ed coloring (i.e. not 24-bit
-     * direct colors), and I hope that it is unusual with palettes
-     * where all the colors aren't unique.
-     *
-     * TODO(?): for performance reasons, we only update the current
-     * screen rows (of both grids). I.e. scrollback is *not* updated.
-     */
-    for (size_t i = 0; i < 2; i++) {
-        struct grid *grid = i == 0 ? &term->normal : &term->alt;
-
-        for (size_t r = 0; r < term->rows; r++) {
-            struct row *row = grid_row(grid, r);
-            xassert(row != NULL);
-
-            for (size_t c = 0; c < term->grid->num_cols; c++) {
-                struct cell *cell = &row->cells[c];
-                enum color_source fg_src = cell->attrs.fg_src;
-                enum color_source bg_src = cell->attrs.bg_src;
-
-                if ((fg_src == COLOR_BASE16 || fg_src == COLOR_BASE256) &&
-                    cell->attrs.fg == term->colors.table[palette_idx])
-                {
-                    cell->attrs.fg = new_color;
-                    cell->attrs.clean = 0;
-                    row->dirty = true;
-                }
-
-                if ((bg_src == COLOR_BASE16 || bg_src == COLOR_BASE256) &&
-                    cell->attrs.bg == term->colors.table[palette_idx])
-                {
-                    cell->attrs.bg = new_color;
-                    cell->attrs.clean = 0;
-                    row->dirty = true;
-                }
-            }
-        }
-    }
-}
-
 void
 osc_dispatch(struct terminal *term)
 {
@@ -668,8 +613,8 @@ osc_dispatch(struct terminal *term)
                 LOG_DBG("change color definition for #%u from %06x to %06x",
                         idx, term->colors.table[idx], color);
 
-                update_color_in_grids(term, idx, color);
                 term->colors.table[idx] = color;
+                term_damage_view(term);
             }
         }
 
@@ -811,10 +756,8 @@ osc_dispatch(struct terminal *term)
 
         if (strlen(string) == 0) {
             LOG_DBG("resetting all colors");
-            for (size_t i = 0; i < ALEN(term->colors.table); i++) {
-                update_color_in_grids(term, i, term->conf->colors.table[i]);
+            for (size_t i = 0; i < ALEN(term->colors.table); i++)
                 term->colors.table[i] = term->conf->colors.table[i];
-        }
         }
 
         else {
@@ -835,11 +778,12 @@ osc_dispatch(struct terminal *term)
                 }
 
                 LOG_DBG("resetting color #%u", idx);
-                update_color_in_grids(term, idx, term->conf->colors.table[idx]);
                 term->colors.table[idx] = term->conf->colors.table[idx];
             }
+
         }
 
+        term_damage_view(term);
         break;
     }
 

@@ -32,8 +32,6 @@ static void
 sgr_reset(struct terminal *term)
 {
     memset(&term->vt.attrs, 0, sizeof(term->vt.attrs));
-    term->vt.attrs.fg = term->colors.fg;
-    term->vt.attrs.bg = term->colors.bg;
 }
 
 static const char *
@@ -116,7 +114,7 @@ csi_sgr(struct terminal *term)
         case 36:
         case 37:
             term->vt.attrs.fg_src = COLOR_BASE16;
-            term->vt.attrs.fg = term->colors.table[param - 30];
+            term->vt.attrs.fg = param - 30;
             break;
 
         case 38: {
@@ -124,9 +122,8 @@ csi_sgr(struct terminal *term)
             if (term->vt.params.idx - i - 1 >= 2 &&
                 term->vt.params.v[i + 1].value == 5)
             {
-                uint8_t idx = term->vt.params.v[i + 2].value;
                 term->vt.attrs.fg_src = COLOR_BASE256;
-                term->vt.attrs.fg = term->colors.table[idx];
+                term->vt.attrs.fg = term->vt.params.v[i + 2].value;
                 i += 2;
 
             }
@@ -149,9 +146,8 @@ csi_sgr(struct terminal *term)
             {
                 const struct vt_param *param = &term->vt.params.v[i];
 
-                uint8_t idx = param->sub.value[1];
                 term->vt.attrs.fg_src = COLOR_BASE256;
-                term->vt.attrs.fg = term->colors.table[idx];
+                term->vt.attrs.fg = param->sub.value[1];
             }
 
             /*
@@ -209,7 +205,7 @@ csi_sgr(struct terminal *term)
         case 46:
         case 47:
             term->vt.attrs.bg_src = COLOR_BASE16;
-            term->vt.attrs.bg = term->colors.table[param - 40];
+            term->vt.attrs.bg = param - 40;
             break;
 
         case 48: {
@@ -217,9 +213,8 @@ csi_sgr(struct terminal *term)
             if (term->vt.params.idx - i - 1 >= 2 &&
                 term->vt.params.v[i + 1].value == 5)
             {
-                uint8_t idx = term->vt.params.v[i + 2].value;
                 term->vt.attrs.bg_src = COLOR_BASE256;
-                term->vt.attrs.bg = term->colors.table[idx];
+                term->vt.attrs.bg = term->vt.params.v[i + 2].value;
                 i += 2;
 
             }
@@ -242,9 +237,8 @@ csi_sgr(struct terminal *term)
             {
                 const struct vt_param *param = &term->vt.params.v[i];
 
-                uint8_t idx = param->sub.value[1];
                 term->vt.attrs.bg_src = COLOR_BASE256;
-                term->vt.attrs.bg = term->colors.table[idx];
+                term->vt.attrs.bg = param->sub.value[1];
             }
 
             /*
@@ -300,7 +294,7 @@ csi_sgr(struct terminal *term)
         case 96:
         case 97:
             term->vt.attrs.fg_src = COLOR_BASE16;
-            term->vt.attrs.fg = term->colors.table[param - 90 + 8];
+            term->vt.attrs.fg = param - 90 + 8;
             break;
 
         /* Bright background colors */
@@ -313,7 +307,7 @@ csi_sgr(struct terminal *term)
         case 106:
         case 107:
             term->vt.attrs.bg_src = COLOR_BASE16;
-            term->vt.attrs.bg = term->colors.table[param - 100 + 8];
+            term->vt.attrs.bg = param - 100 + 8;
             break;
 
         default:
