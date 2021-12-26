@@ -1752,6 +1752,243 @@ csi_dispatch(struct terminal *term, uint8_t final)
         break; /* private[0] == '=' */
     }
 
+    case '$': {
+        switch (final) {
+        case 'r': {  /* DECCARA */
+            int rel_top_row = vt_param_get(term, 0, 1) - 1;
+            int left_col = vt_param_get(term, 1, 1) - 1;
+            int rel_bottom_row = vt_param_get(term, 2, term->rows) - 1;
+            int right_col = vt_param_get(term, 3, term->cols) - 1;
+
+            int top_row = term_row_rel_to_abs(term, rel_top_row);
+            int bottom_row = term_row_rel_to_abs(term, rel_bottom_row);
+
+            if (unlikely(top_row > bottom_row || left_col > right_col))
+                break;
+
+            for (int r = top_row; r <= bottom_row; r++) {
+                struct row *row = grid_row(term->grid, r);
+
+                for (int c = left_col; c <= right_col; c++) {
+                    struct attributes *a = &row->cells[c].attrs;
+
+                    for (size_t i = 4; i < term->vt.params.idx; i++) {
+                        const int param = term->vt.params.v[i].value;
+
+                        /* DECCARA only supports a sub-set of SGR parameters */
+                        switch (param) {
+                        case 0:
+                            a->bold = false;
+                            a->underline = false;
+                            a->blink = false;
+                            a->reverse = false;
+                            break;
+
+                        case 1: a->bold = true; break;
+                        case 4: a->underline = true; break;
+                        case 5: a->blink = true; break;
+                        case 7: a->reverse = true; break;
+
+                        case 22: a->bold = false; break;
+                        case 24: a->underline = false; break;
+                        case 25: a->blink = false; break;
+                        case 27: a->reverse = false; break;
+                        }
+                    }
+                }
+            }
+            break;
+        }
+
+        case 't': {  /* DECRARA */
+            int rel_top_row = vt_param_get(term, 0, 1) - 1;
+            int left_col = vt_param_get(term, 1, 1) - 1;
+            int rel_bottom_row = vt_param_get(term, 2, term->rows) - 1;
+            int right_col = vt_param_get(term, 3, term->cols) - 1;
+
+            int top_row = term_row_rel_to_abs(term, rel_top_row);
+            int bottom_row = term_row_rel_to_abs(term, rel_bottom_row);
+
+            if (unlikely(top_row > bottom_row || left_col > right_col))
+                break;
+
+            for (int r = top_row; r <= bottom_row; r++) {
+                struct row *row = grid_row(term->grid, r);
+
+                for (int c = left_col; c <= right_col; c++) {
+                    struct attributes *a = &row->cells[c].attrs;
+
+                    for (size_t i = 4; i < term->vt.params.idx; i++) {
+                        const int param = term->vt.params.v[i].value;
+
+                        /* DECCARA only supports a sub-set of SGR parameters */
+                        switch (param) {
+                        case 0:
+                            a->bold = !a->bold;
+                            a->underline = !a->underline;
+                            a->blink = !a->blink;
+                            a->reverse = !a->reverse;
+                            break;
+
+                        case 1: a->bold = !a->bold; break;
+                        case 4: a->underline = !a->underline; break;
+                        case 5: a->blink = !a->blink; break;
+                        case 7: a->reverse = !a->reverse; break;
+                        }
+                    }
+                }
+            }
+            break;
+        }
+
+        case 'v': {  /* DECCRA */
+            int src_rel_top_row = vt_param_get(term, 0, 1) - 1;
+            int src_left_col = vt_param_get(term, 1, 1) - 1;
+            int src_rel_bottom_row = vt_param_get(term, 2, term->rows) - 1;
+            int src_right_col = vt_param_get(term, 3, term->cols) - 1;
+            int src_page = vt_param_get(term, 4, 1);
+
+            int dst_rel_top_row = vt_param_get(term, 5, 1) - 1;
+            int dst_left_col = vt_param_get(term, 6, 1) - 1;
+            int dst_page = vt_param_get(term, 7, 1);
+
+            if (unlikely(src_page != 1 || dst_page != 1)) {
+                /* We don’t support “pages” */
+                break;
+            }
+
+            int dst_rel_bottom_row =
+                dst_rel_top_row + (src_rel_bottom_row - src_rel_top_row);
+            int dst_right_col = min(
+                dst_left_col + (src_right_col - src_left_col),
+                term->cols - 1);
+
+            /* Source and destination boxes, absolute coordinates */
+            int src_top_row = term_row_rel_to_abs(term, src_rel_top_row);
+            int src_bottom_row = term_row_rel_to_abs(term, src_rel_bottom_row);
+            int dst_top_row = term_row_rel_to_abs(term, dst_rel_top_row);
+            int dst_bottom_row = term_row_rel_to_abs(term, dst_rel_bottom_row);
+
+            if (unlikely(src_top_row > src_bottom_row ||
+                         src_left_col > src_right_col))
+                break;
+
+            /* Target area outside the screen is clipped */
+            const size_t row_count = min(src_bottom_row - src_top_row,
+                                         dst_bottom_row - dst_top_row) + 1;
+            const size_t cell_count = min(src_right_col - src_left_col,
+                                          dst_right_col - dst_left_col) + 1;
+
+            sixel_overwrite_by_rectangle(
+                term, dst_top_row, dst_left_col, row_count, cell_count);
+
+            /*
+             * Copy source area
+             *
+             * Note: since source and destination may overlap, we need
+             * to copy out the entire source region first, and _then_
+             * write the destination. I.e. this is similar to how
+             * memmove() behaves, but adapted to our row/cell
+             * structure.
+             */
+            struct cell **copy = xmalloc(row_count * sizeof(copy[0]));
+            for (int r = 0; r < row_count; r++) {
+                copy[r] = xmalloc(cell_count * sizeof(copy[r][0]));
+
+                const struct row *row = grid_row(term->grid, src_top_row + r);
+                const struct cell *cell = &row->cells[src_left_col];
+                memcpy(copy[r], cell, cell_count * sizeof(copy[r][0]));
+            }
+
+            /* Paste into destination area */
+            for (int r = 0; r < row_count; r++) {
+                struct row *row = grid_row(term->grid, dst_top_row + r);
+                row->dirty = true;
+
+                struct cell *cell = &row->cells[dst_left_col];
+                memcpy(cell, copy[r], cell_count * sizeof(copy[r][0]));
+                free(copy[r]);
+
+                for (int c = 0; c < cell_count; c++, cell++)
+                    cell->attrs.clean = 0;
+
+                if (unlikely(row->extra != NULL)) {
+                    /* TODO: technically, we should copy the source URIs... */
+                    grid_row_uri_range_erase(row, dst_left_col, dst_right_col);
+                }
+            }
+            free(copy);
+            break;
+        }
+
+        case 'x': {  /* DECFRA */
+            const char c = vt_param_get(term, 0, 0);
+            if (likely((c >= 32 && c < 126) ||
+                       (c >= 160 && c <= 255)))
+            {
+                int rel_top_row = vt_param_get(term, 1, 1) - 1;
+                int left_col = vt_param_get(term, 2, 1) - 1;
+                int rel_bottom_row = vt_param_get(term, 3, term->rows) - 1;
+                int right_col = vt_param_get(term, 4, term->cols) - 1;
+
+                int top_row = term_row_rel_to_abs(term, rel_top_row);
+                int bottom_row = term_row_rel_to_abs(term, rel_bottom_row);
+
+                if (unlikely(top_row > bottom_row || left_col > right_col))
+                    break;
+
+                /* Erase the entire region at once (MUCH cheaper than
+                 * doing it row by row, or even character by
+                 * character). */
+                sixel_overwrite_by_rectangle(
+                    term,
+                    top_row, left_col,
+                    bottom_row - top_row + 1, right_col - left_col + 1);
+
+                for (int r = top_row; r <= bottom_row; r++) {
+                    struct row *row = grid_row(term->grid, r);
+
+                    if (unlikely(row->extra != NULL))
+                        grid_row_uri_range_erase(row, left_col, right_col);
+
+                    for (int col = left_col; col <= right_col; col++)
+                        term_put_char(term, r, col, (wchar_t)c);
+                }
+            }
+            break;
+        }
+
+        case 'z': {  /* DECERA */
+            int rel_top_row = vt_param_get(term, 0, 1) - 1;
+            int left_col = vt_param_get(term, 1, 1) - 1;
+            int rel_bottom_row = vt_param_get(term, 2, term->rows) - 1;
+            int right_col = vt_param_get(term, 3, term->cols) - 1;
+
+            int top_row = term_row_rel_to_abs(term, rel_top_row);
+            int bottom_row = term_row_rel_to_abs(term, rel_bottom_row);
+
+            if (unlikely(top_row > bottom_row || left_col > right_col))
+                break;
+
+            /*
+             * Note: term_erase() _also_ erases sixels, but since
+             * we’re forced to erase one row at a time, erasing the
+             * entire sixel here is more efficient.
+             */
+            sixel_overwrite_by_rectangle(
+                term,
+                top_row, left_col,
+                bottom_row - top_row + 1, right_col - left_col + 1);
+
+            for (int r = top_row; r <= bottom_row; r++)
+                term_erase(term, r, left_col, r, right_col);
+            break;
+        }
+        }
+
+        break; /* private[0] == ‘$’ */
+    }
+
     case 0x243f:  /* ?$ */
         switch (final) {
         case 'p': {
