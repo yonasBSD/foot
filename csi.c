@@ -1830,7 +1830,7 @@ csi_dispatch(struct terminal *term, uint8_t final)
                     for (size_t i = 4; i < term->vt.params.idx; i++) {
                         const int param = term->vt.params.v[i].value;
 
-                        /* DECCARA only supports a sub-set of SGR parameters */
+                        /* DECRARA only supports a sub-set of SGR parameters */
                         switch (param) {
                         case 0:
                             a->bold = !a->bold;
