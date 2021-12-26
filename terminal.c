@@ -3519,9 +3519,11 @@ term_fill(struct terminal *term, int r, int c, char data, size_t count,
 
     xassert(c + count <= term->cols);
 
-    const struct attributes attrs = use_sgr_attrs
+    struct attributes attrs = use_sgr_attrs
         ? term->vt.attrs
         : (struct attributes){0};
+
+    attrs.clean = 0;
 
     const struct cell *last = &row->cells[c + count];
     for (struct cell *cell = &row->cells[c]; cell < last; cell++) {
