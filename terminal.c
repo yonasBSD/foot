@@ -3262,7 +3262,8 @@ term_print(struct terminal *term, wchar_t wc, int width)
         case OSC8_UNDERLINE_URL_MODE:
             break;
         }
-    }
+    } else if (row->extra != NULL)
+        grid_row_uri_range_erase(row, col, col + width - 1);
 
     /* Advance cursor the 'additional' columns while dirty:ing the cells */
     for (int i = 1; i < width && col < term->cols - 1; i++) {

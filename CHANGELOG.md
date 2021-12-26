@@ -66,6 +66,8 @@
   (https://codeberg.org/dnkl/foot/issues/851).
 * Crash when maximizing the window and `[csd].size=1`
   (https://codeberg.org/dnkl/foot/issues/857).
+* OSC-8 URIs not getting overwritten (erased) by double-width
+  characters (e.g. emojis).
 
 
 ### Security
