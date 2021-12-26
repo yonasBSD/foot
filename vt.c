@@ -560,15 +560,9 @@ action_esc_dispatch(struct terminal *term, uint8_t final)
 
     case '#':
         switch (final) {
-        case '8':
-            for (int r = 0; r < term->rows; r++) {
-                struct row *row = grid_row(term->grid, r);
-                for (int c = 0; c < term->cols; c++) {
-                    row->cells[c].wc = U'E';
-                    row->cells[c].attrs = (struct attributes){0};
-                }
-                row->dirty = true;
-            }
+        case '8':  /* DECALN */
+            for (int r = 0; r < term->rows; r++)
+                term_fill(term, r, 0, 'E', term->cols, false);
             break;
         }
         break;  /* private[0] == '#' */
