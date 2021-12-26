@@ -743,10 +743,10 @@ csi_dispatch(struct terminal *term, uint8_t final)
              * Note: tertiary DA responds with "FOOT".
              */
             if (term->conf->tweak.sixel) {
-                static const char reply[] = "\033[?62;4;22c";
+                static const char reply[] = "\033[?62;4;22;28c";
                 term_to_slave(term, reply, sizeof(reply) - 1);
             } else {
-                static const char reply[] = "\033[?62;22c";
+                static const char reply[] = "\033[?62;22;28c";
                 term_to_slave(term, reply, sizeof(reply) - 1);
             }
             break;
