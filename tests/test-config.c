@@ -398,6 +398,25 @@ test_section_bell(void)
 }
 
 static void
+test_section_scrollback(void)
+{
+    struct config conf = {0};
+    struct context ctx = {
+        .conf = &conf, .section = "scrollback", .path = "unittest"};
+
+    test_invalid_key(&ctx, &parse_section_scrollback, "invalid-key");
+
+    test_uint32(&ctx, &parse_section_scrollback, "lines",
+                &conf.scrollback.lines);
+    test_double(&ctx, parse_section_scrollback, "multiplier", &conf.scrollback.multiplier);
+
+    /* TODO: indicator-position (enum) */
+    /* TODO: indicator-format (enum, sort-of) */
+
+    config_free(conf);
+}
+
+static void
 test_key_binding(struct context *ctx, bool (*parse_fun)(struct context *ctx),
                  int action, int max_action, const char *const *map,
                  struct config_key_binding_list *bindings,
@@ -822,6 +841,7 @@ main(int argc, const char *const *argv)
     log_init(LOG_COLORIZE_AUTO, false, 0, LOG_CLASS_ERROR);
     test_section_main();
     test_section_bell();
+    test_section_scrollback();
     test_section_key_bindings();
     test_section_key_bindings_collisions();
     test_section_search_bindings();
