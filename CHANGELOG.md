@@ -683,6 +683,7 @@
   decoration buttons to the compositor capabilities ([#1061][1061]).
 * Rectangular edit functions: `DECCARA`, `DECRARA`, `DECCRA`, `DECFRA`
   and `DECERA`.
+* `Rect` capability to terminfo.
 
 
 [1058]: https://codeberg.org/dnkl/foot/issues/1058
