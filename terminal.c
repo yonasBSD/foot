@@ -3498,6 +3498,42 @@ print_spacer(struct terminal *term, int col, int remaining)
     cell->attrs = term->vt.attrs;
 }
 
+/*
+ * Puts a character on the grid. Coordinates are in screen coordinates
+ * (i.e. ‘cursor’ coordinates).
+ *
+ * Does NOT:
+ *  - update the cursor
+ *  - linewrap
+ *  - erase sixels
+ *
+ * Limitiations:
+ *   - double width characters not supported
+ */
+void
+term_put_char(struct terminal *term, int r, int c, wchar_t wc)
+{
+    struct row *row = grid_row(term->grid, r);
+    row->dirty = true;
+
+    struct cell *cell = &row->cells[c];
+    cell->wc = wc;
+    cell->attrs = term->vt.attrs;
+
+    if (unlikely(term->vt.osc8.uri != NULL)) {
+        grid_row_uri_range_put(row, c, term->vt.osc8.uri, term->vt.osc8.id);
+
+        switch (term->conf->url.osc8_underline) {
+        case OSC8_UNDERLINE_ALWAYS:
+            cell->attrs.url = true;
+            break;
+
+        case OSC8_UNDERLINE_URL_MODE:
+            break;
+        }
+    }
+}
+
 void
 term_print(struct terminal *term, char32_t wc, int width)
 {
