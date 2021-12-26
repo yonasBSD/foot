@@ -3506,6 +3506,7 @@ print_spacer(struct terminal *term, int col, int remaining)
  *  - update the cursor
  *  - linewrap
  *  - erase sixels
+ *  - erase URIs (but it _does_ emit them if one is active)
  *
  * Limitiations:
  *   - double width characters not supported
