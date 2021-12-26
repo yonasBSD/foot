@@ -681,6 +681,9 @@
   way of entering Unicode characters is with an IME ([#1116][1116]).
 * Support for `xdg_toplevel.wm_capabilities`, to adapt the client-side
   decoration buttons to the compositor capabilities ([#1061][1061]).
+* Rectangular edit functions: `DECCARA`, `DECRARA`, `DECCRA`, `DECFRA`
+  and `DECERA`.
+
 
 [1058]: https://codeberg.org/dnkl/foot/issues/1058
 [1070]: https://codeberg.org/dnkl/foot/issues/1070
