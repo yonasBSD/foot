@@ -673,6 +673,23 @@ xtrestore(struct terminal *term, unsigned param)
     decset_decrst(term, param, enable);
 }
 
+static bool
+params_to_rectangular_area(const struct terminal *term, int first_idx,
+                           int *top, int *left, int *bottom, int *right)
+{
+    int rel_top = vt_param_get(term, first_idx + 0, 1) - 1;
+    *left = vt_param_get(term, first_idx + 1, 1) - 1;
+    int rel_bottom = vt_param_get(term, first_idx + 2, term->rows) - 1;
+    *right = vt_param_get(term, first_idx + 3, term->cols) - 1;
+
+    if (rel_top > rel_bottom || *left > *right)
+        return false;
+
+    *top = term_row_rel_to_abs(term, rel_top);
+    *bottom = term_row_rel_to_abs(term, rel_bottom);
+    return true;
+}
+
 void
 csi_dispatch(struct terminal *term, uint8_t final)
 {
@@ -1755,21 +1772,17 @@ csi_dispatch(struct terminal *term, uint8_t final)
     case '$': {
         switch (final) {
         case 'r': {  /* DECCARA */
-            int rel_top_row = vt_param_get(term, 0, 1) - 1;
-            int left_col = vt_param_get(term, 1, 1) - 1;
-            int rel_bottom_row = vt_param_get(term, 2, term->rows) - 1;
-            int right_col = vt_param_get(term, 3, term->cols) - 1;
-
-            int top_row = term_row_rel_to_abs(term, rel_top_row);
-            int bottom_row = term_row_rel_to_abs(term, rel_bottom_row);
-
-            if (unlikely(top_row > bottom_row || left_col > right_col))
+            int top, left, bottom, right;
+            if (!params_to_rectangular_area(
+                    term, 0, &top, &left, &bottom, &right))
+            {
                 break;
+            }
 
-            for (int r = top_row; r <= bottom_row; r++) {
+            for (int r = top; r <= bottom; r++) {
                 struct row *row = grid_row(term->grid, r);
 
-                for (int c = left_col; c <= right_col; c++) {
+                for (int c = left; c <= right; c++) {
                     struct attributes *a = &row->cells[c].attrs;
 
                     for (size_t i = 4; i < term->vt.params.idx; i++) {
@@ -1801,21 +1814,17 @@ csi_dispatch(struct terminal *term, uint8_t final)
         }
 
         case 't': {  /* DECRARA */
-            int rel_top_row = vt_param_get(term, 0, 1) - 1;
-            int left_col = vt_param_get(term, 1, 1) - 1;
-            int rel_bottom_row = vt_param_get(term, 2, term->rows) - 1;
-            int right_col = vt_param_get(term, 3, term->cols) - 1;
-
-            int top_row = term_row_rel_to_abs(term, rel_top_row);
-            int bottom_row = term_row_rel_to_abs(term, rel_bottom_row);
-
-            if (unlikely(top_row > bottom_row || left_col > right_col))
+            int top, left, bottom, right;
+            if (!params_to_rectangular_area(
+                    term, 0, &top, &left, &bottom, &right))
+            {
                 break;
+            }
 
-            for (int r = top_row; r <= bottom_row; r++) {
+            for (int r = top; r <= bottom; r++) {
                 struct row *row = grid_row(term->grid, r);
 
-                for (int c = left_col; c <= right_col; c++) {
+                for (int c = left; c <= right; c++) {
                     struct attributes *a = &row->cells[c].attrs;
 
                     for (size_t i = 4; i < term->vt.params.idx; i++) {
@@ -1842,14 +1851,17 @@ csi_dispatch(struct terminal *term, uint8_t final)
         }
 
         case 'v': {  /* DECCRA */
-            int src_rel_top_row = vt_param_get(term, 0, 1) - 1;
-            int src_left_col = vt_param_get(term, 1, 1) - 1;
-            int src_rel_bottom_row = vt_param_get(term, 2, term->rows) - 1;
-            int src_right_col = vt_param_get(term, 3, term->cols) - 1;
+            int src_top, src_left, src_bottom, src_right;
+            if (!params_to_rectangular_area(
+                    term, 0, &src_top, &src_left, &src_bottom, &src_right))
+            {
+                break;
+            }
+
             int src_page = vt_param_get(term, 4, 1);
 
-            int dst_rel_top_row = vt_param_get(term, 5, 1) - 1;
-            int dst_left_col = vt_param_get(term, 6, 1) - 1;
+            int dst_rel_top = vt_param_get(term, 5, 1) - 1;
+            int dst_left = vt_param_get(term, 6, 1) - 1;
             int dst_page = vt_param_get(term, 7, 1);
 
             if (unlikely(src_page != 1 || dst_page != 1)) {
@@ -1857,30 +1869,20 @@ csi_dispatch(struct terminal *term, uint8_t final)
                 break;
             }
 
-            int dst_rel_bottom_row =
-                dst_rel_top_row + (src_rel_bottom_row - src_rel_top_row);
-            int dst_right_col = min(
-                dst_left_col + (src_right_col - src_left_col),
-                term->cols - 1);
+            int dst_rel_bottom = dst_rel_top + (src_bottom - src_top);
+            int dst_right = min(dst_left + (src_right - src_left), term->cols - 1);
 
-            /* Source and destination boxes, absolute coordinates */
-            int src_top_row = term_row_rel_to_abs(term, src_rel_top_row);
-            int src_bottom_row = term_row_rel_to_abs(term, src_rel_bottom_row);
-            int dst_top_row = term_row_rel_to_abs(term, dst_rel_top_row);
-            int dst_bottom_row = term_row_rel_to_abs(term, dst_rel_bottom_row);
-
-            if (unlikely(src_top_row > src_bottom_row ||
-                         src_left_col > src_right_col))
-                break;
+            int dst_top = term_row_rel_to_abs(term, dst_rel_top);
+            int dst_bottom = term_row_rel_to_abs(term, dst_rel_bottom);
 
             /* Target area outside the screen is clipped */
-            const size_t row_count = min(src_bottom_row - src_top_row,
-                                         dst_bottom_row - dst_top_row) + 1;
-            const size_t cell_count = min(src_right_col - src_left_col,
-                                          dst_right_col - dst_left_col) + 1;
+            const size_t row_count = min(src_bottom - src_top,
+                                         dst_bottom - dst_top) + 1;
+            const size_t cell_count = min(src_right - src_left,
+                                          dst_right - dst_left) + 1;
 
             sixel_overwrite_by_rectangle(
-                term, dst_top_row, dst_left_col, row_count, cell_count);
+                term, dst_top, dst_left, row_count, cell_count);
 
             /*
              * Copy source area
@@ -1895,17 +1897,17 @@ csi_dispatch(struct terminal *term, uint8_t final)
             for (int r = 0; r < row_count; r++) {
                 copy[r] = xmalloc(cell_count * sizeof(copy[r][0]));
 
-                const struct row *row = grid_row(term->grid, src_top_row + r);
-                const struct cell *cell = &row->cells[src_left_col];
+                const struct row *row = grid_row(term->grid, src_top + r);
+                const struct cell *cell = &row->cells[src_left];
                 memcpy(copy[r], cell, cell_count * sizeof(copy[r][0]));
             }
 
             /* Paste into destination area */
             for (int r = 0; r < row_count; r++) {
-                struct row *row = grid_row(term->grid, dst_top_row + r);
+                struct row *row = grid_row(term->grid, dst_top + r);
                 row->dirty = true;
 
-                struct cell *cell = &row->cells[dst_left_col];
+                struct cell *cell = &row->cells[dst_left];
                 memcpy(cell, copy[r], cell_count * sizeof(copy[r][0]));
                 free(copy[r]);
 
@@ -1914,7 +1916,7 @@ csi_dispatch(struct terminal *term, uint8_t final)
 
                 if (unlikely(row->extra != NULL)) {
                     /* TODO: technically, we should copy the source URIs... */
-                    grid_row_uri_range_erase(row, dst_left_col, dst_right_col);
+                    grid_row_uri_range_erase(row, dst_left, dst_right);
                 }
             }
             free(copy);
@@ -1926,32 +1928,26 @@ csi_dispatch(struct terminal *term, uint8_t final)
             if (likely((c >= 32 && c < 126) ||
                        (c >= 160 && c <= 255)))
             {
-                int rel_top_row = vt_param_get(term, 1, 1) - 1;
-                int left_col = vt_param_get(term, 2, 1) - 1;
-                int rel_bottom_row = vt_param_get(term, 3, term->rows) - 1;
-                int right_col = vt_param_get(term, 4, term->cols) - 1;
-
-                int top_row = term_row_rel_to_abs(term, rel_top_row);
-                int bottom_row = term_row_rel_to_abs(term, rel_bottom_row);
-
-                if (unlikely(top_row > bottom_row || left_col > right_col))
+                int top, left, bottom, right;
+                if (!params_to_rectangular_area(
+                        term, 1, &top, &left, &bottom, &right))
+                {
                     break;
+                }
 
                 /* Erase the entire region at once (MUCH cheaper than
                  * doing it row by row, or even character by
                  * character). */
                 sixel_overwrite_by_rectangle(
-                    term,
-                    top_row, left_col,
-                    bottom_row - top_row + 1, right_col - left_col + 1);
+                    term, top, left, bottom - top + 1, right - left + 1);
 
-                for (int r = top_row; r <= bottom_row; r++) {
+                for (int r = top; r <= bottom; r++) {
                     struct row *row = grid_row(term->grid, r);
 
                     if (unlikely(row->extra != NULL))
-                        grid_row_uri_range_erase(row, left_col, right_col);
+                        grid_row_uri_range_erase(row, left, right);
 
-                    for (int col = left_col; col <= right_col; col++)
+                    for (int col = left; col <= right; col++)
                         term_put_char(term, r, col, (wchar_t)c);
                 }
             }
@@ -1959,16 +1955,12 @@ csi_dispatch(struct terminal *term, uint8_t final)
         }
 
         case 'z': {  /* DECERA */
-            int rel_top_row = vt_param_get(term, 0, 1) - 1;
-            int left_col = vt_param_get(term, 1, 1) - 1;
-            int rel_bottom_row = vt_param_get(term, 2, term->rows) - 1;
-            int right_col = vt_param_get(term, 3, term->cols) - 1;
-
-            int top_row = term_row_rel_to_abs(term, rel_top_row);
-            int bottom_row = term_row_rel_to_abs(term, rel_bottom_row);
-
-            if (unlikely(top_row > bottom_row || left_col > right_col))
+            int top, left, bottom, right;
+            if (!params_to_rectangular_area(
+                    term, 0, &top, &left, &bottom, &right))
+            {
                 break;
+            }
 
             /*
              * Note: term_erase() _also_ erases sixels, but since
@@ -1976,12 +1968,10 @@ csi_dispatch(struct terminal *term, uint8_t final)
              * entire sixel here is more efficient.
              */
             sixel_overwrite_by_rectangle(
-                term,
-                top_row, left_col,
-                bottom_row - top_row + 1, right_col - left_col + 1);
+                term, top, left, bottom - top + 1, right - left + 1);
 
-            for (int r = top_row; r <= bottom_row; r++)
-                term_erase(term, r, left_col, r, right_col);
+            for (int r = top; r <= bottom; r++)
+                term_erase(term, r, left, r, right);
             break;
         }
         }
