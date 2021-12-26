@@ -798,7 +798,8 @@ void term_cursor_down(struct terminal *term, int count);
 void term_cursor_blink_update(struct terminal *term);
 
 void term_print(struct terminal *term, char32_t wc, int width);
-void term_fill(struct terminal *term, int row, int col, char c, size_t count);
+void term_fill(struct terminal *term, int row, int col, char c, size_t count,
+               bool use_sgr_attrs);
 
 void term_scroll(struct terminal *term, int rows);
 void term_scroll_reverse(struct terminal *term, int rows);

@@ -1942,7 +1942,7 @@ csi_dispatch(struct terminal *term, uint8_t final)
                     term, top, left, bottom - top + 1, right - left + 1);
 
                 for (int r = top; r <= bottom; r++)
-                    term_fill(term, r, left, c, right - left + 1);
+                    term_fill(term, r, left, c, right - left + 1, true);
             }
             break;
         }

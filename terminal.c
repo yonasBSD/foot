@@ -3511,17 +3511,22 @@ print_spacer(struct terminal *term, int col, int remaining)
  *   - double width characters not supported
  */
 void
-term_fill(struct terminal *term, int r, int c, char data, size_t count)
+term_fill(struct terminal *term, int r, int c, char data, size_t count,
+    bool use_sgr_attrs)
 {
     struct row *row = grid_row(term->grid, r);
     row->dirty = true;
 
     xassert(c + count <= term->cols);
 
+    const struct attributes attrs = use_sgr_attrs
+        ? term->vt.attrs
+        : (struct attributes){0};
+
     const struct cell *last = &row->cells[c + count];
     for (struct cell *cell = &row->cells[c]; cell < last; cell++) {
         cell->wc = data;
-        cell->attrs = term->vt.attrs;
+        cell->attrs = attrs;
 
         if (unlikely(term->vt.osc8.uri != NULL)) {
             grid_row_uri_range_put(row, c, term->vt.osc8.uri, term->vt.osc8.id);
