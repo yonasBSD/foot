@@ -1924,26 +1924,27 @@ csi_dispatch(struct terminal *term, uint8_t final)
         }
 
         case 'x': {  /* DECFRA */
-            const char c = vt_param_get(term, 0, 0);
-            if (likely((c >= 32 && c < 126) ||
-                       (c >= 160 && c <= 255)))
+            const uint8_t c = vt_param_get(term, 0, 0);
+
+            if (unlikely(!((c >= 32 && c < 126) || c >= 160)))
+                break;
+
+            int top, left, bottom, right;
+            if (!params_to_rectangular_area(
+                    term, 1, &top, &left, &bottom, &right))
             {
-                int top, left, bottom, right;
-                if (!params_to_rectangular_area(
-                        term, 1, &top, &left, &bottom, &right))
-                {
-                    break;
-                }
-
-                /* Erase the entire region at once (MUCH cheaper than
-                 * doing it row by row, or even character by
-                 * character). */
-                sixel_overwrite_by_rectangle(
-                    term, top, left, bottom - top + 1, right - left + 1);
-
-                for (int r = top; r <= bottom; r++)
-                    term_fill(term, r, left, c, right - left + 1, true);
+                break;
             }
+
+            /* Erase the entire region at once (MUCH cheaper than
+             * doing it row by row, or even character by
+             * character). */
+            sixel_overwrite_by_rectangle(
+                term, top, left, bottom - top + 1, right - left + 1);
+
+            for (int r = top; r <= bottom; r++)
+                term_fill(term, r, left, c, right - left + 1, true);
+
             break;
         }
 

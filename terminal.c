@@ -3511,7 +3511,7 @@ print_spacer(struct terminal *term, int col, int remaining)
  *   - double width characters not supported
  */
 void
-term_fill(struct terminal *term, int r, int c, char data, size_t count,
+term_fill(struct terminal *term, int r, int c, uint8_t data, size_t count,
     bool use_sgr_attrs)
 {
     struct row *row = grid_row(term->grid, r);
