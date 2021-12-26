@@ -1911,7 +1911,7 @@ csi_dispatch(struct terminal *term, uint8_t final)
                 memcpy(cell, copy[r], cell_count * sizeof(copy[r][0]));
                 free(copy[r]);
 
-                for (int c = 0; c < cell_count; c++, cell++)
+                for (;cell < &row->cells[dst_left + cell_count]; cell++)
                     cell->attrs.clean = 0;
 
                 if (unlikely(row->extra != NULL)) {
