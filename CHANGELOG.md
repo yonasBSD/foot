@@ -42,6 +42,8 @@
 * `[mouse-bindings].selection-override-modifiers` option, specifying
   which modifiers to hold to override mouse grabs by client
   applications and force selection instead.
+* _irc://_ and _ircs://_ to the default set of protocols recognized
+  when auto-detecting URLs.
 
 
 ### Changed
