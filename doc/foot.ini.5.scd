@@ -393,7 +393,7 @@ in this order:
 	recognized in URL mode. Note that only auto-detected URLs are
 	affected by this option. OSC-8 URLs are always enabled, regardless
 	of protocol. Default: _http, https, ftp, ftps, file, gemini,
-	gopher_.
+	gopher, irc, ircs_.
 
 *uri-characters*
 	Set of characters allowed in auto-detected URLs. Any character not

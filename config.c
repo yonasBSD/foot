@@ -2845,6 +2845,8 @@ config_load(struct config *conf, const char *conf_path,
         L"file://",
         L"gemini://",
         L"gopher://",
+        L"irc://",
+        L"ircs://",
     };
     conf->url.protocols = xmalloc(
         ALEN(url_protocols) * sizeof(conf->url.protocols[0]));
