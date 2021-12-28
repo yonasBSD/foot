@@ -1781,9 +1781,11 @@ csi_dispatch(struct terminal *term, uint8_t final)
 
             for (int r = top; r <= bottom; r++) {
                 struct row *row = grid_row(term->grid, r);
+                row->dirty = true;
 
                 for (int c = left; c <= right; c++) {
                     struct attributes *a = &row->cells[c].attrs;
+                    a->clean = 0;
 
                     for (size_t i = 4; i < term->vt.params.idx; i++) {
                         const int param = term->vt.params.v[i].value;
@@ -1823,9 +1825,11 @@ csi_dispatch(struct terminal *term, uint8_t final)
 
             for (int r = top; r <= bottom; r++) {
                 struct row *row = grid_row(term->grid, r);
+                row->dirty = true;
 
                 for (int c = left; c <= right; c++) {
                     struct attributes *a = &row->cells[c].attrs;
+                    a->clean = 0;
 
                     for (size_t i = 4; i < term->vt.params.idx; i++) {
                         const int param = term->vt.params.v[i].value;
