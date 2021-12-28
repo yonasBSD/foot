@@ -2827,10 +2827,11 @@ report_mouse_motion(struct terminal *term, int encoded_button, int row, int col)
 }
 
 bool
-term_mouse_grabbed(const struct terminal *term, struct seat *seat)
+term_mouse_grabbed(const struct terminal *term, const struct seat *seat)
 {
     /*
-     * Mouse is grabbed by us, regardless of whether mouse tracking has been enabled or not.
+     * Mouse is grabbed by us, regardless of whether mouse tracking
+     * has been enabled or not.
      */
 
     xkb_mod_mask_t mods;
