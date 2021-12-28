@@ -3523,8 +3523,6 @@ term_fill(struct terminal *term, int r, int c, uint8_t data, size_t count,
         ? term->vt.attrs
         : (struct attributes){0};
 
-    attrs.clean = 0;
-
     const struct cell *last = &row->cells[c + count];
     for (struct cell *cell = &row->cells[c]; cell < last; cell++) {
         cell->wc = data;
