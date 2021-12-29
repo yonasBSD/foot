@@ -54,6 +54,9 @@
 * `[scrollback].multiplier` is now applied in “alternate scroll” mode,
   where scroll events are translated to fake arrow key presses on the
   alt screen (https://codeberg.org/dnkl/foot/issues/859).
+* The width of the block cursor’s outline in an unfocused window is
+  now scaled by the output scaling factor (“desktop
+  scaling”). Previously, it was always 1px.
 
 
 ### Deprecated

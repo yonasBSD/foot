@@ -317,13 +317,15 @@ static void
 draw_unfocused_block(const struct terminal *term, pixman_image_t *pix,
                      const pixman_color_t *color, int x, int y, int cell_cols)
 {
+    const int scale = term->scale;
+
     pixman_image_fill_rectangles(
         PIXMAN_OP_SRC, pix, color, 4,
         (pixman_rectangle16_t []){
-         {x, y, cell_cols * term->cell_width, 1},                          /* top */
-         {x, y, 1, term->cell_height},                                     /* left */
-         {x + cell_cols * term->cell_width - 1, y, 1, term->cell_height},  /* right */
-         {x, y + term->cell_height - 1, cell_cols * term->cell_width, 1},  /* bottom */
+         {x, y, cell_cols * term->cell_width, scale},                              /* top */
+         {x, y, scale, term->cell_height},                                         /* left */
+         {x + cell_cols * term->cell_width - scale, y, scale, term->cell_height},  /* right */
+         {x, y + term->cell_height - scale, cell_cols * term->cell_width, scale},  /* bottom */
         });
 }
 
