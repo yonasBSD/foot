@@ -461,7 +461,15 @@ test_section_scrollback(void)
                 &conf.scrollback.lines);
     test_double(&ctx, parse_section_scrollback, "multiplier", &conf.scrollback.multiplier);
 
-    /* TODO: indicator-position (enum) */
+    test_enum(
+        &ctx, &parse_section_scrollback, "indicator-position",
+        3,
+        (const char *[]){"none", "fixed", "relative"},
+        (int []){SCROLLBACK_INDICATOR_POSITION_NONE,
+            SCROLLBACK_INDICATOR_POSITION_FIXED,
+            SCROLLBACK_INDICATOR_POSITION_RELATIVE},
+        (int *)&conf.scrollback.indicator.position);
+
     /* TODO: indicator-format (enum, sort-of) */
 
     config_free(conf);
