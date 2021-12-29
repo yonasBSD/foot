@@ -377,8 +377,10 @@ test_color(struct context *ctx, bool (*parse_fun)(struct context *ctx),
         bool invalid;
     } input[] = {
         {"000000", 0},
+        {"999999", 0x999999},
         {"ffffff", 0xffffff},
         {"ffffffff", 0xffffffff, !alpha_allowed},
+        {"aabbccdd", 0xaabbccdd, !alpha_allowed},
         {"unittest-invalid-color", 0, true},
     };
 
@@ -571,6 +573,59 @@ test_section_mouse(void)
                  &conf.mouse.hide_when_typing);
     test_boolean(&ctx, &parse_section_mouse, "alternate-scroll-mode",
                  &conf.mouse.alternate_scroll_mode);
+
+    config_free(conf);
+}
+
+static void
+test_section_colors(void)
+{
+    struct config conf = {0};
+    struct context ctx = {
+        .conf = &conf, .section = "colors", .path = "unittest"};
+
+    test_invalid_key(&ctx, &parse_section_colors, "invalid-key");
+
+    test_color(&ctx, &parse_section_colors, "foreground", false, &conf.colors.fg);
+    test_color(&ctx, &parse_section_colors, "background", false, &conf.colors.bg);
+    test_color(&ctx, &parse_section_colors, "regular0", false, &conf.colors.table[0]);
+    test_color(&ctx, &parse_section_colors, "regular1", false, &conf.colors.table[1]);
+    test_color(&ctx, &parse_section_colors, "regular2", false, &conf.colors.table[2]);
+    test_color(&ctx, &parse_section_colors, "regular3", false, &conf.colors.table[3]);
+    test_color(&ctx, &parse_section_colors, "regular4", false, &conf.colors.table[4]);
+    test_color(&ctx, &parse_section_colors, "regular5", false, &conf.colors.table[5]);
+    test_color(&ctx, &parse_section_colors, "regular6", false, &conf.colors.table[6]);
+    test_color(&ctx, &parse_section_colors, "regular7", false, &conf.colors.table[7]);
+    test_color(&ctx, &parse_section_colors, "bright0", false, &conf.colors.table[8]);
+    test_color(&ctx, &parse_section_colors, "bright1", false, &conf.colors.table[9]);
+    test_color(&ctx, &parse_section_colors, "bright2", false, &conf.colors.table[10]);
+    test_color(&ctx, &parse_section_colors, "bright3", false, &conf.colors.table[11]);
+    test_color(&ctx, &parse_section_colors, "bright4", false, &conf.colors.table[12]);
+    test_color(&ctx, &parse_section_colors, "bright5", false, &conf.colors.table[13]);
+    test_color(&ctx, &parse_section_colors, "bright6", false, &conf.colors.table[14]);
+    test_color(&ctx, &parse_section_colors, "bright7", false, &conf.colors.table[15]);
+    test_color(&ctx, &parse_section_colors, "dim0", false, &conf.colors.dim[0]);
+    test_color(&ctx, &parse_section_colors, "dim1", false, &conf.colors.dim[1]);
+    test_color(&ctx, &parse_section_colors, "dim2", false, &conf.colors.dim[2]);
+    test_color(&ctx, &parse_section_colors, "dim3", false, &conf.colors.dim[3]);
+    test_color(&ctx, &parse_section_colors, "dim4", false, &conf.colors.dim[4]);
+    test_color(&ctx, &parse_section_colors, "dim5", false, &conf.colors.dim[5]);
+    test_color(&ctx, &parse_section_colors, "dim6", false, &conf.colors.dim[6]);
+    test_color(&ctx, &parse_section_colors, "dim7", false, &conf.colors.dim[7]);
+    test_color(&ctx, &parse_section_colors, "selection-foreground", false, &conf.colors.selection_fg);
+    test_color(&ctx, &parse_section_colors, "selection-background", false, &conf.colors.selection_bg);
+    test_color(&ctx, &parse_section_colors, "urls", false, &conf.colors.url);
+
+    for (size_t i = 0; i < 255; i++) {
+        char key_name[4];
+        sprintf(key_name, "%zu", i);
+        test_color(&ctx, &parse_section_colors, key_name, false,
+                   &conf.colors.table[i]);
+    }
+
+    /* TODO: alpha (float in range 0-1, converted to uint16_t) */
+    /* TODO: jump-labels (two colors) */
+    /* TODO: scrollback-indicator (two colors) */
 
     config_free(conf);
 }
@@ -1044,7 +1099,7 @@ main(int argc, const char *const *argv)
     test_section_url();
     test_section_cursor();
     test_section_mouse();
-    /* TODO: test_section_colors() */
+    test_section_colors();
     test_section_csd();
     test_section_key_bindings();
     test_section_key_bindings_collisions();
