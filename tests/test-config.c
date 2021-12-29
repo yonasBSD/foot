@@ -476,6 +476,29 @@ test_section_scrollback(void)
 }
 
 static void
+test_section_url(void)
+{
+    struct config conf = {0};
+    struct context ctx = {
+        .conf = &conf, .section = "url", .path = "unittest"};
+
+    test_invalid_key(&ctx, &parse_section_url, "invalid-key");
+
+    test_spawn_template(&ctx, &parse_section_url, "launch", &conf.url.launch);
+    test_enum(&ctx, &parse_section_url, "osc8-underline",
+              2,
+              (const char *[]){"url-mode", "always"},
+              (int []){OSC8_UNDERLINE_URL_MODE, OSC8_UNDERLINE_ALWAYS},
+              (int *)&conf.url.osc8_underline);
+    test_wstring(&ctx, &parse_section_url, "label-letters", &conf.url.label_letters);
+
+    /* TODO: protocols (list of wchars) */
+    /* TODO: uri-characters (wchar string, but sorted) */
+
+    config_free(conf);
+}
+
+static void
 test_key_binding(struct context *ctx, bool (*parse_fun)(struct context *ctx),
                  int action, int max_action, const char *const *map,
                  struct config_key_binding_list *bindings,
@@ -901,6 +924,7 @@ main(int argc, const char *const *argv)
     test_section_main();
     test_section_bell();
     test_section_scrollback();
+    test_section_url();
     test_section_key_bindings();
     test_section_key_bindings_collisions();
     test_section_search_bindings();
