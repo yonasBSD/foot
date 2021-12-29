@@ -76,6 +76,8 @@
   (https://codeberg.org/dnkl/foot/issues/857).
 * OSC-8 URIs not getting overwritten (erased) by double-width
   characters (e.g. emojis).
+* Rendering of CSD borders when `csd.border-width > 0` and desktop
+  scaling has been enabled.
 
 
 ### Security

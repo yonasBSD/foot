@@ -1787,8 +1787,9 @@ render_csd_border(struct terminal *term, enum csd_surface surf_idx,
      * The “visible” border.
      */
 
-    int bwidth = term->conf->csd.border_width;
-    int vwidth = term->conf->csd.border_width_visible;      /* Visibls size */
+    int scale = term->scale;
+    int bwidth = term->conf->csd.border_width * scale;
+    int vwidth = term->conf->csd.border_width_visible * scale; /* Visible size */
 
     xassert(bwidth >= vwidth);
 
