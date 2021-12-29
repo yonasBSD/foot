@@ -525,6 +525,23 @@ test_section_cursor(void)
 }
 
 static void
+test_section_mouse(void)
+{
+    struct config conf = {0};
+    struct context ctx = {
+        .conf = &conf, .section = "mouse", .path = "unittest"};
+
+    test_invalid_key(&ctx, &parse_section_mouse, "invalid-key");
+
+    test_boolean(&ctx, &parse_section_mouse, "hide-when-typing",
+                 &conf.mouse.hide_when_typing);
+    test_boolean(&ctx, &parse_section_mouse, "alternate-scroll-mode",
+                 &conf.mouse.alternate_scroll_mode);
+
+    config_free(conf);
+}
+
+static void
 test_key_binding(struct context *ctx, bool (*parse_fun)(struct context *ctx),
                  int action, int max_action, const char *const *map,
                  struct config_key_binding_list *bindings,
@@ -952,6 +969,7 @@ main(int argc, const char *const *argv)
     test_section_scrollback();
     test_section_url();
     test_section_cursor();
+    test_section_mouse();
     test_section_key_bindings();
     test_section_key_bindings_collisions();
     test_section_search_bindings();
