@@ -593,18 +593,24 @@ test_section_csd(void)
                  CONF_CSD_PREFER_SERVER},
         (int *)&conf.csd.preferred);
     test_uint16(&ctx, &parse_section_csd, "size", &conf.csd.title_height);
+    test_color(&ctx, &parse_section_csd, "color", true, &conf.csd.color.title);
     test_uint16(&ctx, &parse_section_csd, "border-width",
                 &conf.csd.border_width_visible);
+    test_color(&ctx, &parse_section_csd, "border-color", true,
+               &conf.csd.color.border);
     test_uint16(&ctx, &parse_section_csd, "button-width",
                 &conf.csd.button_width);
+    test_color(&ctx, &parse_section_csd, "button-color", true,
+               &conf.csd.color.buttons);
+    test_color(&ctx, &parse_section_csd, "button-minimize-color", true,
+               &conf.csd.color.minimize);
+    test_color(&ctx, &parse_section_csd, "button-maximize-color", true,
+               &conf.csd.color.maximize);
+    test_color(&ctx, &parse_section_csd, "button-close-color", true,
+               &conf.csd.color.close);
 
-    /* TODO: color */
+    /* TODO: verify the ‘set’ bit is actually set for colors */
     /* TODO: font */
-    /* TODO: border-color */
-    /* TODO: button-color */
-    /* TODO: button-minimize-color */
-    /* TODO: button-maximize-color */
-    /* TODO: button-close-color */
 
     config_free(conf);
 }
