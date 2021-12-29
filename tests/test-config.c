@@ -35,7 +35,7 @@ test_invalid_key(struct context *ctx, bool (*parse_fun)(struct context *ctx),
 
 static void
 test_string(struct context *ctx, bool (*parse_fun)(struct context *ctx),
-             const char *key, char *const *conf_ptr)
+             const char *key, char *const *ptr)
 {
     ctx->key = key;
 
@@ -60,10 +60,10 @@ test_string(struct context *ctx, bool (*parse_fun)(struct context *ctx),
                 BUG("[%s].%s=%s: failed to parse",
                     ctx->section, ctx->key, ctx->value);
             }
-            if (strcmp(*conf_ptr, input[i].value) != 0) {
+            if (strcmp(*ptr, input[i].value) != 0) {
                 BUG("[%s].%s=%s: set value (%s) not the expected one (%s)",
                     ctx->section, ctx->key, ctx->value,
-                    *conf_ptr, input[i].value);
+                    *ptr, input[i].value);
             }
         }
     }
@@ -71,7 +71,7 @@ test_string(struct context *ctx, bool (*parse_fun)(struct context *ctx),
 
 static void
 test_wstring(struct context *ctx, bool (*parse_fun)(struct context *ctx),
-             const char *key, wchar_t *const *conf_ptr)
+             const char *key, wchar_t *const *ptr)
 {
     ctx->key = key;
 
@@ -96,10 +96,10 @@ test_wstring(struct context *ctx, bool (*parse_fun)(struct context *ctx),
                 BUG("[%s].%s=%s: failed to parse",
                     ctx->section, ctx->key, ctx->value);
             }
-            if (wcscmp(*conf_ptr, input[i].value) != 0) {
+            if (wcscmp(*ptr, input[i].value) != 0) {
                 BUG("[%s].%s=%s: set value (%ls) not the expected one (%ls)",
                     ctx->section, ctx->key, ctx->value,
-                    *conf_ptr, input[i].value);
+                    *ptr, input[i].value);
             }
         }
     }
@@ -107,7 +107,7 @@ test_wstring(struct context *ctx, bool (*parse_fun)(struct context *ctx),
 
 static void
 test_boolean(struct context *ctx, bool (*parse_fun)(struct context *ctx),
-             const char *key, const bool *conf_ptr)
+             const char *key, const bool *ptr)
 {
     ctx->key = key;
 
@@ -135,10 +135,10 @@ test_boolean(struct context *ctx, bool (*parse_fun)(struct context *ctx),
                 BUG("[%s].%s=%s: failed to parse",
                     ctx->section, ctx->key, ctx->value);
             }
-            if (*conf_ptr != input[i].value) {
+            if (*ptr != input[i].value) {
                 BUG("[%s].%s=%s: set value (%s) not the expected one (%s)",
                     ctx->section, ctx->key, ctx->value,
-                    *conf_ptr ? "true" : "false",
+                    *ptr ? "true" : "false",
                     input[i].value ? "true" : "false");
             }
         }
@@ -147,7 +147,7 @@ test_boolean(struct context *ctx, bool (*parse_fun)(struct context *ctx),
 
 static void
 test_uint16(struct context *ctx, bool (*parse_fun)(struct context *ctx),
-            const char *key, const uint16_t *conf_ptr)
+            const char *key, const uint16_t *ptr)
 {
     ctx->key = key;
 
@@ -173,10 +173,10 @@ test_uint16(struct context *ctx, bool (*parse_fun)(struct context *ctx),
                 BUG("[%s].%s=%s: failed to parse",
                     ctx->section, ctx->key, ctx->value);
             }
-            if (*conf_ptr != input[i].value) {
+            if (*ptr != input[i].value) {
                 BUG("[%s].%s=%s: set value (%hu) not the expected one (%hu)",
                     ctx->section, ctx->key, ctx->value,
-                    *conf_ptr, input[i].value);
+                    *ptr, input[i].value);
             }
         }
     }
@@ -184,7 +184,7 @@ test_uint16(struct context *ctx, bool (*parse_fun)(struct context *ctx),
 
 static void
 test_uint32(struct context *ctx, bool (*parse_fun)(struct context *ctx),
-            const char *key, const uint32_t *conf_ptr)
+            const char *key, const uint32_t *ptr)
 {
     ctx->key = key;
 
@@ -210,10 +210,10 @@ test_uint32(struct context *ctx, bool (*parse_fun)(struct context *ctx),
                 BUG("[%s].%s=%s: failed to parse",
                     ctx->section, ctx->key, ctx->value);
             }
-            if (*conf_ptr != input[i].value) {
+            if (*ptr != input[i].value) {
                 BUG("[%s].%s=%s: set value (%u) not the expected one (%u)",
                     ctx->section, ctx->key, ctx->value,
-                    *conf_ptr, input[i].value);
+                    *ptr, input[i].value);
             }
         }
     }
@@ -221,7 +221,7 @@ test_uint32(struct context *ctx, bool (*parse_fun)(struct context *ctx),
 
 static void
 test_double(struct context *ctx, bool (*parse_fun)(struct context *ctx),
-            const char *key, const float *conf_ptr)
+            const char *key, const float *ptr)
 {
     ctx->key = key;
 
@@ -247,10 +247,10 @@ test_double(struct context *ctx, bool (*parse_fun)(struct context *ctx),
                 BUG("[%s].%s=%s: failed to parse",
                     ctx->section, ctx->key, ctx->value);
             }
-            if (*conf_ptr != input[i].value) {
+            if (*ptr != input[i].value) {
                 BUG("[%s].%s=%s: set value (%f) not the expected one (%f)",
                     ctx->section, ctx->key, ctx->value,
-                    *conf_ptr, input[i].value);
+                    *ptr, input[i].value);
             }
         }
     }
@@ -258,7 +258,7 @@ test_double(struct context *ctx, bool (*parse_fun)(struct context *ctx),
 
 static void
 test_pt_or_px(struct context *ctx, bool (*parse_fun)(struct context *ctx),
-              const char *key, const struct pt_or_px *conf_ptr)
+              const char *key, const struct pt_or_px *ptr)
 {
     ctx->key = key;
 
@@ -284,11 +284,11 @@ test_pt_or_px(struct context *ctx, bool (*parse_fun)(struct context *ctx),
                 BUG("[%s].%s=%s: failed to parse",
                     ctx->section, ctx->key, ctx->value);
             }
-            if (memcmp(conf_ptr, &input[i].value, sizeof(*conf_ptr)) != 0) {
+            if (memcmp(ptr, &input[i].value, sizeof(*ptr)) != 0) {
                 BUG("[%s].%s=%s: "
                     "set value (pt=%f, px=%d) not the expected one (pt=%f, px=%d)",
                     ctx->section, ctx->key, ctx->value,
-                    conf_ptr->pt, conf_ptr->px,
+                    ptr->pt, ptr->px,
                     input[i].value.pt, input[i].value.px);
             }
         }
