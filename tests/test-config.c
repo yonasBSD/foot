@@ -364,6 +364,40 @@ test_enum(struct context *ctx, bool (*parse_fun)(struct context *ctx),
     }
 }
 
+
+static void
+test_color(struct context *ctx, bool (*parse_fun)(struct context *ctx),
+           const char *key, bool alpha_allowed, uint32_t *ptr)
+{
+    ctx->key = key;
+
+    const struct {
+        const char *option_string;
+        uint32_t color;
+        bool invalid;
+    } input[] = {
+        {"000000", 0},
+        {"ffffff", 0xffffff},
+        {"ffffffff", 0xffffffff, !alpha_allowed},
+        {"unittest-invalid-color", 0, true},
+    };
+
+    for (size_t i = 0; i < ALEN(input); i++) {
+        ctx->value = input[i].option_string;
+        if (input[i].invalid) {
+            if (parse_fun(ctx)) {
+                BUG("[%s].%s=%s: did not fail to parse as expected",
+                    ctx->section, ctx->key, ctx->value);
+            }
+        } else {
+            if (!parse_fun(ctx)) {
+                BUG("[%s].%s=%s: failed to parse",
+                    ctx->section, ctx->key, ctx->value);
+            }
+        }
+    }
+}
+
 static void
 test_section_main(void)
 {
