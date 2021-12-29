@@ -499,6 +499,32 @@ test_section_url(void)
 }
 
 static void
+test_section_cursor(void)
+{
+    struct config conf = {0};
+    struct context ctx = {
+        .conf = &conf, .section = "cursor", .path = "unittest"};
+
+    test_invalid_key(&ctx, &parse_section_cursor, "invalid-key");
+
+    test_enum(
+        &ctx, &parse_section_cursor, "style",
+        3,
+        (const char *[]){"block", "beam", "underline"},
+        (int []){CURSOR_BLOCK, CURSOR_BEAM, CURSOR_UNDERLINE},
+        (int *)&conf.cursor.style);
+    test_boolean(&ctx, &parse_section_cursor, "blink", &conf.cursor.blink);
+    test_pt_or_px(&ctx, &parse_section_cursor, "beam-thickness",
+                  &conf.cursor.beam_thickness);
+    test_pt_or_px(&ctx, &parse_section_cursor, "underline-thickness",
+                  &conf.cursor.underline_thickness);
+
+    /* TODO: color (two RRGGBB values) */
+
+    config_free(conf);
+}
+
+static void
 test_key_binding(struct context *ctx, bool (*parse_fun)(struct context *ctx),
                  int action, int max_action, const char *const *map,
                  struct config_key_binding_list *bindings,
@@ -925,6 +951,7 @@ main(int argc, const char *const *argv)
     test_section_bell();
     test_section_scrollback();
     test_section_url();
+    test_section_cursor();
     test_section_key_bindings();
     test_section_key_bindings_collisions();
     test_section_search_bindings();
