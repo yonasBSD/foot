@@ -542,6 +542,40 @@ test_section_mouse(void)
 }
 
 static void
+test_section_csd(void)
+{
+    struct config conf = {0};
+    struct context ctx = {
+        .conf = &conf, .section = "csd", .path = "unittest"};
+
+    test_invalid_key(&ctx, &parse_section_csd, "invalid-key");
+
+    test_enum(
+        &ctx, &parse_section_csd, "preferred",
+        3,
+        (const char *[]){"none", "client", "server"},
+        (int []){CONF_CSD_PREFER_NONE,
+                 CONF_CSD_PREFER_CLIENT,
+                 CONF_CSD_PREFER_SERVER},
+        (int *)&conf.csd.preferred);
+    test_uint16(&ctx, &parse_section_csd, "size", &conf.csd.title_height);
+    test_uint16(&ctx, &parse_section_csd, "border-width",
+                &conf.csd.border_width_visible);
+    test_uint16(&ctx, &parse_section_csd, "button-width",
+                &conf.csd.button_width);
+
+    /* TODO: color */
+    /* TODO: font */
+    /* TODO: border-color */
+    /* TODO: button-color */
+    /* TODO: button-minimize-color */
+    /* TODO: button-maximize-color */
+    /* TODO: button-close-color */
+
+    config_free(conf);
+}
+
+static void
 test_key_binding(struct context *ctx, bool (*parse_fun)(struct context *ctx),
                  int action, int max_action, const char *const *map,
                  struct config_key_binding_list *bindings,
@@ -970,6 +1004,8 @@ main(int argc, const char *const *argv)
     test_section_url();
     test_section_cursor();
     test_section_mouse();
+    /* TODO: test_section_colors() */
+    test_section_csd();
     test_section_key_bindings();
     test_section_key_bindings_collisions();
     test_section_search_bindings();
@@ -978,6 +1014,7 @@ main(int argc, const char *const *argv)
     test_section_url_bindings_collisions();
     test_section_mouse_bindings();
     test_section_mouse_bindings_collisions();
+    /* TODO: test_section_tweak() */
     log_deinit();
     return 0;
 }
