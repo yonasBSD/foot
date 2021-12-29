@@ -338,6 +338,33 @@ test_spawn_template(struct context *ctx, bool (*parse_fun)(struct context *ctx),
 }
 
 static void
+test_enum(struct context *ctx, bool (*parse_fun)(struct context *ctx),
+          const char *key, size_t count, const char *enum_strings[static count],
+          int enum_values[static count], int *ptr)
+{
+    ctx->key = key;
+
+    for (size_t i = 0; i < count; i++) {
+        ctx->value = enum_strings[i];
+        if (!parse_fun(ctx)) {
+            BUG("[%s].%s=%s: failed to parse",
+                ctx->section, ctx->key, ctx->value);
+        }
+
+        if (*ptr != enum_values[i]) {
+            BUG("[%s].%s=%s: set value not the expected one: expected %d, got %d",
+                ctx->section, ctx->key, ctx->value, enum_values[i], *ptr);
+        }
+    }
+
+    ctx->value = "invalid-enum-value";
+    if (parse_fun(ctx)) {
+        BUG("[%s].%s=%s: did not fail to parse as expeced",
+            ctx->section, ctx->key, ctx->value);
+    }
+}
+
+static void
 test_section_main(void)
 {
     struct config conf = {0};
