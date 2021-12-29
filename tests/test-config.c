@@ -393,15 +393,39 @@ test_section_main(void)
 
     test_spawn_template(&ctx, &parse_section_main, "notify", &conf.notify);
 
+    test_enum(
+        &ctx, &parse_section_main, "dpi-aware",
+        9,
+        (const char *[]){"on", "true", "yes", "1",
+                         "off", "false", "no", "0",
+                         "auto"},
+        (int []){DPI_AWARE_YES, DPI_AWARE_YES, DPI_AWARE_YES, DPI_AWARE_YES,
+                 DPI_AWARE_NO, DPI_AWARE_NO, DPI_AWARE_NO, DPI_AWARE_NO,
+                 DPI_AWARE_AUTO},
+        (int *)&conf.dpi_aware);
+
+    test_enum(&ctx, &parse_section_main, "selection-target",
+              4,
+              (const char *[]){"none", "primary", "clipboard", "both"},
+              (int []){SELECTION_TARGET_NONE,
+                       SELECTION_TARGET_PRIMARY,
+                       SELECTION_TARGET_CLIPBOARD,
+                       SELECTION_TARGET_BOTH},
+              (int *)&conf.selection_target);
+
+    test_enum(
+        &ctx, &parse_section_main, "initial-window-mode",
+        3,
+        (const char *[]){"windowed", "maximized", "fullscreen"},
+        (int []){STARTUP_WINDOWED, STARTUP_MAXIMIZED, STARTUP_FULLSCREEN},
+        (int *)&conf.startup_mode);
+
     /* TODO: font (custom) */
     /* TODO: include (custom) */
-    /* TODO: dpi-aware (enum/boolean) */
     /* TODO: bold-text-in-bright (enum/boolean) */
     /* TODO: pad (geometry + optional string)*/
     /* TODO: initial-window-size-pixels (geometry) */
     /* TODO: initial-window-size-chars (geometry) */
-    /* TODO: selection-target (enum) */
-    /* TODO: initial-window-mode (enum) */
 
     config_free(conf);
 }
