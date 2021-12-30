@@ -2786,7 +2786,7 @@ encode_xbutton(int xbutton)
 
 static void
 report_mouse_click(struct terminal *term, int encoded_button, int row, int col,
-                   bool release)
+                   int row_pixels, int col_pixels, bool release)
 {
     char response[128];
 
@@ -2807,6 +2807,11 @@ report_mouse_click(struct terminal *term, int encoded_button, int row, int col,
                  encoded_button, col + 1, row + 1, release ? 'm' : 'M');
         break;
 
+    case MOUSE_SGR_PIXELS:
+        snprintf(response, sizeof(response), "\033[<%d;%d;%d%c",
+                 encoded_button, col_pixels + 1, row_pixels + 1, release ? 'm' : 'M');
+        break;
+
     case MOUSE_URXVT:
         snprintf(response, sizeof(response), "\033[%d;%d;%dM",
                  32 + (release ? 3 : encoded_button), col + 1, row + 1);
@@ -2821,9 +2826,9 @@ report_mouse_click(struct terminal *term, int encoded_button, int row, int col,
 }
 
 static void
-report_mouse_motion(struct terminal *term, int encoded_button, int row, int col)
+report_mouse_motion(struct terminal *term, int encoded_button, int row, int col, int row_pixels, int col_pixels)
 {
-    report_mouse_click(term, encoded_button, row, col, false);
+    report_mouse_click(term, encoded_button, row, col, row_pixels, col_pixels, false);
 }
 
 bool
@@ -2846,6 +2851,7 @@ term_mouse_grabbed(const struct terminal *term, const struct seat *seat)
 
 void
 term_mouse_down(struct terminal *term, int button, int row, int col,
+                int row_pixels, int col_pixels,
                 bool _shift, bool _alt, bool _ctrl)
 {
     /* Map libevent button event code to X button number */
@@ -2872,7 +2878,7 @@ term_mouse_down(struct terminal *term, int button, int row, int col,
     case MOUSE_CLICK:
     case MOUSE_DRAG:
     case MOUSE_MOTION:
-        report_mouse_click(term, encoded, row, col, false);
+        report_mouse_click(term, encoded, row, col, row_pixels, col_pixels, false);
         break;
 
     case MOUSE_X10:
@@ -2884,6 +2890,7 @@ term_mouse_down(struct terminal *term, int button, int row, int col,
 
 void
 term_mouse_up(struct terminal *term, int button, int row, int col,
+              int row_pixels, int col_pixels,
               bool _shift, bool _alt, bool _ctrl)
 {
     /* Map libevent button event code to X button number */
@@ -2914,7 +2921,7 @@ term_mouse_up(struct terminal *term, int button, int row, int col,
     case MOUSE_CLICK:
     case MOUSE_DRAG:
     case MOUSE_MOTION:
-        report_mouse_click(term, encoded, row, col, true);
+        report_mouse_click(term, encoded, row, col, row_pixels, col_pixels, true);
         break;
 
     case MOUSE_X10:
@@ -2926,6 +2933,7 @@ term_mouse_up(struct terminal *term, int button, int row, int col,
 
 void
 term_mouse_motion(struct terminal *term, int button, int row, int col,
+                  int row_pixels, int col_pixels,
                   bool _shift, bool _alt, bool _ctrl)
 {
     int encoded = 0;
@@ -2961,7 +2969,7 @@ term_mouse_motion(struct terminal *term, int button, int row, int col,
         /* FALLTHROUGH */
 
     case MOUSE_MOTION:
-        report_mouse_motion(term, encoded, row, col);
+        report_mouse_motion(term, encoded, row, col, row_pixels, col_pixels);
         break;
 
     case MOUSE_X10:

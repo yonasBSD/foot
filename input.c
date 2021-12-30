@@ -2095,7 +2095,8 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
 
         /* Send mouse event to client application */
         if (!term_mouse_grabbed(term, seat) &&
-            cursor_is_on_new_cell &&
+            (cursor_is_on_new_cell ||
+                term->mouse_reporting == MOUSE_SGR_PIXELS) &&
             ((button == 0 && cursor_is_on_grid) ||
              (button != 0 && send_to_client)))
         {
@@ -2105,6 +2106,8 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
             term_mouse_motion(
                 term, button,
                 seat->mouse.row, seat->mouse.col,
+                seat->mouse.y - term->margins.top,
+                seat->mouse.x - term->margins.left,
                 seat->kbd.shift, seat->kbd.alt, seat->kbd.ctrl);
         }
         break;
@@ -2480,6 +2483,8 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
             {
                 term_mouse_down(
                     term, button, seat->mouse.row, seat->mouse.col,
+                    seat->mouse.y - term->margins.top,
+                    seat->mouse.x - term->margins.left,
                     seat->kbd.shift, seat->kbd.alt, seat->kbd.ctrl);
             }
             break;
@@ -2491,6 +2496,8 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
             if (send_to_client && !term_mouse_grabbed(term, seat)) {
                 term_mouse_up(
                     term, button, seat->mouse.row, seat->mouse.col,
+                    seat->mouse.y - term->margins.top,
+                    seat->mouse.x - term->margins.left,
                     seat->kbd.shift, seat->kbd.alt, seat->kbd.ctrl);
             }
             break;
@@ -2566,11 +2573,15 @@ mouse_scroll(struct seat *seat, int amount, enum wl_pointer_axis axis)
         for (int i = 0; i < amount; i++) {
             term_mouse_down(
                 term, button, seat->mouse.row, seat->mouse.col,
+                seat->mouse.y - term->margins.top,
+                seat->mouse.x - term->margins.left,
                 seat->kbd.shift, seat->kbd.alt, seat->kbd.ctrl);
         }
 
         term_mouse_up(
             term, button, seat->mouse.row, seat->mouse.col,
+            seat->mouse.y - term->margins.top,
+            seat->mouse.x - term->margins.left,
             seat->kbd.shift, seat->kbd.alt, seat->kbd.ctrl);
     }
 }

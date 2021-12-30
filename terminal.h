@@ -246,6 +246,7 @@ enum mouse_reporting {
     MOUSE_UTF8,          /* ?1005h */
     MOUSE_SGR,           /* ?1006h */
     MOUSE_URXVT,         /* ?1015h */
+    MOUSE_SGR_PIXELS,    /* ?1016h */
 };
 
 enum cursor_style { CURSOR_BLOCK, CURSOR_UNDERLINE, CURSOR_BEAM };
@@ -416,6 +417,7 @@ struct terminal {
         //bool mouse_utf8:1;
         bool mouse_sgr:1;
         bool mouse_urxvt:1;
+        bool mouse_sgr_pixels:1;
         bool meta_eight_bit:1;
         bool meta_esc_prefix:1;
         bool num_lock_modifier:1;
@@ -752,12 +754,15 @@ void term_kbd_focus_in(struct terminal *term);
 void term_kbd_focus_out(struct terminal *term);
 void term_mouse_down(
     struct terminal *term, int button, int row, int col,
+    int row_pixels, int col_pixels,
     bool shift, bool alt, bool ctrl);
 void term_mouse_up(
     struct terminal *term, int button, int row, int col,
+    int row_pixels, int col_pixels,
     bool shift, bool alt, bool ctrl);
 void term_mouse_motion(
     struct terminal *term, int button, int row, int col,
+    int row_pixels, int col_pixels,
     bool shift, bool alt, bool ctrl);
 bool term_mouse_grabbed(const struct terminal *term, const struct seat *seat);
 void term_xcursor_update(struct terminal *term);
