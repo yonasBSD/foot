@@ -38,7 +38,12 @@
 
 
 ## Unreleased
+
 ### Added
+
+* OSC-22 - set xcursor pointer.
+
+
 ### Changed
 
 * Mouse selections are now finalized when the window is resized
