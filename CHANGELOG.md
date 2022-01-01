@@ -79,6 +79,7 @@
   characters (e.g. emojis).
 * Rendering of CSD borders when `csd.border-width > 0` and desktop
   scaling has been enabled.
+* Failure to launch when `exec(3)’:ed with an empty argv.
 
 
 ### Security
