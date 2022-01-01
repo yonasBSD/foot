@@ -558,20 +558,20 @@ manipulation sequences. The generic format is:
 :  _Ps_=0 -> report terminal name and version, in the form
    *\\EP>|foot(version)\\E\\*.
 |  \\E ? u
-:  kitty
 :  <unnamed>
+:  kitty
 :  Query current values of the Kitty keyboard flags.
 |  \\E > _flags_ u
-:  kitty
 :  <unnamed>
+:  kitty
 :  Push a new entry, _flags_, to the Kitty keyboard stack.
 |  \\E < _number_ u
-:  kitty
 :  <unnamed>
+:  kitty
 :  Pop _number_ of entries from the Kitty keyboard stack.
 |  \\E = _flags_ ; _mode_ u
-:  kitty
 :  <unnamed>
+:  kitty
 :  Update current Kitty keyboard flags, according to _mode_.
 
 
