@@ -3817,13 +3817,7 @@ render_xcursor_update(struct seat *seat)
         return;
     }
 
-    seat->pointer.cursor = wl_cursor_theme_get_cursor(
-        seat->pointer.theme, seat->pointer.xcursor);
-
-    if (seat->pointer.cursor == NULL) {
-        LOG_ERR("failed to load xcursor pointer '%s'", seat->pointer.xcursor);
-        return;
-    }
+    xassert(seat->pointer.cursor != NULL);
 
     const int scale = seat->pointer.scale;
     struct wl_cursor_image *image = seat->pointer.cursor->images[0];
@@ -4010,8 +4004,19 @@ render_xcursor_set(struct seat *seat, struct terminal *term, const char *xcursor
     if (seat->pointer.xcursor == xcursor)
         return true;
 
+    if (xcursor != XCURSOR_HIDDEN) {
+        seat->pointer.cursor = wl_cursor_theme_get_cursor(
+            seat->pointer.theme, xcursor);
+
+        if (seat->pointer.cursor == NULL) {
+            LOG_ERR("failed to load xcursor pointer '%s'", xcursor);
+            return false;
+        }
+    } else
+        seat->pointer.cursor = NULL;
+
     /* FDM hook takes care of actual rendering */
-    seat->pointer.xcursor_pending = true;
     seat->pointer.xcursor = xcursor;
+    seat->pointer.xcursor_pending = true;
     return true;
 }
