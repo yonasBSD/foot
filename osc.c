@@ -744,6 +744,10 @@ osc_dispatch(struct terminal *term)
         term_damage_cursor(term);
         break;
 
+    case 22:  /* Set mouse cursor */
+        term_set_user_mouse_cursor(term, string);
+        break;
+
     case 30:  /* Set tab title */
         break;
 
