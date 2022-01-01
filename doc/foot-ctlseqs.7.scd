@@ -552,24 +552,24 @@ manipulation sequences. The generic format is:
 :  XTSMGRAPHICS
 :  xterm
 :  Set or request sixel attributes.
-|  \\E > _Ps_ q
+|  \\E[ > _Ps_ q
 :  XTVERSION
 :  xterm
 :  _Ps_=0 -> report terminal name and version, in the form
    *\\EP>|foot(version)\\E\\*.
-|  \\E ? u
+|  \\E[ ? u
 :  <unnamed>
 :  kitty
 :  Query current values of the Kitty keyboard flags.
-|  \\E > _flags_ u
+|  \\E[ > _flags_ u
 :  <unnamed>
 :  kitty
 :  Push a new entry, _flags_, to the Kitty keyboard stack.
-|  \\E < _number_ u
+|  \\E[ < _number_ u
 :  <unnamed>
 :  kitty
 :  Pop _number_ of entries from the Kitty keyboard stack.
-|  \\E = _flags_ ; _mode_ u
+|  \\E[ = _flags_ ; _mode_ u
 :  <unnamed>
 :  kitty
 :  Update current Kitty keyboard flags, according to _mode_.
