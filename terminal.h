@@ -342,6 +342,7 @@ struct terminal {
     enum keypad_keys keypad_keys_mode;
     enum mouse_tracking mouse_tracking;
     enum mouse_reporting mouse_reporting;
+    char *mouse_user_cursor;  /* For OSC-22 */
 
     tll(int) tab_stops;
 
@@ -771,6 +772,7 @@ void term_mouse_motion(
 bool term_mouse_grabbed(const struct terminal *term, const struct seat *seat);
 void term_xcursor_update(struct terminal *term);
 void term_xcursor_update_for_seat(struct terminal *term, struct seat *seat);
+void term_set_user_mouse_cursor(struct terminal *term, const char *cursor);
 
 void term_set_window_title(struct terminal *term, const char *title);
 void term_flash(struct terminal *term, unsigned duration_ms);

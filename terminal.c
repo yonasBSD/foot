@@ -1681,6 +1681,7 @@ term_destroy(struct terminal *term)
 
     free(term->foot_exe);
     free(term->cwd);
+    free(term->mouse_user_cursor);
 
     int ret = EXIT_SUCCESS;
 
@@ -1819,6 +1820,8 @@ term_reset(struct terminal *term, bool hard)
     term->saved_charsets = term->charsets;
     tll_free_and_free(term->window_title_stack, free);
     term_set_window_title(term, term->conf->title);
+
+    term_set_user_mouse_cursor(term, NULL);
 
     memset(term->normal.kitty_kbd.flags, 0, sizeof(term->normal.kitty_kbd.flags));
     memset(term->alt.kitty_kbd.flags, 0, sizeof(term->alt.kitty_kbd.flags));
@@ -2986,7 +2989,11 @@ term_xcursor_update_for_seat(struct terminal *term, struct seat *seat)
 
     switch (term->active_surface) {
     case TERM_SURF_GRID: {
+        bool have_custom_cursor =
+            render_xcursor_is_valid(seat, term->mouse_user_cursor);
+
         xcursor = seat->pointer.hidden ? XCURSOR_HIDDEN
+            : have_custom_cursor ? term->mouse_user_cursor
             : term->is_searching ? XCURSOR_LEFT_PTR
             : (seat->mouse.col >= 0 &&
                seat->mouse.row >= 0 &&
@@ -3574,4 +3581,12 @@ term_osc8_close(struct terminal *term)
     term->vt.osc8.uri = NULL;
     term->vt.osc8.id = 0;
     term_update_ascii_printer(term);
+}
+
+void
+term_set_user_mouse_cursor(struct terminal *term, const char *cursor)
+{
+    free(term->mouse_user_cursor);
+    term->mouse_user_cursor = cursor != NULL ? xstrdup(cursor) : NULL;
+    term_xcursor_update(term);
 }
