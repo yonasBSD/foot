@@ -3801,6 +3801,14 @@ static const struct wl_callback_listener xcursor_listener = {
     .done = &xcursor_callback,
 };
 
+bool
+render_xcursor_is_valid(const struct seat *seat, const char *cursor)
+{
+    if (cursor == NULL)
+        return false;
+    return wl_cursor_theme_get_cursor(seat->pointer.theme, cursor) != NULL;
+}
+
 static void
 render_xcursor_update(struct seat *seat)
 {

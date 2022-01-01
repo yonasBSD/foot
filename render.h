@@ -18,7 +18,9 @@ void render_refresh_csd(struct terminal *term);
 void render_refresh_search(struct terminal *term);
 void render_refresh_title(struct terminal *term);
 void render_refresh_urls(struct terminal *term);
-bool render_xcursor_set(struct seat *seat, struct terminal *term, const char *xcursor);
+bool render_xcursor_set(
+    struct seat *seat, struct terminal *term, const char *xcursor);
+bool render_xcursor_is_valid(const struct seat *seat, const char *cursor);
 
 struct render_worker_context {
     int my_id;
