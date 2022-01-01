@@ -292,6 +292,9 @@ that corresponds to one of the following modes:
 |  1015
 :  urxvt
 :  urxvt mouse mode
+|  1016
+:  xterm
+:  SGR-Pixels mouse mode
 |  1034
 :  xterm
 :  8-bit Meta mode
