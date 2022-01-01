@@ -44,7 +44,8 @@
   applications and force selection instead.
 * _irc://_ and _ircs://_ to the default set of protocols recognized
   when auto-detecting URLs.
-
+* [SGR-Pixels (1016) mouse extended coordinates](https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Extended-coordinates) is now supported
+  (https://codeberg.org/dnkl/foot/issues/762).
 
 ### Changed
 
@@ -83,6 +84,7 @@
 ### Security
 ### Contributors
 
+* [lamonte](https://codeberg.org/lamonte)
 
 ## 1.10.3
 

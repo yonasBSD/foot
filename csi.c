@@ -456,6 +456,13 @@ decset_decrst(struct terminal *term, unsigned param, bool enable)
             term->mouse_reporting = MOUSE_NORMAL;
         break;
 
+    case 1016:
+        if (enable)
+            term->mouse_reporting = MOUSE_SGR_PIXELS;
+        else if (term->mouse_reporting == MOUSE_SGR_PIXELS)
+            term->mouse_reporting = MOUSE_NORMAL;
+        break;
+
     case 1034:
         /* smm */
         LOG_DBG("%s 8-bit meta mode", enable ? "enabling" : "disabling");
@@ -609,6 +616,7 @@ decrqm(const struct terminal *term, unsigned param, bool *enabled)
     case 1006: *enabled = term->mouse_reporting == MOUSE_SGR; return true;
     case 1007: *enabled = term->alt_scrolling; return true;
     case 1015: *enabled = term->mouse_reporting == MOUSE_URXVT; return true;
+    case 1016: *enabled = term->mouse_reporting == MOUSE_SGR_PIXELS; return true;
     case 1034: *enabled = term->meta.eight_bit; return true;
     case 1035: *enabled = term->num_lock_modifier; return true;
     case 1036: *enabled = term->meta.esc_prefix; return true;
@@ -652,6 +660,7 @@ xtsave(struct terminal *term, unsigned param)
     case 1006: term->xtsave.mouse_sgr = term->mouse_reporting == MOUSE_SGR; break;
     case 1007: term->xtsave.alt_scrolling = term->alt_scrolling; break;
     case 1015: term->xtsave.mouse_urxvt = term->mouse_reporting == MOUSE_URXVT; break;
+    case 1016: term->xtsave.mouse_sgr_pixels = term->mouse_reporting == MOUSE_SGR_PIXELS; break;
     case 1034: term->xtsave.meta_eight_bit = term->meta.eight_bit; break;
     case 1035: term->xtsave.num_lock_modifier = term->num_lock_modifier; break;
     case 1036: term->xtsave.meta_esc_prefix = term->meta.esc_prefix; break;
@@ -694,6 +703,7 @@ xtrestore(struct terminal *term, unsigned param)
     case 1006: enable = term->xtsave.mouse_sgr; break;
     case 1007: enable = term->xtsave.alt_scrolling; break;
     case 1015: enable = term->xtsave.mouse_urxvt; break;
+    case 1016: enable = term->xtsave.mouse_sgr_pixels; break;
     case 1034: enable = term->xtsave.meta_eight_bit; break;
     case 1035: enable = term->xtsave.num_lock_modifier; break;
     case 1036: enable = term->xtsave.meta_esc_prefix; break;
