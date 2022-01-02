@@ -152,8 +152,9 @@ def main():
     except KeyError:
         pass
 
-    entry.add_capability(IntCapability('RGB', 8))  # 8 bits per channel
+    entry.add_capability(IntCapability('Co', 256))
     entry.add_capability(StringCapability('TN', target_entry_name))
+    entry.add_capability(IntCapability('RGB', 8))  # 8 bits per channel
 
     target.write('#pragma once\n')
     target.write('\n')
