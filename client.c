@@ -124,7 +124,7 @@ main(int argc, char *const *argv)
     static const int foot_exit_failure = -36;
     int ret = foot_exit_failure;
 
-    const char *const prog_name = argv[0];
+    const char *const prog_name = argc > 0 ? argv[0] : "<nullptr>";
 
     static const struct option longopts[] =  {
         {"term",               required_argument, NULL, 't'},
@@ -309,8 +309,10 @@ main(int argc, char *const *argv)
         }
     }
 
-    argc -= optind;
-    argv += optind;
+    if (argc > 0) {
+        argc -= optind;
+        argv += optind;
+    }
 
     log_init(log_colorize, false, LOG_FACILITY_USER, log_level);
 

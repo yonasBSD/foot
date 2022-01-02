@@ -168,7 +168,7 @@ main(int argc, char *const *argv)
      * don't pass this on to programs launched by us */
     unsetenv("DESKTOP_STARTUP_ID");
 
-    const char *const prog_name = argv[0];
+    const char *const prog_name = argc > 0 ? argv[0] : "<nullptr>";
 
     static const struct option longopts[] =  {
         {"config",                 required_argument, NULL, 'c'},
@@ -401,8 +401,10 @@ main(int argc, char *const *argv)
         as_server && log_syslog,
         (enum fcft_log_class)log_level);
 
-    argc -= optind;
-    argv += optind;
+    if (argc > 0) {
+        argc -= optind;
+        argv += optind;
+    }
 
     LOG_INFO("%s", version_and_features());
 
