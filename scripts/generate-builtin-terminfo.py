@@ -174,9 +174,6 @@ def main():
         'static const struct foot_terminfo_entry terminfo_capabilities[] = {\n')
 
     for cap in sorted(entry.caps.values()):
-        if isinstance(cap, BoolCapability):
-            continue
-
         name = cap.name
         value = str(cap.value)
 
@@ -194,7 +191,11 @@ def main():
         # Do escape ‘“‘
         name = name.replace('"', '\"')
         value = value.replace('"', '\"')
-        target.write(f'    {{"{name}", "{value}"}},\n')
+
+        if isinstance(cap, BoolCapability):
+            target.write(f'    {{"{name}", NULL}},\n')
+        else:
+            target.write(f'    {{"{name}", "{value}"}},\n')
 
     target.write('};\n')
 

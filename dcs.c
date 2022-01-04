@@ -99,6 +99,14 @@ xtgettcap_reply(struct terminal *term, const char *hex_cap_name, size_t len)
     if (entry == NULL)
         goto err;
 
+    if (entry->value == NULL) {
+        /* Boolean */
+        term_to_slave(term, "\033P1+r", 5);
+        term_to_slave(term, hex_cap_name, len);
+        term_to_slave(term, "\033\\", 2);
+        goto out;
+    }
+
     /*
      * Reply format:
      *    \EP 1 + r cap=value \E\\
