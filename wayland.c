@@ -996,8 +996,16 @@ handle_global(void *data, struct wl_registry *registry,
         if (!verify_iface_version(interface, version, required))
             return;
 
+#if defined(WL_OUTPUT_NAME_SINCE_VERSION)
+        const uint32_t preferred = WL_OUTPUT_NAME_SINCE_VERSION;
+#elif defined(WL_OUTPUT_RELEASE_SINCE_VERSION)
+        const uint32_t preferred = WL_OUTPUT_RELEASE_SINCE_VERSION;
+#else
+        const uint32_t preferred = required;
+#endif
+
         struct wl_output *output = wl_registry_bind(
-            wayl->registry, name, &wl_output_interface, min(version, 4));
+            wayl->registry, name, &wl_output_interface, min(version, preferred));
 
         tll_push_back(
             wayl->monitors,
