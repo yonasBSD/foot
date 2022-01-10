@@ -33,22 +33,10 @@ _Static_assert(
  #error "wchar_t does not use UTF-32"
 #endif
 
-size_t
-c32len(const char32_t *s)
-{
-    return wcslen((const wchar_t *)s);
-}
-
 UNITTEST
 {
     xassert(c32len(U"") == 0);
     xassert(c32len(U"foobar") == 6);
-}
-
-int
-c32cmp(const char32_t *s1, const char32_t *s2)
-{
-    return wcscmp((const wchar_t *)s1, (const wchar_t *)s2);
 }
 
 UNITTEST
@@ -58,12 +46,6 @@ UNITTEST
     xassert(c32cmp(U"foobar", U"foo") > 0);
     xassert(c32cmp(U"a", U"b") < 0);
     xassert(c32cmp(U"b", U"a") > 0);
-}
-
-char32_t *
-c32ncpy(char32_t *dst, const char32_t *src, size_t n)
-{
-    return (char32_t *)wcsncpy((wchar_t *)dst, (const wchar_t *)src, n);
 }
 
 UNITTEST
@@ -81,12 +63,6 @@ UNITTEST
 
     unsigned char zeroes[(16 - 6) * sizeof(copy[0])] = {0};
     xassert(memcmp(&copy[6], zeroes, sizeof(zeroes)) == 0);
-}
-
-char32_t *
-c32cpy(char32_t *dst, const char32_t *src)
-{
-    return (char32_t *)wcscpy((wchar_t *)dst, (const wchar_t *)src);
 }
 
 UNITTEST
@@ -110,18 +86,6 @@ UNITTEST
     xassert(memcmp(&copy[7], fives, sizeof(fives)) == 0);
 }
 
-char32_t *
-c32chr(const char32_t *s, char32_t c)
-{
-    return (char32_t *)wcschr((const wchar_t *)s, c);
-}
-
-int
-c32casecmp(const char32_t *s1, const char32_t *s2)
-{
-    return wcscasecmp((const wchar_t *)s1, (const wchar_t *)s2);
-}
-
 UNITTEST
 {
     xassert(c32casecmp(U"foobar", U"FOOBAR") == 0);
@@ -129,12 +93,6 @@ UNITTEST
     xassert(c32casecmp(U"FOOO", U"foo") > 0);
     xassert(c32casecmp(U"a", U"B") < 0);
     xassert(c32casecmp(U"B", U"a") > 0);
-}
-
-int
-c32ncasecmp(const char32_t *s1, const char32_t *s2, size_t n)
-{
-    return wcsncasecmp((const wchar_t *)s1, (const wchar_t *)s2, n);
 }
 
 UNITTEST
@@ -146,12 +104,6 @@ UNITTEST
     xassert(c32ncasecmp(U"BB", U"a", 1) > 0);
 }
 
-char32_t *
-c32ncat(char32_t *dst, const char32_t *src, size_t n)
-{
-    return (char32_t *)wcsncat((wchar_t *)dst, (const wchar_t *)src, n);
-}
-
 UNITTEST
 {
     char32_t dst[32] = U"foobar";
@@ -161,12 +113,6 @@ UNITTEST
     xassert(c32cmp(dst, U"foobar12345678") == 0);
 }
 
-char32_t *
-c32cat(char32_t *dst, const char32_t *src)
-{
-    return (char32_t *)wcscat((wchar_t *)dst, (const wchar_t *)src);
-}
-
 UNITTEST
 {
     char32_t dst[32] = U"foobar";
@@ -174,12 +120,6 @@ UNITTEST
 
     xassert(ret == dst);
     xassert(c32cmp(dst, U"foobar12345678") == 0);
-}
-
-char32_t *
-c32dup(const char32_t *s)
-{
-    return (char32_t *)wcsdup((const wchar_t *)s);
 }
 
 UNITTEST
@@ -271,12 +211,6 @@ UNITTEST
     xassert(ret == 1);
     xassert(c32[0] == U'f');
     xassert(c32[1] == 0x55555555);
-}
-
-size_t
-mbstoc32(char32_t *dst, const char *src, size_t len)
-{
-    return mbsntoc32(dst, src, strlen(src) + 1, len);
 }
 
 UNITTEST
@@ -460,46 +394,4 @@ UNITTEST
 
     xassert(ac32tombs(NULL) == NULL);
     setlocale(LC_CTYPE, "C");
-}
-
-char32_t
-toc32lower(char32_t c)
-{
-    return (char32_t)towlower((wint_t)c);
-}
-
-char32_t
-toc32upper(char32_t c)
-{
-    return (char32_t)towupper((wint_t)c);
-}
-
-bool
-isc32space(char32_t c32)
-{
-    return iswspace((wint_t)c32);
-}
-
-bool
-isc32print(char32_t c32)
-{
-    return iswprint((wint_t)c32);
-}
-
-bool
-isc32graph(char32_t c32)
-{
-    return iswgraph((wint_t)c32);
-}
-
-int
-c32width(char32_t c)
-{
-    return wcwidth((wchar_t)c);
-}
-
-int
-c32swidth(const char32_t *s, size_t n)
-{
-    return wcswidth((const wchar_t *)s, n);
 }
