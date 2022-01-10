@@ -424,10 +424,18 @@ main(int argc, char *const *argv)
         LOG_ERR("setlocale() failed");
         return ret;
     }
+
     LOG_INFO("locale: %s", locale);
-    if (!locale_is_utf8()) {
-        LOG_ERR("locale is not UTF-8");
-        return ret;
+
+    bool bad_locale = !locale_is_utf8();
+    if (bad_locale) {
+        LOG_ERR("locale '%s' is not UTF-8", locale);
+
+        if (check_config)
+            return ret;
+
+        user_notification_add_fmt(&user_notifications, USER_NOTIFICATION_ERROR,
+                                  "locale '%s' is not UTF-8", locale);
     }
 
     struct config conf = {NULL};
@@ -500,6 +508,14 @@ main(int argc, char *const *argv)
     if (conf.tweak.font_monospace_warn && conf.fonts[0].count > 0) {
         check_if_font_is_monospaced(
             conf.fonts[0].arr[0].pattern, &conf.notifications);
+    }
+
+
+    if (bad_locale) {
+        static char *const bad_locale_fake_argv[] = {"/bin/sh", "-c", "", NULL};
+        argc = 1;
+        argv = bad_locale_fake_argv;
+        conf.hold_at_exit = true;
     }
 
     struct fdm *fdm = NULL;
