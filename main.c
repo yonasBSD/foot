@@ -436,6 +436,25 @@ main(int argc, char *const *argv)
 
         user_notification_add_fmt(&user_notifications, USER_NOTIFICATION_ERROR,
                                   "locale '%s' is not UTF-8", locale);
+
+        /*
+         * Try to force an UTF-8 locale. If we succeed, launch the
+         * user’s shell as usual, but add a user-notification saying
+         * the locale has been changed.
+         */
+        if (setlocale(LC_CTYPE, "C.UTF-8") != NULL) {
+            user_notification_add(
+                &user_notifications, USER_NOTIFICATION_WARNING,
+                xstrdup("locale forcibly changed to C.UTF-8"));
+            bad_locale = false;
+        }
+
+        else if (setlocale(LC_CTYPE, "en_US.UTF-8") != NULL) {
+            user_notification_add(
+                &user_notifications, USER_NOTIFICATION_WARNING,
+                xstrdup("locale forcibly changed to en_US.UTF-8"));
+            bad_locale = false;
+        }
     }
 
     struct config conf = {NULL};
