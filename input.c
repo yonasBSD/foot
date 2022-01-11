@@ -145,6 +145,7 @@ execute_binding(struct seat *seat, struct terminal *term,
 
     case BIND_ACTION_PRIMARY_PASTE:
         selection_from_primary(seat, term);
+        term_reset_view(term);
         return true;
 
     case BIND_ACTION_SEARCH_START:
