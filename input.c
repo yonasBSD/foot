@@ -2046,6 +2046,13 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
         bool cursor_is_on_new_cell
             = old_col != seat->mouse.col || old_row != seat->mouse.row;
 
+        if (cursor_is_on_new_cell) {
+            /* Prevent multiple/different mouse bindings from
+             * triggering if the mouse has moved “too much” (to
+             * another cell) */
+            seat->mouse.count = 0;
+        }
+
         /* Cursor is inside the grid, i.e. *not* in the margins */
         const bool cursor_is_on_grid = seat->mouse.col >= 0 && seat->mouse.row >= 0;
 
