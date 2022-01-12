@@ -429,11 +429,6 @@ main(int argc, char *const *argv)
 
     bool bad_locale = !locale_is_utf8();
     if (bad_locale) {
-        LOG_ERR("locale '%s' is not UTF-8", locale);
-
-        if (check_config)
-            return ret;
-
         static const char fallback_locales[][12] = {
             "C.UTF-8",
             "en_US.UTF-8",
@@ -448,16 +443,23 @@ main(int argc, char *const *argv)
             const char *const fallback_locale = fallback_locales[i];
 
             if (setlocale(LC_CTYPE, fallback_locale) != NULL) {
+                LOG_WARN("locale '%s' is not UTF-8, using '%s' instead",
+                         locale, fallback_locale);
+
                 user_notification_add_fmt(
                     &user_notifications, USER_NOTIFICATION_WARNING,
                     "locale '%s' is not UTF-8, using '%s' instead",
                     locale, fallback_locale);
+
                 bad_locale = false;
                 break;
             }
         }
 
         if (bad_locale) {
+            LOG_ERR("locale '%s' is not UTF-8, "
+                    "and failed to enable a fallback locale", locale);
+
             user_notification_add_fmt(
                 &user_notifications, USER_NOTIFICATION_ERROR,
                 "locale '%s' is not UTF-8, "
