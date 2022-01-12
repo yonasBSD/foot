@@ -434,26 +434,35 @@ main(int argc, char *const *argv)
         if (check_config)
             return ret;
 
-        user_notification_add_fmt(&user_notifications, USER_NOTIFICATION_ERROR,
-                                  "locale '%s' is not UTF-8", locale);
+        static const char fallback_locales[][12] = {
+            "C.UTF-8",
+            "en_US.UTF-8",
+        };
 
         /*
          * Try to force an UTF-8 locale. If we succeed, launch the
          * user’s shell as usual, but add a user-notification saying
          * the locale has been changed.
          */
-        if (setlocale(LC_CTYPE, "C.UTF-8") != NULL) {
-            user_notification_add(
-                &user_notifications, USER_NOTIFICATION_WARNING,
-                xstrdup("locale forcibly changed to C.UTF-8"));
-            bad_locale = false;
+        for (size_t i = 0; i < ALEN(fallback_locales); i++) {
+            const char *const fallback_locale = fallback_locales[i];
+
+            if (setlocale(LC_CTYPE, fallback_locale) != NULL) {
+                user_notification_add_fmt(
+                    &user_notifications, USER_NOTIFICATION_WARNING,
+                    "locale '%s' is not UTF-8, using '%s' instead",
+                    locale, fallback_locale);
+                bad_locale = false;
+                break;
+            }
         }
 
-        else if (setlocale(LC_CTYPE, "en_US.UTF-8") != NULL) {
-            user_notification_add(
-                &user_notifications, USER_NOTIFICATION_WARNING,
-                xstrdup("locale forcibly changed to en_US.UTF-8"));
-            bad_locale = false;
+        if (bad_locale) {
+            user_notification_add_fmt(
+                &user_notifications, USER_NOTIFICATION_ERROR,
+                "locale '%s' is not UTF-8, "
+                "and failed to enable a fallback locale",
+                locale);
         }
     }
 
