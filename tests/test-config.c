@@ -1091,6 +1091,75 @@ test_section_mouse_bindings_collisions(void)
     config_free(conf);
 }
 
+static void
+test_section_tweak(void)
+{
+    struct config conf = {0};
+    struct context ctx = {
+        .conf = &conf, .section = "tweak", .path = "unittest"};
+
+    test_invalid_key(&ctx, &parse_section_tweak, "invalid-key");
+
+    test_enum(
+        &ctx, &parse_section_tweak, "scaling-filter",
+        5,
+        (const char *[]){"none", "nearest", "bilinear", "cubic", "lanczos3"},
+        (int []){FCFT_SCALING_FILTER_NONE,
+                 FCFT_SCALING_FILTER_NEAREST,
+                 FCFT_SCALING_FILTER_BILINEAR,
+                 FCFT_SCALING_FILTER_CUBIC,
+                 FCFT_SCALING_FILTER_LANCZOS3},
+        (int *)&conf.tweak.fcft_filter);
+
+    test_boolean(&ctx, &parse_section_tweak, "overflowing-glyphs",
+                 &conf.tweak.overflowing_glyphs);
+
+    test_enum(
+        &ctx, &parse_section_tweak, "render-timer",
+        4,
+        (const char *[]){"none", "osd", "log", "both"},
+        (int []){RENDER_TIMER_NONE,
+                 RENDER_TIMER_OSD,
+                 RENDER_TIMER_LOG,
+                 RENDER_TIMER_BOTH},
+        (int *)&conf.tweak.render_timer);
+
+    test_double(&ctx, &parse_section_tweak, "box-drawing-base-thickness",
+                &conf.tweak.box_drawing_base_thickness);
+    test_boolean(&ctx, &parse_section_tweak, "box-drawing-solid-shades",
+        &conf.tweak.box_drawing_solid_shades);
+
+#if 0  /* Must be less than 16ms */
+    test_uint32(&ctx, &parse_section_tweak, "delayed-render-lower",
+                &conf.tweak.delayed_render_lower_ns);
+    test_uint32(&ctx, &parse_section_tweak, "delayed-render-upper",
+                &conf.tweak.delayed_render_upper_ns);
+#endif
+    test_boolean(&ctx, &parse_section_tweak, "damage-whole-window",
+                 &conf.tweak.damage_whole_window);
+    test_boolean(&ctx, &parse_section_tweak, "grapheme-shaping",
+                 &conf.tweak.grapheme_shaping);
+
+    test_enum(
+        &ctx, &parse_section_tweak, "grapheme-width-method",
+        3,
+        (const char *[]){"wcswidth", "double-width", "max"},
+        (int []){GRAPHEME_WIDTH_WCSWIDTH,
+                 GRAPHEME_WIDTH_DOUBLE,
+                 GRAPHEME_WIDTH_MAX},
+        (int *)&conf.tweak.grapheme_width_method);
+
+    test_boolean(&ctx, &parse_section_tweak, "font-monospace-warn",
+                 &conf.tweak.font_monospace_warn);
+
+#if 0 /* Must be equal to, or less than INT32_MAX */
+    test_uint32(&ctx, &parse_section_tweak, "max-shm-pool-size-mb",
+                &conf.tweak.max_shm_pool_size);
+#endif
+
+    config_free(conf);
+}
+
 int
 main(int argc, const char *const *argv)
 {
@@ -1111,7 +1180,7 @@ main(int argc, const char *const *argv)
     test_section_url_bindings_collisions();
     test_section_mouse_bindings();
     test_section_mouse_bindings_collisions();
-    /* TODO: test_section_tweak() */
+    test_section_tweak();
     log_deinit();
     return 0;
 }
