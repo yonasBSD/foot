@@ -1137,8 +1137,13 @@ test_section_tweak(void)
 #endif
     test_boolean(&ctx, &parse_section_tweak, "damage-whole-window",
                  &conf.tweak.damage_whole_window);
+
+#if defined(FOOT_GRAPHEME_CLUSTERING)
     test_boolean(&ctx, &parse_section_tweak, "grapheme-shaping",
                  &conf.tweak.grapheme_shaping);
+#else
+    /* TODO: the setting still exists, but is always forced to ‘false’. */
+#endif
 
     test_enum(
         &ctx, &parse_section_tweak, "grapheme-width-method",
