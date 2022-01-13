@@ -47,6 +47,7 @@
 * [SGR-Pixels (1016) mouse extended coordinates](https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Extended-coordinates) is now supported
   (https://codeberg.org/dnkl/foot/issues/762).
 
+
 ### Changed
 
 * PaperColorDark and PaperColorLight themes renamed to
@@ -58,6 +59,10 @@
 * The width of the block cursor’s outline in an unfocused window is
   now scaled by the output scaling factor (“desktop
   scaling”). Previously, it was always 1px.
+* Foot will now try to change the locale to either “C.UTF-8” or
+  “en_US.UTF-8” if started with a non-UTF8 locale. If this fails, foot
+  will start, but only to display a window with an error (user’s shell
+  is not executed).
 
 
 ### Deprecated

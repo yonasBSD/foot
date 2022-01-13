@@ -424,10 +424,48 @@ main(int argc, char *const *argv)
         LOG_ERR("setlocale() failed");
         return ret;
     }
+
     LOG_INFO("locale: %s", locale);
-    if (!locale_is_utf8()) {
-        LOG_ERR("locale is not UTF-8");
-        return ret;
+
+    bool bad_locale = !locale_is_utf8();
+    if (bad_locale) {
+        static const char fallback_locales[][12] = {
+            "C.UTF-8",
+            "en_US.UTF-8",
+        };
+
+        /*
+         * Try to force an UTF-8 locale. If we succeed, launch the
+         * user’s shell as usual, but add a user-notification saying
+         * the locale has been changed.
+         */
+        for (size_t i = 0; i < ALEN(fallback_locales); i++) {
+            const char *const fallback_locale = fallback_locales[i];
+
+            if (setlocale(LC_CTYPE, fallback_locale) != NULL) {
+                LOG_WARN("locale '%s' is not UTF-8, using '%s' instead",
+                         locale, fallback_locale);
+
+                user_notification_add_fmt(
+                    &user_notifications, USER_NOTIFICATION_WARNING,
+                    "locale '%s' is not UTF-8, using '%s' instead",
+                    locale, fallback_locale);
+
+                bad_locale = false;
+                break;
+            }
+        }
+
+        if (bad_locale) {
+            LOG_ERR("locale '%s' is not UTF-8, "
+                    "and failed to enable a fallback locale", locale);
+
+            user_notification_add_fmt(
+                &user_notifications, USER_NOTIFICATION_ERROR,
+                "locale '%s' is not UTF-8, "
+                "and failed to enable a fallback locale",
+                locale);
+        }
     }
 
     struct config conf = {NULL};
@@ -500,6 +538,14 @@ main(int argc, char *const *argv)
     if (conf.tweak.font_monospace_warn && conf.fonts[0].count > 0) {
         check_if_font_is_monospaced(
             conf.fonts[0].arr[0].pattern, &conf.notifications);
+    }
+
+
+    if (bad_locale) {
+        static char *const bad_locale_fake_argv[] = {"/bin/sh", "-c", "", NULL};
+        argc = 1;
+        argv = bad_locale_fake_argv;
+        conf.hold_at_exit = true;
     }
 
     struct fdm *fdm = NULL;
