@@ -82,6 +82,9 @@
 * Failure to launch when `exec(3)’:ed with an empty argv.
 * Pasting from the primary clipboard (mouse middle clicking) did not
   reset the scrollback view to the bottom.
+* Wrong mouse binding triggered when doing two mouse selections in
+  very quick (< 300ms) succession
+  (https://codeberg.org/dnkl/foot/issues/883).
 
 
 ### Security
