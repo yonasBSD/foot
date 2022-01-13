@@ -219,6 +219,17 @@ decrqss(struct terminal *term)
     const uint8_t *query = term->vt.dcs.data;
     const size_t n = term->vt.dcs.idx;
 
+    /*
+     * A note on the Ps parameter in the reply: many DEC manual
+     * instances (e.g. https://vt100.net/docs/vt510-rm/DECRPSS) claim
+     * that 0 means “request is valid”, and 1 means “request is
+     * invalid”.
+     *
+     * However, this appears to be a typo; actual hardware inverts the
+     * response (as does XTerm and mlterm):
+     * https://github.com/hackerb9/vt340test/issues/13
+     */
+
     if (memcmp(query, "r", n) == 0) {
         /* DECSTBM - Set Top and Bottom Margins */
         char reply[64];
