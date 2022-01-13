@@ -49,7 +49,19 @@ class IntCapability(Capability):
 
 
 class StringCapability(Capability):
-    pass
+    def __init__(self, name: str, value: str):
+       # Expand \E to literal ESC in non-parameterized capabilities
+        if '%' not in value:
+            value = re.sub(r'\\E([0-7])', r'\\033" "\1', value)
+            value = re.sub(r'\\E', r'\\033', value)
+        else:
+            # Need to double-escape \E in C string literals
+            value = value.replace('\\E', '\\\\E')
+
+        # Don’t escape ‘:’
+        value = value.replace('\\:', ':')
+
+        super().__init__(name, value)
 
 
 class Fragment:
@@ -156,48 +168,27 @@ def main():
     entry.add_capability(StringCapability('TN', target_entry_name))
     entry.add_capability(IntCapability('RGB', 8))  # 8 bits per channel
 
-    target.write('#pragma once\n')
-    target.write('\n')
-    # target.write('enum terminfo_capability_type {\n')
-    # target.write('    TERMINFO_CAP_BOOL,\n')
-    # target.write('    TERMINFO_CAP_INT,\n')
-    # target.write('    TERMINFO_CAP_STRING,\n')
-    # target.write('};\n')
-    # target.write('\n')
-    target.write('struct foot_terminfo_entry {\n')
-    target.write('    const char *name;\n')
-    # target.write('    enum terminfo_capability_type type;\n')
-    target.write('    const char *value;\n')
-    target.write('};\n')
-    target.write('\n')
-    target.write(
-        'static const struct foot_terminfo_entry terminfo_capabilities[] = {\n')
-
+    terminfo_parts = []
     for cap in sorted(entry.caps.values()):
         name = cap.name
         value = str(cap.value)
 
-        # Expand \E to literal ESC in non-parameterized capabilities
-        if '%' not in value:
-            value = re.sub(r'\\E([0-7])', r'\\033" "\1', value)
-            value = re.sub(r'\\E', r'\\033', value)
-        else:
-            # Need to double-escape \E in C string literals
-            value = value.replace('\\E', '\\\\E')
-
-        # Don’t escape ‘:’
-        value = value.replace('\\:', ':')
-
-        # Do escape ‘“‘
+        # Escape ‘“‘
         name = name.replace('"', '\"')
         value = value.replace('"', '\"')
 
+        terminfo_parts.append(name)
         if isinstance(cap, BoolCapability):
-            target.write(f'    {{"{name}", NULL}},\n')
+            terminfo_parts.append('')
         else:
-            target.write(f'    {{"{name}", "{value}"}},\n')
+            terminfo_parts.append(value)
 
-    target.write('};\n')
+    terminfo = '\\0" "'.join(terminfo_parts)
+
+    target.write('#pragma once\n')
+    target.write('\n')
+    target.write(f'static const char terminfo_capabilities[] = "{terminfo}";')
+    target.write('\n')
 
 
 if __name__ == '__main__':

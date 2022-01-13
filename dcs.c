@@ -66,19 +66,52 @@ err:
 UNITTEST
 {
     /* Verify table is sorted */
-    for (size_t i = 1; i < ALEN(terminfo_capabilities); i++) {
-        xassert(strcmp(terminfo_capabilities[i - 1].name,
-                       terminfo_capabilities[i].name ) <= 0);
+    const char *p = terminfo_capabilities;
+    size_t left = sizeof(terminfo_capabilities);
+
+    const char *last_cap = NULL;
+
+    while (left > 0) {
+        const char *cap = p;
+        const char *val = cap + strlen(cap) + 1;
+
+        size_t size = strlen(cap) + 1 + strlen(val) + 1;;
+        xassert(size <= left);
+        p += size;
+        left -= size;
+
+        if (last_cap != NULL)
+            xassert(strcmp(last_cap, cap) < 0);
+
+        last_cap = cap;
     }
 }
 
-static int
-terminfo_entry_compar(const void *_key, const void *_entry)
+static bool
+lookup_capability(const char *name, const char **value)
 {
-    const char *key = _key;
-    const struct foot_terminfo_entry *entry = _entry;
+    const char *p = terminfo_capabilities;
+    size_t left = sizeof(terminfo_capabilities);
 
-    return strcmp(key, entry->name);
+    while (left > 0) {
+        const char *cap = p;
+        const char *val = cap + strlen(cap) + 1;
+
+        size_t size = strlen(cap) + 1 + strlen(val) + 1;;
+        xassert(size <= left);
+        p += size;
+        left -= size;
+
+        int r = strcmp(cap, name);
+        if (r == 0) {
+            *value = val;
+            return true;
+        } else if (r > 0)
+            break;
+    }
+
+    *value = NULL;
+    return false;
 }
 
 static void
@@ -88,18 +121,23 @@ xtgettcap_reply(struct terminal *term, const char *hex_cap_name, size_t len)
     if (name == NULL)
         goto err;
 
+#if 0
     const struct foot_terminfo_entry *entry =
         bsearch(name, terminfo_capabilities, ALEN(terminfo_capabilities),
                 sizeof(*entry), &terminfo_entry_compar);
+#endif
+    const char *value;
+    bool valid_capability = lookup_capability(name, &value);
+    xassert(!valid_capability || value != NULL);
 
     LOG_DBG("XTGETTCAP: cap=%s (%.*s), value=%s",
             name, (int)len, hex_cap_name,
-            entry != NULL ? entry->value : "<invalid>");
+            valid_capability ? value : "<invalid>");
 
-    if (entry == NULL)
+    if (!valid_capability)
         goto err;
 
-    if (entry->value == NULL) {
+    if (value[0] == '\0') {
         /* Boolean */
         term_to_slave(term, "\033P1+r", 5);
         term_to_slave(term, hex_cap_name, len);
@@ -116,13 +154,13 @@ xtgettcap_reply(struct terminal *term, const char *hex_cap_name, size_t len)
         5 +                           /* DCS 1 + r (\EP1+r) */
         len +                         /* capability name, hex encoded */
         1 +                           /* ‘=’ */
-        strlen(entry->value) * 2 +    /* capability value, hex encoded */
+        strlen(value) * 2 +           /* capability value, hex encoded */
         2 +                           /* ST (\E\\) */
         1);
 
     int idx = sprintf(reply, "\033P1+r%.*s=", (int)len, hex_cap_name);
 
-    for (const char *c = entry->value; *c != '\0'; c++) {
+    for (const char *c = value; *c != '\0'; c++) {
         uint8_t nib1 = (uint8_t)*c >> 4;
         uint8_t nib2 = (uint8_t)*c & 0xf;
 
