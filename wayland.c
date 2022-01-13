@@ -1495,12 +1495,20 @@ wayl_win_init(struct terminal *term, const char *token)
         xdg_activation_v1_activate(wayl->xdg_activation, token, win->surface);
 #endif
 
-    if (conf->tweak.render_timer_osd) {
+    switch (conf->tweak.render_timer) {
+    case RENDER_TIMER_OSD:
+    case RENDER_TIMER_BOTH:
         if (!wayl_win_subsurface_new(win, &win->render_timer)) {
             LOG_ERR("failed to create render timer surface");
             goto out;
         }
+        break;
+
+    case RENDER_TIMER_NONE:
+    case RENDER_TIMER_LOG:
+        break;
     }
+
     return win;
 
 out:

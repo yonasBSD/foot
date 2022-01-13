@@ -2257,20 +2257,13 @@ parse_section_tweak(struct context *ctx)
     }
 
     else if (strcmp(key, "render-timer") == 0) {
-        int mode;
+        _Static_assert(sizeof(conf->tweak.render_timer) == sizeof(int),
+                       "enum is not 32-bit");
 
-        if (!value_to_enum(
-                ctx,
-                (const char *[]){"none", "osd", "log", "both", NULL},
-                &mode))
-        {
-            return false;
-        }
-
-        xassert(0 <= mode && mode <= 3);
-        conf->tweak.render_timer_osd = mode == 1 || mode == 3;
-        conf->tweak.render_timer_log = mode == 2 || mode == 3;
-        return true;
+        return value_to_enum(
+            ctx,
+            (const char *[]){"none", "osd", "log", "both", NULL},
+            (int *)&conf->tweak.render_timer);
     }
 
     else if (strcmp(key, "delayed-render-lower") == 0) {
@@ -2820,8 +2813,7 @@ config_load(struct config *conf, const char *conf_path,
             .delayed_render_lower_ns = 500000,         /* 0.5ms */
             .delayed_render_upper_ns = 16666666 / 2,   /* half a frame period (60Hz) */
             .max_shm_pool_size = 512 * 1024 * 1024,
-            .render_timer_osd = false,
-            .render_timer_log = false,
+            .render_timer = RENDER_TIMER_NONE,
             .damage_whole_window = false,
             .box_drawing_base_thickness = 0.04,
             .box_drawing_solid_shades = true,

@@ -2469,7 +2469,8 @@ grid_render(struct terminal *term)
         return;
 
     struct timeval start_time, start_double_buffering = {0}, stop_double_buffering = {0};
-    if (term->conf->tweak.render_timer_osd || term->conf->tweak.render_timer_log)
+
+    if (term->conf->tweak.render_timer != RENDER_TIMER_NONE)
         gettimeofday(&start_time, NULL);
 
     xassert(term->width > 0);
@@ -2731,7 +2732,7 @@ grid_render(struct terminal *term)
 
     render_scrollback_position(term);
 
-    if (term->conf->tweak.render_timer_osd || term->conf->tweak.render_timer_log) {
+    if (term->conf->tweak.render_timer != RENDER_TIMER_NONE) {
         struct timeval end_time;
         gettimeofday(&end_time, NULL);
 
@@ -2741,17 +2742,32 @@ grid_render(struct terminal *term)
         struct timeval double_buffering_time;
         timersub(&stop_double_buffering, &start_double_buffering, &double_buffering_time);
 
-        if (term->conf->tweak.render_timer_log) {
+        switch (term->conf->tweak.render_timer) {
+        case RENDER_TIMER_LOG:
+        case RENDER_TIMER_BOTH:
             LOG_INFO("frame rendered in %llds %lld µs "
                      "(%llds %lld µs double buffering)",
                      (long long)render_time.tv_sec,
                      (long long)render_time.tv_usec,
                      (long long)double_buffering_time.tv_sec,
                      (long long)double_buffering_time.tv_usec);
+            break;
+
+        case RENDER_TIMER_OSD:
+        case RENDER_TIMER_NONE:
+            break;
         }
 
-        if (term->conf->tweak.render_timer_osd)
+        switch (term->conf->tweak.render_timer) {
+        case RENDER_TIMER_OSD:
+        case RENDER_TIMER_BOTH:
             render_render_timer(term, render_time);
+            break;
+
+        case RENDER_TIMER_LOG:
+        case RENDER_TIMER_NONE:
+            break;
+        }
     }
 
     xassert(term->grid->offset >= 0 && term->grid->offset < term->grid->num_rows);

@@ -274,8 +274,12 @@ struct config {
             GRAPHEME_WIDTH_DOUBLE,
             GRAPHEME_WIDTH_MAX,
         } grapheme_width_method;
-        bool render_timer_osd;
-        bool render_timer_log;
+        enum {
+            RENDER_TIMER_NONE,
+            RENDER_TIMER_OSD,
+            RENDER_TIMER_LOG,
+            RENDER_TIMER_BOTH
+        } render_timer;
         bool damage_whole_window;
         uint32_t delayed_render_lower_ns;
         uint32_t delayed_render_upper_ns;
