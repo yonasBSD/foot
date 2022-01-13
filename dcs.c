@@ -352,6 +352,7 @@ decrqss(struct terminal *term)
         case CURSOR_BLOCK:     mode = 2; break;
         case CURSOR_UNDERLINE: mode = 4; break;
         case CURSOR_BEAM:      mode = 6; break;
+        default: BUG("invalid cursor style"); break;
         }
 
         if (term->cursor_blink.deccsusr)
