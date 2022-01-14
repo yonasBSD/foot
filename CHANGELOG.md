@@ -46,7 +46,9 @@
   when auto-detecting URLs.
 * [SGR-Pixels (1016) mouse extended coordinates](https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Extended-coordinates) is now supported
   (https://codeberg.org/dnkl/foot/issues/762).
-
+* `XTGETTCAP` - builtin terminfo. See
+  [README.md::XTGETTCAP](README.md#xtgettcap) for details
+  (https://codeberg.org/dnkl/foot/issues/846).
 
 ### Changed
 
