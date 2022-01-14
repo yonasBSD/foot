@@ -136,6 +136,16 @@ version = custom_target(
   output: 'version.h',
   command: [env, 'LC_ALL=C', generate_version_sh, meson.project_version(), '@CURRENT_SOURCE_DIR@', '@OUTPUT@'])
 
+python = find_program('python3', native: true)
+generate_builtin_terminfo_py = files('scripts/generate-builtin-terminfo.py')
+foot_terminfo = files('foot.info')
+builtin_terminfo = custom_target(
+  'generate_builtin_terminfo',
+  output: 'foot-terminfo.h',
+  command: [python, generate_builtin_terminfo_py,
+            '@default_terminfo@', foot_terminfo, 'foot', '@OUTPUT@']
+)
+
 common = static_library(
   'common',
   'log.c', 'log.h',
@@ -213,7 +223,7 @@ executable(
   'url-mode.c', 'url-mode.h',
   'user-notification.c', 'user-notification.h',
   'wayland.c', 'wayland.h',
-  wl_proto_src + wl_proto_headers, version,
+  builtin_terminfo, wl_proto_src + wl_proto_headers, version,
   dependencies: [math, threads, libepoll, pixman, wayland_client, wayland_cursor, xkb, fontconfig, utf8proc,
                  tllist, fcft],
   link_with: pgolib,

@@ -679,6 +679,9 @@ and are terminated by *\\E\\* (ST).
 :  Begin application synchronized updates
 |  \\EP = 2 s \\E\\ 
 :  End application synchronized updates
+|  \\EP + q <hex encoded capability name> \\E\\
+:  Query builtin terminfo database (XTGETTCAP)
+
 
 # FOOTNOTE
 
