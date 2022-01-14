@@ -373,6 +373,53 @@ distro package for foot's terminfo entries, you can install foot's
 terminfo entries manually, by copying *foot* and *foot-direct* to
 *~/.terminfo/f/*.
 
+# XTGETTCAP
+
+*XTGETTCAP* is an escape sequence initially introduced by XTerm, and
+also implemented (and extended, to some degree) by Kitty.
+
+It allows querying the terminal for terminfo classic, file-based,
+terminfo definition. For example, if all applications used this
+feature, you would no longer have to install foot’s terminfo on remote
+hosts you SSH into.
+
+XTerm’s implementation (as of XTerm-370) only supports querying key
+(as in keyboard keys) capabilities, and three custom capabilities:
+
+- TN - terminal name
+- Co -  number of colors (alias for the colors capability)
+- RGB - number of bits per color channel (different semantics from
+  the RGB capability in file-based terminfo definitions!).
+
+Kitty has extended this, and also supports querying all integer and
+string capabilities.
+
+Foot supports this, and extends it even further, to also include
+boolean capabilities. This means foot’s entire terminfo can be queried
+via *XTGETTCAP*.
+
+Note that both Kitty and foot handles responses to multi-capability
+queries slightly differently, compared to XTerm.
+
+XTerm will send a single DCS reply, with ;-separated
+capability/value pairs. There are a couple of issues with this:
+
+- The success/fail flag in the beginning of the response is always 1
+  (success), unless the very first queried capability is invalid.
+- XTerm will not respond at all to an invalid capability, unless it’s
+  the first one in the XTGETTCAP query.
+- XTerm will end the response at the first invalid capability.
+
+In other words, if you send a large multi-capability query, you will
+only get responses up to, but not including, the first invalid
+capability. All subsequent capabilities will be dropped.
+
+Kitty and foot on the other hand, send one DCS response for each
+capability in the multi query. This allows us to send a proper
+success/fail flag for each queried capability. Responses for all
+queried capabilities are always sent. No queries are ever dropped.
+
+
 # ENVIRONMENT
 
 The following environment variables are used by foot:
