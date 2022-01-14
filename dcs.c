@@ -213,6 +213,16 @@ xtgettcap_unhook(struct terminal *term)
     }
 }
 
+static void NOINLINE
+append_sgr_attr_n(char **reply, size_t *len, const char *attr, size_t n)
+{
+    size_t new_len = *len + n + 1;
+    *reply = xrealloc(*reply, new_len);
+    memcpy(&(*reply)[*len], attr, n);
+    (*reply)[new_len - 1] = ';';
+    *len = new_len;
+}
+
 static void
 decrqss(struct terminal *term)
 {
@@ -244,39 +254,31 @@ decrqss(struct terminal *term)
         char *reply = NULL;
         size_t len = 0;
 
-        #define append_attr_n(str, l) do {              \
-            size_t new_len = len + l + 1;               \
-            reply = xrealloc(reply, new_len);           \
-            memcpy(&reply[len], str, l);                \
-            reply[new_len - 1] = ';';                   \
-            len = new_len;                              \
-        } while (0)
-
-        #define append_attr(num_as_str) \
-            append_attr_n(num_as_str, sizeof(num_as_str) - 1)
+        #define append_sgr_attr(num_as_str) \
+            append_sgr_attr_n(&reply, &len, num_as_str, sizeof(num_as_str) - 1)
 
         /* Always present, both in the example from the VT510 manual
          * (https://vt100.net/docs/vt510-rm/DECRPSS), and in XTerm and
          * mlterm */
-        append_attr("0");
+        append_sgr_attr("0");
 
         struct attributes *a = &term->vt.attrs;
         if (a->bold)
-            append_attr("1");
+            append_sgr_attr("1");
         if (a->dim)
-            append_attr("2");
+            append_sgr_attr("2");
         if (a->italic)
-            append_attr("3");
+            append_sgr_attr("3");
         if (a->underline)
-            append_attr("4");
+            append_sgr_attr("4");
         if (a->blink)
-            append_attr("5");
+            append_sgr_attr("5");
         if (a->reverse)
-            append_attr("7");
+            append_sgr_attr("7");
         if (a->conceal)
-            append_attr("8");
+            append_sgr_attr("8");
         if (a->strikethrough)
-            append_attr("9");
+            append_sgr_attr("9");
 
         switch (a->fg_src) {
         case COLOR_DEFAULT:
@@ -287,14 +289,14 @@ decrqss(struct terminal *term)
             int val_len = snprintf(
                 value, sizeof(value), "%u",
                 a->fg >= 8 ? a->fg - 8 + 90 : a->fg + 30);
-            append_attr_n(value, val_len);
+            append_sgr_attr_n(&reply, &len, value, val_len);
             break;
         }
 
         case COLOR_BASE256: {
             char value[16];
             int val_len = snprintf(value, sizeof(value), "38:5:%u", a->fg);
-            append_attr_n(value, val_len);
+            append_sgr_attr_n(&reply, &len, value, val_len);
             break;
         }
 
@@ -306,7 +308,7 @@ decrqss(struct terminal *term)
             char value[32];
             int val_len = snprintf(
                 value, sizeof(value), "38:2::%hhu:%hhu:%hhu", r, g, b);
-            append_attr_n(value, val_len);
+            append_sgr_attr_n(&reply, &len, value, val_len);
             break;
         }
         }
@@ -320,14 +322,14 @@ decrqss(struct terminal *term)
             int val_len = snprintf(
                 value, sizeof(value), "%u",
                 a->bg >= 8 ? a->bg - 8 + 100 : a->bg + 40);
-            append_attr_n(value, val_len);
+            append_sgr_attr_n(&reply, &len, value, val_len);
             break;
         }
 
         case COLOR_BASE256: {
             char value[16];
             int val_len = snprintf(value, sizeof(value), "48:5:%u", a->bg);
-            append_attr_n(value, val_len);
+            append_sgr_attr_n(&reply, &len, value, val_len);
             break;
         }
 
@@ -339,13 +341,12 @@ decrqss(struct terminal *term)
             char value[32];
             int val_len = snprintf(
                 value, sizeof(value), "48:2::%hhu:%hhu:%hhu", r, g, b);
-            append_attr_n(value, val_len);
+            append_sgr_attr_n(&reply, &len, value, val_len);
             break;
         }
         }
 
-        #undef append_attr
-        #undef append_attr_n
+        #undef append_sgr_attr_n
 
         reply[len - 1] = 'm';
 
