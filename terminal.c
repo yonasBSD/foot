@@ -290,7 +290,7 @@ fdm_ptmx(struct fdm *fdm, int fd, int events, void *data)
 #if PTMX_TIMING
             struct timespec now;
 
-            clock_gettime(1, &now);
+            clock_gettime(CLOCK_MONOTONIC, &now);
             if (last.tv_sec > 0 || last.tv_nsec > 0) {
                 struct timeval diff;
                 struct timeval l = {last.tv_sec, last.tv_nsec / 1000};
