@@ -49,6 +49,13 @@
 * `XTGETTCAP` - builtin terminfo. See
   [README.md::XTGETTCAP](README.md#xtgettcap) for details
   (https://codeberg.org/dnkl/foot/issues/846).
+* `DECRQSS` - _Request Selection or Setting_
+  (https://codeberg.org/dnkl/foot/issues/798). Implemented settings
+  are:
+  - `DECSTBM` - _Set Top and Bottom Margins_
+  - `SGR` - _Set Graphic Rendition_
+  - `DECSCUSR` - _Set Cursor Style_
+
 
 ### Changed
 

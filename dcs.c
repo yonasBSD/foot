@@ -213,6 +213,173 @@ xtgettcap_unhook(struct terminal *term)
     }
 }
 
+static void
+decrqss(struct terminal *term)
+{
+    const uint8_t *query = term->vt.dcs.data;
+    const size_t n = term->vt.dcs.idx;
+
+    /*
+     * A note on the Ps parameter in the reply: many DEC manual
+     * instances (e.g. https://vt100.net/docs/vt510-rm/DECRPSS) claim
+     * that 0 means “request is valid”, and 1 means “request is
+     * invalid”.
+     *
+     * However, this appears to be a typo; actual hardware inverts the
+     * response (as does XTerm and mlterm):
+     * https://github.com/hackerb9/vt340test/issues/13
+     */
+
+    if (memcmp(query, "r", n) == 0) {
+        /* DECSTBM - Set Top and Bottom Margins */
+        char reply[64];
+        int len = snprintf(reply, sizeof(reply), "\033P1$r%d;%dr\033\\",
+                           term->scroll_region.start + 1,
+                           term->scroll_region.end);
+        term_to_slave(term, reply, len);
+    }
+
+    else if (memcmp(query, "m", n) == 0) {
+        /* SGR - Set Graphic Rendition */
+        char *reply = NULL;
+        size_t len = 0;
+
+        #define append_attr_n(str, l) do {              \
+            size_t new_len = len + l + 1;               \
+            reply = xrealloc(reply, new_len);           \
+            memcpy(&reply[len], str, l);                \
+            reply[new_len - 1] = ';';                   \
+            len = new_len;                              \
+        } while (0)
+
+        #define append_attr(num_as_str) \
+            append_attr_n(num_as_str, sizeof(num_as_str) - 1)
+
+        /* Always present, both in the example from the VT510 manual
+         * (https://vt100.net/docs/vt510-rm/DECRPSS), and in XTerm and
+         * mlterm */
+        append_attr("0");
+
+        struct attributes *a = &term->vt.attrs;
+        if (a->bold)
+            append_attr("1");
+        if (a->dim)
+            append_attr("2");
+        if (a->italic)
+            append_attr("3");
+        if (a->underline)
+            append_attr("4");
+        if (a->blink)
+            append_attr("5");
+        if (a->reverse)
+            append_attr("7");
+        if (a->conceal)
+            append_attr("8");
+        if (a->strikethrough)
+            append_attr("9");
+
+        switch (a->fg_src) {
+        case COLOR_DEFAULT:
+            break;
+
+        case COLOR_BASE16: {
+            char value[4];
+            int val_len = snprintf(
+                value, sizeof(value), "%u",
+                a->fg >= 8 ? a->fg - 8 + 90 : a->fg + 30);
+            append_attr_n(value, val_len);
+            break;
+        }
+
+        case COLOR_BASE256: {
+            char value[16];
+            int val_len = snprintf(value, sizeof(value), "38:5:%u", a->fg);
+            append_attr_n(value, val_len);
+            break;
+        }
+
+        case COLOR_RGB: {
+            uint8_t r = a->fg >> 16;
+            uint8_t g = a->fg >> 8;
+            uint8_t b = a->fg >> 0;
+
+            char value[32];
+            int val_len = snprintf(
+                value, sizeof(value), "38:2::%hhu:%hhu:%hhu", r, g, b);
+            append_attr_n(value, val_len);
+            break;
+        }
+        }
+
+        switch (a->bg_src) {
+        case COLOR_DEFAULT:
+            break;
+
+        case COLOR_BASE16: {
+            char value[4];
+            int val_len = snprintf(
+                value, sizeof(value), "%u",
+                a->bg >= 8 ? a->bg - 8 + 100 : a->bg + 40);
+            append_attr_n(value, val_len);
+            break;
+        }
+
+        case COLOR_BASE256: {
+            char value[16];
+            int val_len = snprintf(value, sizeof(value), "48:5:%u", a->bg);
+            append_attr_n(value, val_len);
+            break;
+        }
+
+        case COLOR_RGB: {
+            uint8_t r = a->bg >> 16;
+            uint8_t g = a->bg >> 8;
+            uint8_t b = a->bg >> 0;
+
+            char value[32];
+            int val_len = snprintf(
+                value, sizeof(value), "48:2::%hhu:%hhu:%hhu", r, g, b);
+            append_attr_n(value, val_len);
+            break;
+        }
+        }
+
+        #undef append_attr
+        #undef append_attr_n
+
+        reply[len - 1] = 'm';
+
+        term_to_slave(term, "\033P1$r", 5);
+        term_to_slave(term, reply, len);
+        term_to_slave(term, "\033\\", 2);
+        free(reply);
+    }
+
+    else if (memcmp(query, " q", n) == 0) {
+        /* DECSCUSR - Set Cursor Style */
+        int mode;
+
+        switch (term->cursor_style) {
+        case CURSOR_BLOCK:     mode = 2; break;
+        case CURSOR_UNDERLINE: mode = 4; break;
+        case CURSOR_BEAM:      mode = 6; break;
+        default: BUG("invalid cursor style"); break;
+        }
+
+        if (term->cursor_blink.deccsusr)
+            mode--;
+
+        char reply[16];
+        int len = snprintf(reply, sizeof(reply), "\033P1$r%d q\033\\", mode);
+        term_to_slave(term, reply, len);
+    }
+
+    else {
+        const char err[] = "\033P0$r\033\\";
+        term_to_slave(term, err, sizeof(err) - 1);
+    }
+}
+
 void
 dcs_hook(struct terminal *term, uint8_t final)
 {
@@ -237,6 +404,14 @@ dcs_hook(struct terminal *term, uint8_t final)
             term->vt.dcs.unhook_handler = &sixel_unhook;
             break;
         }
+        }
+        break;
+
+    case '$':
+        switch (final) {
+        case 'q':
+            term->vt.dcs.unhook_handler = &decrqss;
+            break;
         }
         break;
 
