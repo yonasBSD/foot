@@ -81,7 +81,7 @@ the foot command line
 	Initial working directory for the client application. Default:
 	_CWD of foot_.
 
-*-s*,*--server*[=_PATH_]
+*-s*,*--server*[=_PATH_|_FD_]
 	Run as a server. In this mode, a single foot instance hosts
 	multiple terminals (windows). Use *footclient*(1) to launch new
 	terminals.
@@ -115,6 +115,19 @@ the foot command line
 	Note that if you change the default, you will also need to use the
 	*--server-socket* option in *footclient*(1) and point it to your
 	custom socket path.
+
+	If the argument is a number, foot will interpret it as the file descriptor
+	of a socket provided by a supervision daemon (such as systemd or s6), and
+	use that socket as it's own.
+
+	Two systemd units (foot-server@.{service,socket}) are provided to use that
+	feature with systemd. They need to be instantiated with the value of
+	$WAYLAND_DISPLAY (multiples instances can co-exists).
+
+	Note that starting *foot --server* as a systemd service will use
+	the environment of the systemd user instance; thus, if you need specific
+	environment variables, you'll need to import them using *systemctl --user
+	import-environment* or use a drop-in for the foot-server service.
 
 *-H*,*--hold*
 	Remain open after child process exits.
