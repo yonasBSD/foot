@@ -8,7 +8,6 @@
 #include <errno.h>
 #include <wctype.h>
 #include <sys/mman.h>
-#include <sys/time.h>
 #include <sys/timerfd.h>
 #include <sys/epoll.h>
 #include <fcntl.h>
@@ -2164,12 +2163,12 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
 
     if (state == WL_POINTER_BUTTON_STATE_PRESSED) {
         /* Time since last click */
-        struct timeval now, since_last;
-        gettimeofday(&now, NULL);
-        timersub(&now, &seat->mouse.last_time, &since_last);
+        struct timespec now, since_last;
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        timespec_sub(&now, &seat->mouse.last_time, &since_last);
 
         if (seat->mouse.last_released_button == button &&
-            since_last.tv_sec == 0 && since_last.tv_usec <= 300 * 1000)
+            since_last.tv_sec == 0 && since_last.tv_nsec <= 300 * 1000 * 1000)
         {
             seat->mouse.count++;
         } else

@@ -948,8 +948,8 @@ grid_render_scroll(struct terminal *term, struct buffer *buf,
         return;
 
 #if TIME_SCROLL_DAMAGE
-    struct timeval start_time;
-    gettimeofday(&start_time, NULL);
+    struct timespec start_time;
+    clock_gettime(CLOCK_MONOTONIC, &start_time);
 #endif
 
     int dst_y = term->margins.top + (dmg->region.start + 0) * term->cell_height;
@@ -1019,15 +1019,15 @@ grid_render_scroll(struct terminal *term, struct buffer *buf,
     }
 
 #if TIME_SCROLL_DAMAGE
-    struct timeval end_time;
-    gettimeofday(&end_time, NULL);
+    struct timespec end_time;
+    clock_gettime(CLOCK_MONOTONIC, &end_time);
 
-    struct timeval memmove_time;
-    timersub(&end_time, &start_time, &memmove_time);
-    LOG_INFO("scrolled %dKB (%d lines) using %s in %lds %ldus",
+    struct timespec memmove_time;
+    timespec_sub(&end_time, &start_time, &memmove_time);
+    LOG_INFO("scrolled %dKB (%d lines) using %s in %lds %ldns",
              height * buf->stride / 1024, dmg->lines,
              did_shm_scroll ? "SHM" : try_shm_scroll ? "memmove (SHM failed)" :  "memmove",
-             memmove_time.tv_sec, memmove_time.tv_usec);
+             (long)memmove_time.tv_sec, memmove_time.tv_nsec);
 #endif
 
     wl_surface_damage_buffer(
@@ -1049,8 +1049,8 @@ grid_render_scroll_reverse(struct terminal *term, struct buffer *buf,
         return;
 
 #if TIME_SCROLL_DAMAGE
-    struct timeval start_time;
-    gettimeofday(&start_time, NULL);
+    struct timespec start_time;
+    clock_gettime(CLOCK_MONOTONIC, &start_time);
 #endif
 
     int src_y = term->margins.top + (dmg->region.start + 0) * term->cell_height;
@@ -1084,15 +1084,15 @@ grid_render_scroll_reverse(struct terminal *term, struct buffer *buf,
     }
 
 #if TIME_SCROLL_DAMAGE
-    struct timeval end_time;
-    gettimeofday(&end_time, NULL);
+    struct timespec end_time;
+    clock_gettime(CLOCK_MONOTONIC, &end_time);
 
-    struct timeval memmove_time;
-    timersub(&end_time, &start_time, &memmove_time);
-    LOG_INFO("scrolled REVERSE %dKB (%d lines) using %s in %lds %ldus",
+    struct timespec memmove_time;
+    timespec_sub(&end_time, &start_time, &memmove_time);
+    LOG_INFO("scrolled REVERSE %dKB (%d lines) using %s in %lds %ldns",
              height * buf->stride / 1024, dmg->lines,
              did_shm_scroll ? "SHM" : try_shm_scroll ? "memmove (SHM failed)" :  "memmove",
-             memmove_time.tv_sec, memmove_time.tv_usec);
+             (long)memmove_time.tv_sec, memmove_time.tv_nsec);
 #endif
 
     wl_surface_damage_buffer(
@@ -2285,12 +2285,12 @@ render_scrollback_position(struct terminal *term)
 }
 
 static void
-render_render_timer(struct terminal *term, struct timeval render_time)
+render_render_timer(struct terminal *term, struct timespec render_time)
 {
     struct wl_window *win = term->window;
 
     wchar_t text[256];
-    double usecs = render_time.tv_sec * 1000000 + render_time.tv_usec;
+    double usecs = render_time.tv_sec * 1000000 + render_time.tv_nsec / 1000.0;
     swprintf(text, sizeof(text) / sizeof(text[0]), L"%.2f µs", usecs);
 
     const int scale = term->scale;
@@ -2468,10 +2468,10 @@ grid_render(struct terminal *term)
     if (term->shutdown.in_progress)
         return;
 
-    struct timeval start_time, start_double_buffering = {0}, stop_double_buffering = {0};
+    struct timespec start_time, start_double_buffering = {0}, stop_double_buffering = {0};
 
     if (term->conf->tweak.render_timer != RENDER_TIMER_NONE)
-        gettimeofday(&start_time, NULL);
+        clock_gettime(CLOCK_MONOTONIC, &start_time);
 
     xassert(term->width > 0);
     xassert(term->height > 0);
@@ -2501,9 +2501,9 @@ grid_render(struct terminal *term)
         xassert(term->render.last_buf->width == buf->width);
         xassert(term->render.last_buf->height == buf->height);
 
-        gettimeofday(&start_double_buffering, NULL);
+        clock_gettime(CLOCK_MONOTONIC, &start_double_buffering);
         reapply_old_damage(term, buf, term->render.last_buf);
-        gettimeofday(&stop_double_buffering, NULL);
+        clock_gettime(CLOCK_MONOTONIC, &stop_double_buffering);
     }
 
     if (term->render.last_buf != NULL) {
@@ -2733,24 +2733,24 @@ grid_render(struct terminal *term)
     render_scrollback_position(term);
 
     if (term->conf->tweak.render_timer != RENDER_TIMER_NONE) {
-        struct timeval end_time;
-        gettimeofday(&end_time, NULL);
+        struct timespec end_time;
+        clock_gettime(CLOCK_MONOTONIC, &end_time);
 
-        struct timeval render_time;
-        timersub(&end_time, &start_time, &render_time);
+        struct timespec render_time;
+        timespec_sub(&end_time, &start_time, &render_time);
 
-        struct timeval double_buffering_time;
-        timersub(&stop_double_buffering, &start_double_buffering, &double_buffering_time);
+        struct timespec double_buffering_time;
+        timespec_sub(&stop_double_buffering, &start_double_buffering, &double_buffering_time);
 
         switch (term->conf->tweak.render_timer) {
         case RENDER_TIMER_LOG:
         case RENDER_TIMER_BOTH:
-            LOG_INFO("frame rendered in %llds %lld µs "
-                     "(%llds %lld µs double buffering)",
-                     (long long)render_time.tv_sec,
-                     (long long)render_time.tv_usec,
-                     (long long)double_buffering_time.tv_sec,
-                     (long long)double_buffering_time.tv_usec);
+            LOG_INFO("frame rendered in %lds %ldns "
+                     "(%lds %ldns double buffering)",
+                     (long)render_time.tv_sec,
+                     render_time.tv_nsec,
+                     (long)double_buffering_time.tv_sec,
+                     double_buffering_time.tv_nsec);
             break;
 
         case RENDER_TIMER_OSD:
@@ -3920,16 +3920,16 @@ render_refresh_title(struct terminal *term)
     if (term->render.title.is_armed)
         return;
 
-    struct timeval now;
-    if (gettimeofday(&now, NULL) < 0)
+    struct timespec now;
+    if (clock_gettime(CLOCK_MONOTONIC, &now) < 0)
         return;
 
-    struct timeval diff;
-    timersub(&now, &term->render.title.last_update, &diff);
+    struct timespec diff;
+    timespec_sub(&now, &term->render.title.last_update, &diff);
 
-    if (diff.tv_sec == 0 && diff.tv_usec < 8333) {
+    if (diff.tv_sec == 0 && diff.tv_nsec < 8333 * 1000) {
         const struct itimerspec timeout = {
-            .it_value = {.tv_nsec = 8333 * 1000 - diff.tv_usec * 1000},
+            .it_value = {.tv_nsec = 8333 * 1000 - diff.tv_nsec},
         };
 
         timerfd_settime(term->render.title.timer_fd, 0, &timeout, NULL);

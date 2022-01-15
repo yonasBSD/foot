@@ -4,6 +4,7 @@
 #include "terminal.h"
 #include "fdm.h"
 #include "wayland.h"
+#include "misc.h"
 
 struct renderer;
 struct renderer *render_init(struct fdm *fdm, struct wayland *wayl);

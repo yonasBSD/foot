@@ -4,6 +4,7 @@
 #include <wayland-client.h>
 
 #include "wayland.h"
+#include "misc.h"
 
 /*
  * Custom defines for mouse wheel left/right buttons.
