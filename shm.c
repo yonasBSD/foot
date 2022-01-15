@@ -5,10 +5,9 @@
 #include <errno.h>
 #include <unistd.h>
 #include <limits.h>
+#include <time.h>
 
 #include <sys/types.h>
-#include <sys/mman.h>
-#include <sys/time.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 
@@ -672,11 +671,11 @@ shm_scroll_forward(struct buffer_private *buf, int rows,
     xassert(new_offset + buf->size <= max_pool_size);
 
 #if TIME_SCROLL
-    struct timeval tot;
-    struct timeval time1;
-    gettimeofday(&time1, NULL);
+    struct timespec tot;
+    struct timespec time1;
+    clock_gettime(CLOCK_MONOTONIC, &time1);
 
-    struct timeval time2 = time1;
+    struct timespec time2 = time1;
 #endif
 
     if (top_keep_rows > 0) {
@@ -690,9 +689,10 @@ shm_scroll_forward(struct buffer_private *buf, int rows,
             top_keep_rows * stride);
 
 #if TIME_SCROLL
-        gettimeofday(&time2, NULL);
-        timersub(&time2, &time1, &tot);
-        LOG_INFO("memmove (top region): %lds %ldus", tot.tv_sec, tot.tv_usec);
+        clock_gettime(CLOCK_MONOTONIC, &time2);
+        timespec_sub(&time2, &time1, &tot);
+        LOG_INFO("memmove (top region): %lds %ldns",
+                 (long)tot.tv_sec, tot.tv_nsec);
 #endif
     }
 
@@ -713,20 +713,20 @@ shm_scroll_forward(struct buffer_private *buf, int rows,
     }
 
 #if TIME_SCROLL
-    struct timeval time3;
-    gettimeofday(&time3, NULL);
-    timersub(&time3, &time2, &tot);
-    LOG_INFO("PUNCH HOLE: %lds %ldus", tot.tv_sec, tot.tv_usec);
+    struct timespec time3;
+    clock_gettime(CLOCK_MONOTONIC, &time3);
+    timespec_sub(&time3, &time2, &tot);
+    LOG_INFO("PUNCH HOLE: %lds %ldns", (long)tot.tv_sec, tot.tv_nsec);
 #endif
 
     /* Re-instantiate pixman+wl_buffer+raw pointersw */
     bool ret = instantiate_offset(buf, new_offset);
 
 #if TIME_SCROLL
-    struct timeval time4;
-    gettimeofday(&time4, NULL);
-    timersub(&time4, &time3, &tot);
-    LOG_INFO("instantiate offset: %lds %ldus", tot.tv_sec, tot.tv_usec);
+    struct timespec time4;
+    clock_gettime(CLOCK_MONOTONIC, &time4);
+    timespec_sub(&time4, &time3, &tot);
+    LOG_INFO("instantiate offset: %lds %ldns", (long)tot.tv_sec, tot.tv_nsec);
 #endif
 
     if (ret && bottom_keep_rows > 0) {
@@ -741,11 +741,12 @@ shm_scroll_forward(struct buffer_private *buf, int rows,
             bottom_keep_rows * stride);
 
 #if TIME_SCROLL
-        struct timeval time5;
-        gettimeofday(&time5, NULL);
+        struct timespec time5;
+        clock_gettime(CLOCK_MONOTONIC, &time5);
 
-        timersub(&time5, &time4, &tot);
-        LOG_INFO("memmove (bottom region): %lds %ldus", tot.tv_sec, tot.tv_usec);
+        timespec_sub(&time5, &time4, &tot);
+        LOG_INFO("memmove (bottom region): %lds %ldns",
+                 (long)tot.tv_sec, tot.tv_nsec);
 #endif
     }
 
@@ -778,11 +779,11 @@ shm_scroll_reverse(struct buffer_private *buf, int rows,
     xassert(new_offset <= max_pool_size);
 
 #if TIME_SCROLL
-    struct timeval time0;
-    gettimeofday(&time0, NULL);
+    struct timespec time0;
+    clock_gettime(CLOCK_MONOTONIC, &time0);
 
-    struct timeval tot;
-    struct timeval time1 = time0;
+    struct timespec tot;
+    struct timespec time1 = time0;
 #endif
 
     if (bottom_keep_rows > 0) {
@@ -797,9 +798,10 @@ shm_scroll_reverse(struct buffer_private *buf, int rows,
             bottom_keep_rows * stride);
 
 #if TIME_SCROLL
-        gettimeofday(&time1, NULL);
-        timersub(&time1, &time0, &tot);
-        LOG_INFO("memmove (bottom region): %lds %ldus", tot.tv_sec, tot.tv_usec);
+        clock_gettime(CLOCK_MONOTONIC, &time1);
+        timespec_sub(&time1, &time0, &tot);
+        LOG_INFO("memmove (bottom region): %lds %ldns",
+                 (long)tot.tv_sec, tot.tv_nsec);
 #endif
     }
 
@@ -819,20 +821,20 @@ shm_scroll_reverse(struct buffer_private *buf, int rows,
         goto err;
     }
 #if TIME_SCROLL
-    struct timeval time2;
-    gettimeofday(&time2, NULL);
-    timersub(&time2, &time1, &tot);
-    LOG_INFO("fallocate: %lds %ldus", tot.tv_sec, tot.tv_usec);
+    struct timespec time2;
+    clock_gettime(CLOCK_MONOTONIC, &time2);
+    timespec_sub(&time2, &time1, &tot);
+    LOG_INFO("fallocate: %lds %ldns", (long)tot.tv_sec, tot.tv_nsec);
 #endif
 
     /* Re-instantiate pixman+wl_buffer+raw pointers */
     bool ret = instantiate_offset(buf, new_offset);
 
 #if TIME_SCROLL
-    struct timeval time3;
-    gettimeofday(&time3, NULL);
-    timersub(&time3, &time2, &tot);
-    LOG_INFO("instantiate offset: %lds %ldus", tot.tv_sec, tot.tv_usec);
+    struct timespec time3;
+    clock_gettime(CLOCK_MONOTONIC, &time3);
+    timespec_sub(&time3, &time2, &tot);
+    LOG_INFO("instantiate offset: %lds %ldns", (long)tot.tv_sec, tot.tv_nsec);
 #endif
 
     if (ret && top_keep_rows > 0) {
@@ -846,10 +848,11 @@ shm_scroll_reverse(struct buffer_private *buf, int rows,
             top_keep_rows * stride);
 
 #if TIME_SCROLL
-        struct timeval time4;
-        gettimeofday(&time4, NULL);
-        timersub(&time4, &time2, &tot);
-        LOG_INFO("memmove (top region): %lds %ldus", tot.tv_sec, tot.tv_usec);
+        struct timespec time4;
+        clock_gettime(CLOCK_MONOTONIC, &time4);
+        timespec_sub(&time4, &time3, &tot);
+        LOG_INFO("memmove (top region): %lds %ldns",
+                 (long)tot.tv_sec, tot.tv_nsec);
 #endif
     }
 

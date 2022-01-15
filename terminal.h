@@ -552,7 +552,7 @@ struct terminal {
         bool urgency;  /* Signal 'urgency' (paint borders red) */
 
         struct {
-            struct timeval last_update;
+            struct timespec last_update;
             bool is_armed;
             int timer_fd;
         } title;

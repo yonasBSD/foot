@@ -2,8 +2,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-
-#include <sys/time.h>
+#include <time.h>
 
 #include <wayland-client.h>
 #include <xkbcommon/xkbcommon.h>
@@ -247,7 +246,7 @@ struct seat {
         /* Double- and triple click state */
         int count;
         int last_released_button;
-        struct timeval last_time;
+        struct timespec last_time;
 
         /* We used a discrete axis event in the current pointer frame */
         double aggregated[2];

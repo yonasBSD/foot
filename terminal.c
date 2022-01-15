@@ -292,12 +292,11 @@ fdm_ptmx(struct fdm *fdm, int fd, int events, void *data)
 
             clock_gettime(CLOCK_MONOTONIC, &now);
             if (last.tv_sec > 0 || last.tv_nsec > 0) {
-                struct timeval diff;
-                struct timeval l = {last.tv_sec, last.tv_nsec / 1000};
-                struct timeval n = {now.tv_sec, now.tv_nsec / 1000};
+                struct timespec diff;
 
-                timersub(&n, &l, &diff);
-                LOG_INFO("waited %lu µs for more input", diff.tv_usec);
+                timespec_sub(&now, &last, &diff);
+                LOG_INFO("waited %lds %ldns for more input",
+                         (long)diff.tv_sec, diff.tv_nsec);
             }
             last = now;
 #endif

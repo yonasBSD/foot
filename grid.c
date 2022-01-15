@@ -557,8 +557,8 @@ grid_resize_and_reflow(
     struct coord *const _tracking_points[static tracking_points_count])
 {
 #if defined(TIME_REFLOW) && TIME_REFLOW
-    struct timeval start;
-    gettimeofday(&start, NULL);
+    struct timespec start;
+    clock_gettime(CLOCK_MONOTONIC, &start);
 #endif
 
     struct row *const *old_grid = grid->rows;
@@ -966,15 +966,15 @@ grid_resize_and_reflow(
     tll_free(untranslated_sixels);
 
 #if defined(TIME_REFLOW) && TIME_REFLOW
-    struct timeval stop;
-    gettimeofday(&stop, NULL);
+    struct timespec stop;
+    clock_gettime(CLOCK_MONOTONIC, &stop);
 
-    struct timeval diff;
-    timersub(&stop, &start, &diff);
-    LOG_INFO("reflowed %d -> %d rows in %llds %lldµs",
+    struct timespec diff;
+    timespec_sub(&stop, &start, &diff);
+    LOG_INFO("reflowed %d -> %d rows in %lds %ldns",
              old_rows, new_rows,
-             (long long)diff.tv_sec,
-             (long long)diff.tv_usec);
+             (long)diff.tv_sec,
+             diff.tv_nsec);
 #endif
 }
 

@@ -72,6 +72,8 @@
   “en_US.UTF-8” if started with a non-UTF8 locale. If this fails, foot
   will start, but only to display a window with an error (user’s shell
   is not executed).
+* `gettimeofday()` has been replaced with `clock_gettime()`, due to it being
+  marked as obsolete by POSIX.
 
 
 ### Deprecated
