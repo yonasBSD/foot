@@ -490,14 +490,14 @@ can configure the background transparency with the _alpha_ option.
 	color is being used. Default: _111111_.
 
 *regular0*, *regular1* *..* *regular7*
-	The eight basic ANSI colors. Default: _222222_, _cc9393_,
-	_7f9f7f_, _d0bf8f_, _6ca0a3_, _dc8cc3_, _93e0e3_ and _dcdccc_ (a
-	variant of the _zenburn_ theme).
+	The eight basic ANSI colors (Black, Red, Green, Yellow, Blue,
+	Magenta, Cyan, White). Default: _222222_, _cc9393_, _7f9f7f_, _d0bf8f_,
+	_6ca0a3_, _dc8cc3_, _93e0e3_ and _dcdccc_ (a variant of the _zenburn_ theme).
 
 *bright0*, *bright1* *..* *bright7*
-	The eight bright ANSI colors. Default: _666666_, _dca3a3_,
-	_bfebbf_, _f0dfaf_, _8cd0d3_, _fcace3_, _b3ffff_ and _ffffff_ (a
-	variant of the _zenburn_ theme).
+	The eight bright ANSI colors (Black, Red, Green, Yellow, Blue,
+	Magenta, Cyan, White). Default: _666666_, _dca3a3_, _bfebbf_, _f0dfaf_,
+	_8cd0d3_, _fcace3_, _b3ffff_ and _ffffff_ (a variant of the _zenburn_ theme).
 
 *dim0*, *dim1* *..* *dim7*
 	Custom colors to use with dimmed colors. Dimmed colors do not have
