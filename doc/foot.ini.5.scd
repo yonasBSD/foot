@@ -545,7 +545,7 @@ can configure the background transparency with the _alpha_ option.
 	used. Default: _inverse foreground/background_.
 
 *jump-labels*
-	To color values specifying the foreground (text) and background
+	Two color values specifying the foreground (text) and background
 	colors to use when rendering jump labels in URL mode. Default:
 	_regular0 regular3_.
 
