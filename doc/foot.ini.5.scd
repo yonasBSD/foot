@@ -682,10 +682,11 @@ e.g. *search-start=none*.
 	Scroll down/forward a single line in history. Default: _not bound_.
 
 *clipboard-copy*
-	Copies the current selection into the _clipboard_. Default: _Control+Shift+c_.
+	Copies the current selection into the _clipboard_. Default: _Control+Shift+c_
+	_XF86Copy_.
 
 *clipboard-paste*
-	Pastes from the _clipboard_. Default: _Control+Shift+v_.
+	Pastes from the _clipboard_. Default: _Control+Shift+v_ _XF86Paste_.
 
 *primary-paste*
 	Pastes from the _primary selection_. Default: _Shift+Insert_ (also
