@@ -236,7 +236,7 @@ Note that these are just the defaults; they can be changed in
 *t*
 	Toggle URL visibility in jump label.
 
-*escape*, *ctrl*+*g*, *ctrl*+c*, *ctrl*+*d*
+*escape*, *ctrl*+*g*, *ctrl*+*c*, *ctrl*+*d*
 	Exit URL mode without launching an URL.
 
 
