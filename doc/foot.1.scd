@@ -196,6 +196,10 @@ Note that these are just the defaults; they can be changed in
 	_OSC 7_ escape sequence, the new terminal will start in the
 	current working directory.
 
+*ctrl*+*shift*+*u*
+    Activate URL mode, allowing you to "launch" URLs.
+
+
 ## SCROLLBACK SEARCH
 
 *ctrl*+*r*
