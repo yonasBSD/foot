@@ -202,10 +202,12 @@ default) available; see *foot.ini*(5).
 ## SCROLLBACK SEARCH
 
 *ctrl*+*r*
-	Search _backward_ for the next match
+	Search _backward_ for the next match. If the search string is
+	empty, the last searched-for string is used.
 
 *ctrl*+*s*
-	Search _forward_ for the next match
+	Search _forward_ for the next match. If the search string is
+	empty, the last searched-for string is used.
 
 *ctrl*+*w*
 	Extend current selection (and thus the search criteria) to the end
