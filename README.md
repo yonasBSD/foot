@@ -133,10 +133,10 @@ These are the default shortcuts. See `man foot.ini` and the example
 <kbd>shift</kbd>+<kbd>page up</kbd>/<kbd>page down</kbd>
 : Scroll up/down in history
 
-<kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>c</kbd>
+<kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>c</kbd>, <kbd>XF86Copy</kbd>
 : Copy selected text to the _clipboard_
 
-<kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>v</kbd>
+<kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>v</kbd>, <kbd>XF86Paste</kbd>
 : Paste from _clipboard_
 
 <kbd>shift</kbd>+<kbd>insert</kbd>
