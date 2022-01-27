@@ -195,6 +195,16 @@ These are the default shortcuts. See `man foot.ini` and the example
 : Finish the search and copy the current match to the primary
   selection
 
+
+### URL mode
+
+<kbd>t</kbd>
+: Toggle whether the URL is displayed in the jump label or not
+
+<kbd>escape</kbd>, <kbd>ctrl</kbd>+<kbd>c</kbd>, <kbd>ctrl</kbd>+<kbd>g</kbd>, <kbd>ctrl</kbd>+<kbd>d</kbd>
+: Exit URL mode without launching any URLs
+
+
 ### Mouse
 
 <kbd>left</kbd> - **single-click**
