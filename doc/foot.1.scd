@@ -231,6 +231,15 @@ Note that these are just the defaults; they can be changed in
 	selection. The terminal selection is kept, allowing you to press
 	*ctrl*+*shift*+*c* to copy it to the clipboard.
 
+# URL MODE
+
+*t*
+	Toggle URL visibility in jump label.
+
+*escape*, *ctrl*+*g*, *ctrl*+c*, *ctrl*+*d*
+	Exit URL mode without launching an URL.
+
+
 # MOUSE SHORTCUTS
 
 *left*, single-click
