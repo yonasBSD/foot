@@ -197,7 +197,7 @@ Note that these are just the defaults; they can be changed in
 	current working directory.
 
 *ctrl*+*shift*+*u*
-    Activate URL mode, allowing you to "launch" URLs.
+	Activate URL mode, allowing you to "launch" URLs.
 
 
 ## SCROLLBACK SEARCH
