@@ -514,6 +514,11 @@ struct terminal {
         bool view_followed_offset;
         struct coord match;
         size_t match_len;
+
+        struct {
+            wchar_t *buf;
+            size_t len;
+        } last;
     } search;
 
     struct wayland *wl;

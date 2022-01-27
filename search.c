@@ -94,10 +94,16 @@ search_cancel_keep_selection(struct terminal *term)
     struct wl_window *win = term->window;
     wayl_win_subsurface_destroy(&win->search);
 
-    free(term->search.buf);
+    if (term->search.len > 0) {
+        free(term->search.last.buf);
+        term->search.last.buf = term->search.buf;
+        term->search.last.len = term->search.len;
+    } else
+        free(term->search.buf);
+
     term->search.buf = NULL;
-    term->search.len = 0;
-    term->search.sz = 0;
+    term->search.len = term->search.sz = 0;
+
     term->search.cursor = 0;
     term->search.match = (struct coord){-1, -1};
     term->search.match_len = 0;
@@ -630,7 +636,15 @@ execute_binding(struct seat *seat, struct terminal *term,
         return true;
 
     case BIND_ACTION_SEARCH_FIND_PREV:
-        if (term->search.match_len > 0) {
+        if (term->search.last.buf != NULL && term->search.len == 0) {
+            add_wchars(term, term->search.last.buf, term->search.last.len);
+
+            free(term->search.last.buf);
+            term->search.last.buf = NULL;
+            term->search.last.len = 0;
+        }
+
+        else if (term->search.match_len > 0) {
             int new_col = term->search.match.col - 1;
             int new_row = term->search.match.row;
 
@@ -648,7 +662,15 @@ execute_binding(struct seat *seat, struct terminal *term,
         return true;
 
     case BIND_ACTION_SEARCH_FIND_NEXT:
-        if (term->search.match_len > 0) {
+        if (term->search.last.buf != NULL && term->search.len == 0) {
+            add_wchars(term, term->search.last.buf, term->search.last.len);
+
+            free(term->search.last.buf);
+            term->search.last.buf = NULL;
+            term->search.last.len = 0;
+        }
+
+        else if (term->search.match_len > 0) {
             int new_col = term->search.match.col + 1;
             int new_row = term->search.match.row;
 
