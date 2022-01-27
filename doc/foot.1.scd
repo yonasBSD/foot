@@ -160,12 +160,11 @@ In all other cases, the exit code is that of the client application
 
 # KEYBOARD SHORTCUTS
 
-The following keyboard shortcuts are available.
+The following keyboard shortcuts are available by default. They can be
+changed in *foot.ini*(5). There are also more actions (disabled by
+default) available; see *foot.ini*(5).
 
 ## NORMAL MODE
-
-Note that these are just the defaults; they can be changed in
-*foot.ini(5)*.
 
 *shift*+*page up*/*page down*
 	Scroll up/down in history
