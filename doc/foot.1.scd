@@ -170,10 +170,10 @@ Note that these are just the defaults; they can be changed in
 *shift*+*page up*/*page down*
 	Scroll up/down in history
 
-*ctrl*+*shift*+*c*
+*ctrl*+*shift*+*c*, *XF86Copy*
 	Copy selected text to the _clipboard_
 
-*ctrl*+*shift*+*v*
+*ctrl*+*shift*+*v*, *XF86Paste*
 	Paste from _clipboard_
 
 *shift*+*insert*
