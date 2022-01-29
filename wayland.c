@@ -1630,7 +1630,6 @@ wayl_reload_xcursor_theme(struct seat *seat, int new_scale)
         seat->pointer.cursor = NULL;
     }
 
-    const char *xcursor_theme = getenv("XCURSOR_THEME");
     int xcursor_size = 24;
 
     {
@@ -1641,6 +1640,8 @@ wayl_reload_xcursor_theme(struct seat *seat, int new_scale)
                 xcursor_size = size;
         }
     }
+
+    const char *xcursor_theme = getenv("XCURSOR_THEME");
 
     LOG_INFO("cursor theme: %s, size: %u, scale: %d",
              xcursor_theme, xcursor_size, new_scale);
