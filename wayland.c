@@ -1635,15 +1635,21 @@ wayl_reload_xcursor_theme(struct seat *seat, int new_scale)
     {
         const char *env_cursor_size = getenv("XCURSOR_SIZE");
         if (env_cursor_size != NULL) {
-            unsigned size;
-            if (sscanf(env_cursor_size, "%u", &size) == 1)
+            errno = 0;
+            char *end;
+            int size = (int)strtol(env_cursor_size, &end, 10);
+
+            if (errno == 0 && *end == '\0' && size > 0)
                 xcursor_size = size;
+            else
+                LOG_WARN("XCURSOR_SIZE '%s' is invalid, defaulting to 24",
+                         env_cursor_size);
         }
     }
 
     const char *xcursor_theme = getenv("XCURSOR_THEME");
 
-    LOG_INFO("cursor theme: %s, size: %u, scale: %d",
+    LOG_INFO("cursor theme: %s, size: %d, scale: %d",
              xcursor_theme, xcursor_size, new_scale);
 
     seat->pointer.theme = wl_cursor_theme_load(
