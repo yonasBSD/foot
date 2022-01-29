@@ -209,10 +209,19 @@ log_contextual(struct context *ctx, enum log_class log_class,
     char *formatted_msg = xvasprintf(fmt, va);
     va_end(va);
 
+    bool print_dot = ctx->key != NULL;
+    bool print_colon = ctx->value != NULL;
+
+    if (!print_dot)
+        ctx->key = "";
+
+    if (!print_colon)
+        ctx->value = "";
+
     log_and_notify(
-        ctx->conf, log_class, file, lineno, "%s:%d: [%s].%s: %s: %s",
-        ctx->path, ctx->lineno, ctx->section, ctx->key, ctx->value,
-        formatted_msg);
+        ctx->conf, log_class, file, lineno, "%s:%d: [%s]%s%s%s%s: %s",
+        ctx->path, ctx->lineno, ctx->section, print_dot ? "." : "",
+        ctx->key, print_colon ? ": " : "", ctx->value, formatted_msg);
     free(formatted_msg);
 }
 
@@ -2321,31 +2330,41 @@ parse_section_tweak(struct context *ctx)
 static bool
 parse_key_value(char *kv, const char **section, const char **key, const char **value)
 {
+    bool section_is_needed = section != NULL;
+
     /*strip leading whitespace*/
     while (*kv && isspace(*kv))
         ++kv;
 
-    if (section != NULL)
-        *section = NULL;
+    if (section_is_needed)
+        *section = "main";
+
+    if (kv[0] == '=')
+        return false;
+
     *key = kv;
     *value = NULL;
 
     size_t kvlen = strlen(kv);
     for (size_t i = 0; i < kvlen; ++i) {
-        if (kv[i] == '.') {
-            if (section != NULL && *section == NULL) {
-                *section = kv;
-                kv[i] = '\0';
-                *key = &kv[i + 1];
-            }
-        } else if (kv[i] == '=') {
-            if (section != NULL && *section == NULL)
-                *section = "main";
+        if (kv[i] == '.' && section_is_needed) {
+            section_is_needed = false;
+            *section = kv;
             kv[i] = '\0';
+            if (i == kvlen - 1 || kv[i + 1] == '=') {
+                *key = NULL;
+                return false;
+            }
+            *key = &kv[i + 1];
+        } else if (kv[i] == '=') {
+            kv[i] = '\0';
+            if (i == kvlen - 1)
+                return false;
             *value = &kv[i + 1];
             break;
         }
     }
+
     if (*value == NULL)
         return false;
 
@@ -2499,22 +2518,37 @@ parse_config_file(FILE *f, struct config *conf, const char *path, bool errors_ar
 
         /* Check for new section */
         if (key_value[0] == '[') {
+            key_value++;
+
+            if (key_value[0] == ']') {
+                LOG_CONTEXTUAL_ERR("empty section name");
+                error_or_continue();
+            }
+
+            context.section = key_value;
             char *end = strchr(key_value, ']');
+
             if (end == NULL) {
                 LOG_CONTEXTUAL_ERR("syntax error: no closing ']'");
                 error_or_continue();
             }
 
-            *end = '\0';
+            end[0] = '\0';
 
-            section = str_to_section(&key_value[1]);
+            if (end[1] != '\0') {
+                LOG_CONTEXTUAL_ERR("section declaration contains trailing "
+                                   "characters");
+                error_or_continue();
+            }
+
+            section = str_to_section(key_value);
             if (section == SECTION_COUNT) {
-                LOG_CONTEXTUAL_ERR("invalid section name: %s", &key_value[1]);
+                LOG_CONTEXTUAL_ERR("invalid section name: %s", key_value);
                 error_or_continue();
             }
 
             free(section_name);
-            section_name = xstrdup(&key_value[1]);
+            section_name = xstrdup(key_value);
             context.section = section_name;
 
             /* Process next line */
@@ -2527,7 +2561,8 @@ parse_config_file(FILE *f, struct config *conf, const char *path, bool errors_ar
         }
 
         if (!parse_key_value(key_value, NULL, &context.key, &context.value)) {
-            LOG_CONTEXTUAL_ERR("syntax error: key/value pair has no value");
+            LOG_CONTEXTUAL_ERR("syntax error: key/value pair has no %s",
+                               context.key == NULL ? "key" : "value");
             if (errors_are_fatal)
                 goto err;
             break;
@@ -2977,7 +3012,15 @@ config_override_apply(struct config *conf, config_override_t *overrides,
         if (!parse_key_value(
                 it->item, &context.section, &context.key, &context.value))
         {
-            LOG_CONTEXTUAL_ERR("syntax error: key/value pair has no value");
+            LOG_CONTEXTUAL_ERR("syntax error: key/value pair has no %s",
+                               context.key == NULL ? "key" : "value");
+            if (errors_are_fatal)
+                return false;
+            continue;
+        }
+
+        if (context.section[0] == '\0') {
+            LOG_CONTEXTUAL_ERR("empty section name");
             if (errors_are_fatal)
                 return false;
             continue;
