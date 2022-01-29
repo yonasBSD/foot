@@ -94,10 +94,16 @@ search_cancel_keep_selection(struct terminal *term)
     struct wl_window *win = term->window;
     wayl_win_subsurface_destroy(&win->search);
 
-    free(term->search.buf);
+    if (term->search.len > 0) {
+        free(term->search.last.buf);
+        term->search.last.buf = term->search.buf;
+        term->search.last.len = term->search.len;
+    } else
+        free(term->search.buf);
+
     term->search.buf = NULL;
-    term->search.len = 0;
-    term->search.sz = 0;
+    term->search.len = term->search.sz = 0;
+
     term->search.cursor = 0;
     term->search.match = (struct coord){-1, -1};
     term->search.match_len = 0;
@@ -398,6 +404,33 @@ search_find_next(struct terminal *term)
 #undef ROW_DEC
 }
 
+static void
+add_wchars(struct terminal *term, wchar_t *src, size_t count)
+{
+    /* Strip non-printable characters */
+    for (size_t i = 0, j = 0, orig_count = count; i < orig_count; i++) {
+        if (iswprint(src[i]))
+            src[j++] = src[i];
+        else
+            count--;
+    }
+
+    if (!search_ensure_size(term, term->search.len + count))
+        return;
+
+    xassert(term->search.len + count < term->search.sz);
+
+    memmove(&term->search.buf[term->search.cursor + count],
+            &term->search.buf[term->search.cursor],
+            (term->search.len - term->search.cursor) * sizeof(wchar_t));
+
+    memcpy(&term->search.buf[term->search.cursor], src, count * sizeof(wchar_t));
+
+    term->search.len += count;
+    term->search.cursor += count;
+    term->search.buf[term->search.len] = L'\0';
+}
+
 void
 search_add_chars(struct terminal *term, const char *src, size_t count)
 {
@@ -414,29 +447,7 @@ search_add_chars(struct terminal *term, const char *src, size_t count)
     ps = (mbstate_t){0};
     wchar_t wcs[wchars + 1];
     mbsnrtowcs(wcs, &_src, count, wchars, &ps);
-
-    /* Strip non-printable characters */
-    for (size_t i = 0, j = 0, orig_wchars = wchars; i < orig_wchars; i++) {
-        if (iswprint(wcs[i]))
-            wcs[j++] = wcs[i];
-        else
-            wchars--;
-    }
-
-    if (!search_ensure_size(term, term->search.len + wchars))
-        return;
-
-    xassert(term->search.len + wchars < term->search.sz);
-
-    memmove(&term->search.buf[term->search.cursor + wchars],
-            &term->search.buf[term->search.cursor],
-            (term->search.len - term->search.cursor) * sizeof(wchar_t));
-
-    memcpy(&term->search.buf[term->search.cursor], wcs, wchars * sizeof(wchar_t));
-
-    term->search.len += wchars;
-    term->search.cursor += wchars;
-    term->search.buf[term->search.len] = L'\0';
+    add_wchars(term, wcs, wchars);
 }
 
 static void
@@ -625,7 +636,15 @@ execute_binding(struct seat *seat, struct terminal *term,
         return true;
 
     case BIND_ACTION_SEARCH_FIND_PREV:
-        if (term->search.match_len > 0) {
+        if (term->search.last.buf != NULL && term->search.len == 0) {
+            add_wchars(term, term->search.last.buf, term->search.last.len);
+
+            free(term->search.last.buf);
+            term->search.last.buf = NULL;
+            term->search.last.len = 0;
+        }
+
+        else if (term->search.match_len > 0) {
             int new_col = term->search.match.col - 1;
             int new_row = term->search.match.row;
 
@@ -643,7 +662,15 @@ execute_binding(struct seat *seat, struct terminal *term,
         return true;
 
     case BIND_ACTION_SEARCH_FIND_NEXT:
-        if (term->search.match_len > 0) {
+        if (term->search.last.buf != NULL && term->search.len == 0) {
+            add_wchars(term, term->search.last.buf, term->search.last.len);
+
+            free(term->search.last.buf);
+            term->search.last.buf = NULL;
+            term->search.last.len = 0;
+        }
+
+        else if (term->search.match_len > 0) {
             int new_col = term->search.match.col + 1;
             int new_row = term->search.match.row;
 

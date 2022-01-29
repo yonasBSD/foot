@@ -1638,6 +1638,7 @@ term_destroy(struct terminal *term)
         &term->custom_glyphs.legacy, GLYPH_LEGACY_COUNT);
 
     free(term->search.buf);
+    free(term->search.last.buf);
 
     if (term->render.workers.threads != NULL) {
         for (size_t i = 0; i < term->render.workers.count; i++) {

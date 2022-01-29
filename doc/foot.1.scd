@@ -160,12 +160,11 @@ In all other cases, the exit code is that of the client application
 
 # KEYBOARD SHORTCUTS
 
-The following keyboard shortcuts are available.
+The following keyboard shortcuts are available by default. They can be
+changed in *foot.ini*(5). There are also more actions (disabled by
+default) available; see *foot.ini*(5).
 
 ## NORMAL MODE
-
-Note that these are just the defaults; they can be changed in
-*foot.ini(5)*.
 
 *shift*+*page up*/*page down*
 	Scroll up/down in history
@@ -203,10 +202,12 @@ Note that these are just the defaults; they can be changed in
 ## SCROLLBACK SEARCH
 
 *ctrl*+*r*
-	Search _backward_ for the next match
+	Search _backward_ for the next match. If the search string is
+	empty, the last searched-for string is used.
 
 *ctrl*+*s*
-	Search _forward_ for the next match
+	Search _forward_ for the next match. If the search string is
+	empty, the last searched-for string is used.
 
 *ctrl*+*w*
 	Extend current selection (and thus the search criteria) to the end

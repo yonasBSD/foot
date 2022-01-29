@@ -55,6 +55,8 @@
   - `DECSTBM` - _Set Top and Bottom Margins_
   - `SGR` - _Set Graphic Rendition_
   - `DECSCUSR` - _Set Cursor Style_
+* Support for searching for the last searched-for string in scrollback
+  search (search for next/prev match with an empty search string).
 
 
 ### Changed
