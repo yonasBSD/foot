@@ -76,6 +76,8 @@
   is not executed).
 * `gettimeofday()` has been replaced with `clock_gettime()`, due to it being
   marked as obsolete by POSIX.
+* `alt+tab` now emits `ESC \t` instead of `CSI 27;3;9~`
+  (https://codeberg.org/dnkl/foot/issues/900).
 
 
 ### Deprecated
