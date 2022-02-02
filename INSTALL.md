@@ -87,12 +87,6 @@ Foot uses _meson_. If you are unfamiliar with it, the official
 [tutorial](https://mesonbuild.com/Tutorial.html) might be a good
 starting point.
 
-I also recommend taking a look at the Arch AUR package’s
-[PKGBUILD](https://aur.archlinux.org/cgit/aur.git/tree/PKGBUILD?h=foot)
-file, to see how it builds foot. Especially so if you intend to
-install a release build of foot, in which case you might be interested
-in the compiler flags used there.
-
 A note on terminfo; the terminfo database exposes terminal
 capabilities to the applications running inside the terminal. As such,
 it is important that the terminfo used reflects the actual
