@@ -86,9 +86,24 @@ extract_finish_wide(struct extraction_context *ctx, wchar_t **text, size_t *len)
     } else {
         xassert(ctx->idx > 0);
         xassert(ctx->idx <= ctx->size);
-        if (ctx->buf[ctx->idx - 1] == L'\n')
-            ctx->buf[ctx->idx - 1] = L'\0';
-        else {
+
+        switch (ctx->selection_kind) {
+        default:
+            if (ctx->buf[ctx->idx - 1] == L'\n')
+                ctx->buf[ctx->idx - 1] = L'\0';
+            break;
+
+        case SELECTION_LINE_WISE:
+            if (ctx->buf[ctx->idx - 1] != L'\n') {
+                if (!ensure_size(ctx, 1))
+                    goto err;
+                ctx->buf[ctx->idx++] = L'\n';
+            }
+            break;
+
+        }
+
+        if (ctx->buf[ctx->idx - 1] != L'\0') {
             if (!ensure_size(ctx, 1))
                 goto err;
             ctx->buf[ctx->idx++] = L'\0';

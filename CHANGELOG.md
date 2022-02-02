@@ -80,6 +80,8 @@
   (https://codeberg.org/dnkl/foot/issues/900).
 * File pasted, or dropped, on the alt screen is no longer quoted
   (https://codeberg.org/dnkl/foot/issues/379).
+* Line-based selections now include a trailing newline when copied
+  (https://codeberg.org/dnkl/foot/issues/869).
 
 
 ### Deprecated
