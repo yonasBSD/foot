@@ -4,7 +4,6 @@
 1. [Requirements](#requirements)
    1. [Running](#running)
    1. [Building](#building)
-1. [Arch Linux](#arch-linux)
 1. [Other](#other)
    1. [Setup](#setup)
    1. [Options](#options)
@@ -81,20 +80,6 @@ slower compared to GCC 9.3.
 The work around is simple: make sure you build with `-O3`. This is the
 default with `meson --buildtype=release`, but e.g. `makepkg` can
 override it (`makepkg` uses `-O2` by default).
-
-
-## Arch Linux
-
-Install from AUR:
-
-* [foot](https://aur.archlinux.org/packages/foot/) +
-  [foot-terminfo](https://aur.archlinux.org/packages/foot-terminfo/)
-* [foot-git](https://aur.archlinux.org/packages/foot-git/) +
-  [foot-terminfo-git](https://aur.archlinux.org/packages/foot-terminfo-git/)
-
-The AUR packages, will attempt to do a PGO build. This can be tweaked,
-or disabled, by modifying the `PGO` variable in the `PKGBUILD`.
-
 
 ## Other
 
