@@ -1552,6 +1552,7 @@ struct clipboard_receive {
     int timeout_fd;
     struct itimerspec timeout;
     bool bracketed;
+    bool quote_paths;
 
     void (*decoder)(struct clipboard_receive *ctx, char *data, size_t size);
     void (*finish)(struct clipboard_receive *ctx);
@@ -1641,9 +1642,13 @@ decode_one_uri(struct clipboard_receive *ctx, char *uri, size_t len)
     ctx->add_space = true;
 
     if (strcmp(scheme, "file") == 0 && hostname_is_localhost(host)) {
-        ctx->cb("'", 1, ctx->user);
+        if (ctx->quote_paths)
+            ctx->cb("'", 1, ctx->user);
+
         ctx->cb(path, strlen(path), ctx->user);
-        ctx->cb("'", 1, ctx->user);
+
+        if (ctx->quote_paths)
+            ctx->cb("'", 1, ctx->user);
     } else
         ctx->cb(uri, len, ctx->user);
 
@@ -1830,6 +1835,7 @@ begin_receive_clipboard(struct terminal *term, int read_fd,
         .timeout_fd = timeout_fd,
         .timeout = timeout,
         .bracketed = term->bracketed_paste,
+        .quote_paths = term->grid == &term->normal,
         .decoder = (mime_type == DATA_OFFER_MIME_URI_LIST
                     ? &fdm_receive_decoder_uri
                     : &fdm_receive_decoder_plain),
@@ -1900,6 +1906,7 @@ receive_offer(char *data, size_t size, void *user)
     xassert(term->is_sending_paste_data);
     term_paste_data_to_slave(term, data, size);
 }
+
 static void
 receive_offer_done(void *user)
 {

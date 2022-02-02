@@ -78,6 +78,8 @@
   marked as obsolete by POSIX.
 * `alt+tab` now emits `ESC \t` instead of `CSI 27;3;9~`
   (https://codeberg.org/dnkl/foot/issues/900).
+* File pasted, or dropped, on the alt screen is no longer quoted
+  (https://codeberg.org/dnkl/foot/issues/379).
 
 
 ### Deprecated
