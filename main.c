@@ -152,6 +152,20 @@ print_pid(const char *pid_file, bool *unlink_at_exit)
         return false;
 }
 
+static void
+sanitize_signals(void)
+{
+    sigset_t mask;
+    sigemptyset(&mask);
+    sigprocmask(SIG_SETMASK, &mask, NULL);
+
+    struct sigaction dfl = {.sa_handler = SIG_DFL};
+    sigemptyset(&dfl.sa_mask);
+
+    for (int i = 1; i < SIGRTMAX; i++)
+        sigaction(i, &dfl, NULL);
+}
+
 int
 main(int argc, char *const *argv)
 {
@@ -159,6 +173,8 @@ main(int argc, char *const *argv)
      * itself failing, and the client application failiing */
     static const int foot_exit_failure = -26;
     int ret = foot_exit_failure;
+
+    sanitize_signals();
 
     /* XDG startup notifications */
     const char *token = getenv("XDG_ACTIVATION_TOKEN");

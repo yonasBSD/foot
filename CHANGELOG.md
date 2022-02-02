@@ -82,6 +82,9 @@
   (https://codeberg.org/dnkl/foot/issues/379).
 * Line-based selections now include a trailing newline when copied
   (https://codeberg.org/dnkl/foot/issues/869).
+* Foot now clears the signal mask and resets all signal handlers to
+  their default handlers at startup
+  (https://codeberg.org/dnkl/foot/issues/854).
 
 
 ### Deprecated
