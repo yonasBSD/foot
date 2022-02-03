@@ -1456,6 +1456,11 @@ decgri(struct terminal *term, uint8_t c)
         term->sixel.state = SIXEL_DECSIXEL;
         break;
     }
+
+    default:
+        term->sixel.state = SIXEL_DECSIXEL;
+        sixel_put(term, c);
+        break;
     }
 }
 
