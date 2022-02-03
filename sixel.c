@@ -1451,6 +1451,8 @@ decgri(struct terminal *term, uint8_t c)
         unsigned count = term->sixel.param;
         if (likely(count > 0))
             sixel_add_many(term, c - 63, count);
+        else if (unlikely(count == 0))
+            sixel_add_many(term, c - 63, 1);
         term->sixel.state = SIXEL_DECSIXEL;
         break;
     }
