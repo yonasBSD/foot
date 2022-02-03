@@ -115,6 +115,8 @@
 * Wrong mouse binding triggered when doing two mouse selections in
   very quick (< 300ms) succession
   (https://codeberg.org/dnkl/foot/issues/883).
+* Bash completion giving an error when completing a list of short
+  options
 
 
 ### Security
