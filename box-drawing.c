@@ -1,6 +1,8 @@
 #include "box-drawing.h"
 
 #include <stdio.h>
+#include <math.h>
+#include <fenv.h>
 #include <errno.h>
 
 #define LOG_MODULE "box-drawing"
@@ -1282,8 +1284,18 @@ draw_box_drawings_light_arc(struct buf *buf, wchar_t wc)
     const int num_samples = height * 16;
 
     for (int i = 0; i < num_samples; i++) {
+        errno = 0;
+        feclearexcept(FE_ALL_EXCEPT);
+
         double y = i / 16.;
         double x = sqrt(a2 * (1. - y * y / b2));
+
+        /* See math_error(7) */
+        if (errno != 0 ||
+            fetestexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW))
+        {
+            continue;
+        }
 
         const int row = round(y);
         const int col = round(x);

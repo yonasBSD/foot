@@ -123,6 +123,8 @@
 * Sixel: large image resizes (triggered by e.g. large repeat counts in
   `DECGRI`) are now truncated instead of ignored.
 * Sixel: a repeat count of 0 in `DECGRI` now emits a single sixel.
+* LIGHT ARC box drawing characters incorrectly rendered
+  platforms (https://codeberg.org/dnkl/foot/issues/914).
 
 
 ### Security
