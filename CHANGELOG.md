@@ -120,6 +120,8 @@
   (https://codeberg.org/dnkl/foot/issues/883).
 * Bash completion giving an error when completing a list of short
   options
+* Sixel: large image resizes (triggered by e.g. large repeat counts in
+  `DECGRI`) are now truncated instead of ignored.
 
 
 ### Security
