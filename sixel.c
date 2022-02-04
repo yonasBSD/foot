@@ -1104,7 +1104,7 @@ sixel_unhook(struct terminal *term)
     render_refresh(term);
 }
 
-static bool
+static void
 resize_horizontally(struct terminal *term, int new_width)
 {
     LOG_DBG("resizing image horizontally: %dx(%d) -> %dx(%d)",
@@ -1112,9 +1112,12 @@ resize_horizontally(struct terminal *term, int new_width)
             new_width, term->sixel.image.height);
 
     if (unlikely(new_width > term->sixel.max_width)) {
-        LOG_WARN("maximum image dimensions reached");
-        return false;
+        LOG_WARN("maximum image dimensions exceeded, truncating");
+        new_width = term->sixel.max_width;
     }
+
+    if (unlikely(term->sixel.image.width == new_width))
+        return;
 
     uint32_t *old_data = term->sixel.image.data;
     const int old_width = term->sixel.image.width;
@@ -1145,7 +1148,6 @@ resize_horizontally(struct terminal *term, int new_width)
     term->sixel.image.data = new_data;
     term->sixel.image.width = new_width;
     term->sixel.row_byte_ofs = term->sixel.pos.row * new_width;
-    return true;
 }
 
 static bool
@@ -1197,11 +1199,14 @@ resize(struct terminal *term, int new_width, int new_height)
             term->sixel.image.width, term->sixel.image.height,
             new_width, new_height);
 
-    if (new_width > term->sixel.max_width ||
-        new_height > term->sixel.max_height)
-    {
-        LOG_WARN("maximum image dimensions reached");
-        return false;
+    if (unlikely(new_width > term->sixel.max_width)) {
+        LOG_WARN("maximum image width exceeded, truncating");
+        new_width = term->sixel.max_width;
+    }
+
+    if (unlikely(new_height > term->sixel.max_height)) {
+        LOG_WARN("maximum image height exceeded, truncating");
+        new_height = term->sixel.max_height;
     }
 
     uint32_t *old_data = term->sixel.image.data;
@@ -1291,9 +1296,9 @@ sixel_add_many(struct terminal *term, uint8_t c, unsigned count)
     int width = term->sixel.image.width;
 
     if (unlikely(col + count - 1 >= width)) {
-        width = col + count;
-        if (unlikely(!resize_horizontally(term, width)))
-            return;
+        resize_horizontally(term, col + count);
+        width = term->sixel.image.width;
+        count = min(count, width - col);
     }
 
     uint32_t color = term->sixel.color;
@@ -1412,7 +1417,8 @@ decgra(struct terminal *term, uint8_t c)
 
             /* This ensures the sixel’s final image size is *at least*
              * this large */
-            term->sixel.max_non_empty_row_no = pv - 1;
+            term->sixel.max_non_empty_row_no =
+                min(pv, term->sixel.image.height) - 1;
         }
 
         term->sixel.state = SIXEL_DECSIXEL;
@@ -1445,9 +1451,16 @@ decgri(struct terminal *term, uint8_t c)
         unsigned count = term->sixel.param;
         if (likely(count > 0))
             sixel_add_many(term, c - 63, count);
+        else if (unlikely(count == 0))
+            sixel_add_many(term, c - 63, 1);
         term->sixel.state = SIXEL_DECSIXEL;
         break;
     }
+
+    default:
+        term->sixel.state = SIXEL_DECSIXEL;
+        sixel_put(term, c);
+        break;
     }
 }
 

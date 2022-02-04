@@ -112,7 +112,7 @@
   characters (e.g. emojis).
 * Rendering of CSD borders when `csd.border-width > 0` and desktop
   scaling has been enabled.
-* Failure to launch when `exec(3)’:ed with an empty argv.
+* Failure to launch when `exec(3)`:ed with an empty argv.
 * Pasting from the primary clipboard (mouse middle clicking) did not
   reset the scrollback view to the bottom.
 * Wrong mouse binding triggered when doing two mouse selections in
@@ -120,6 +120,9 @@
   (https://codeberg.org/dnkl/foot/issues/883).
 * Bash completion giving an error when completing a list of short
   options
+* Sixel: large image resizes (triggered by e.g. large repeat counts in
+  `DECGRI`) are now truncated instead of ignored.
+* Sixel: a repeat count of 0 in `DECGRI` now emits a single sixel.
 
 
 ### Security
