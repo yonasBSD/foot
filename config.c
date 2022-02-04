@@ -724,7 +724,7 @@ value_to_pt_or_px(struct context *ctx, struct pt_or_px *res)
 
         long value = strtol(s, &end, 10);
         if (!(errno == 0 && end == s + len - 2)) {
-            LOG_CONTEXTUAL_ERR("invalid px value (must be on the form 12px)");
+            LOG_CONTEXTUAL_ERR("invalid px value (must be of the form 12px)");
             return false;
         }
         res->pt = 0;
@@ -753,7 +753,7 @@ value_to_fonts(struct context *ctx)
          font = strtok(NULL, ","))
     {
         /* Trim spaces, strictly speaking not necessary, but looks nice :) */
-        while (*font != '\0' && isspace(*font))
+        while (isspace(font[0]))
             font++;
 
         if (font[0] == '\0')
@@ -1162,13 +1162,14 @@ parse_section_url(struct context *ctx)
         {
 
             /* Strip leading whitespace */
-            while (isspace(*prot))
+            while (isspace(prot[0]))
                 prot++;
 
             /* Strip trailing whitespace */
             size_t len = strlen(prot);
-            while (len > 0 && isspace(prot[len - 1]))
-                prot[--len] = '\0';
+            while (isspace(prot[len - 1]))
+                len--;
+            prot[len] = '\0';
 
             size_t chars = mbstowcs(NULL, prot, 0);
             if (chars == (size_t)-1) {
@@ -2332,8 +2333,8 @@ parse_key_value(char *kv, const char **section, const char **key, const char **v
 {
     bool section_is_needed = section != NULL;
 
-    /*strip leading whitespace*/
-    while (*kv && isspace(*kv))
+    /* Strip leading whitespace */
+    while (isspace(kv[0]))
         ++kv;
 
     if (section_is_needed)
@@ -2346,6 +2347,12 @@ parse_key_value(char *kv, const char **section, const char **key, const char **v
     *value = NULL;
 
     size_t kvlen = strlen(kv);
+
+    /* Strip trailing whitespace */
+    while (isspace(kv[kvlen - 1]))
+        kvlen--;
+    kv[kvlen] = '\0';
+
     for (size_t i = 0; i < kvlen; ++i) {
         if (kv[i] == '.' && section_is_needed) {
             section_is_needed = false;
@@ -2358,9 +2365,8 @@ parse_key_value(char *kv, const char **section, const char **key, const char **v
             *key = &kv[i + 1];
         } else if (kv[i] == '=') {
             kv[i] = '\0';
-            if (i == kvlen - 1)
-                return false;
-            *value = &kv[i + 1];
+            if (i != kvlen - 1)
+                *value = &kv[i + 1];
             break;
         }
     }
@@ -2370,26 +2376,18 @@ parse_key_value(char *kv, const char **section, const char **key, const char **v
 
     /* Strip trailing whitespace from key (leading stripped earlier) */
     {
-        xassert(!isspace(**key));
+        xassert(!isspace(*key[0]));
 
         char *end = (char *)*key + strlen(*key) - 1;
-        while (isspace(*end))
+        while (isspace(end[0]))
             end--;
-        *(end + 1) = '\0';
+        end[1] = '\0';
     }
 
-    /* Strip leading+trailing whitespace from valueue */
-    {
-        while (isspace(**value))
-            ++*value;
+    /* Strip leading whitespace from value (trailing stripped earlier) */
+    while (isspace(*value[0]))
+        ++*value;
 
-        if (*value[0] != '\0') {
-            char *end = (char *)*value + strlen(*value) - 1;
-            while (isspace(*end))
-                end--;
-            *(end + 1) = '\0';
-        }
-    }
     return true;
 }
 
@@ -2451,12 +2449,14 @@ parse_config_file(FILE *f, struct config *conf, const char *path, bool errors_ar
 
     char *_line = NULL;
     size_t count = 0;
+    bool ret = true;
 
 #define error_or_continue()                     \
     {                                           \
-        if (errors_are_fatal)                   \
-            goto err;                           \
-        else                                    \
+        if (errors_are_fatal) {                 \
+            ret = false;                        \
+            goto done;                          \
+        } else                                  \
             continue;                           \
     }
 
@@ -2471,50 +2471,48 @@ parse_config_file(FILE *f, struct config *conf, const char *path, bool errors_ar
     };
     struct context *ctx = &context;  /* For LOG_AND_*() */
 
-    while (true) {
-        errno = 0;
+    errno = 0;
+    ssize_t len;
+
+    while ((len = getline(&_line, &count, f)) != -1) {
+        context.key = NULL;
+        context.value = NULL;
         context.lineno++;
 
-        ssize_t ret = getline(&_line, &count, f);
-
-        if (ret < 0) {
-            if (errno != 0) {
-                LOG_AND_NOTIFY_ERRNO("failed to read from configuration");
-                if (errors_are_fatal)
-                    goto err;
-            }
-            break;
-        }
+        char *line = _line;
 
         /* Strip leading whitespace */
-        char *line = _line;
-        {
-            while (isspace(*line))
-                line++;
-            if (line[0] != '\0') {
-                char *end = line + strlen(line) - 1;
-                while (isspace(*end))
-                    end--;
-                *(end + 1) = '\0';
-            }
+        while (isspace(line[0])) {
+            line++;
+            len--;
         }
 
         /* Empty line, or comment */
         if (line[0] == '\0' || line[0] == '#')
             continue;
 
+        /* Strip the trailing newline - may be absent on the last line */
+        if (line[len - 1] == '\n')
+            line[--len] = '\0';
+
         /* Split up into key/value pair + trailing comment separated by blank */
         char *key_value = line;
-        char *comment = line;
-        while (comment[0] != '\0') {
-            const char c = comment[0];
-            comment++;
-            if (isblank(c) && comment[0] == '#') {
-                comment[0] = '\0'; /* Terminate key/value pair */
-                comment++;
+        char *kv_trailing = &line[len - 1];
+        char *comment = &line[1];
+        while (comment[1] != '\0') {
+            if (isblank(comment[0]) && comment[1] == '#') {
+                comment[1] = '\0'; /* Terminate key/value pair */
+                kv_trailing = comment++;
                 break;
             }
+            comment++;
         }
+        comment++;
+
+        /* Strip trailing whitespace */
+        while (isspace(kv_trailing[0]))
+            kv_trailing--;
+        kv_trailing[1] = '\0';
 
         /* Check for new section */
         if (key_value[0] == '[') {
@@ -2522,28 +2520,36 @@ parse_config_file(FILE *f, struct config *conf, const char *path, bool errors_ar
 
             if (key_value[0] == ']') {
                 LOG_CONTEXTUAL_ERR("empty section name");
+                section = SECTION_COUNT;
                 error_or_continue();
             }
 
-            context.section = key_value;
             char *end = strchr(key_value, ']');
 
             if (end == NULL) {
+                context.section = key_value;
                 LOG_CONTEXTUAL_ERR("syntax error: no closing ']'");
+                context.section = section_name;
+                section = SECTION_COUNT;
                 error_or_continue();
             }
 
             end[0] = '\0';
 
             if (end[1] != '\0') {
+                context.section = key_value;
                 LOG_CONTEXTUAL_ERR("section declaration contains trailing "
                                    "characters");
+                context.section = section_name;
+                section = SECTION_COUNT;
                 error_or_continue();
             }
 
             section = str_to_section(key_value);
             if (section == SECTION_COUNT) {
+                context.section = key_value;
                 LOG_CONTEXTUAL_ERR("invalid section name: %s", key_value);
+                context.section = section_name;
                 error_or_continue();
             }
 
@@ -2563,13 +2569,11 @@ parse_config_file(FILE *f, struct config *conf, const char *path, bool errors_ar
         if (!parse_key_value(key_value, NULL, &context.key, &context.value)) {
             LOG_CONTEXTUAL_ERR("syntax error: key/value pair has no %s",
                                context.key == NULL ? "key" : "value");
-            if (errors_are_fatal)
-                goto err;
-            break;
+            error_or_continue();
         }
 
         LOG_DBG("section=%s, key='%s', value='%s', comment='%s'",
-                section_info[section].name, key, value, comment);
+                section_info[section].name, context.key, context.value, comment);
 
         xassert(section >= 0 && section < SECTION_COUNT);
 
@@ -2580,14 +2584,16 @@ parse_config_file(FILE *f, struct config *conf, const char *path, bool errors_ar
             error_or_continue();
     }
 
-    free(section_name);
-    free(_line);
-    return true;
+    if (errno != 0) {
+        LOG_AND_NOTIFY_ERRNO("failed to read from configuration");
+        if (errors_are_fatal)
+            ret = false;
+    }
 
-err:
+done:
     free(section_name);
     free(_line);
-    return false;
+    return ret;
 }
 
 static char *
