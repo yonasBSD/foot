@@ -2,6 +2,11 @@
 
 set -e
 
+if [ ${#} -ne 3 ]; then
+    echo "Usage: ${0} <default_version> <src_dir> <out_file>"
+    exit 1
+fi
+
 default_version=${1}
 src_dir=${2}
 out_file=${3}
