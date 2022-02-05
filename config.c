@@ -20,6 +20,7 @@
 #define LOG_MODULE "config"
 #define LOG_ENABLE_DBG 0
 #include "log.h"
+#include "char32.h"
 #include "debug.h"
 #include "input.h"
 #include "macros.h"
@@ -484,10 +485,10 @@ done:
 }
 
 static int
-wccmp(const void *_a, const void *_b)
+c32cmp_single(const void *_a, const void *_b)
 {
-    const wchar_t *a = _a;
-    const wchar_t *b = _b;
+    const char32_t *a = _a;
+    const char32_t *b = _b;
     return *a - *b;
 }
 
@@ -619,17 +620,16 @@ value_to_str(struct context *ctx, char **res)
 }
 
 static bool NOINLINE
-value_to_wchars(struct context *ctx, wchar_t **res)
+value_to_wchars(struct context *ctx, char32_t **res)
 {
-    size_t chars = mbstowcs(NULL, ctx->value, 0);
-    if (chars == (size_t)-1) {
-        LOG_CONTEXTUAL_ERR("not a valid string value");
+    char32_t *s = ambstoc32(ctx->value);
+    if (s == NULL) {
+        LOG_CONTEXTUAL_ERR("not a valie string value");
         return false;
     }
 
     free(*res);
-    *res = xmalloc((chars + 1) * sizeof(wchar_t));
-    mbstowcs(*res, ctx->value, chars + 1);
+    *res = s;
     return true;
 }
 
@@ -1171,7 +1171,7 @@ parse_section_url(struct context *ctx)
                 len--;
             prot[len] = '\0';
 
-            size_t chars = mbstowcs(NULL, prot, 0);
+            size_t chars = mbsntoc32(NULL, prot, len, 0);
             if (chars == (size_t)-1) {
                 ctx->value = prot;
                 LOG_CONTEXTUAL_ERRNO("invalid protocol");
@@ -1184,9 +1184,9 @@ parse_section_url(struct context *ctx)
                 conf->url.prot_count * sizeof(conf->url.protocols[0]));
 
             size_t idx = conf->url.prot_count - 1;
-            conf->url.protocols[idx] = xmalloc((chars + 1 + 3) * sizeof(wchar_t));
-            mbstowcs(conf->url.protocols[idx], prot, chars + 1);
-            wcscpy(&conf->url.protocols[idx][chars], L"://");
+            conf->url.protocols[idx] = xmalloc((chars + 1 + 3) * sizeof(char32_t));
+            mbsntoc32(conf->url.protocols[idx], prot, len, chars + 1);
+            c32cpy(&conf->url.protocols[idx][chars], U"://");
 
             chars += 3;  /* Include the "://" */
             if (chars > conf->url.max_prot_len)
@@ -1203,9 +1203,9 @@ parse_section_url(struct context *ctx)
 
         qsort(
             conf->url.uri_characters,
-            wcslen(conf->url.uri_characters),
+            c32len(conf->url.uri_characters),
             sizeof(conf->url.uri_characters[0]),
-            &wccmp);
+            &c32cmp_single);
         return true;
     }
 
@@ -2748,7 +2748,7 @@ config_load(struct config *conf, const char *conf_path,
         .shell = get_shell(),
         .title = xstrdup("foot"),
         .app_id = xstrdup("foot"),
-        .word_delimiters = xwcsdup(L",│`|:\"'()[]{}<>"),
+        .word_delimiters = xc32dup(U",│`|:\"'()[]{}<>"),
         .size = {
             .type = CONF_SIZE_PX,
             .width = 700,
@@ -2779,8 +2779,8 @@ config_load(struct config *conf, const char *conf_path,
             .command_focused = false,
         },
         .url = {
-            .label_letters = xwcsdup(L"sadfjklewcmpgh"),
-            .uri_characters = xwcsdup(L"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.,~:;/?#@!$&%*+=\"'()[]"),
+            .label_letters = xc32dup(U"sadfjklewcmpgh"),
+            .uri_characters = xc32dup(U"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.,~:;/?#@!$&%*+=\"'()[]"),
             .osc8_underline = OSC8_UNDERLINE_URL_MODE,
         },
         .can_shape_grapheme = fcft_caps & FCFT_CAPABILITY_GRAPHEME_SHAPING,
@@ -2789,7 +2789,7 @@ config_load(struct config *conf, const char *conf_path,
             .indicator = {
                 .position = SCROLLBACK_INDICATOR_POSITION_RELATIVE,
                 .format = SCROLLBACK_INDICATOR_FORMAT_TEXT,
-                .text = wcsdup(L""),
+                .text = xc32dup(U""),
             },
             .multiplier = 3.,
         },
@@ -2872,16 +2872,16 @@ config_load(struct config *conf, const char *conf_path,
                      &conf->notify.argv.args);
     tokenize_cmdline("xdg-open ${url}", &conf->url.launch.argv.args);
 
-    static const wchar_t *url_protocols[] = {
-        L"http://",
-        L"https://",
-        L"ftp://",
-        L"ftps://",
-        L"file://",
-        L"gemini://",
-        L"gopher://",
-        L"irc://",
-        L"ircs://",
+    static const char32_t *url_protocols[] = {
+        U"http://",
+        U"https://",
+        U"ftp://",
+        U"ftps://",
+        U"file://",
+        U"gemini://",
+        U"gopher://",
+        U"irc://",
+        U"ircs://",
     };
     conf->url.protocols = xmalloc(
         ALEN(url_protocols) * sizeof(conf->url.protocols[0]));
@@ -2889,17 +2889,17 @@ config_load(struct config *conf, const char *conf_path,
     conf->url.max_prot_len = 0;
 
     for (size_t i = 0; i < ALEN(url_protocols); i++) {
-        size_t len = wcslen(url_protocols[i]);
+        size_t len = c32len(url_protocols[i]);
         if (len > conf->url.max_prot_len)
             conf->url.max_prot_len = len;
-        conf->url.protocols[i] = xwcsdup(url_protocols[i]);
+        conf->url.protocols[i] = xc32dup(url_protocols[i]);
     }
 
     qsort(
         conf->url.uri_characters,
-        wcslen(conf->url.uri_characters),
+        c32len(conf->url.uri_characters),
         sizeof(conf->url.uri_characters[0]),
-        &wccmp);
+        &c32cmp_single);
 
     tll_foreach(*initial_user_notifications, it) {
         tll_push_back(conf->notifications, it->item);
@@ -3101,8 +3101,8 @@ config_clone(const struct config *old)
     conf->shell = xstrdup(old->shell);
     conf->title = xstrdup(old->title);
     conf->app_id = xstrdup(old->app_id);
-    conf->word_delimiters = xwcsdup(old->word_delimiters);
-    conf->scrollback.indicator.text = xwcsdup(old->scrollback.indicator.text);
+    conf->word_delimiters = xc32dup(old->word_delimiters);
+    conf->scrollback.indicator.text = xc32dup(old->scrollback.indicator.text);
     conf->server_socket_path = xstrdup(old->server_socket_path);
     spawn_template_clone(&conf->bell.command, &old->bell.command);
     spawn_template_clone(&conf->notify, &old->notify);
@@ -3111,13 +3111,13 @@ config_clone(const struct config *old)
         config_font_list_clone(&conf->fonts[i], &old->fonts[i]);
     config_font_list_clone(&conf->csd.font, &old->csd.font);
 
-    conf->url.label_letters = xwcsdup(old->url.label_letters);
-    conf->url.uri_characters = xwcsdup(old->url.uri_characters);
+    conf->url.label_letters = xc32dup(old->url.label_letters);
+    conf->url.uri_characters = xc32dup(old->url.uri_characters);
     spawn_template_clone(&conf->url.launch, &old->url.launch);
     conf->url.protocols = xmalloc(
         old->url.prot_count * sizeof(conf->url.protocols[0]));
     for (size_t i = 0; i < old->url.prot_count; i++)
-        conf->url.protocols[i] = xwcsdup(old->url.protocols[i]);
+        conf->url.protocols[i] = xc32dup(old->url.protocols[i]);
 
     key_binding_list_clone(&conf->bindings.key, &old->bindings.key);
     key_binding_list_clone(&conf->bindings.search, &old->bindings.search);
@@ -3237,13 +3237,13 @@ check_if_font_is_monospaced(const char *pattern,
     if (f == NULL)
         return true;
 
-    static const wchar_t chars[] = {L'a', L'i', L'l', L'M', L'W'};
+    static const char32_t chars[] = {U'a', U'i', U'l', U'M', U'W'};
 
     bool is_monospaced = true;
     int last_width = -1;
 
     for (size_t i = 0; i < sizeof(chars) / sizeof(chars[0]); i++) {
-        const struct fcft_glyph *g = fcft_glyph_rasterize(
+        const struct fcft_glyph *g = fcft_rasterize_char_utf32(
             f, chars[i], FCFT_SUBPIXEL_NONE);
 
         if (g == NULL)
@@ -3253,15 +3253,15 @@ check_if_font_is_monospaced(const char *pattern,
             LOG_WARN("%s: font does not appear to be monospace; "
                      "check your config, or disable this warning by "
                      "setting [tweak].font-monospace-warn=no",
-                     pattern);
+                     f->name);
 
             static const char fmt[] =
                 "%s: font does not appear to be monospace; "
                 "check your config, or disable this warning by "
                 "setting \033[1m[tweak].font-monospace-warn=no\033[22m";
 
-            user_notification_add_fmt(notifications, USER_NOTIFICATION_WARNING,
-                fmt, pattern);
+            user_notification_add_fmt(
+                notifications, USER_NOTIFICATION_WARNING, fmt, f->name);
 
             is_monospaced = false;
             break;

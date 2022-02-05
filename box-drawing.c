@@ -1259,7 +1259,7 @@ set_a1_bit(uint8_t *data, size_t ofs, size_t bit_no)
 }
 
 static void NOINLINE
-draw_box_drawings_light_arc(struct buf *buf, wchar_t wc)
+draw_box_drawings_light_arc(struct buf *buf, char32_t wc)
 {
     const pixman_format_code_t fmt = buf->format;
     const int supersample = fmt == PIXMAN_a8 ? 4 : 1;
@@ -1341,28 +1341,28 @@ draw_box_drawings_light_arc(struct buf *buf, wchar_t wc)
          * Hence the ‘thick % 2 ^ width % 2’ in the expressions below.
          */
         switch (wc) {
-        case  L'╭':
+        case  U'╭':
             row_end = height - row - (thick_is_odd ^ height_is_odd);
             row_start = row_end - thick;
             col_end = width - col - (thick_is_odd ^ width_is_odd);
             col_start = col_end - thick;
             break;
 
-        case L'╮':
+        case U'╮':
             row_end = height - row - (thick_is_odd ^ height_is_odd);
             row_start = row_end - thick;
             col_start = col - ((thick_is_odd ^ width_is_odd) ? supersample / 2 : 0);
             col_end = col_start + thick;
             break;
 
-        case L'╰':
+        case U'╰':
             row_start = row - ((thick_is_odd ^ height_is_odd) ? supersample / 2 : 0);
             row_end = row_start + thick;
             col_end = width - col - (thick_is_odd ^ width_is_odd);
             col_start = col_end - thick;
             break;
 
-        case L'╯':
+        case U'╯':
             row_start = row - ((thick_is_odd ^ height_is_odd) ? supersample / 2 : 0);
             row_end = row_start + thick;
             col_start = col - ((thick_is_odd ^ width_is_odd) ? supersample / 2 : 0);
@@ -1392,7 +1392,7 @@ draw_box_drawings_light_arc(struct buf *buf, wchar_t wc)
      * are.
      */
 
-    if (wc == L'╭' || wc == L'╰') {
+    if (wc == U'╭' || wc == U'╰') {
         for (int y = 0; y < thick; y++) {
             int row = (height - thick) / 2 + y - ((thick_is_odd ^ height_is_odd) ? supersample / 2 : 0);
             for (int col = width - supersample; col < width; col++) {
@@ -1408,7 +1408,7 @@ draw_box_drawings_light_arc(struct buf *buf, wchar_t wc)
         }
     }
 
-    if (wc == L'╭' || wc == L'╮') {
+    if (wc == U'╭' || wc == U'╮') {
         for (int x = 0; x < thick; x++) {
             int col = (width - thick) / 2 + x - ((thick_is_odd ^ width_is_odd) ? supersample / 2 : 0);
             for (int row = height - supersample; row < height; row++) {
@@ -1924,7 +1924,7 @@ quad_lower_right(struct buf *buf)
 }
 
 static void NOINLINE
-draw_quadrant(struct buf *buf, wchar_t wc)
+draw_quadrant(struct buf *buf, char32_t wc)
 {
     enum {
         UPPER_LEFT = 1 << 0,
@@ -1966,7 +1966,7 @@ draw_quadrant(struct buf *buf, wchar_t wc)
 }
 
 static void NOINLINE
-draw_braille(struct buf *buf, wchar_t wc)
+draw_braille(struct buf *buf, char32_t wc)
 {
     int w = min(buf->width / 4, buf->height / 8);
     int x_spacing = buf->width / 4;
@@ -2091,7 +2091,7 @@ sextant_lower_right(struct buf *buf)
 }
 
 static void NOINLINE
-draw_sextant(struct buf *buf, wchar_t wc)
+draw_sextant(struct buf *buf, char32_t wc)
 {
     /*
      * Each byte encodes one sextant:
@@ -2209,7 +2209,7 @@ draw_sextant(struct buf *buf, wchar_t wc)
 }
 
 static void NOINLINE
-draw_wedge_triangle(struct buf *buf, wchar_t wc)
+draw_wedge_triangle(struct buf *buf, char32_t wc)
 {
     const int width = buf->width;
     const int height = buf->height;
@@ -2476,7 +2476,7 @@ draw_wedge_triangle(struct buf *buf, wchar_t wc)
 }
 
 static void NOINLINE
-draw_wedge_triangle_inverted(struct buf *buf, wchar_t wc)
+draw_wedge_triangle_inverted(struct buf *buf, char32_t wc)
 {
     draw_wedge_triangle(buf, wc);
 
@@ -2486,7 +2486,7 @@ draw_wedge_triangle_inverted(struct buf *buf, wchar_t wc)
 }
 
 static void NOINLINE
-draw_wedge_triangle_and_box(struct buf *buf, wchar_t wc)
+draw_wedge_triangle_and_box(struct buf *buf, char32_t wc)
 {
     draw_wedge_triangle(buf, wc);
 
@@ -2591,7 +2591,7 @@ draw_right_seven_eighths_block(struct buf *buf)
 }
 
 static void
-draw_glyph(struct buf *buf, wchar_t wc)
+draw_glyph(struct buf *buf, char32_t wc)
 {
     IGNORE_WARNING("-Wpedantic")
 
@@ -2829,7 +2829,7 @@ draw_glyph(struct buf *buf, wchar_t wc)
 }
 
 struct fcft_glyph * COLD
-box_drawing(const struct terminal *term, wchar_t wc)
+box_drawing(const struct terminal *term, char32_t wc)
 {
     int width = term->cell_width;
     int height = term->cell_height;
@@ -2907,7 +2907,7 @@ box_drawing(const struct terminal *term, wchar_t wc)
 
     struct fcft_glyph *glyph = xmalloc(sizeof(*glyph));
     *glyph = (struct fcft_glyph){
-        .wc = wc,
+        .cp = wc,
         .cols = 1,
         .pix = buf.pix,
         .x = -term->font_x_ofs,

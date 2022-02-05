@@ -1,8 +1,6 @@
 #include "search.h"
 
 #include <string.h>
-#include <wchar.h>
-#include <wctype.h>
 
 #include <wayland-client.h>
 #include <xkbcommon/xkbcommon-compose.h>
@@ -10,6 +8,7 @@
 #define LOG_MODULE "search"
 #define LOG_ENABLE_DBG 0
 #include "log.h"
+#include "char32.h"
 #include "config.h"
 #include "extract.h"
 #include "grid.h"
@@ -64,7 +63,7 @@ search_ensure_size(struct terminal *term, size_t wanted_size)
 {
     while (wanted_size >= term->search.sz) {
         size_t new_sz = term->search.sz == 0 ? 64 : term->search.sz * 2;
-        wchar_t *new_buf = realloc(term->search.buf, new_sz * sizeof(term->search.buf[0]));
+        char32_t *new_buf = realloc(term->search.buf, new_sz * sizeof(term->search.buf[0]));
 
         if (new_buf == NULL) {
             LOG_ERRNO("failed to resize search buffer");
@@ -145,7 +144,7 @@ search_begin(struct terminal *term)
     term->search.len = 0;
     term->search.sz = 64;
     term->search.buf = xmalloc(term->search.sz * sizeof(term->search.buf[0]));
-    term->search.buf[0] = L'\0';
+    term->search.buf[0] = U'\0';
 
     term_xcursor_update(term);
     render_refresh_search(term);
@@ -256,7 +255,7 @@ matches_cell(const struct terminal *term, const struct cell *cell, size_t search
 {
     assert(search_ofs < term->search.len);
 
-    wchar_t base = cell->wc;
+    char32_t base = cell->wc;
     const struct composed *composed = NULL;
 
     if (base >= CELL_COMB_CHARS_LO && base <= CELL_COMB_CHARS_HI)
@@ -265,10 +264,10 @@ matches_cell(const struct terminal *term, const struct cell *cell, size_t search
         base = composed->chars[0];
     }
 
-    if (composed == NULL && base == 0 && term->search.buf[search_ofs] == L' ')
+    if (composed == NULL && base == 0 && term->search.buf[search_ofs] == U' ')
         return 1;
 
-    if (wcsncasecmp(&base, &term->search.buf[search_ofs], 1) != 0)
+    if (c32ncasecmp(&base, &term->search.buf[search_ofs], 1) != 0)
         return -1;
 
     if (composed != NULL) {
@@ -405,11 +404,11 @@ search_find_next(struct terminal *term)
 }
 
 static void
-add_wchars(struct terminal *term, wchar_t *src, size_t count)
+add_wchars(struct terminal *term, char32_t *src, size_t count)
 {
     /* Strip non-printable characters */
     for (size_t i = 0, j = 0, orig_count = count; i < orig_count; i++) {
-        if (iswprint(src[i]))
+        if (isc32print(src[i]))
             src[j++] = src[i];
         else
             count--;
@@ -422,32 +421,27 @@ add_wchars(struct terminal *term, wchar_t *src, size_t count)
 
     memmove(&term->search.buf[term->search.cursor + count],
             &term->search.buf[term->search.cursor],
-            (term->search.len - term->search.cursor) * sizeof(wchar_t));
+            (term->search.len - term->search.cursor) * sizeof(char32_t));
 
-    memcpy(&term->search.buf[term->search.cursor], src, count * sizeof(wchar_t));
+    memcpy(&term->search.buf[term->search.cursor], src, count * sizeof(char32_t));
 
     term->search.len += count;
     term->search.cursor += count;
-    term->search.buf[term->search.len] = L'\0';
+    term->search.buf[term->search.len] = U'\0';
 }
 
 void
 search_add_chars(struct terminal *term, const char *src, size_t count)
 {
-    const char *_src = src;
-    mbstate_t ps = {0};
-    size_t wchars = mbsnrtowcs(NULL, &_src, count, 0, &ps);
-
-    if (wchars == -1) {
-        LOG_ERRNO("failed to convert %.*s to wchars", (int)count, src);
+    size_t chars = mbsntoc32(NULL, src, count, 0);
+    if (chars == (size_t)-1) {
+        LOG_ERRNO("failed to convert %.*s to Unicode", (int)count, src);
         return;
     }
 
-    _src = src;
-    ps = (mbstate_t){0};
-    wchar_t wcs[wchars + 1];
-    mbsnrtowcs(wcs, &_src, count, wchars, &ps);
-    add_wchars(term, wcs, wchars);
+    char32_t c32s[chars + 1];
+    mbsntoc32(c32s, src, count, chars);
+    add_wchars(term, c32s, chars);
 }
 
 static void
@@ -502,7 +496,7 @@ search_match_to_end_of_word(struct terminal *term, bool spaces_only)
             break;
     } while (pos.col != new_end.col || pos.row != new_end.row);
 
-    wchar_t *new_text;
+    char32_t *new_text;
     size_t new_len;
 
     if (!extract_finish_wide(ctx, &new_text, &new_len))
@@ -512,7 +506,7 @@ search_match_to_end_of_word(struct terminal *term, bool spaces_only)
         return;
 
     for (size_t i = 0; i < new_len; i++) {
-        if (new_text[i] == L'\n') {
+        if (new_text[i] == U'\n') {
             /* extract() adds newlines, which we never match against */
             continue;
         }
@@ -520,7 +514,7 @@ search_match_to_end_of_word(struct terminal *term, bool spaces_only)
         term->search.buf[term->search.len++] = new_text[i];
     }
 
-    term->search.buf[term->search.len] = L'\0';
+    term->search.buf[term->search.len] = U'\0';
     free(new_text);
 
     if (move_cursor)
@@ -544,22 +538,22 @@ distance_next_word(const struct terminal *term)
 
     /* First eat non-whitespace. This is the word we're skipping past */
     while (cursor < term->search.len) {
-        if (iswspace(term->search.buf[cursor++]))
+        if (isc32space(term->search.buf[cursor++]))
             break;
     }
 
-    xassert(cursor == term->search.len || iswspace(term->search.buf[cursor - 1]));
+    xassert(cursor == term->search.len || isc32space(term->search.buf[cursor - 1]));
 
     /* Now skip past whitespace, so that we end up at the beginning of
      * the next word */
     while (cursor < term->search.len) {
-        if (!iswspace(term->search.buf[cursor++]))
+        if (!isc32space(term->search.buf[cursor++]))
             break;
     }
 
-    xassert(cursor == term->search.len || !iswspace(term->search.buf[cursor - 1]));
+    xassert(cursor == term->search.len || !isc32space(term->search.buf[cursor - 1]));
 
-    if (cursor < term->search.len && !iswspace(term->search.buf[cursor]))
+    if (cursor < term->search.len && !isc32space(term->search.buf[cursor]))
         cursor--;
 
     return cursor - term->search.cursor;
@@ -572,20 +566,20 @@ distance_prev_word(const struct terminal *term)
 
     /* First, eat whitespace prefix */
     while (cursor > 0) {
-        if (!iswspace(term->search.buf[--cursor]))
+        if (!isc32space(term->search.buf[--cursor]))
             break;
     }
 
-    xassert(cursor == 0 || !iswspace(term->search.buf[cursor]));
+    xassert(cursor == 0 || !isc32space(term->search.buf[cursor]));
 
     /* Now eat non-whitespace. This is the word we're skipping past */
     while (cursor > 0) {
-        if (iswspace(term->search.buf[--cursor]))
+        if (isc32space(term->search.buf[--cursor]))
             break;
     }
 
-    xassert(cursor == 0 || iswspace(term->search.buf[cursor]));
-    if (cursor > 0 && iswspace(term->search.buf[cursor]))
+    xassert(cursor == 0 || isc32space(term->search.buf[cursor]));
+    if (cursor > 0 && isc32space(term->search.buf[cursor]))
         cursor++;
 
     return term->search.cursor - cursor;
@@ -603,7 +597,7 @@ from_clipboard_done(void *user)
 {
     struct terminal *term = user;
 
-    LOG_DBG("search: buffer: %ls", term->search.buf);
+    LOG_DBG("search: buffer: %ls", (const wchar_t *)term->search.buf);
     search_find_next(term);
     render_refresh_search(term);
 }
@@ -741,9 +735,9 @@ execute_binding(struct seat *seat, struct terminal *term,
             memmove(
                 &term->search.buf[term->search.cursor - 1],
                 &term->search.buf[term->search.cursor],
-                (term->search.len - term->search.cursor) * sizeof(wchar_t));
+                (term->search.len - term->search.cursor) * sizeof(char32_t));
             term->search.cursor--;
-            term->search.buf[--term->search.len] = L'\0';
+            term->search.buf[--term->search.len] = U'\0';
             *update_search_result = *redraw = true;
         }
         return true;
@@ -756,7 +750,7 @@ execute_binding(struct seat *seat, struct terminal *term,
         if (diff > 0) {
             memmove(&term->search.buf[new_cursor],
                     &term->search.buf[old_cursor],
-                    (term->search.len - old_cursor) * sizeof(wchar_t));
+                    (term->search.len - old_cursor) * sizeof(char32_t));
 
             term->search.len -= diff;
             term->search.cursor = new_cursor;
@@ -770,8 +764,8 @@ execute_binding(struct seat *seat, struct terminal *term,
             memmove(
                 &term->search.buf[term->search.cursor],
                 &term->search.buf[term->search.cursor + 1],
-                (term->search.len - term->search.cursor - 1) * sizeof(wchar_t));
-            term->search.buf[--term->search.len] = L'\0';
+                (term->search.len - term->search.cursor - 1) * sizeof(char32_t));
+            term->search.buf[--term->search.len] = U'\0';
             *update_search_result = *redraw = true;
         }
         return true;
@@ -783,7 +777,7 @@ execute_binding(struct seat *seat, struct terminal *term,
         if (diff > 0) {
             memmove(&term->search.buf[cursor],
                     &term->search.buf[cursor + diff],
-                    (term->search.len - (cursor + diff)) * sizeof(wchar_t));
+                    (term->search.len - (cursor + diff)) * sizeof(char32_t));
 
             term->search.len -= diff;
             *update_search_result = *redraw = true;
@@ -905,7 +899,7 @@ search_input(struct seat *seat, struct terminal *term, uint32_t key,
     search_add_chars(term, (const char *)buf, count);
 
 update_search:
-    LOG_DBG("search: buffer: %ls", term->search.buf);
+    LOG_DBG("search: buffer: %ls", (const wchar_t *)term->search.buf);
     if (update_search_result)
         search_find_next(term);
     if (redraw)

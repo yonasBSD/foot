@@ -22,6 +22,7 @@ pipeline:
       - mkdir -p subprojects && cd subprojects
       - git clone https://codeberg.org/dnkl/tllist.git
       - git clone https://codeberg.org/dnkl/fcft.git
+      - cd fcft && git checkout 3.0-dev && cd ..
       - cd ..
 
   x64:

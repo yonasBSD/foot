@@ -5,7 +5,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <wctype.h>
 
 #include <sys/epoll.h>
 #include <sys/timerfd.h>
@@ -15,6 +14,7 @@
 #include "log.h"
 
 #include "async.h"
+#include "char32.h"
 #include "commands.h"
 #include "config.h"
 #include "extract.h"
@@ -235,7 +235,7 @@ selection_find_word_boundary_left(struct terminal *term, struct coord *pos,
                                   bool spaces_only)
 {
     const struct row *r = grid_row_in_view(term->grid, pos->row);
-    wchar_t c = r->cells[pos->col].wc;
+    char32_t c = r->cells[pos->col].wc;
 
     while (c >= CELL_SPACER) {
         xassert(pos->col > 0);
@@ -248,7 +248,7 @@ selection_find_word_boundary_left(struct terminal *term, struct coord *pos,
     if (c >= CELL_COMB_CHARS_LO && c <= CELL_COMB_CHARS_HI)
         c = composed_lookup(term->composed, c - CELL_COMB_CHARS_LO)->chars[0];
 
-    bool initial_is_space = c == 0 || iswspace(c);
+    bool initial_is_space = c == 0 || isc32space(c);
     bool initial_is_delim =
         !initial_is_space && !isword(c, spaces_only, term->conf->word_delimiters);
     bool initial_is_word =
@@ -285,7 +285,7 @@ selection_find_word_boundary_left(struct terminal *term, struct coord *pos,
         if (c >= CELL_COMB_CHARS_LO && c <= CELL_COMB_CHARS_HI)
             c = composed_lookup(term->composed, c - CELL_COMB_CHARS_LO)->chars[0];
 
-        bool is_space = c == 0 || iswspace(c);
+        bool is_space = c == 0 || isc32space(c);
         bool is_delim =
             !is_space && !isword(c, spaces_only, term->conf->word_delimiters);
         bool is_word =
@@ -308,7 +308,7 @@ selection_find_word_boundary_right(struct terminal *term, struct coord *pos,
                                    bool spaces_only)
 {
     const struct row *r = grid_row_in_view(term->grid, pos->row);
-    wchar_t c = r->cells[pos->col].wc;
+    char32_t c = r->cells[pos->col].wc;
 
     while (c >= CELL_SPACER) {
         xassert(pos->col > 0);
@@ -321,7 +321,7 @@ selection_find_word_boundary_right(struct terminal *term, struct coord *pos,
     if (c >= CELL_COMB_CHARS_LO && c <= CELL_COMB_CHARS_HI)
         c = composed_lookup(term->composed, c - CELL_COMB_CHARS_LO)->chars[0];
 
-    bool initial_is_space = c == 0 || iswspace(c);
+    bool initial_is_space = c == 0 || isc32space(c);
     bool initial_is_delim =
         !initial_is_space && !isword(c, spaces_only, term->conf->word_delimiters);
     bool initial_is_word =
@@ -360,7 +360,7 @@ selection_find_word_boundary_right(struct terminal *term, struct coord *pos,
         if (c >= CELL_COMB_CHARS_LO && c <= CELL_COMB_CHARS_HI)
             c = composed_lookup(term->composed, c - CELL_COMB_CHARS_LO)->chars[0];
 
-        bool is_space = c == 0 || iswspace(c);
+        bool is_space = c == 0 || isc32space(c);
         bool is_delim =
             !is_space && !isword(c, spaces_only, term->conf->word_delimiters);
         bool is_word =
@@ -668,7 +668,7 @@ set_pivot_point_for_block_and_char_wise(struct terminal *term,
         bool keep_going = true;
         while (keep_going) {
             const struct row *row = term->grid->rows[pivot_end->row & (term->grid->num_rows - 1)];
-            const wchar_t wc = row->cells[pivot_end->col].wc;
+            const char32_t wc = row->cells[pivot_end->col].wc;
 
             keep_going = wc >= CELL_SPACER;
 
@@ -684,7 +684,7 @@ set_pivot_point_for_block_and_char_wise(struct terminal *term,
         bool keep_going = true;
         while (keep_going) {
             const struct row *row = term->grid->rows[pivot_start->row & (term->grid->num_rows - 1)];
-            const wchar_t wc = pivot_start->col < term->cols - 1
+            const char32_t wc = pivot_start->col < term->cols - 1
                 ? row->cells[pivot_start->col + 1].wc : 0;
 
             keep_going = wc >= CELL_SPACER;

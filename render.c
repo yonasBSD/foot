@@ -29,6 +29,7 @@
 #define LOG_ENABLE_DBG 0
 #include "log.h"
 #include "box-drawing.h"
+#include "char32.h"
 #include "config.h"
 #include "grid.h"
 #include "hsl.h"
@@ -566,7 +567,7 @@ render_cell(struct terminal *term, pixman_image_t *pix,
     const struct fcft_glyph **glyphs = NULL;
     unsigned glyph_count = 0;
 
-    wchar_t base = cell->wc;
+    char32_t base = cell->wc;
     int cell_cols = 1;
 
     if (base != 0) {
@@ -637,9 +638,8 @@ render_cell(struct terminal *term, pixman_image_t *pix,
             base = composed->chars[0];
 
             if (term->conf->can_shape_grapheme && term->conf->tweak.grapheme_shaping) {
-                grapheme = fcft_grapheme_rasterize(
-                    font, composed->count, composed->chars,
-                    0, NULL, term->font_subpixel);
+                grapheme = fcft_rasterize_grapheme_utf32(
+                    font, composed->count, composed->chars, term->font_subpixel);
             }
 
             if (grapheme != NULL) {
@@ -654,7 +654,7 @@ render_cell(struct terminal *term, pixman_image_t *pix,
 
         if (single == NULL && grapheme == NULL) {
             xassert(base != 0);
-            single = fcft_glyph_rasterize(font, base, term->font_subpixel);
+            single = fcft_rasterize_char_utf32(font, base, term->font_subpixel);
             if (single == NULL) {
                 glyph_count = 0;
                 cell_cols = 1;
@@ -717,7 +717,7 @@ render_cell(struct terminal *term, pixman_image_t *pix,
     if (has_cursor && term->cursor_style == CURSOR_BLOCK && term->kbd_focus)
         draw_cursor(term, cell, font, pix, &fg, &bg, x, y, cell_cols);
 
-    if (cell->wc == 0 || cell->wc >= CELL_SPACER || cell->wc == L'\t' ||
+    if (cell->wc == 0 || cell->wc >= CELL_SPACER || cell->wc == U'\t' ||
         (unlikely(cell->attrs.conceal) && !is_selected))
     {
         goto draw_cursor;
@@ -758,7 +758,7 @@ render_cell(struct terminal *term, pixman_image_t *pix,
                 assert(glyph_count == 1);
 
                 for (size_t i = 1; i < composed->count; i++) {
-                    const struct fcft_glyph *g = fcft_glyph_rasterize(
+                    const struct fcft_glyph *g = fcft_rasterize_char_utf32(
                         font, composed->chars[i], term->font_subpixel);
 
                     if (g == NULL)
@@ -1414,7 +1414,7 @@ render_ime_preedit_for_seat(struct terminal *term, struct seat *seat,
         if (cell->wc >= CELL_SPACER)
             continue;
 
-        int width = max(1, wcwidth(cell->wc));
+        int width = max(1, c32width(cell->wc));
         if (col_idx + i + width > term->cols)
             break;
 
@@ -1626,7 +1626,7 @@ static void
 render_osd(struct terminal *term,
            struct wl_surface *surf, struct wl_subsurface *sub_surf,
            struct fcft_font *font, struct buffer *buf,
-           const wchar_t *text, uint32_t _fg, uint32_t _bg,
+           const char32_t *text, uint32_t _fg, uint32_t _bg,
            unsigned x, unsigned y)
 {
     pixman_region32_t clip;
@@ -1643,14 +1643,15 @@ render_osd(struct terminal *term,
     pixman_color_t fg = color_hex_to_pixman(_fg);
     const int x_ofs = term->font_x_ofs;
 
-    const size_t len = wcslen(text);
+    const size_t len = c32len(text);
     struct fcft_text_run *text_run = NULL;
     const struct fcft_glyph **glyphs = NULL;
     const struct fcft_glyph *_glyphs[len];
     size_t glyph_count = 0;
 
     if (fcft_capabilities() & FCFT_CAPABILITY_TEXT_RUN_SHAPING) {
-        text_run = fcft_text_run_rasterize(font, len, text, term->font_subpixel);
+        text_run = fcft_rasterize_text_run_utf32(
+            font, len, (const char32_t *)text, term->font_subpixel);
 
         if (text_run != NULL) {
             glyphs = text_run->glyphs;
@@ -1660,7 +1661,7 @@ render_osd(struct terminal *term,
 
     if (glyphs == NULL) {
         for (size_t i = 0; i < len; i++) {
-            const struct fcft_glyph *glyph = fcft_glyph_rasterize(
+            const struct fcft_glyph *glyph = fcft_rasterize_char_utf32(
                 font, text[i], term->font_subpixel);
 
             if (glyph == NULL)
@@ -1740,20 +1741,15 @@ render_csd_title(struct terminal *term, const struct csd_data *info,
         fg = color_dim(term, fg);
     }
 
-    const wchar_t *title_text = L"";
-    wchar_t *_title_text = NULL;
-
-    int chars = mbstowcs(NULL, term->window_title, 0);
-    if (chars >= 0) {
-        _title_text = xmalloc((chars + 1) * sizeof(wchar_t));
-        mbstowcs(_title_text, term->window_title, chars + 1);
-        title_text = _title_text;
-    }
+    char32_t *_title_text = ambstoc32(term->window_title);
+    const char32_t *title_text = _title_text != NULL ? _title_text : U"";
 
     struct wl_window *win = term->window;
-    const int margin = win->csd.font->space_advance.x > 0
-        ? win->csd.font->space_advance.x
-        : win->csd.font->max_advance.x;
+
+    const struct fcft_glyph *M = fcft_rasterize_char_utf32(
+        win->csd.font, U'M', term->font_subpixel);
+
+    const int margin = M != NULL ? M->advance.x : win->csd.font->max_advance.x;
 
     render_osd(term, surf->surf, surf->sub, win->csd.font,
                buf, title_text, fg, bg, margin,
@@ -2197,25 +2193,31 @@ render_scrollback_position(struct terminal *term)
         ? 1.0
         : (double)rebased_view / (populated_rows - term->rows);
 
-    wchar_t _text[64];
-    const wchar_t *text = _text;
+    char32_t _text[64];
+    const char32_t *text = _text;
     int cell_count = 0;
 
     /* *What* to render */
     switch (term->conf->scrollback.indicator.format) {
-    case SCROLLBACK_INDICATOR_FORMAT_PERCENTAGE:
-        swprintf(_text, sizeof(_text) / sizeof(_text[0]), L"%u%%", (int)(100 * percent));
+    case SCROLLBACK_INDICATOR_FORMAT_PERCENTAGE: {
+        char percent_str[8];
+        snprintf(percent_str, sizeof(percent_str), "%u%%", (int)(100 * percent));
+        mbstoc32(_text, percent_str, ALEN(_text));
         cell_count = 3;
         break;
+    }
 
-    case SCROLLBACK_INDICATOR_FORMAT_LINENO:
-        swprintf(_text, sizeof(_text) / sizeof(_text[0]), L"%d", rebased_view + 1);
-        cell_count = 1 + (int)log10(term->grid->num_rows);
+    case SCROLLBACK_INDICATOR_FORMAT_LINENO: {
+        char lineno_str[64];
+        snprintf(lineno_str, sizeof(lineno_str), "%d", rebased_view + 1);
+        mbstoc32(_text, lineno_str, ALEN(_text));
+        cell_count = ceil(log10(term->grid->num_rows));
         break;
+    }
 
     case SCROLLBACK_INDICATOR_FORMAT_TEXT:
         text = term->conf->scrollback.indicator.text;
-        cell_count = wcslen(text);
+        cell_count = c32len(text);
         break;
     }
 
@@ -2281,7 +2283,7 @@ render_scrollback_position(struct terminal *term)
         win->scrollback_indicator.sub,
         term->fonts[0], buf, text,
         fg, 0xffu << 24 | bg,
-        width - margin - wcslen(text) * term->cell_width, margin);
+        width - margin - c32len(text) * term->cell_width, margin);
 }
 
 static void
@@ -2289,12 +2291,15 @@ render_render_timer(struct terminal *term, struct timespec render_time)
 {
     struct wl_window *win = term->window;
 
-    wchar_t text[256];
+    char usecs_str[256];
     double usecs = render_time.tv_sec * 1000000 + render_time.tv_nsec / 1000.0;
-    swprintf(text, sizeof(text) / sizeof(text[0]), L"%.2f µs", usecs);
+    snprintf(usecs_str, sizeof(usecs_str), "%.2f µs", usecs);
+
+    char32_t text[256];
+    mbstoc32(text, usecs_str, ALEN(text));
 
     const int scale = term->scale;
-    const int cell_count = wcslen(text);
+    const int cell_count = c32len(text);
     const int margin = 3 * scale;
     const int width =
         (2 * margin + cell_count * term->cell_width + scale - 1) / scale * scale;
@@ -2846,34 +2851,34 @@ render_search_box(struct terminal *term)
 
     size_t text_len = term->search.len;
     if (ime_seat != NULL && ime_seat->ime.preedit.text != NULL)
-        text_len += wcslen(ime_seat->ime.preedit.text);
+        text_len += c32len(ime_seat->ime.preedit.text);
 
-    wchar_t *text = xmalloc((text_len + 1) *  sizeof(wchar_t));
-    text[0] = L'\0';
+    char32_t *text = xmalloc((text_len + 1) *  sizeof(char32_t));
+    text[0] = U'\0';
 
     /* Copy everything up to the cursor */
-    wcsncpy(text, term->search.buf, term->search.cursor);
-    text[term->search.cursor] = L'\0';
+    c32ncpy(text, term->search.buf, term->search.cursor);
+    text[term->search.cursor] = U'\0';
 
     /* Insert pre-edit text at cursor */
     if (ime_seat != NULL && ime_seat->ime.preedit.text != NULL)
-        wcscat(text, ime_seat->ime.preedit.text);
+        c32cat(text, ime_seat->ime.preedit.text);
 
     /* And finally everything after the cursor */
-    wcsncat(text, &term->search.buf[term->search.cursor],
+    c32ncat(text, &term->search.buf[term->search.cursor],
             term->search.len - term->search.cursor);
 #else
-    const wchar_t *text = term->search.buf;
+    const char32_t *text = term->search.buf;
     const size_t text_len = term->search.len;
 #endif
 
     /* Calculate the width of each character */
     int widths[text_len + 1];
     for (size_t i = 0; i < text_len; i++)
-        widths[i] = max(0, wcwidth(text[i]));
+        widths[i] = max(0, c32width(text[i]));
     widths[text_len] = 0;
 
-    const size_t total_cells = wcswidth(text, text_len);
+    const size_t total_cells = c32swidth(text, text_len);
     const size_t wanted_visible_cells = max(20, total_cells);
 
     xassert(term->scale >= 1);
@@ -3070,7 +3075,7 @@ render_search_box(struct terminal *term)
             continue;
         }
 
-        const struct fcft_glyph *glyph = fcft_glyph_rasterize(
+        const struct fcft_glyph *glyph = fcft_rasterize_char_utf32(
             font, text[i], term->font_subpixel);
 
         if (glyph == NULL) {
@@ -3195,7 +3200,7 @@ render_urls(struct terminal *term)
     /* Positioning data + label contents */
     struct {
         const struct wl_url *url;
-        wchar_t *text;
+        char32_t *text;
         int x;
         int y;
     } info[tll_length(win->urls)];
@@ -3208,8 +3213,8 @@ render_urls(struct terminal *term)
 
     tll_foreach(win->urls, it) {
         const struct url *url = it->item.url;
-        const wchar_t *key = url->key;
-        const size_t entered_key_len = wcslen(term->url_keys);
+        const char32_t *key = url->key;
+        const size_t entered_key_len = c32len(term->url_keys);
 
         if (key == NULL) {
             /* TODO: if we decide to use the .text field, we cannot
@@ -3232,9 +3237,9 @@ render_urls(struct terminal *term)
 
         if (_row < view_start || _row > view_end)
             hide = true;
-        if (wcslen(key) <= entered_key_len)
+        if (c32len(key) <= entered_key_len)
             hide = true;
-        if (wcsncasecmp(term->url_keys, key, entered_key_len) != 0)
+        if (c32ncasecmp(term->url_keys, key, entered_key_len) != 0)
             hide = true;
 
         if (hide) {
@@ -3264,32 +3269,34 @@ render_urls(struct terminal *term)
             term->width - term->margins.left - term->margins.right - x;
         const int max_cols = max_width / term->cell_width;
 
-        const size_t key_len = wcslen(key);
+        const size_t key_len = c32len(key);
 
-        size_t url_len = mbstowcs(NULL, url->url, 0);
+        size_t url_len = mbstoc32(NULL, url->url, 0);
         if (url_len == (size_t)-1)
             url_len = 0;
 
-        wchar_t url_wchars[url_len + 1];
-        mbstowcs(url_wchars, url->url, url_len + 1);
+        char32_t url_wchars[url_len + 1];
+        mbstoc32(url_wchars, url->url, url_len + 1);
 
         /* Format label, not yet subject to any size limitations */
         size_t chars = key_len + (show_url ? (2 + url_len) : 0);
-        wchar_t label[chars + 1];
-        label[chars] = L'\0';
+        char32_t label[chars + 1];
+        label[chars] = U'\0';
 
-        if (show_url)
-            swprintf(label, chars + 1, L"%ls: %ls", key, url_wchars);
-        else
-            wcsncpy(label, key, chars);
+        if (show_url) {
+            c32cpy(label, key);
+            c32cat(label, U": ");
+            c32cat(label, url_wchars);
+        } else
+            c32ncpy(label, key, chars);
 
         /* Upper case the key characters */
-        for (size_t i = 0; i < wcslen(key); i++)
-            label[i] = towupper(label[i]);
+        for (size_t i = 0; i < c32len(key); i++)
+            label[i] = toc32upper(label[i]);
 
         /* Blank already entered key characters */
         for (size_t i = 0; i < entered_key_len; i++)
-            label[i] = L' ';
+            label[i] = U' ';
 
         /*
          * Don’t extend outside our window
@@ -3303,16 +3310,16 @@ render_urls(struct terminal *term)
 
         int cols = 0;
 
-        for (size_t i = 0; i <= wcslen(label); i++) {
-            int _cols = wcswidth(label, i);
+        for (size_t i = 0; i <= c32len(label); i++) {
+            int _cols = c32swidth(label, i);
 
             if (_cols == (size_t)-1)
                 continue;
 
             if (_cols >= max_cols) {
                 if (i > 0)
-                    label[i - 1] = L'…';
-                label[i] = L'\0';
+                    label[i - 1] = U'…';
+                label[i] = U'\0';
                 cols = max_cols;
                 break;
             }
@@ -3328,7 +3335,7 @@ render_urls(struct terminal *term)
             (2 * y_margin + term->cell_height + scale - 1) / scale * scale;
 
         info[render_count].url = &it->item;
-        info[render_count].text = xwcsdup(label);
+        info[render_count].text = xc32dup(label);
         info[render_count].x = x;
         info[render_count].y = y;
 
@@ -3353,7 +3360,7 @@ render_urls(struct terminal *term)
         struct wl_surface *surf = info[i].url->surf.surf;
         struct wl_subsurface *sub_surf = info[i].url->surf.sub;
 
-        const wchar_t *label = info[i].text;
+        const char32_t *label = info[i].text;
         const int x = info[i].x;
         const int y = info[i].y;
 

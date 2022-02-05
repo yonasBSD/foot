@@ -334,6 +334,7 @@
 * `dpi-aware=auto`: fonts are now scaled using the monitor’s DPI only
   when **all** monitors have a scaling factor of one
   (https://codeberg.org/dnkl/foot/issues/714).
+* fcft >= 3.0.0 in now required.
 
 
 ### Fixed

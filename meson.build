@@ -90,7 +90,7 @@ if utf8proc.found()
 endif
 
 tllist = dependency('tllist', version: '>=1.0.4', fallback: 'tllist')
-fcft = dependency('fcft', version: ['>=2.4.0', '<3.0.0'], fallback: 'fcft')
+fcft = dependency('fcft', version: ['>=3.0.0', '<4.0.0'], fallback: 'fcft')
 
 wayland_protocols_datadir = wayland_protocols.get_pkgconfig_variable('pkgdatadir')
 
@@ -149,6 +149,7 @@ builtin_terminfo = custom_target(
 common = static_library(
   'common',
   'log.c', 'log.h',
+  'char32.c', 'char32.h',
   'debug.c', 'debug.h',
   'xmalloc.c', 'xmalloc.h',
   'xsnprintf.c', 'xsnprintf.h'
