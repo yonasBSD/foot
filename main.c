@@ -649,8 +649,6 @@ main(int argc, char *const *argv)
     if (aborted || tll_length(wayl->terms) == 0)
         ret = EXIT_SUCCESS;
 
-    LOG_INFO("%zu", c32len(U"foobar"));
-
 out:
     free(_cwd);
     server_destroy(server);
