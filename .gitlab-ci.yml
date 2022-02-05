@@ -19,7 +19,6 @@ debug-x64:
   script:
     - cd subprojects
     - git clone https://codeberg.org/dnkl/fcft.git
-    - cd fcft && git checkout 3.0-dev && cd ..
     - cd ..
     - mkdir -p bld/debug
     - cd bld/debug
@@ -37,7 +36,6 @@ debug-x64-no-grapheme-clustering:
     - apk del harfbuzz harfbuzz-dev utf8proc utf8proc-dev
     - cd subprojects
     - git clone https://codeberg.org/dnkl/fcft.git
-    - cd fcft && git checkout 3.0-dev && cd ..
     - cd ..
     - mkdir -p bld/debug
     - cd bld/debug
@@ -56,7 +54,6 @@ release-x64:
   script:
     - cd subprojects
     - git clone https://codeberg.org/dnkl/fcft.git
-    - cd fcft && git checkout 3.0-dev && cd ..
     - cd ..
     - mkdir -p bld/release
     - cd bld/release
@@ -75,7 +72,6 @@ debug-x86:
   script:
     - cd subprojects
     - git clone https://codeberg.org/dnkl/fcft.git
-    - cd fcft && git checkout 3.0-dev && cd ..
     - cd ..
     - mkdir -p bld/debug
     - cd bld/debug
@@ -94,7 +90,6 @@ release-x86:
   script:
     - cd subprojects
     - git clone https://codeberg.org/dnkl/fcft.git
-    - cd fcft && git checkout 3.0-dev && cd ..
     - cd ..
     - mkdir -p bld/release
     - cd bld/release
@@ -114,4 +109,4 @@ codespell:
     - apk add python3
     - apk add py3-pip
     - pip install codespell
-    - codespell -Ldoas README.md INSTALL.md CHANGELOG.md *.c *.h doc/*.scd
+    - codespell -Lser,doas README.md INSTALL.md CHANGELOG.md *.c *.h doc/*.scd
