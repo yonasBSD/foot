@@ -1,6 +1,6 @@
 # Changelog
 
-* [Unreleased](#unreleased)
+* [1.11.0](#1-11-0)
 * [1.10.3](#1-10-3)
 * [1.10.2](#1-10-2)
 * [1.10.1](#1-10-1)
@@ -36,7 +36,8 @@
 * [1.2.0](#1-2-0)
 
 
-## Unreleased
+## 1.11.0
+
 ### Added
 
 * `[mouse-bindings].selection-override-modifiers` option, specifying
@@ -91,7 +92,6 @@
   outside the terminal (https://codeberg.org/dnkl/foot/pulls/894).
 
 
-### Deprecated
 ### Removed
 
 * Workaround for slow resize in Sway <= 1.5, when a foot window was
@@ -131,10 +131,19 @@
   platforms (https://codeberg.org/dnkl/foot/issues/914).
 
 
-### Security
 ### Contributors
 
 * [lamonte](https://codeberg.org/lamonte)
+* Érico Nogueira
+* feeptr
+* Felix Lechner
+* grtcdr
+* Mark Stosberg
+* Nicolai Dagestad
+* Oğuz Ersen
+* Pranjal Kole
+* Simon Ser
+
 
 ## 1.10.3
 
