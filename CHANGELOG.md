@@ -85,6 +85,10 @@
 * Foot now clears the signal mask and resets all signal handlers to
   their default handlers at startup
   (https://codeberg.org/dnkl/foot/issues/854).
+* `Copy` and `Paste` keycodes are supported by default for the
+  clipboard. These are useful for keyboards with custom firmware like
+  QMK to enable global copy/paste shortcuts that work inside and
+  outside the terminal (https://codeberg.org/dnkl/foot/pulls/894).
 
 
 ### Deprecated
