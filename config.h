@@ -47,6 +47,7 @@ struct argv {
 enum binding_aux_type {
     BINDING_AUX_NONE,
     BINDING_AUX_PIPE,
+    BINDING_AUX_TEXT,
 };
 
 struct binding_aux {
@@ -55,12 +56,22 @@ struct binding_aux {
 
     union {
         struct argv pipe;
+
+        struct {
+            uint8_t *data;
+            size_t len;
+        } text;
     };
 };
 
 enum key_binding_type {
     KEY_BINDING,
     MOUSE_BINDING,
+};
+
+struct config_key_binding_text {
+    char *text;
+    bool master_copy;
 };
 
 struct config_key_binding {

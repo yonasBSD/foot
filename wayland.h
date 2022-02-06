@@ -54,6 +54,7 @@ enum bind_action_normal {
     BIND_ACTION_PIPE_SELECTED,
     BIND_ACTION_SHOW_URLS_COPY,
     BIND_ACTION_SHOW_URLS_LAUNCH,
+    BIND_ACTION_TEXT_BINDING,
 
     /* Mouse specific actions - i.e. they require a mouse coordinate */
     BIND_ACTION_SELECT_BEGIN,
@@ -119,7 +120,6 @@ struct key_binding {
     };
 
     const struct binding_aux *aux;
-
 };
 typedef tll(struct key_binding) key_binding_list_t;
 

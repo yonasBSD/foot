@@ -111,6 +111,7 @@ static const char *const binding_action_map[] = {
     [BIND_ACTION_PIPE_SELECTED] = "pipe-selected",
     [BIND_ACTION_SHOW_URLS_COPY] = "show-urls-copy",
     [BIND_ACTION_SHOW_URLS_LAUNCH] = "show-urls-launch",
+    [BIND_ACTION_TEXT_BINDING] = "text-binding",
 
     /* Mouse-specific actions */
     [BIND_ACTION_SELECT_BEGIN] = "select-begin",
@@ -1480,7 +1481,8 @@ free_binding_aux(struct binding_aux *aux)
 {
     switch (aux->type) {
     case BINDING_AUX_NONE: break;
-    case BINDING_AUX_PIPE: free_argv(&aux->pipe);
+    case BINDING_AUX_PIPE: free_argv(&aux->pipe); break;
+    case BINDING_AUX_TEXT: free(aux->text.data); break;
     }
 }
 
@@ -1578,8 +1580,15 @@ binding_aux_equal(const struct binding_aux *a,
         return false;
 
     switch (a->type) {
-    case BINDING_AUX_NONE: return true;
-    case BINDING_AUX_PIPE: return argv_compare(&a->pipe, &b->pipe) == 0;
+    case BINDING_AUX_NONE:
+        return true;
+
+    case BINDING_AUX_PIPE:
+        return argv_compare(&a->pipe, &b->pipe) == 0;
+
+    case BINDING_AUX_TEXT:
+        return a->text.len == b->text.len &&
+            memcmp(a->text.data, b->text.data, a->text.len) == 0;
     }
 
     BUG("invalid AUX type: %d", a->type);
@@ -2231,6 +2240,81 @@ parse_section_mouse_bindings(struct context *ctx)
 }
 
 static bool
+parse_section_text_bindings(struct context *ctx)
+{
+    struct config *conf = ctx->conf;
+    const char *key = ctx->key;
+
+    const size_t key_len = strlen(key);
+
+    uint8_t *data = xmalloc(key_len + 1);
+    size_t data_len = 0;
+    bool esc = false;
+
+    for (size_t i = 0; i < key_len; i++) {
+        if (key[i] == '\\') {
+            if (i + 1 >= key_len) {
+                ctx->value = "";
+                LOG_CONTEXTUAL_ERR("trailing backslash");
+                goto err;
+            }
+
+            esc = true;
+        }
+
+        else if (esc) {
+            if (key[i] != 'x') {
+                ctx->value = "";
+                LOG_CONTEXTUAL_ERR("invalid escaped character: %c", key[i]);
+                goto err;
+            }
+            if (i + 2 >= key_len) {
+                ctx->value = "";
+                LOG_CONTEXTUAL_ERR("\\x sequence too short");
+                goto err;
+            }
+
+            const uint8_t nib1 = hex2nibble(key[i + 1]);
+            const uint8_t nib2 = hex2nibble(key[i + 2]);
+
+            if (nib1 >= HEX_DIGIT_INVALID || nib2 >= HEX_DIGIT_INVALID) {
+                ctx->value = "";
+                LOG_CONTEXTUAL_ERR("invalid \\x sequence: \\x%c%c",
+                                   key[i + 1], key[i + 2]);
+                goto err;
+            }
+
+            data[data_len++] = nib1 << 4 | nib2;
+            esc = false;
+            i += 2;
+        }
+
+        else
+            data[data_len++] = key[i];
+    }
+
+    struct binding_aux aux = {
+        .type = BINDING_AUX_TEXT,
+        .text = {
+            .data = data,
+            .len = data_len,
+        },
+    };
+
+    if (!value_to_key_combos(ctx, BIND_ACTION_TEXT_BINDING, &aux,
+                             &conf->bindings.key, KEY_BINDING))
+    {
+        goto err;
+    }
+
+    return true;
+
+err:
+    free(data);
+    return false;
+}
+
+static bool
 parse_section_tweak(struct context *ctx)
 {
     struct config *conf = ctx->conf;
@@ -2429,6 +2513,7 @@ enum section {
     SECTION_SEARCH_BINDINGS,
     SECTION_URL_BINDINGS,
     SECTION_MOUSE_BINDINGS,
+    SECTION_TEXT_BINDINGS,
     SECTION_TWEAK,
     SECTION_COUNT,
 };
@@ -2452,6 +2537,7 @@ static const struct {
     [SECTION_SEARCH_BINDINGS] = {&parse_section_search_bindings, "search-bindings"},
     [SECTION_URL_BINDINGS] =    {&parse_section_url_bindings, "url-bindings"},
     [SECTION_MOUSE_BINDINGS] =  {&parse_section_mouse_bindings, "mouse-bindings"},
+    [SECTION_TEXT_BINDINGS] =   {&parse_section_text_bindings, "text-bindings"},
     [SECTION_TWEAK] =           {&parse_section_tweak, "tweak"},
 };
 
@@ -3085,6 +3171,8 @@ key_binding_list_clone(struct config_key_binding_list *dst,
                        const struct config_key_binding_list *src)
 {
     struct argv *last_master_argv = NULL;
+    uint8_t *last_master_text_data = NULL;
+    size_t last_master_text_len = 0;
 
     dst->count = src->count;
     dst->arr = xmalloc(src->count * sizeof(dst->arr[0]));
@@ -3098,6 +3186,8 @@ key_binding_list_clone(struct config_key_binding_list *dst,
         switch (old->aux.type) {
         case BINDING_AUX_NONE:
             last_master_argv = NULL;
+            last_master_text_data = NULL;
+            last_master_text_len = 0;
             break;
 
         case BINDING_AUX_PIPE:
@@ -3108,6 +3198,25 @@ key_binding_list_clone(struct config_key_binding_list *dst,
                 xassert(last_master_argv != NULL);
                 new->aux.pipe = *last_master_argv;
             }
+            last_master_text_data = NULL;
+            last_master_text_len = 0;
+            break;
+
+        case BINDING_AUX_TEXT:
+            if (old->aux.master_copy) {
+                const size_t len = old->aux.text.len;
+                new->aux.text.len = len;
+                new->aux.text.data = xmalloc(len);
+                memcpy(new->aux.text.data, old->aux.text.data, len);
+
+                last_master_text_len = len;
+                last_master_text_data = new->aux.text.data;
+            } else {
+                xassert(last_master_text_data != NULL);
+                new->aux.text.len = last_master_text_len;
+                new->aux.text.data = last_master_text_data;
+            }
+            last_master_argv = NULL;
             break;
         }
     }
