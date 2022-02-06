@@ -43,6 +43,11 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* Build: missing `wayland_client` dependency in `test-config`
+  (https://codeberg.org/dnkl/foot/issues/918).
+
+
 ### Security
 ### Contributors
 
