@@ -46,6 +46,8 @@
 
 * Build: missing `wayland_client` dependency in `test-config`
   (https://codeberg.org/dnkl/foot/issues/918).
+* “(null)” being logged as font-name (for some fonts) when warning
+  about a non-monospaced primary font.
 
 
 ### Security
