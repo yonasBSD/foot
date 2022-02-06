@@ -10,6 +10,8 @@ option('ime', type: 'boolean', value: true,
 option('grapheme-clustering', type: 'feature',
        description: 'Enables grapheme clustering using libutf8proc. Requires fcft with harfbuzz support to be useful.')
 
+option('tests', type: 'boolean', value: true, description: 'Build tests')
+
 option('terminfo', type: 'feature', value: 'enabled', description: 'Build and install foot\'s terminfo files.')
 option('default-terminfo', type: 'string', value: 'foot',
        description: 'Default value of the "term" option in foot.ini.')

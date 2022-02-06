@@ -303,7 +303,10 @@ endif
 
 subdir('completions')
 subdir('icons')
-subdir('tests')
+
+if (get_option('tests'))
+  subdir('tests')
+endif
 
 summary(
   {
@@ -315,6 +318,7 @@ summary(
     'Terminfo install location': terminfo_install_location,
     'Default TERM': get_option('default-terminfo'),
     'Set TERMINFO': get_option('custom-terminfo-install-location') != '',
+    'Build tests': get_option('tests'),
   },
   bool_yn: true
 )

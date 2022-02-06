@@ -66,6 +66,10 @@
   foot only supports level 1 and 2 (and not level 0), this sequence
   does not disable _modifyOtherKeys_ completely, but simply reverts it
   back to level 1 (the default).
+* `-Dtests=false|true` meson command line option. When disabled, test
+  binaries will neither be built, nor will `ninja test` attempt to
+  execute them. Enabled by default
+  (https://codeberg.org/dnkl/foot/issues/919).
 
 
 ### Changed
