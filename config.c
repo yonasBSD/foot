@@ -3250,10 +3250,14 @@ check_if_font_is_monospaced(const char *pattern,
             continue;
 
         if (last_width >= 0 && g->advance.x != last_width) {
+            const char *font_name = f->name != NULL
+                ? f->name
+                : pattern;
+
             LOG_WARN("%s: font does not appear to be monospace; "
                      "check your config, or disable this warning by "
                      "setting [tweak].font-monospace-warn=no",
-                     f->name);
+                     font_name);
 
             static const char fmt[] =
                 "%s: font does not appear to be monospace; "
@@ -3261,7 +3265,7 @@ check_if_font_is_monospaced(const char *pattern,
                 "setting \033[1m[tweak].font-monospace-warn=no\033[22m";
 
             user_notification_add_fmt(
-                notifications, USER_NOTIFICATION_WARNING, fmt, f->name);
+                notifications, USER_NOTIFICATION_WARNING, fmt, font_name);
 
             is_monospaced = false;
             break;
