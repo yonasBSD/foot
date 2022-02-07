@@ -1108,16 +1108,8 @@ selection_finalize(struct seat *seat, struct terminal *term, uint32_t serial)
     xassert(term->selection.start.row != -1);
     xassert(term->selection.end.row != -1);
 
-    if (term->selection.start.row > term->selection.end.row ||
-        (term->selection.start.row == term->selection.end.row &&
-         term->selection.start.col > term->selection.end.col))
-    {
-        struct coord tmp = term->selection.start;
-        term->selection.start = term->selection.end;
-        term->selection.end = tmp;
-    }
-
-    xassert(term->selection.start.row <= term->selection.end.row);
+    term->selection.start.row &= (term->grid->num_rows - 1);
+    term->selection.end.row &= (term->grid->num_rows - 1);
 
     switch (term->conf->selection_target) {
     case SELECTION_TARGET_NONE:
