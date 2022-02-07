@@ -3414,16 +3414,22 @@ rows_to_text(const struct terminal *term, int start, int end,
     if (ctx == NULL)
         return false;
 
-    for (size_t r = start;
-         r != ((end + 1) & (term->grid->num_rows - 1));
-         r = (r + 1) & (term->grid->num_rows - 1))
-    {
+    const int grid_rows = term->grid->num_rows;
+    int r = start;
+
+    while (true) {
         const struct row *row = term->grid->rows[r];
         xassert(row != NULL);
 
         for (int c = 0; c < term->cols; c++)
             if (!extract_one(term, row, &row->cells[c], c, ctx))
                 goto out;
+
+        if (r == end)
+            break;
+
+        r++;
+        r &= grid_rows - 1;
     }
 
 out:
@@ -3433,18 +3439,21 @@ out:
 bool
 term_scrollback_to_text(const struct terminal *term, char **text, size_t *len)
 {
-    int start = term->grid->offset + term->rows;
-    int end = term->grid->offset + term->rows - 1;
+    const int grid_rows = term->grid->num_rows;
+    int start = (term->grid->offset + term->rows) & (grid_rows - 1);
+    int end = (term->grid->offset + term->rows - 1) & (grid_rows - 1);
+
+    xassert(start >= 0);
+    xassert(start < grid_rows);
+    xassert(end >= 0);
+    xassert(end < grid_rows);
 
     /* If scrollback isn't full yet, this may be NULL, so scan forward
      * until we find the first non-NULL row */
     while (term->grid->rows[start] == NULL) {
         start++;
-        start &= term->grid->num_rows - 1;
+        start &= grid_rows - 1;
     }
-
-    if (end < 0)
-        end += term->grid->num_rows;
 
     while (term->grid->rows[end] == NULL) {
         end--;
