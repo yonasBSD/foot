@@ -624,15 +624,7 @@ keyboard_keymap(void *data, struct wl_keyboard *wl_keyboard,
         seat->kbd.xkb = NULL;
     }
 
-    tll_foreach(seat->kbd.bindings.key, it)
-        tll_free(it->item.k.key_codes);
-    tll_free(seat->kbd.bindings.key);
-
-    tll_foreach(seat->kbd.bindings.search, it)
-        tll_free(it->item.k.key_codes);
-    tll_free(seat->kbd.bindings.search);
-
-    tll_free(seat->mouse.bindings);
+    wayl_bindings_reset(seat);
 
     /* Verify keymap is in a format we understand */
     switch ((enum wl_keyboard_keymap_format)format) {
