@@ -158,7 +158,12 @@ static void
 key_bindings_destroy(key_binding_list_t *bindings)
 {
     tll_foreach(*bindings, it) {
-        tll_free(it->item.k.key_codes);
+        struct key_binding *bind = &it->item;
+        switch (bind->type) {
+        case KEY_BINDING: tll_free(it->item.k.key_codes); break;
+        case MOUSE_BINDING: break;
+        }
+
         tll_remove(*bindings, it);
     }
 }
@@ -174,8 +179,7 @@ seat_destroy(struct seat *seat)
     key_bindings_destroy(&seat->kbd.bindings.key);
     key_bindings_destroy(&seat->kbd.bindings.search);
     key_bindings_destroy(&seat->kbd.bindings.url);
-
-    tll_free(seat->mouse.bindings);
+    key_bindings_destroy(&seat->mouse.bindings);
 
     if (seat->kbd.xkb_compose_state != NULL)
         xkb_compose_state_unref(seat->kbd.xkb_compose_state);
