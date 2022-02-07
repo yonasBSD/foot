@@ -1158,6 +1158,10 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
         .selection = {
             .start = {-1, -1},
             .end = {-1, -1},
+            .pivot = {
+                .start = {-1, -1},
+                .end = {-1, -1},
+            },
             .auto_scroll = {
                 .fd = -1,
             },
