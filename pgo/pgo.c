@@ -69,6 +69,12 @@ void render_refresh_csd(struct terminal *term) {}
 void render_refresh_title(struct terminal *term) {}
 
 bool
+render_xcursor_is_valid(const struct seat *seat, const char *cursor)
+{
+    return true;
+}
+
+bool
 render_xcursor_set(struct seat *seat, struct terminal *term, const char *xcursor)
 {
     return true;
