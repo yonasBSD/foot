@@ -3681,6 +3681,16 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
 
     if (term->grid == &term->alt)
         selection_cancel(term);
+    else {
+        /*
+         * Don’t cancel, but make sure there aren’t any ongoing
+         * selections after the resize.
+         */
+        tll_foreach(term->wl->seats, it) {
+            if (it->item.kbd_focus == term)
+                selection_finalize(&it->item, term, it->item.pointer.serial);
+        }
+    }
 
     struct coord *const tracking_points[] = {
         &term->selection.start,
