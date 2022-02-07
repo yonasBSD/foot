@@ -3692,6 +3692,12 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
         }
     }
 
+    /*
+     * TODO: if we remove the selection_finalize() call above (i.e. if
+     * we start allowing selections to be ongoing across resizes), the
+     * selection’s pivot point coordinates *must* be added to the
+     * tracking points list.
+     */
     struct coord *const tracking_points[] = {
         &term->selection.start,
         &term->selection.end,
