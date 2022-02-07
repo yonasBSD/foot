@@ -14,7 +14,7 @@
 #include <tllist.h>
 #include <fcft/fcft.h>
 
-//#include "config.h"
+#include "config.h"
 #include "composed.h"
 #include "debug.h"
 #include "fdm.h"
@@ -248,8 +248,6 @@ enum mouse_reporting {
     MOUSE_SGR_PIXELS,    /* ?1016h */
 };
 
-enum cursor_style { CURSOR_BLOCK, CURSOR_UNDERLINE, CURSOR_BEAM };
-
 enum selection_kind {
     SELECTION_NONE,
     SELECTION_CHAR_WISE,
@@ -298,12 +296,6 @@ struct url {
     bool duplicate;
 };
 typedef tll(struct url) url_list_t;
-
-/* If px != 0 then px is valid, otherwise pt is valid */
-struct pt_or_px {
-    int16_t px;
-    float pt;
-};
 
 struct terminal {
     struct fdm *fdm;

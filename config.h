@@ -4,17 +4,25 @@
 #include <stdbool.h>
 #include <uchar.h>
 
+#include <xkbcommon/xkbcommon.h>
 #include <tllist.h>
+#include <fcft/fcft.h>
 
-#include "terminal.h"
 #include "user-notification.h"
-#include "wayland.h"
 
 #define DEFINE_LIST(type) \
     type##_list {         \
         size_t count;     \
         type *arr;        \
     }
+
+/* If px != 0 then px is valid, otherwise pt is valid */
+struct pt_or_px {
+    int16_t px;
+    float pt;
+};
+
+enum cursor_style { CURSOR_BLOCK, CURSOR_UNDERLINE, CURSOR_BEAM };
 
 enum conf_size_type {CONF_SIZE_PX, CONF_SIZE_CELLS};
 

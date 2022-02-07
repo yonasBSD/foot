@@ -23,6 +23,7 @@
 #include <fcft/fcft.h>
 #include <tllist.h>
 
+#include "config.h"
 #include "fdm.h"
 
 /* Forward declarations */
