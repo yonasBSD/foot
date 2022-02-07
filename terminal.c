@@ -48,6 +48,7 @@
 const char *const XCURSOR_HIDDEN = "hidden";
 const char *const XCURSOR_LEFT_PTR = "left_ptr";
 const char *const XCURSOR_TEXT = "text";
+const char *const XCURSOR_TEXT_FALLBACK = "xterm";
 //const char *const XCURSOR_HAND2 = "hand2";
 const char *const XCURSOR_TOP_LEFT_CORNER = "top_left_corner";
 const char *const XCURSOR_TOP_RIGHT_CORNER = "top_right_corner";

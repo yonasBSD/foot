@@ -42,7 +42,7 @@
 ### Added
 
 * OSC-22 - set xcursor pointer.
-
+* Add "xterm" as fallback cursor where "text" is not available.
 
 ### Changed
 
