@@ -55,6 +55,8 @@
   about a non-monospaced primary font.
 * Rare crash when the window is resized while a mouse selection is
   ongoing (https://codeberg.org/dnkl/foot/issues/922).
+* Large selections crossing the scrollback wrap-around
+  (https://codeberg.org/dnkl/foot/issues/924).
 
 
 ### Security
