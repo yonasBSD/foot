@@ -482,6 +482,13 @@ _line_wrap(struct grid *old_grid, struct row **new_grid, struct row *row,
                 tll_remove(old_grid->sixel_images, it);
             }
         }
+
+        /*
+         * TODO: detect if the re-used row is covered by the
+         * selection. Of so, cancel the selection. The problem: we
+         * don’t know if we’ve translated the selection coordinates
+         * yet.
+         */
     }
 
     struct row_data *extra = row->extra;
