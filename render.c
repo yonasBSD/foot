@@ -4017,8 +4017,12 @@ render_xcursor_set(struct seat *seat, struct terminal *term, const char *xcursor
             seat->pointer.theme, xcursor);
 
         if (seat->pointer.cursor == NULL) {
-            LOG_ERR("failed to load xcursor pointer '%s'", xcursor);
-            return false;
+            seat->pointer.cursor = wl_cursor_theme_get_cursor(
+                seat->pointer.theme, XCURSOR_TEXT_FALLBACK );
+            if (seat->pointer.cursor == NULL) {
+                LOG_ERR("failed to load xcursor pointer '%s', and fallback '%s'", xcursor, XCURSOR_TEXT_FALLBACK);
+                return false;
+            }
         }
     } else
         seat->pointer.cursor = NULL;
