@@ -57,6 +57,8 @@
   ongoing (https://codeberg.org/dnkl/foot/issues/922).
 * Large selections crossing the scrollback wrap-around
   (https://codeberg.org/dnkl/foot/issues/924).
+* Crash in `pipe-scrollback`
+  (https://codeberg.org/dnkl/foot/issues/926).
 
 
 ### Security
