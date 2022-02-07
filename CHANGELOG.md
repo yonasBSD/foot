@@ -40,6 +40,11 @@
 ## Unreleased
 ### Added
 ### Changed
+
+* Mouse selections are now finalized when the window is resized
+  (https://codeberg.org/dnkl/foot/issues/922).
+
+
 ### Deprecated
 ### Removed
 ### Fixed
@@ -48,6 +53,8 @@
   (https://codeberg.org/dnkl/foot/issues/918).
 * “(null)” being logged as font-name (for some fonts) when warning
   about a non-monospaced primary font.
+* Rare crash when the window is resized while a mouse selection is
+  ongoing (https://codeberg.org/dnkl/foot/issues/922).
 
 
 ### Security
