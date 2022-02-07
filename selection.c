@@ -107,24 +107,34 @@ selection_view_down(struct terminal *term, int new_view)
 static void
 foreach_selected_normal(
     struct terminal *term, struct coord _start, struct coord _end,
-    bool (*cb)(struct terminal *term, struct row *row, struct cell *cell, int row_no, int col, void *data),
+    bool (*cb)(struct terminal *term, struct row *row, struct cell *cell,
+               int row_no, int col, void *data),
     void *data)
 {
     const struct coord *start = &_start;
     const struct coord *end = &_end;
 
+    const int scrollback_start = term->grid->offset + term->rows;
+    const int grid_rows = term->grid->num_rows;
+
+    /* Start/end rows, relative to the scrollback start */
+    const int rel_start_row =
+        (start->row - scrollback_start + grid_rows) & (grid_rows - 1);
+    const int rel_end_row =
+        (end->row - scrollback_start + grid_rows) & (grid_rows - 1);
+
     int start_row, end_row;
     int start_col, end_col;
 
-    if (start->row < end->row) {
+    if (rel_start_row < rel_end_row) {
         start_row = start->row;
-        end_row = end->row;
         start_col = start->col;
+        end_row = end->row;
         end_col = end->col;
-    } else if (start->row > end->row) {
+    } else if (rel_start_row > rel_end_row) {
         start_row = end->row;
-        end_row = start->row;
         start_col = end->col;
+        end_row = start->row;
         end_col = start->col;
     } else {
         start_row = end_row = start->row;
@@ -132,51 +142,77 @@ foreach_selected_normal(
         end_col = max(start->col, end->col);
     }
 
-    for (int r = start_row; r <= end_row; r++) {
-        size_t real_r = r & (term->grid->num_rows - 1);
-        struct row *row = term->grid->rows[real_r];
+    start_row &= (grid_rows - 1);
+    end_row &= (grid_rows - 1);
+
+    for (int r = start_row; r != end_row; r = (r + 1) & (grid_rows - 1)) {
+        struct row *row = term->grid->rows[r];
         xassert(row != NULL);
 
-        for (int c = start_col;
-             c <= (r == end_row ? end_col : term->cols - 1);
-             c++)
-        {
-            if (!cb(term, row, &row->cells[c], real_r, c, data))
+        for (int c = start_col; c <= term->cols - 1; c++) {
+            if (!cb(term, row, &row->cells[c], r, c, data))
                 return;
         }
 
         start_col = 0;
+    }
+
+    /* Last, partial row */
+    struct row *row = term->grid->rows[end_row];
+    xassert(row != NULL);
+
+    for (int c = start_col; c <= end_col; c++) {
+        if (!cb(term, row, &row->cells[c], end_row, c, data))
+            return;
     }
 }
 
 static void
 foreach_selected_block(
     struct terminal *term, struct coord _start, struct coord _end,
-    bool (*cb)(struct terminal *term, struct row *row, struct cell *cell, int row_no, int col, void *data),
+    bool (*cb)(struct terminal *term, struct row *row, struct cell *cell,
+               int row_no, int col, void *data),
     void *data)
 {
     const struct coord *start = &_start;
     const struct coord *end = &_end;
 
+    const int scrollback_start = term->grid->offset + term->rows;
+    const int grid_rows = term->grid->num_rows;
+
+    /* Start/end rows, relative to the scrollback start */
+    const int rel_start_row =
+        (start->row - scrollback_start + grid_rows) & (grid_rows - 1);
+    const int rel_end_row =
+        (end->row - scrollback_start + grid_rows) & (grid_rows - 1);
+
     struct coord top_left = {
-        .row = min(start->row, end->row),
+        .row = (rel_start_row < rel_end_row
+                ? start->row : end->row) & (grid_rows - 1),
         .col = min(start->col, end->col),
     };
 
     struct coord bottom_right = {
-        .row = max(start->row, end->row),
+        .row = (rel_start_row > rel_end_row
+                ? start->row : end->row) & (grid_rows - 1),
         .col = max(start->col, end->col),
     };
 
-    for (int r = top_left.row; r <= bottom_right.row; r++) {
-        size_t real_r = r & (term->grid->num_rows - 1);
-        struct row *row = term->grid->rows[real_r];
+    int r = top_left.row;
+    while (true) {
+        struct row *row = term->grid->rows[r];
         xassert(row != NULL);
 
         for (int c = top_left.col; c <= bottom_right.col; c++) {
-            if (!cb(term, row, &row->cells[c], real_r, c, data))
+            if (!cb(term, row, &row->cells[c], r, c, data))
                 return;
         }
+
+        if (r == bottom_right.row)
+            break;
+
+        r++;
+        r &= grid_rows - 1;
     }
 }
 
