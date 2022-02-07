@@ -3681,7 +3681,23 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
 
     if (term->grid == &term->alt)
         selection_cancel(term);
+    else {
+        /*
+         * Don’t cancel, but make sure there aren’t any ongoing
+         * selections after the resize.
+         */
+        tll_foreach(term->wl->seats, it) {
+            if (it->item.kbd_focus == term)
+                selection_finalize(&it->item, term, it->item.pointer.serial);
+        }
+    }
 
+    /*
+     * TODO: if we remove the selection_finalize() call above (i.e. if
+     * we start allowing selections to be ongoing across resizes), the
+     * selection’s pivot point coordinates *must* be added to the
+     * tracking points list.
+     */
     struct coord *const tracking_points[] = {
         &term->selection.start,
         &term->selection.end,
