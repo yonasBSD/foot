@@ -515,3 +515,5 @@ bool wayl_win_subsurface_new_with_custom_parent(
     struct wl_window *win, struct wl_surface *parent,
     struct wl_surf_subsurf *surf);
 void wayl_win_subsurface_destroy(struct wl_surf_subsurf *surf);
+
+void wayl_bindings_reset(struct seat *seat);

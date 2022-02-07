@@ -168,6 +168,16 @@ key_bindings_destroy(key_binding_list_t *bindings)
     }
 }
 
+void
+wayl_bindings_reset(struct seat *seat)
+{
+
+    key_bindings_destroy(&seat->kbd.bindings.key);
+    key_bindings_destroy(&seat->kbd.bindings.search);
+    key_bindings_destroy(&seat->kbd.bindings.url);
+    key_bindings_destroy(&seat->mouse.bindings);
+}
+
 static void
 seat_destroy(struct seat *seat)
 {
@@ -175,11 +185,7 @@ seat_destroy(struct seat *seat)
         return;
 
     tll_free(seat->mouse.buttons);
-
-    key_bindings_destroy(&seat->kbd.bindings.key);
-    key_bindings_destroy(&seat->kbd.bindings.search);
-    key_bindings_destroy(&seat->kbd.bindings.url);
-    key_bindings_destroy(&seat->mouse.bindings);
+    wayl_bindings_reset(seat);
 
     if (seat->kbd.xkb_compose_state != NULL)
         xkb_compose_state_unref(seat->kbd.xkb_compose_state);
