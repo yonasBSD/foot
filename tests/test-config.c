@@ -360,7 +360,7 @@ test_enum(struct context *ctx, bool (*parse_fun)(struct context *ctx),
 
     ctx->value = "invalid-enum-value";
     if (parse_fun(ctx)) {
-        BUG("[%s].%s=%s: did not fail to parse as expeced",
+        BUG("[%s].%s=%s: did not fail to parse as expected",
             ctx->section, ctx->key, ctx->value);
     }
 }
