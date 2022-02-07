@@ -524,11 +524,14 @@ convert_key_binding(const struct seat *seat,
     xkb_keysym_t sym = maybe_repair_key_combo(seat, conf_binding->k.sym, mods);
 
     struct key_binding binding = {
-        .mods = mods,
-        .sym = sym,
-        .key_codes = key_codes_for_xkb_sym(seat->kbd.xkb_keymap, sym),
+        .type = KEY_BINDING,
         .action = conf_binding->action,
         .pipe_argv = conf_binding->pipe.argv.args,
+        .mods = mods,
+        .k = {
+            .sym = sym,
+            .key_codes = key_codes_for_xkb_sym(seat->kbd.xkb_keymap, sym),
+        },
     };
     tll_push_back(*bindings, binding);
 }
@@ -564,12 +567,15 @@ static void
 convert_mouse_binding(struct seat *seat,
                       const struct config_key_binding *conf_binding)
 {
-    struct mouse_binding binding = {
+    struct key_binding binding = {
+        .type = MOUSE_BINDING,
         .action = conf_binding->action,
-        .mods = conf_modifiers_to_mask(seat, &conf_binding->modifiers),
-        .button = conf_binding->m.button,
-        .count = conf_binding->m.count,
         .pipe_argv = conf_binding->pipe.argv.args,
+        .mods = conf_modifiers_to_mask(seat, &conf_binding->modifiers),
+        .m = {
+            .button = conf_binding->m.button,
+            .count = conf_binding->m.count,
+        },
     };
     tll_push_back(seat->mouse.bindings, binding);
 }
@@ -619,11 +625,11 @@ keyboard_keymap(void *data, struct wl_keyboard *wl_keyboard,
     }
 
     tll_foreach(seat->kbd.bindings.key, it)
-        tll_free(it->item.key_codes);
+        tll_free(it->item.k.key_codes);
     tll_free(seat->kbd.bindings.key);
 
     tll_foreach(seat->kbd.bindings.search, it)
-        tll_free(it->item.key_codes);
+        tll_free(it->item.k.key_codes);
     tll_free(seat->kbd.bindings.search);
 
     tll_free(seat->mouse.bindings);
@@ -1525,7 +1531,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
             const struct key_binding *bind = &it->item;
 
             /* Match translated symbol */
-            if (bind->sym == sym &&
+            if (bind->k.sym == sym &&
                 bind->mods == (bind_mods & ~bind_consumed) &&
                 execute_binding(
                     seat, term, bind->action, bind->pipe_argv, serial))
@@ -1538,7 +1544,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
 
             /* Match untranslated symbols */
             for (size_t i = 0; i < raw_count; i++) {
-                if (bind->sym == raw_syms[i] && execute_binding(
+                if (bind->k.sym == raw_syms[i] && execute_binding(
                         seat, term, bind->action, bind->pipe_argv, serial))
                 {
                     goto maybe_repeat;
@@ -1546,7 +1552,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
             }
 
             /* Match raw key code */
-            tll_foreach(bind->key_codes, code) {
+            tll_foreach(bind->k.key_codes, code) {
                 if (code->item == key && execute_binding(
                         seat, term, bind->action, bind->pipe_argv, serial))
                 {
@@ -2411,12 +2417,12 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
                     /* Ignore selection override modifiers when matching modifiers */
                     mods &= ~seat->kbd.selection_override_modmask;
 
-                    const struct mouse_binding *match = NULL;
+                    const struct key_binding *match = NULL;
 
                     tll_foreach(seat->mouse.bindings, it) {
-                        const struct mouse_binding *binding = &it->item;
+                        const struct key_binding *binding = &it->item;
 
-                        if (binding->button != button) {
+                        if (binding->m.button != button) {
                             /* Wrong button */
                             continue;
                         }
@@ -2426,12 +2432,12 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
                             continue;
                         }
 
-                        if  (binding->count > seat->mouse.count) {
+                        if  (binding->m.count > seat->mouse.count) {
                             /* Not correct click count */
                             continue;
                         }
 
-                        if (match == NULL || binding->count > match->count)
+                        if (match == NULL || binding->m.count > match->m.count)
                             match = binding;
                     }
 

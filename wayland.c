@@ -158,7 +158,7 @@ static void
 key_bindings_destroy(key_binding_list_t *bindings)
 {
     tll_foreach(*bindings, it) {
-        tll_free(it->item.key_codes);
+        tll_free(it->item.k.key_codes);
         tll_remove(*bindings, it);
     }
 }

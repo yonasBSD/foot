@@ -838,7 +838,7 @@ search_input(struct seat *seat, struct terminal *term, uint32_t key,
         const struct key_binding *bind = &it->item;
 
         /* Match translated symbol */
-        if (bind->sym == sym &&
+        if (bind->k.sym == sym &&
             bind->mods == (mods & ~consumed)) {
 
             if (execute_binding(seat, term, bind->action, serial,
@@ -854,7 +854,7 @@ search_input(struct seat *seat, struct terminal *term, uint32_t key,
 
         /* Match untranslated symbols */
         for (size_t i = 0; i < raw_count; i++) {
-            if (bind->sym == raw_syms[i]) {
+            if (bind->k.sym == raw_syms[i]) {
                 if (execute_binding(seat, term, bind->action, serial,
                                     &update_search_result, &redraw))
                 {
@@ -865,7 +865,7 @@ search_input(struct seat *seat, struct terminal *term, uint32_t key,
         }
 
         /* Match raw key code */
-        tll_foreach(bind->key_codes, code) {
+        tll_foreach(bind->k.key_codes, code) {
             if (code->item == key) {
                 if (execute_binding(seat, term, bind->action, serial,
                                     &update_search_result, &redraw))
