@@ -3053,25 +3053,12 @@ config_load(struct config *conf, const char *conf_path,
         goto out;
     }
 
-    ret = parse_config_file(f, conf, conf_file.path, errors_are_fatal) &&
-        config_override_apply(conf, overrides, errors_are_fatal);
-
-    if (ret &&
-        (!resolve_key_binding_collisions(
-            conf, section_info[SECTION_KEY_BINDINGS].name,
-            binding_action_map, &conf->bindings.key, KEY_BINDING) ||
-         !resolve_key_binding_collisions(
-             conf, section_info[SECTION_SEARCH_BINDINGS].name,
-             search_binding_action_map, &conf->bindings.search, KEY_BINDING) ||
-         !resolve_key_binding_collisions(
-             conf, section_info[SECTION_URL_BINDINGS].name,
-             url_binding_action_map, &conf->bindings.url, KEY_BINDING) ||
-         !resolve_key_binding_collisions(
-             conf, section_info[SECTION_MOUSE_BINDINGS].name,
-             binding_action_map, &conf->bindings.mouse, MOUSE_BINDING)))
+    if (!parse_config_file(f, conf, conf_file.path, errors_are_fatal) ||
+        !config_override_apply(conf, overrides, errors_are_fatal))
     {
         ret = !errors_are_fatal;
-    }
+    } else
+        ret = true;
 
     fclose(f);
 
@@ -3163,7 +3150,19 @@ config_override_apply(struct config *conf, config_override_t *overrides,
     conf->csd.border_width = max(
         min_csd_border_width, conf->csd.border_width_visible);
 
-    return true;
+    return
+        resolve_key_binding_collisions(
+            conf, section_info[SECTION_KEY_BINDINGS].name,
+            binding_action_map, &conf->bindings.key, KEY_BINDING) &&
+        resolve_key_binding_collisions(
+            conf, section_info[SECTION_SEARCH_BINDINGS].name,
+            search_binding_action_map, &conf->bindings.search, KEY_BINDING) &&
+        resolve_key_binding_collisions(
+            conf, section_info[SECTION_URL_BINDINGS].name,
+            url_binding_action_map, &conf->bindings.url, KEY_BINDING) &&
+        resolve_key_binding_collisions(
+            conf, section_info[SECTION_MOUSE_BINDINGS].name,
+            binding_action_map, &conf->bindings.mouse, MOUSE_BINDING);
 }
 
 static void NOINLINE
