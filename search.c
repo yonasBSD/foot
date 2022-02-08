@@ -604,10 +604,11 @@ from_clipboard_done(void *user)
 
 static bool
 execute_binding(struct seat *seat, struct terminal *term,
-                enum bind_action_search action, uint32_t serial,
+                const struct key_binding *binding, uint32_t serial,
                 bool *update_search_result, bool *redraw)
 {
     *update_search_result = *redraw = false;
+    const enum bind_action_search action = binding->action;
 
     switch (action) {
     case BIND_ACTION_SEARCH_NONE:
@@ -841,7 +842,7 @@ search_input(struct seat *seat, struct terminal *term, uint32_t key,
         if (bind->k.sym == sym &&
             bind->mods == (mods & ~consumed)) {
 
-            if (execute_binding(seat, term, bind->action, serial,
+            if (execute_binding(seat, term, bind, serial,
                                 &update_search_result, &redraw))
             {
                 goto update_search;
@@ -855,7 +856,7 @@ search_input(struct seat *seat, struct terminal *term, uint32_t key,
         /* Match untranslated symbols */
         for (size_t i = 0; i < raw_count; i++) {
             if (bind->k.sym == raw_syms[i]) {
-                if (execute_binding(seat, term, bind->action, serial,
+                if (execute_binding(seat, term, bind, serial,
                                     &update_search_result, &redraw))
                 {
                     goto update_search;
@@ -867,7 +868,7 @@ search_input(struct seat *seat, struct terminal *term, uint32_t key,
         /* Match raw key code */
         tll_foreach(bind->k.key_codes, code) {
             if (code->item == key) {
-                if (execute_binding(seat, term, bind->action, serial,
+                if (execute_binding(seat, term, bind, serial,
                                     &update_search_result, &redraw))
                 {
                     goto update_search;

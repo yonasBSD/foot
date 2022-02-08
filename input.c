@@ -81,9 +81,10 @@ pipe_closed:
 
 static bool
 execute_binding(struct seat *seat, struct terminal *term,
-                enum bind_action_normal action, char *const *pipe_argv,
-                uint32_t serial)
+                const struct key_binding *binding, uint32_t serial)
 {
+    const enum bind_action_normal action = binding->action;
+
     switch (action) {
     case BIND_ACTION_NONE:
         return true;
@@ -193,7 +194,7 @@ execute_binding(struct seat *seat, struct terminal *term,
         /* FALLTHROUGH */
     case BIND_ACTION_PIPE_VIEW:
     case BIND_ACTION_PIPE_SELECTED: {
-        if (pipe_argv == NULL)
+        if (binding->aux->type != BINDING_AUX_PIPE)
             return true;
 
         struct pipe_context *ctx = NULL;
@@ -266,7 +267,7 @@ execute_binding(struct seat *seat, struct terminal *term,
             }
         }
 
-        if (!spawn(term->reaper, NULL, pipe_argv, pipe_fd[0], stdout_fd, stderr_fd))
+        if (!spawn(term->reaper, NULL, binding->aux->pipe.args, pipe_fd[0], stdout_fd, stderr_fd))
             goto pipe_err;
 
         /* Close read end */
@@ -1525,8 +1526,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
             /* Match translated symbol */
             if (bind->k.sym == sym &&
                 bind->mods == (bind_mods & ~bind_consumed) &&
-                execute_binding(
-                    seat, term, bind->action, bind->aux->pipe.args, serial))
+                execute_binding(seat, term, bind, serial))
             {
                 goto maybe_repeat;
             }
@@ -1536,8 +1536,8 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
 
             /* Match untranslated symbols */
             for (size_t i = 0; i < raw_count; i++) {
-                if (bind->k.sym == raw_syms[i] && execute_binding(
-                        seat, term, bind->action, bind->aux->pipe.args, serial))
+                if (bind->k.sym == raw_syms[i] &&
+                    execute_binding(seat, term, bind, serial))
                 {
                     goto maybe_repeat;
                 }
@@ -1545,8 +1545,8 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
 
             /* Match raw key code */
             tll_foreach(bind->k.key_codes, code) {
-                if (code->item == key && execute_binding(
-                        seat, term, bind->action, bind->aux->pipe.args, serial))
+                if (code->item == key &&
+                    execute_binding(seat, term, bind, serial))
                 {
                     goto maybe_repeat;
                 }
@@ -2433,10 +2433,8 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
                             match = binding;
                     }
 
-                    if (match != NULL) {
-                        consumed = execute_binding(
-                            seat, term, match->action, match->aux->pipe.args, serial);
-                    }
+                    if (match != NULL)
+                        consumed = execute_binding(seat, term, match, serial);
                 }
 
                 else {
@@ -2469,9 +2467,11 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
                     }
 
                     if (match != NULL) {
-                        consumed = execute_binding(
-                            seat, term, match->action, match->aux.pipe.args,
-                            serial);
+                        struct key_binding bind = {
+                            .action = match->action,
+                            .aux = &match->aux,
+                        };
+                        consumed = execute_binding(seat, term, &bind, serial);
                     }
                 }
             }
