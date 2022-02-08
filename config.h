@@ -49,7 +49,7 @@ struct config_binding_pipe {
     bool master_copy;
 };
 
-enum config_key_binding_type {
+enum key_binding_type {
     KEY_BINDING,
     MOUSE_BINDING,
 };

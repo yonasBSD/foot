@@ -677,7 +677,7 @@ static void
 test_key_binding(struct context *ctx, bool (*parse_fun)(struct context *ctx),
                  int action, int max_action, const char *const *map,
                  struct config_key_binding_list *bindings,
-                 enum config_key_binding_type type)
+                 enum key_binding_type type)
 {
     xassert(map[action] != NULL);
     xassert(bindings->count == 0);
@@ -840,7 +840,7 @@ enum collision_test_mode {
 static void
 _test_binding_collisions(struct context *ctx,
                          int max_action, const char *const *map,
-                         enum config_key_binding_type type,
+                         enum key_binding_type type,
                          enum collision_test_mode test_mode)
 {
     struct config_key_binding *bindings_array =
@@ -937,7 +937,7 @@ _test_binding_collisions(struct context *ctx,
 static void
 test_binding_collisions(struct context *ctx,
                          int max_action, const char *const *map,
-                        enum config_key_binding_type type)
+                        enum key_binding_type type)
 {
     _test_binding_collisions(ctx, max_action, map, type, FAIL_DIFFERENT_ACTION);
     _test_binding_collisions(ctx, max_action, map, type, FAIL_DIFFERENT_ARGV);

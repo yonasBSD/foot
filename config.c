@@ -1640,7 +1640,7 @@ mouse_button_code_to_name(int code)
 static bool NOINLINE
 value_to_key_combos(struct context *ctx, int action, struct argv *argv,
                     struct config_key_binding_list *bindings,
-                    enum config_key_binding_type type)
+                    enum key_binding_type type)
 {
     if (strcasecmp(ctx->value, "none") == 0) {
         remove_from_key_bindings_list(bindings, action, argv);
@@ -2002,7 +2002,7 @@ static bool NOINLINE
 resolve_key_binding_collisions(struct config *conf, const char *section_name,
                                const char *const action_map[],
                                struct config_key_binding_list *bindings,
-                               enum config_key_binding_type type)
+                               enum key_binding_type type)
 {
     bool ret = true;
 

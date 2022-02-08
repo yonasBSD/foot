@@ -101,7 +101,7 @@ enum bind_action_url {
 typedef tll(xkb_keycode_t) xkb_keycode_list_t;
 
 struct key_binding {
-    enum config_key_binding_type type;
+    enum key_binding_type type;
 
     int action; /* enum bind_action_* */
     char **pipe_argv;
