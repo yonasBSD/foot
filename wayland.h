@@ -104,8 +104,6 @@ struct key_binding {
     enum key_binding_type type;
 
     int action; /* enum bind_action_* */
-    char **pipe_argv;
-
     xkb_mod_mask_t mods;
 
     union {
@@ -119,6 +117,8 @@ struct key_binding {
             int count;
         } m;
     };
+
+    const struct binding_aux *aux;
 
 };
 typedef tll(struct key_binding) key_binding_list_t;

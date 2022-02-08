@@ -1476,16 +1476,18 @@ parse_section_csd(struct context *ctx)
 }
 
 static void
-free_binding_pipe(struct config_binding_pipe *pipe)
+free_binding_aux(struct binding_aux *aux)
 {
-    if (pipe->master_copy)
-        free_argv(&pipe->argv);
+    switch (aux->type) {
+    case BINDING_AUX_NONE: break;
+    case BINDING_AUX_PIPE: free_argv(&aux->pipe);
+    }
 }
 
 static void
 free_key_binding(struct config_key_binding *binding)
 {
-    free_binding_pipe(&binding->pipe);
+    free_binding_aux(&binding->aux);
 }
 
 static void NOINLINE
@@ -1568,9 +1570,25 @@ argv_compare(const struct argv *argv1, const struct argv *argv2)
     return 1;
 }
 
+static bool NOINLINE
+binding_aux_equal(const struct binding_aux *a,
+                  const struct binding_aux *b)
+{
+    if (a->type != b->type)
+        return false;
+
+    switch (a->type) {
+    case BINDING_AUX_NONE: return true;
+    case BINDING_AUX_PIPE: return argv_compare(&a->pipe, &b->pipe) == 0;
+    }
+
+    BUG("invalid AUX type: %d", a->type);
+    return false;
+}
+
 static void NOINLINE
 remove_from_key_bindings_list(struct config_key_binding_list *bindings,
-                              int action, const struct argv *pipe_argv)
+                              int action, const struct binding_aux *aux)
 {
     size_t remove_first_idx = 0;
     size_t remove_count = 0;
@@ -1581,7 +1599,7 @@ remove_from_key_bindings_list(struct config_key_binding_list *bindings,
         if (binding->action != action)
             continue;
 
-        if (argv_compare(&binding->pipe.argv, pipe_argv) == 0) {
+        if (binding_aux_equal(&binding->aux, aux)) {
             if (remove_count++ == 0)
                 remove_first_idx = i;
 
@@ -1638,12 +1656,13 @@ mouse_button_code_to_name(int code)
 }
 
 static bool NOINLINE
-value_to_key_combos(struct context *ctx, int action, struct argv *argv,
+value_to_key_combos(struct context *ctx, int action,
+                    struct binding_aux *aux,
                     struct config_key_binding_list *bindings,
                     enum key_binding_type type)
 {
     if (strcasecmp(ctx->value, "none") == 0) {
-        remove_from_key_bindings_list(bindings, action, argv);
+        remove_from_key_bindings_list(bindings, action, aux);
         return true;
     }
 
@@ -1668,8 +1687,13 @@ value_to_key_combos(struct context *ctx, int action, struct argv *argv,
     {
         struct config_key_binding *new_combo = &new_combos[idx];
         new_combo->action = action;
-        new_combo->pipe.master_copy = idx == 0;
-        new_combo->pipe.argv = *argv;
+        new_combo->aux = *aux;
+        new_combo->aux.master_copy = idx == 0;
+#if 0
+        new_combo->aux.type = BINDING_AUX_PIPE;
+        new_combo->aux.master_copy = idx == 0;
+        new_combo->aux.pipe = *argv;
+#endif
         new_combo->path = ctx->path;
         new_combo->lineno = ctx->lineno;
 
@@ -1736,7 +1760,7 @@ value_to_key_combos(struct context *ctx, int action, struct argv *argv,
         goto err;
     }
 
-    remove_from_key_bindings_list(bindings, action, argv);
+    remove_from_key_bindings_list(bindings, action, aux);
 
     bindings->arr = xrealloc(
         bindings->arr,
@@ -1850,11 +1874,14 @@ parse_key_binding_section(struct context *ctx,
                           const char *const action_map[static action_count],
                           struct config_key_binding_list *bindings)
 {
-    struct argv pipe_argv;
+    struct binding_aux aux;
 
-    ssize_t pipe_remove_len = pipe_argv_from_value(ctx, &pipe_argv);
+    ssize_t pipe_remove_len = pipe_argv_from_value(ctx, &aux.pipe);
     if (pipe_remove_len < 0)
         return false;
+
+    aux.type = pipe_remove_len == 0 ? BINDING_AUX_NONE : BINDING_AUX_PIPE;
+    aux.master_copy = true;
 
     for (int action = 0; action < action_count; action++) {
         if (action_map[action] == NULL)
@@ -1863,10 +1890,8 @@ parse_key_binding_section(struct context *ctx,
         if (strcmp(ctx->key, action_map[action]) != 0)
             continue;
 
-        if (!value_to_key_combos(
-                ctx, action, &pipe_argv, bindings, KEY_BINDING))
-        {
-            free_argv(&pipe_argv);
+        if (!value_to_key_combos(ctx, action, &aux, bindings, KEY_BINDING)) {
+            free_binding_aux(&aux);
             return false;
         }
 
@@ -1874,7 +1899,7 @@ parse_key_binding_section(struct context *ctx,
     }
 
     LOG_CONTEXTUAL_ERR("not a valid action: %s", ctx->key);
-    free_argv(&pipe_argv);
+    free_binding_aux(&aux);
     return false;
 }
 
@@ -2033,12 +2058,10 @@ resolve_key_binding_collisions(struct config *conf, const char *section_name,
             const struct config_key_binding *binding2 = &bindings->arr[j];
             xassert(binding2->action != BIND_ACTION_NONE);
 
-            if (binding2->action == binding1->action) {
-                if (argv_compare(
-                        &binding1->pipe.argv, &binding2->pipe.argv) == 0)
-                {
-                    continue;
-                }
+            if (binding2->action == binding1->action &&
+                binding_aux_equal(&binding1->aux, &binding2->aux))
+            {
+                continue;
             }
 
             const struct config_key_modifiers *mods2 = &binding2->modifiers;
@@ -2092,7 +2115,7 @@ resolve_key_binding_collisions(struct config *conf, const char *section_name,
                 break;
 
             case COLLISION_BINDING: {
-                bool has_pipe = collision_binding->pipe.argv.args != NULL;
+                bool has_pipe = collision_binding->aux.type == BINDING_AUX_PIPE;
                 LOG_AND_NOTIFY_ERR(
                     "%s:%d: [%s].%s: %s%s already mapped to '%s%s%s%s'",
                     binding1->path, binding1->lineno, section_name,
@@ -2100,7 +2123,7 @@ resolve_key_binding_collisions(struct config *conf, const char *section_name,
                     modifier_names, sym_name,
                     action_map[collision_binding->action],
                     has_pipe ? " [" : "",
-                    has_pipe ? collision_binding->pipe.argv.args[0] : "",
+                    has_pipe ? collision_binding->aux.pipe.args[0] : "",
                     has_pipe ? "]" : "");
                 ret = false;
                 break;
@@ -2128,15 +2151,15 @@ resolve_key_binding_collisions(struct config *conf, const char *section_name,
 
             free(modifier_names);
 
-            if (binding1->pipe.master_copy && i + 1 < bindings->count) {
+            if (binding1->aux.master_copy && i + 1 < bindings->count) {
                 struct config_key_binding *next = &bindings->arr[i + 1];
 
                 if (next->action == binding1->action &&
-                    argv_compare(&binding1->pipe.argv, &next->pipe.argv) == 0)
+                    binding_aux_equal(&binding1->aux, &next->aux))
                 {
                     /* Transfer ownership to next binding */
-                    next->pipe.master_copy = true;
-                    binding1->pipe.master_copy = false;
+                    next->aux.master_copy = true;
+                    binding1->aux.master_copy = false;
                 }
             }
 
@@ -2150,7 +2173,6 @@ resolve_key_binding_collisions(struct config *conf, const char *section_name,
 
             i--;
         }
-
     }
 
     return ret;
@@ -2174,11 +2196,14 @@ parse_section_mouse_bindings(struct context *ctx)
         return true;
     }
 
-    struct argv pipe_argv;
+    struct binding_aux aux;
 
-    ssize_t pipe_remove_len = pipe_argv_from_value(ctx, &pipe_argv);
+    ssize_t pipe_remove_len = pipe_argv_from_value(ctx, &aux.pipe);
     if (pipe_remove_len < 0)
         return false;
+
+    aux.type = pipe_remove_len == 0 ? BINDING_AUX_NONE : BINDING_AUX_PIPE;
+    aux.master_copy = true;
 
     for (enum bind_action_normal action = 0;
          action < BIND_ACTION_COUNT;
@@ -2191,9 +2216,9 @@ parse_section_mouse_bindings(struct context *ctx)
             continue;
 
         if (!value_to_key_combos(
-                ctx, action, &pipe_argv, &conf->bindings.mouse, MOUSE_BINDING))
+                ctx, action, &aux, &conf->bindings.mouse, MOUSE_BINDING))
         {
-            free_argv(&pipe_argv);
+            free_binding_aux(&aux);
             return false;
         }
 
@@ -2201,7 +2226,7 @@ parse_section_mouse_bindings(struct context *ctx)
     }
 
     LOG_CONTEXTUAL_ERR("not a valid option: %s", key);
-    free_argv(&pipe_argv);
+    free_binding_aux(&aux);
     return false;
 }
 
@@ -3055,14 +3080,6 @@ config_override_apply(struct config *conf, config_override_t *overrides,
     return true;
 }
 
-static void
-binding_pipe_clone(struct config_binding_pipe *dst,
-                   const struct config_binding_pipe *src)
-{
-    xassert(src->master_copy);
-    clone_argv(&dst->argv, &src->argv);
-}
-
 static void NOINLINE
 key_binding_list_clone(struct config_key_binding_list *dst,
                        const struct config_key_binding_list *src)
@@ -3078,15 +3095,20 @@ key_binding_list_clone(struct config_key_binding_list *dst,
 
         *new = *old;
 
-        if (old->pipe.argv.args == NULL)
-            continue;
+        switch (old->aux.type) {
+        case BINDING_AUX_NONE:
+            last_master_argv = NULL;
+            break;
 
-        if (old->pipe.master_copy) {
-            binding_pipe_clone(&new->pipe, &old->pipe);
-            last_master_argv = &new->pipe.argv;
-        } else {
-            xassert(last_master_argv != NULL);
-            new->pipe.argv = *last_master_argv;
+        case BINDING_AUX_PIPE:
+            if (old->aux.master_copy) {
+                clone_argv(&new->aux.pipe, &old->aux.pipe);
+                last_master_argv = &new->aux.pipe;
+            } else {
+                xassert(last_master_argv != NULL);
+                new->aux.pipe = *last_master_argv;
+            }
+            break;
         }
     }
 }

@@ -756,30 +756,30 @@ test_key_binding(struct context *ctx, bool (*parse_fun)(struct context *ctx),
         &bindings->arr[bindings->count - 1];
 
     if (argv) {
-        if (binding->pipe.argv.args == NULL) {
+        if (binding->aux.pipe.args == NULL) {
             BUG("[%s].%s=%s: pipe argv is NULL",
                 ctx->section, ctx->key, ctx->value);
         }
 
         for (size_t i = 0; i < ALEN(args); i++) {
-            if (binding->pipe.argv.args[i] == NULL ||
-                strcmp(binding->pipe.argv.args[i], args[i]) != 0)
+            if (binding->aux.pipe.args[i] == NULL ||
+                strcmp(binding->aux.pipe.args[i], args[i]) != 0)
             {
                 BUG("[%s].%s=%s: pipe argv not the expected one: "
                     "mismatch of arg #%zu: expected=\"%s\", got=\"%s\"",
                     ctx->section, ctx->key, ctx->value, i,
-                    args[i], binding->pipe.argv.args[i]);
+                    args[i], binding->aux.pipe.args[i]);
             }
         }
 
-        if (binding->pipe.argv.args[ALEN(args)] != NULL) {
+        if (binding->aux.pipe.args[ALEN(args)] != NULL) {
             BUG("[%s].%s=%s: pipe argv not the expected one: "
                 "expected NULL terminator at arg #%zu, got=\"%s\"",
                 ctx->section, ctx->key, ctx->value,
-                ALEN(args), binding->pipe.argv.args[ALEN(args)]);
+                ALEN(args), binding->aux.pipe.args[ALEN(args)]);
         }
     } else {
-        if (binding->pipe.argv.args != NULL) {
+        if (binding->aux.pipe.args != NULL) {
             BUG("[%s].%s=%s: pipe argv not NULL",
                 ctx->section, ctx->key, ctx->value);
         }
@@ -889,21 +889,23 @@ _test_binding_collisions(struct context *ctx,
 
     case FAIL_DIFFERENT_ARGV:
     case SUCCED_SAME_ACTION_AND_ARGV:
-        bindings.arr[0].pipe.master_copy = true;
-        bindings.arr[0].pipe.argv.args = xcalloc(
-            4, sizeof(bindings.arr[0].pipe.argv.args[0]));
-        bindings.arr[0].pipe.argv.args[0] = xstrdup("/usr/bin/foobar");
-        bindings.arr[0].pipe.argv.args[1] = xstrdup("hello");
-        bindings.arr[0].pipe.argv.args[2] = xstrdup("world");
+        bindings.arr[0].aux.type = BINDING_AUX_PIPE;
+        bindings.arr[0].aux.master_copy = true;
+        bindings.arr[0].aux.pipe.args = xcalloc(
+            4, sizeof(bindings.arr[0].aux.pipe.args[0]));
+        bindings.arr[0].aux.pipe.args[0] = xstrdup("/usr/bin/foobar");
+        bindings.arr[0].aux.pipe.args[1] = xstrdup("hello");
+        bindings.arr[0].aux.pipe.args[2] = xstrdup("world");
 
-        bindings.arr[1].pipe.master_copy = true;
-        bindings.arr[1].pipe.argv.args = xcalloc(
-            4, sizeof(bindings.arr[1].pipe.argv.args[0]));
-        bindings.arr[1].pipe.argv.args[0] = xstrdup("/usr/bin/foobar");
-        bindings.arr[1].pipe.argv.args[1] = xstrdup("hello");
+        bindings.arr[1].aux.type = BINDING_AUX_PIPE;
+        bindings.arr[1].aux.master_copy = true;
+        bindings.arr[1].aux.pipe.args = xcalloc(
+            4, sizeof(bindings.arr[1].aux.pipe.args[0]));
+        bindings.arr[1].aux.pipe.args[0] = xstrdup("/usr/bin/foobar");
+        bindings.arr[1].aux.pipe.args[1] = xstrdup("hello");
 
         if (test_mode == SUCCED_SAME_ACTION_AND_ARGV)
-            bindings.arr[1].pipe.argv.args[2] = xstrdup("world");
+            bindings.arr[1].aux.pipe.args[2] = xstrdup("world");
         break;
     }
 

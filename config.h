@@ -44,9 +44,18 @@ struct argv {
     char **args;
 };
 
-struct config_binding_pipe {
-    struct argv argv;
+enum binding_aux_type {
+    BINDING_AUX_NONE,
+    BINDING_AUX_PIPE,
+};
+
+struct binding_aux {
+    enum binding_aux_type type;
     bool master_copy;
+
+    union {
+        struct argv pipe;
+    };
 };
 
 enum key_binding_type {
@@ -70,7 +79,7 @@ struct config_key_binding {
         } m;
     };
 
-    struct config_binding_pipe pipe;
+    struct binding_aux aux;
 
     /* For error messages in collision handling */
     const char *path;
