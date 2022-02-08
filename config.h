@@ -262,7 +262,7 @@ struct config {
             uint32_t buttons;
             uint32_t minimize;
             uint32_t maximize;
-            uint32_t close;
+            uint32_t quit;  /* ‘close’ collides with #define in epoll-shim */
             uint32_t border;
         } color;
 

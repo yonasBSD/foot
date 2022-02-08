@@ -1451,7 +1451,7 @@ parse_section_csd(struct context *ctx)
     }
 
     else if (strcmp(key, "button-close-color") == 0) {
-        if (!value_to_color(ctx, &conf->csd.color.close, true))
+        if (!value_to_color(ctx, &conf->csd.color.quit, true))
             return false;
 
         conf->csd.color.close_set = true;

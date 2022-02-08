@@ -665,7 +665,7 @@ test_section_csd(void)
     test_color(&ctx, &parse_section_csd, "button-maximize-color", true,
                &conf.csd.color.maximize);
     test_color(&ctx, &parse_section_csd, "button-close-color", true,
-               &conf.csd.color.close);
+               &conf.csd.color.quit);
 
     /* TODO: verify the ‘set’ bit is actually set for colors */
     /* TODO: font */
