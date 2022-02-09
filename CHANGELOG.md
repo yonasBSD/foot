@@ -48,6 +48,8 @@
 
 * Mouse selections are now finalized when the window is resized
   (https://codeberg.org/dnkl/foot/issues/922).
+* Support for re-mapping input, i.e. mapping input to custom escape
+  sequences (https://codeberg.org/dnkl/foot/issues/325).
 
 
 ### Deprecated
