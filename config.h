@@ -4,17 +4,25 @@
 #include <stdbool.h>
 #include <uchar.h>
 
+#include <xkbcommon/xkbcommon.h>
 #include <tllist.h>
+#include <fcft/fcft.h>
 
-#include "terminal.h"
 #include "user-notification.h"
-#include "wayland.h"
 
 #define DEFINE_LIST(type) \
     type##_list {         \
         size_t count;     \
         type *arr;        \
     }
+
+/* If px != 0 then px is valid, otherwise pt is valid */
+struct pt_or_px {
+    int16_t px;
+    float pt;
+};
+
+enum cursor_style { CURSOR_BLOCK, CURSOR_UNDERLINE, CURSOR_BEAM };
 
 enum conf_size_type {CONF_SIZE_PX, CONF_SIZE_CELLS};
 
@@ -36,12 +44,21 @@ struct argv {
     char **args;
 };
 
-struct config_binding_pipe {
-    struct argv argv;
-    bool master_copy;
+enum binding_aux_type {
+    BINDING_AUX_NONE,
+    BINDING_AUX_PIPE,
 };
 
-enum config_key_binding_type {
+struct binding_aux {
+    enum binding_aux_type type;
+    bool master_copy;
+
+    union {
+        struct argv pipe;
+    };
+};
+
+enum key_binding_type {
     KEY_BINDING,
     MOUSE_BINDING,
 };
@@ -62,7 +79,7 @@ struct config_key_binding {
         } m;
     };
 
-    struct config_binding_pipe pipe;
+    struct binding_aux aux;
 
     /* For error messages in collision handling */
     const char *path;
@@ -245,7 +262,7 @@ struct config {
             uint32_t buttons;
             uint32_t minimize;
             uint32_t maximize;
-            uint32_t close;
+            uint32_t quit;  /* ‘close’ collides with #define in epoll-shim */
             uint32_t border;
         } color;
 

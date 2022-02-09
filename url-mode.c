@@ -25,8 +25,10 @@ static void url_destroy(struct url *url);
 
 static bool
 execute_binding(struct seat *seat, struct terminal *term,
-                enum bind_action_url action, uint32_t serial)
+                const struct key_binding *binding, uint32_t serial)
 {
+    const enum bind_action_url action = binding->action;
+
     switch (action) {
     case BIND_ACTION_URL_NONE:
         return false;
@@ -125,10 +127,10 @@ urls_input(struct seat *seat, struct terminal *term, uint32_t key,
         const struct key_binding *bind = &it->item;
 
         /* Match translated symbol */
-        if (bind->sym == sym &&
+        if (bind->k.sym == sym &&
             bind->mods == (mods & ~consumed))
         {
-            execute_binding(seat, term, bind->action, serial);
+            execute_binding(seat, term, bind, serial);
             return;
         }
 
@@ -136,16 +138,16 @@ urls_input(struct seat *seat, struct terminal *term, uint32_t key,
             continue;
 
         for (size_t i = 0; i < raw_count; i++) {
-            if (bind->sym == raw_syms[i]) {
-                execute_binding(seat, term, bind->action, serial);
+            if (bind->k.sym == raw_syms[i]) {
+                execute_binding(seat, term, bind, serial);
                 return;
             }
         }
 
         /* Match raw key code */
-        tll_foreach(bind->key_codes, code) {
+        tll_foreach(bind->k.key_codes, code) {
             if (code->item == key) {
-                execute_binding(seat, term, bind->action, serial);
+                execute_binding(seat, term, bind, serial);
                 return;
             }
         }

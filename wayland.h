@@ -23,6 +23,7 @@
 #include <fcft/fcft.h>
 #include <tllist.h>
 
+#include "config.h"
 #include "fdm.h"
 
 /* Forward declarations */
@@ -100,23 +101,27 @@ enum bind_action_url {
 typedef tll(xkb_keycode_t) xkb_keycode_list_t;
 
 struct key_binding {
-    xkb_mod_mask_t mods;
-    xkb_keysym_t sym;
-    xkb_keycode_list_t key_codes;
+    enum key_binding_type type;
 
     int action; /* enum bind_action_* */
-    char **pipe_argv;
+    xkb_mod_mask_t mods;
+
+    union {
+        struct {
+            xkb_keysym_t sym;
+            xkb_keycode_list_t key_codes;
+        } k;
+
+        struct {
+            uint32_t button;
+            int count;
+        } m;
+    };
+
+    const struct binding_aux *aux;
+
 };
 typedef tll(struct key_binding) key_binding_list_t;
-
-struct mouse_binding {
-    enum bind_action_normal action;
-    xkb_mod_mask_t mods;
-    uint32_t button;
-    int count;
-    char **pipe_argv;
-};
-typedef tll(struct mouse_binding) mouse_binding_list_t;
 
 /* Mime-types we support when dealing with data offers (e.g. copy-paste, or DnD) */
 enum data_offer_mime_type {
@@ -253,7 +258,7 @@ struct seat {
         double aggregated[2];
         bool have_discrete;
 
-        mouse_binding_list_t bindings;
+        key_binding_list_t bindings;
     } mouse;
 
     /* Clipboard */
@@ -510,3 +515,5 @@ bool wayl_win_subsurface_new_with_custom_parent(
     struct wl_window *win, struct wl_surface *parent,
     struct wl_surf_subsurf *surf);
 void wayl_win_subsurface_destroy(struct wl_surf_subsurf *surf);
+
+void wayl_bindings_reset(struct seat *seat);

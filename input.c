@@ -81,9 +81,10 @@ pipe_closed:
 
 static bool
 execute_binding(struct seat *seat, struct terminal *term,
-                enum bind_action_normal action, char *const *pipe_argv,
-                uint32_t serial)
+                const struct key_binding *binding, uint32_t serial)
 {
+    const enum bind_action_normal action = binding->action;
+
     switch (action) {
     case BIND_ACTION_NONE:
         return true;
@@ -193,7 +194,7 @@ execute_binding(struct seat *seat, struct terminal *term,
         /* FALLTHROUGH */
     case BIND_ACTION_PIPE_VIEW:
     case BIND_ACTION_PIPE_SELECTED: {
-        if (pipe_argv == NULL)
+        if (binding->aux->type != BINDING_AUX_PIPE)
             return true;
 
         struct pipe_context *ctx = NULL;
@@ -266,7 +267,7 @@ execute_binding(struct seat *seat, struct terminal *term,
             }
         }
 
-        if (!spawn(term->reaper, NULL, pipe_argv, pipe_fd[0], stdout_fd, stderr_fd))
+        if (!spawn(term->reaper, NULL, binding->aux->pipe.args, pipe_fd[0], stdout_fd, stderr_fd))
             goto pipe_err;
 
         /* Close read end */
@@ -524,11 +525,14 @@ convert_key_binding(const struct seat *seat,
     xkb_keysym_t sym = maybe_repair_key_combo(seat, conf_binding->k.sym, mods);
 
     struct key_binding binding = {
-        .mods = mods,
-        .sym = sym,
-        .key_codes = key_codes_for_xkb_sym(seat->kbd.xkb_keymap, sym),
+        .type = KEY_BINDING,
         .action = conf_binding->action,
-        .pipe_argv = conf_binding->pipe.argv.args,
+        .aux = &conf_binding->aux,
+        .mods = mods,
+        .k = {
+            .sym = sym,
+            .key_codes = key_codes_for_xkb_sym(seat->kbd.xkb_keymap, sym),
+        },
     };
     tll_push_back(*bindings, binding);
 }
@@ -564,12 +568,15 @@ static void
 convert_mouse_binding(struct seat *seat,
                       const struct config_key_binding *conf_binding)
 {
-    struct mouse_binding binding = {
+    struct key_binding binding = {
+        .type = MOUSE_BINDING,
         .action = conf_binding->action,
+        .aux = &conf_binding->aux,
         .mods = conf_modifiers_to_mask(seat, &conf_binding->modifiers),
-        .button = conf_binding->m.button,
-        .count = conf_binding->m.count,
-        .pipe_argv = conf_binding->pipe.argv.args,
+        .m = {
+            .button = conf_binding->m.button,
+            .count = conf_binding->m.count,
+        },
     };
     tll_push_back(seat->mouse.bindings, binding);
 }
@@ -618,15 +625,7 @@ keyboard_keymap(void *data, struct wl_keyboard *wl_keyboard,
         seat->kbd.xkb = NULL;
     }
 
-    tll_foreach(seat->kbd.bindings.key, it)
-        tll_free(it->item.key_codes);
-    tll_free(seat->kbd.bindings.key);
-
-    tll_foreach(seat->kbd.bindings.search, it)
-        tll_free(it->item.key_codes);
-    tll_free(seat->kbd.bindings.search);
-
-    tll_free(seat->mouse.bindings);
+    wayl_bindings_reset(seat);
 
     /* Verify keymap is in a format we understand */
     switch ((enum wl_keyboard_keymap_format)format) {
@@ -1525,10 +1524,9 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
             const struct key_binding *bind = &it->item;
 
             /* Match translated symbol */
-            if (bind->sym == sym &&
+            if (bind->k.sym == sym &&
                 bind->mods == (bind_mods & ~bind_consumed) &&
-                execute_binding(
-                    seat, term, bind->action, bind->pipe_argv, serial))
+                execute_binding(seat, term, bind, serial))
             {
                 goto maybe_repeat;
             }
@@ -1538,17 +1536,17 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
 
             /* Match untranslated symbols */
             for (size_t i = 0; i < raw_count; i++) {
-                if (bind->sym == raw_syms[i] && execute_binding(
-                        seat, term, bind->action, bind->pipe_argv, serial))
+                if (bind->k.sym == raw_syms[i] &&
+                    execute_binding(seat, term, bind, serial))
                 {
                     goto maybe_repeat;
                 }
             }
 
             /* Match raw key code */
-            tll_foreach(bind->key_codes, code) {
-                if (code->item == key && execute_binding(
-                        seat, term, bind->action, bind->pipe_argv, serial))
+            tll_foreach(bind->k.key_codes, code) {
+                if (code->item == key &&
+                    execute_binding(seat, term, bind, serial))
                 {
                     goto maybe_repeat;
                 }
@@ -2411,12 +2409,12 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
                     /* Ignore selection override modifiers when matching modifiers */
                     mods &= ~seat->kbd.selection_override_modmask;
 
-                    const struct mouse_binding *match = NULL;
+                    const struct key_binding *match = NULL;
 
                     tll_foreach(seat->mouse.bindings, it) {
-                        const struct mouse_binding *binding = &it->item;
+                        const struct key_binding *binding = &it->item;
 
-                        if (binding->button != button) {
+                        if (binding->m.button != button) {
                             /* Wrong button */
                             continue;
                         }
@@ -2426,19 +2424,17 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
                             continue;
                         }
 
-                        if  (binding->count > seat->mouse.count) {
+                        if  (binding->m.count > seat->mouse.count) {
                             /* Not correct click count */
                             continue;
                         }
 
-                        if (match == NULL || binding->count > match->count)
+                        if (match == NULL || binding->m.count > match->m.count)
                             match = binding;
                     }
 
-                    if (match != NULL) {
-                        consumed = execute_binding(
-                            seat, term, match->action, match->pipe_argv, serial);
-                    }
+                    if (match != NULL)
+                        consumed = execute_binding(seat, term, match, serial);
                 }
 
                 else {
@@ -2471,9 +2467,11 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
                     }
 
                     if (match != NULL) {
-                        consumed = execute_binding(
-                            seat, term, match->action, match->pipe.argv.args,
-                            serial);
+                        struct key_binding bind = {
+                            .action = match->action,
+                            .aux = &match->aux,
+                        };
+                        consumed = execute_binding(seat, term, &bind, serial);
                     }
                 }
             }
