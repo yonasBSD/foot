@@ -564,10 +564,6 @@ decset_decrst(struct terminal *term, unsigned param, bool enable)
         term->sixel.cursor_right_of_graphics = enable;
         break;
 
-    case 27127:
-        term->modify_escape_key = enable;
-        break;
-
     case 737769:
         if (enable)
             term_ime_enable(term);
@@ -629,7 +625,6 @@ decrqm(const struct terminal *term, unsigned param, bool *enabled)
     case 2004: *enabled = term->bracketed_paste; return true;
     case 2026: *enabled = term->render.app_sync_updates.enabled; return true;
     case 8452: *enabled = term->sixel.cursor_right_of_graphics; return true;
-    case 27127: *enabled = term->modify_escape_key; return true;
     case 737769: *enabled = term_ime_is_enabled(term); return true;
     }
 
@@ -673,7 +668,6 @@ xtsave(struct terminal *term, unsigned param)
     case 2004: term->xtsave.bracketed_paste = term->bracketed_paste; break;
     case 2026: term->xtsave.app_sync_updates = term->render.app_sync_updates.enabled; break;
     case 8452: term->xtsave.sixel_cursor_right_of_graphics = term->sixel.cursor_right_of_graphics; break;
-    case 27127: term->xtsave.modify_escape_key = term->modify_escape_key; break;
     case 737769: term->xtsave.ime = term_ime_is_enabled(term); break;
     }
 }
@@ -716,7 +710,6 @@ xtrestore(struct terminal *term, unsigned param)
     case 2004: enable = term->xtsave.bracketed_paste; break;
     case 2026: enable = term->xtsave.app_sync_updates; break;
     case 8452: enable = term->xtsave.sixel_cursor_right_of_graphics; break;
-    case 27127: enable = term->xtsave.modify_escape_key; break;
     case 737769: enable = term->xtsave.ime; break;
 
     default: return;

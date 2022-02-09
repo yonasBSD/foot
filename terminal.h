@@ -327,7 +327,6 @@ struct terminal {
     bool bracketed_paste;
     bool focus_events;
     bool alt_scrolling;
-    bool modify_escape_key;
     bool modify_other_keys_2;  /* True when modifyOtherKeys=2 (i.e. “CSI >4;2m”) */
     enum cursor_origin origin;
     enum cursor_keys cursor_keys_mode;
@@ -415,7 +414,6 @@ struct terminal {
         bool num_lock_modifier:1;
         bool bell_action_enabled:1;
         bool alt_screen:1;
-        bool modify_escape_key:1;
         bool ime:1;
         bool app_sync_updates:1;
 
