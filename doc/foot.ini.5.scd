@@ -855,6 +855,37 @@ Be careful; do not use single-letter keys that are also used in
 	Default: _t_.
 
 
+# SECTION: text-bindings
+
+This section lets you remap key combinations to custom escape
+sequences.
+
+The format is _text=combo1...comboN_. That is, the string to emit may
+have one or more key combinations, space separated. Each combination
+is on the form _mod1+mod2+key_. The names of the modifiers and the key
+*must* be valid XKB key names.
+
+The text string specifies the characters, or bytes, to emit when the
+associated key combination(s) are pressed. There are two ways to
+specify a character:
+
+- Normal, printable characters are written as-is: *abcdef*.
+- Bytes (e.g. ESC) are written as two-digit hexadecimal numbers, with
+  a *\\x* prefix: *\\x1b*.
+
+Example: you would like to remap _Super+k_ to the _Up_ key.
+
+The escape sequence for the Up key is _ESC [ A_ (without the
+spaces). Thus, we need to specify this in foot.ini (*Mod4* is the XKB
+name for the Super/logo key):
+
+*\\x1b[A = Mod4+k*
+
+Another example: to remap _Super+c_ to _Control+c_:
+
+*\\x03 = Mod4+c*
+
+
 # SECTION: mouse-bindings
 
 This section lets you override the default mouse bindings.
