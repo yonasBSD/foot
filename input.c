@@ -1044,13 +1044,7 @@ legacy_kbd_protocol(struct seat *seat, struct terminal *term,
     const size_t count = ctx->utf8.count;
     const uint8_t *const utf8 = ctx->utf8.buf;
 
-    const struct key_data *keymap;
-    if (sym == XKB_KEY_Escape && keymap_mods == MOD_NONE && term->modify_escape_key) {
-        static const struct key_data esc = {.seq = "\033[27;1;27~"};
-        keymap = &esc;
-    } else
-        keymap = keymap_lookup(term, sym, keymap_mods);
-
+    const struct key_data *keymap = keymap_lookup(term, sym, keymap_mods);
     if (keymap != NULL) {
         term_to_slave(term, keymap->seq, strlen(keymap->seq));
         return true;

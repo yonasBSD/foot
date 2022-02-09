@@ -52,6 +52,11 @@
 
 ### Deprecated
 ### Removed
+
+* DECSET mode 27127 (which was first added in release 1.6.0).
+  The kitty keyboard protocol (added in release 1.10.3) can
+  be used to similar effect.
+
 ### Fixed
 
 * Build: missing `wayland_client` dependency in `test-config`
