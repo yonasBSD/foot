@@ -614,7 +614,47 @@ osc_dispatch(struct terminal *term)
                         idx, term->colors.table[idx], color);
 
                 term->colors.table[idx] = color;
-                term_damage_view(term);
+
+                /* Dirty visible, affected cells */
+                for (int r = 0; r < term->rows; r++) {
+                    struct row *row = grid_row_in_view(term->grid, r);
+                    struct cell *cell = &row->cells[0];
+
+                    for (int c = 0; c < term->cols; c++, cell++) {
+                        bool dirty = false;
+
+                        switch (cell->attrs.fg_src) {
+                        case COLOR_BASE16:
+                        case COLOR_BASE256:
+                            if (cell->attrs.fg == idx)
+                                dirty = true;
+                            break;
+
+                        case COLOR_DEFAULT:
+                        case COLOR_RGB:
+                            /* Not affected */
+                            break;
+                        }
+
+                        switch (cell->attrs.bg_src) {
+                        case COLOR_BASE16:
+                        case COLOR_BASE256:
+                            if (cell->attrs.bg == idx)
+                                dirty = true;
+                            break;
+
+                        case COLOR_DEFAULT:
+                        case COLOR_RGB:
+                            /* Not affected */
+                            break;
+                        }
+
+                        if (dirty) {
+                            cell->attrs.clean = 0;
+                            row->dirty = true;
+                        }
+                    }
+                }
             }
         }
 
