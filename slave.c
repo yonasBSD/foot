@@ -275,7 +275,8 @@ slave_spawn(int ptmx, int argc, const char *cwd, char *const *argv,
         }
 
         /* Restore signal mask, and SIG_IGN'd signals */
-        const struct sigaction dfl = {.sa_handler = SIG_DFL};
+        struct sigaction dfl = {.sa_handler = SIG_DFL};
+        sigemptyset(&dfl.sa_mask);
         sigset_t mask;
         sigemptyset(&mask);
 

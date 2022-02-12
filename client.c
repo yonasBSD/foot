@@ -455,7 +455,8 @@ main(int argc, char *const *argv)
         }
     }
 
-    const struct sigaction sa = {.sa_handler = &sig_handler};
+    struct sigaction sa = {.sa_handler = &sig_handler};
+    sigemptyset(&sa.sa_mask);
     if (sigaction(SIGINT, &sa, NULL) < 0 || sigaction(SIGTERM, &sa, NULL) < 0) {
         LOG_ERRNO("failed to register signal handlers");
         goto err;

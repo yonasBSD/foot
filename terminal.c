@@ -1716,7 +1716,9 @@ term_destroy(struct terminal *term)
              * course only applies to a 'foot --server' instance, where
              * there might be other terminals running.
              */
-            sigaction(SIGALRM, &(const struct sigaction){.sa_handler = &sig_alarm}, NULL);
+            struct sigaction action = {.sa_handler = &sig_alarm};
+            sigemptyset(&action.sa_mask);
+            sigaction(SIGALRM, &action, NULL);
             alarm(60);
 
             while (true) {
@@ -1740,7 +1742,8 @@ term_destroy(struct terminal *term)
 
             /* Cancel alarm */
             alarm(0);
-            sigaction(SIGALRM, &(const struct sigaction){.sa_handler = SIG_DFL}, NULL);
+            action.sa_handler = SIG_DFL;
+            sigaction(SIGALRM, &action, NULL);
         }
 
         ret = EXIT_FAILURE;

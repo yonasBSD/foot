@@ -625,7 +625,8 @@ main(int argc, char *const *argv)
         goto out;
     }
 
-    const struct sigaction sig_ign = {.sa_handler = SIG_IGN};
+    struct sigaction sig_ign = {.sa_handler = SIG_IGN};
+    sigemptyset(&sig_ign.sa_mask);
     if (sigaction(SIGHUP, &sig_ign, NULL) < 0 ||
         sigaction(SIGPIPE, &sig_ign, NULL) < 0)
     {

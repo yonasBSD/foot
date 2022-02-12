@@ -45,7 +45,9 @@ spawn(struct reaper *reaper, const char *cwd, char *const argv[],
             goto child_err;
 
         /* Restore ignored (SIG_IGN) signals */
-        if (sigaction(SIGHUP, &(struct sigaction){.sa_handler = SIG_DFL}, NULL) < 0)
+        struct sigaction dfl = {.sa_handler = SIG_DFL};
+        sigemptyset(&dfl.sa_mask);
+        if (sigaction(SIGHUP, &dfl, NULL) < 0)
             goto child_err;
 
         if (cwd != NULL && chdir(cwd) < 0) {
