@@ -628,7 +628,7 @@ All _OSC_ sequences begin with *\\E]*, sometimes abbreviated _OSC_.
 :  xterm
 :  Change selection foreground color to _spec_, a color in XParseColor
    format.
-|  \\E] 22 ; _xcursor pointer name_ \\E\\ 
+|  \\E] 22 ; _xcursor-pointer-name_ \\E\\ 
 :  xterm
 :  Sets the xcursor pointer. An empty name, or an invalid name resets
    it.
