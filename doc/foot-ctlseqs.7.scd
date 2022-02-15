@@ -599,10 +599,10 @@ All _OSC_ sequences begin with *\\E]*, sometimes abbreviated _OSC_.
 :  Update the terminal's current working directory. Newly spawned
    terminals will launch in this directory. _Uri_ must be on the format
    *file://<hostname>/<path>*. *hostname* must refer to your local host.
-|  \\E] 8 ; _id_=*ID* ; _Uri_ \\E\\ 
+|  \\E] 8 ; id=_ID_ ; _Uri_ \\E\\ 
 :  VTE+iTerm2
-:  Hyperlink (a.k.a HTML-like anchors). _id_ is optional; if assigned,
-   all URIs with the same *ID* will be treated as a single
+:  Hyperlink (a.k.a HTML-like anchors). id=_ID_ is optional; if assigned,
+   all URIs with the same _ID_ will be treated as a single
    hyperlink. An empty URI closes the hyperlink.
 |  \\E] 9 ; _msg_ \\E\\ 
 :  iTerm2
