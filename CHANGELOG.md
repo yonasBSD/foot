@@ -69,6 +69,9 @@
   (https://codeberg.org/dnkl/foot/issues/924).
 * Crash in `pipe-scrollback`
   (https://codeberg.org/dnkl/foot/issues/926).
+* Exit code being 0 when a foot server with no open windows terminate
+  due to e.g. a Wayland connection failure
+  (https://codeberg.org/dnkl/foot/issues/943).
 
 
 ### Security

@@ -642,13 +642,13 @@ main(int argc, char *const *argv)
             goto out;
     }
 
+    ret = EXIT_SUCCESS;
     while (likely(!aborted && (as_server || tll_length(wayl->terms) > 0))) {
-        if (unlikely(!fdm_poll(fdm)))
+        if (unlikely(!fdm_poll(fdm))) {
+            ret = foot_exit_failure;
             break;
+        }
     }
-
-    if (aborted || tll_length(wayl->terms) == 0)
-        ret = EXIT_SUCCESS;
 
 out:
     free(_cwd);
