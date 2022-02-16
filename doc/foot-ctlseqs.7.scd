@@ -682,10 +682,10 @@ and are terminated by *\\E\\* (ST).
 |  \\P $ q <query> \\E\\ 
 :  Request selection or setting (DECRQSS). Implemented queries:
    DECSTBM, SGR and DECSCUSR.
-|  \\EP = 1 s \\E\\ 
-:  Begin application synchronized updates
-|  \\EP = 2 s \\E\\ 
-:  End application synchronized updates
+|  \\EP = _C_ s \\E\\ 
+:  Begin (_C_=*1*) or end (_C_=*2*) application synchronized updates.
+   This sequence is supported for compatibility reasons, but it's
+   recommended to use private mode 2026 (see above) instead.
 |  \\EP + q <hex encoded capability name> \\E\\
 :  Query builtin terminfo database (XTGETTCAP)
 
