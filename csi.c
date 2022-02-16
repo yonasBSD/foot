@@ -621,7 +621,7 @@ decrqm(const struct terminal *term, unsigned param, bool *enabled)
     case 47:   /* FALLTHROUGH */
     case 1047: /* FALLTHROUGH */
     case 1049: *enabled = term->grid == &term->alt; return true;
-    case 1079: *enabled = term->sixel.use_private_palette; return true;
+    case 1070: *enabled = term->sixel.use_private_palette; return true;
     case 2004: *enabled = term->bracketed_paste; return true;
     case 2026: *enabled = term->render.app_sync_updates.enabled; return true;
     case 8452: *enabled = term->sixel.cursor_right_of_graphics; return true;
