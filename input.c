@@ -313,6 +313,11 @@ execute_binding(struct seat *seat, struct terminal *term,
         return true;
     }
 
+    case BIND_ACTION_TEXT_BINDING:
+        xassert(binding->aux->type == BINDING_AUX_TEXT);
+        term_to_slave(term, binding->aux->text.data, binding->aux->text.len);
+        return true;
+
     case BIND_ACTION_SELECT_BEGIN:
         selection_start(
             term, seat->mouse.col, seat->mouse.row, SELECTION_CHAR_WISE, false);

@@ -1095,6 +1095,42 @@ test_section_mouse_bindings_collisions(void)
 }
 
 static void
+test_section_text_bindings(void)
+{
+    struct config conf = {0};
+    struct context ctx = {
+        .conf = &conf, .section = "text-bindings", .path = "unittest"};
+
+    ctx.key = "abcd";
+    ctx.value = XKB_MOD_NAME_CTRL "+" XKB_MOD_NAME_SHIFT "+x";
+    xassert(parse_section_text_bindings(&ctx));
+
+    ctx.key = "\\x07";
+    xassert(parse_section_text_bindings(&ctx));
+
+    ctx.key = "\\x1g";
+    xassert(!parse_section_text_bindings(&ctx));
+
+    ctx.key = "\\x1";
+    xassert(!parse_section_text_bindings(&ctx));
+
+    ctx.key = "\\x";
+    xassert(!parse_section_text_bindings(&ctx));
+
+    ctx.key = "\\";
+    xassert(!parse_section_text_bindings(&ctx));
+
+    ctx.key = "\\y";
+    xassert(!parse_section_text_bindings(&ctx));
+
+    ctx.key = "abcd";
+    ctx.value = "InvalidMod+y";
+    xassert(!parse_section_text_bindings(&ctx));
+
+    config_free(conf);
+}
+
+static void
 test_section_tweak(void)
 {
     struct config conf = {0};
@@ -1188,6 +1224,7 @@ main(int argc, const char *const *argv)
     test_section_url_bindings_collisions();
     test_section_mouse_bindings();
     test_section_mouse_bindings_collisions();
+    test_section_text_bindings();
     test_section_tweak();
     log_deinit();
     return 0;

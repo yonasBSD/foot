@@ -48,6 +48,8 @@
 
 * Mouse selections are now finalized when the window is resized
   (https://codeberg.org/dnkl/foot/issues/922).
+* Support for re-mapping input, i.e. mapping input to custom escape
+  sequences (https://codeberg.org/dnkl/foot/issues/325).
 
 
 ### Deprecated
@@ -72,6 +74,8 @@
 * Exit code being 0 when a foot server with no open windows terminate
   due to e.g. a Wayland connection failure
   (https://codeberg.org/dnkl/foot/issues/943).
+* Key binding collisions not detected for bindings specified as option
+  overrides on the command line.
 
 
 ### Security
