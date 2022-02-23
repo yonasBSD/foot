@@ -681,6 +681,12 @@ e.g. *search-start=none*.
 *scrollback-down-line*
 	Scroll down/forward a single line in history. Default: _not bound_.
 
+*scrollback-home*
+	Scroll to the beginning of the scrollback. Default: _not bound_.
+
+*scrollback-end*
+	Scroll to the end (bottom) of the scrollback. Default: _not bound_.
+
 *clipboard-copy*
 	Copies the current selection into the _clipboard_. Default: _Control+Shift+c_
 	_XF86Copy_.

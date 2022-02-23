@@ -134,6 +134,20 @@ execute_binding(struct seat *seat, struct terminal *term,
         }
         break;
 
+    case BIND_ACTION_SCROLLBACK_HOME:
+        if (term->grid == &term->normal) {
+            cmd_scrollback_up(term, term->grid->num_rows);
+            return true;
+        }
+        break;
+
+    case BIND_ACTION_SCROLLBACK_END:
+        if (term->grid == &term->normal) {
+            cmd_scrollback_down(term, term->grid->num_rows);
+            return true;
+        }
+        break;
+
     case BIND_ACTION_CLIPBOARD_COPY:
         selection_to_clipboard(seat, term, serial);
         return true;
