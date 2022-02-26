@@ -56,7 +56,6 @@ following **optional** dependencies:
 * xdg-utils: URLs are by default launched with `xdg-open`.
 * bash-completion: If you want completion for positional arguments.
 
-
 ### Building
 
 In addition to the dev variant of the packages above, you need:
@@ -68,6 +67,7 @@ In addition to the dev variant of the packages above, you need:
 * scdoc (for man page generation, not needed if documentation is disabled)
 * llvm (for PGO builds with Clang)
 * [tllist](https://codeberg.org/dnkl/tllist) [^1]
+* systemd (optional, foot will install systemd unit files if detected)
 
 A note on compilers; in general, foot runs **much** faster when
 compiled with gcc instead of clang. A profile-guided gcc build can be
