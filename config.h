@@ -316,6 +316,7 @@ struct config {
         float box_drawing_base_thickness;
         bool box_drawing_solid_shades;
         bool font_monospace_warn;
+        bool sixel;
     } tweak;
 
     user_notifications_t notifications;

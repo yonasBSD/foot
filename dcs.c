@@ -420,6 +420,9 @@ dcs_hook(struct terminal *term, uint8_t final)
     case 0:
         switch (final) {
         case 'q': {
+            if (!term->conf->tweak.sixel) {
+                break;
+            }
             int p1 = vt_param_get(term, 0, 0);
             int p2 = vt_param_get(term, 1,0);
             int p3 = vt_param_get(term, 2, 0);

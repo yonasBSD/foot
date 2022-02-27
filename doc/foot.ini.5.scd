@@ -1207,6 +1207,10 @@ any of these options.
 	
 	Default: _512_. Maximum allowed: _2048_ (2GB).
 
+*sixel*
+	Boolean. When enabled, foot will process sixel images. Default: _yes_
+
+
 # SEE ALSO
 
 *foot*(1), *footclient*(1)

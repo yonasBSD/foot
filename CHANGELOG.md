@@ -47,6 +47,8 @@
 * Socket activation for `foot --server` and accompanying systemd unit files
 * Support for [DECNKM](https://vt100.net/docs/vt510-rm/DECNKM.html), which
   allows setting/saving/restoring/querying the keypad mode.
+* Sixel support can be disabled by setting `[tweak].sixel=no`
+  (https://codeberg.org/dnkl/foot/issues/950).
 
 
 ### Changed

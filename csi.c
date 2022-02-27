@@ -795,8 +795,13 @@ csi_dispatch(struct terminal *term, uint8_t final)
              *
              * Note: tertiary DA responds with "FOOT".
              */
-            static const char reply[] = "\033[?62;4;22c";
-            term_to_slave(term, reply, sizeof(reply) - 1);
+            if (term->conf->tweak.sixel) {
+                static const char reply[] = "\033[?62;4;22c";
+                term_to_slave(term, reply, sizeof(reply) - 1);
+            } else {
+                static const char reply[] = "\033[?62;22c";
+                term_to_slave(term, reply, sizeof(reply) - 1);
+            }
             break;
         }
 
@@ -1418,6 +1423,11 @@ csi_dispatch(struct terminal *term, uint8_t final)
             break;
 
         case 'S': {
+            if (!term->conf->tweak.sixel) {
+                UNHANDLED();
+                break;
+            }
+
             unsigned target = vt_param_get(term, 0, 0);
             unsigned operation = vt_param_get(term, 1, 0);
 
