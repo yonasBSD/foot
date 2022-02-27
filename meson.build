@@ -245,6 +245,25 @@ install_data(
   'foot.desktop', 'foot-server.desktop', 'footclient.desktop',
   install_dir: join_paths(get_option('datadir'), 'applications'))
 
+systemd = dependency('systemd', required: false)
+if systemd.found()
+
+  configuration = configuration_data()
+  configuration.set('bindir', join_paths(get_option('prefix'), get_option('bindir')))
+
+  systemd_units_dir = systemd.get_pkgconfig_variable('systemduserunitdir')
+  configure_file(
+    configuration: configuration,
+    input: 'foot-server@.service.in',
+    output: '@BASENAME@',
+    install_dir: systemd_units_dir
+    )
+
+  install_data(
+    'foot-server@.socket',
+    install_dir: systemd_units_dir)
+endif
+
 scdoc = dependency('scdoc', native: true, required: get_option('docs'))
 if scdoc.found()
   install_data(
