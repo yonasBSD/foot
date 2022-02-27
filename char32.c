@@ -289,7 +289,11 @@ err:
 
 UNITTEST
 {
-    setlocale(LC_CTYPE, "en_US.UTF-8");
+    const char* locale = setlocale(LC_CTYPE, "en_US.UTF-8");
+    if (!locale)
+        locale = setlocale(LC_CTYPE, "C.UTF-8");
+    if (!locale)
+        return;
 
     char32_t *hello = ambstoc32(u8"hello");
     xassert(hello != NULL);
@@ -322,7 +326,7 @@ UNITTEST
     free(emoji);
 
     xassert(ambstoc32(NULL) == NULL);
-    setlocale(LC_CTYPE, "C");
+    xassert(setlocale(LC_CTYPE, "C") != NULL);
 }
 
 char *
@@ -375,7 +379,11 @@ err:
 
 UNITTEST
 {
-    setlocale(LC_CTYPE, "en_US.UTF-8");
+    const char* locale = setlocale(LC_CTYPE, "en_US.UTF-8");
+    if (!locale)
+        locale = setlocale(LC_CTYPE, "C.UTF-8");
+    if (!locale)
+        return;
 
     char *s = ac32tombs(U"foobar");
     xassert(s != NULL);
@@ -393,5 +401,5 @@ UNITTEST
     free(s);
 
     xassert(ac32tombs(NULL) == NULL);
-    setlocale(LC_CTYPE, "C");
+    xassert(setlocale(LC_CTYPE, "C") != NULL);
 }
