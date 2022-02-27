@@ -48,6 +48,7 @@
 
 ### Changed
 
+* Minimum required meson version is now 0.58.
 * Mouse selections are now finalized when the window is resized
   (https://codeberg.org/dnkl/foot/issues/922).
 * Support for re-mapping input, i.e. mapping input to custom escape
