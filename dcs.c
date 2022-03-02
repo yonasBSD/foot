@@ -240,7 +240,7 @@ decrqss(struct terminal *term)
      * https://github.com/hackerb9/vt340test/issues/13
      */
 
-    if (memcmp(query, "r", n) == 0) {
+    if (n == 1 && query[0] == 'r') {
         /* DECSTBM - Set Top and Bottom Margins */
         char reply[64];
         int len = snprintf(reply, sizeof(reply), "\033P1$r%d;%dr\033\\",
@@ -249,7 +249,7 @@ decrqss(struct terminal *term)
         term_to_slave(term, reply, len);
     }
 
-    else if (memcmp(query, "m", n) == 0) {
+    else if (n == 1 && query[0] == 'm') {
         /* SGR - Set Graphic Rendition */
         char *reply = NULL;
         size_t len = 0;
@@ -356,7 +356,7 @@ decrqss(struct terminal *term)
         free(reply);
     }
 
-    else if (memcmp(query, " q", n) == 0) {
+    else if (n == 2 && memcmp(query, " q", 2) == 0) {
         /* DECSCUSR - Set Cursor Style */
         int mode;
 
@@ -376,7 +376,7 @@ decrqss(struct terminal *term)
     }
 
     else {
-        const char err[] = "\033P0$r\033\\";
+        static const char err[] = "\033P0$r\033\\";
         term_to_slave(term, err, sizeof(err) - 1);
     }
 }
