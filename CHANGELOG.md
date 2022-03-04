@@ -46,6 +46,7 @@
 * `[key-bindings].scrollback-home|end` options.
 * Socket activation for `foot --server` and accompanying systemd unit files
 
+
 ### Changed
 
 * Minimum required meson version is now 0.58.
@@ -61,6 +62,7 @@
 * DECSET mode 27127 (which was first added in release 1.6.0).
   The kitty keyboard protocol (added in release 1.10.3) can
   be used to similar effect.
+
 
 ### Fixed
 
@@ -79,6 +81,8 @@
   (https://codeberg.org/dnkl/foot/issues/943).
 * Key binding collisions not detected for bindings specified as option
   overrides on the command line.
+* Crash when seat has no keyboard
+  (https://codeberg.org/dnkl/foot/issues/963).
 
 
 ### Security

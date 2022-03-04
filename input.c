@@ -1010,14 +1010,23 @@ get_current_modifiers(const struct seat *seat,
                       xkb_mod_mask_t *effective,
                       xkb_mod_mask_t *consumed, uint32_t key)
 {
-    if (effective != NULL) {
-        *effective = xkb_state_serialize_mods(
-            seat->kbd.xkb_state, XKB_STATE_MODS_EFFECTIVE);
+    if (unlikely(seat->kbd.xkb_state == NULL)) {
+        if (effective != NULL)
+            *effective = 0;
+        if (consumed != NULL)
+            *consumed = 0;
     }
 
-    if (consumed != NULL) {
-        *consumed = xkb_state_key_get_consumed_mods2(
-            seat->kbd.xkb_state, key, XKB_CONSUMED_MODE_XKB);
+    else {
+        if (effective != NULL) {
+            *effective = xkb_state_serialize_mods(
+                seat->kbd.xkb_state, XKB_STATE_MODS_EFFECTIVE);
+        }
+
+        if (consumed != NULL) {
+            *consumed = xkb_state_key_get_consumed_mods2(
+                seat->kbd.xkb_state, key, XKB_CONSUMED_MODE_XKB);
+        }
     }
 }
 
