@@ -54,6 +54,8 @@
   (https://codeberg.org/dnkl/foot/issues/922).
 * Support for re-mapping input, i.e. mapping input to custom escape
   sequences (https://codeberg.org/dnkl/foot/issues/325).
+* OSC-4 and OSC-11 replies now uses four digits instead of 2
+  (https://codeberg.org/dnkl/foot/issues/971).
 
 
 ### Deprecated

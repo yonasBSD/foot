@@ -596,8 +596,9 @@ osc_dispatch(struct terminal *term)
 
                 char reply[32];
                 size_t n = xsnprintf(
-                    reply, sizeof(reply), "\033]4;%u;rgb:%02x/%02x/%02x%s",
-                    idx, r, g, b, terminator);
+                    reply, sizeof(reply),
+                    "\033]4;%u;rgb:%02hhx%02hhx/%02hhx%02hhx/%02hhx%02hhx%s",
+                    idx, r, r, g, g, b, b, terminator);
                 term_to_slave(term, reply, n);
             }
 
@@ -695,8 +696,9 @@ osc_dispatch(struct terminal *term)
              */
             char reply[32];
             size_t n = xsnprintf(
-                reply, sizeof(reply), "\033]%u;rgb:%02x/%02x/%02x%s",
-                param, r, g, b, terminator);
+                reply, sizeof(reply),
+                "\033]%u;rgb:%02hhx%02hhx/%02hhx%02hhx/%02hhx%02hhx%s",
+                param, r, r, g, g, b, b, terminator);
 
             term_to_slave(term, reply, n);
             break;
