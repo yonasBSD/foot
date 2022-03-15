@@ -6,6 +6,7 @@
 
 #include <wctype.h>
 #include <wchar.h>
+#include <stdc-predef.h>
 
 
 #define LOG_MODULE "char32"
