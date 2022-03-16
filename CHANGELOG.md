@@ -58,6 +58,8 @@
   sequences (https://codeberg.org/dnkl/foot/issues/325).
 * OSC-4 and OSC-11 replies now uses four digits instead of 2
   (https://codeberg.org/dnkl/foot/issues/971).
+* `\r` is no longer translated to `\n` when pasting clipboard data
+  (https://codeberg.org/dnkl/foot/issues/980).
 
 
 ### Deprecated

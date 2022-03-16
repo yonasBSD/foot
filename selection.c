@@ -1638,11 +1638,6 @@ fdm_receive_timeout(struct fdm *fdm, int fd, int events, void *data)
 static void
 fdm_receive_decoder_plain(struct clipboard_receive *ctx, char *data, size_t size)
 {
-    /* \r -> \n */
-    for (size_t i = 0; i < size; i++) {
-        if (data[i] == '\r')
-            data[i] = '\n';
-    }
     ctx->cb(data, size, ctx->user);
 }
 
@@ -1760,8 +1755,8 @@ fdm_receive(struct fdm *fdm, int fd, int events, void *data)
 
         /*
          * Call cb while at same time replace:
-         *   - \r\n -> \r
-         *   - \n -> \r
+         *   - \r\n -> \r  (non-bracketed paste)
+         *   - \n -> \r    (non-bracketed paste)
          *   - C0 -> <nothing>  (strip non-formatting C0 characters)
          *   - \e -> <nothing>  (i.e. strip ESC)
          */
