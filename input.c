@@ -1030,6 +1030,12 @@ get_current_modifiers(const struct seat *seat,
     }
 }
 
+static xkb_mod_mask_t
+get_locked_modifiers(const struct seat *seat)
+{
+    return xkb_state_serialize_mods(seat->kbd.xkb_state, XKB_STATE_MODS_LOCKED);
+}
+
 struct kbd_ctx {
     xkb_layout_index_t layout;
     xkb_keycode_t key;
@@ -1488,8 +1494,11 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
     xkb_mod_mask_t mods, consumed;
     get_current_modifiers(seat, &mods, &consumed, key);
 
-    xkb_mod_mask_t bind_mods = mods & seat->kbd.bind_significant;
-    xkb_mod_mask_t bind_consumed = consumed & seat->kbd.bind_significant;
+    const xkb_mod_mask_t locked = get_locked_modifiers(seat);
+    const xkb_mod_mask_t bind_mods
+        = mods & seat->kbd.bind_significant & ~locked;
+    const xkb_mod_mask_t bind_consumed =
+        consumed & seat->kbd.bind_significant & ~locked;
 
     xkb_layout_index_t layout_idx =
         xkb_state_key_get_layout(seat->kbd.xkb_state, key);
@@ -1504,7 +1513,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
                 start_repeater(seat, key);
 
             search_input(
-                seat, term, key, sym, bind_mods, bind_consumed,
+                seat, term, key, sym, mods, consumed, locked,
                 raw_syms, raw_count, serial);
             return;
         }
@@ -1514,7 +1523,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
                 start_repeater(seat, key);
 
             urls_input(
-                seat, term, key, sym, bind_mods, bind_consumed,
+                seat, term, key, sym, mods, consumed, locked,
                 raw_syms, raw_count, serial);
             return;
         }
@@ -1553,7 +1562,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
                 goto maybe_repeat;
             }
 
-            if (bind->mods != bind_mods)
+            if (bind->mods != bind_mods || bind_mods != (mods & ~locked))
                 continue;
 
             /* Match untranslated symbols */

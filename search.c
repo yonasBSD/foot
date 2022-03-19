@@ -822,11 +822,16 @@ execute_binding(struct seat *seat, struct terminal *term,
 void
 search_input(struct seat *seat, struct terminal *term, uint32_t key,
              xkb_keysym_t sym, xkb_mod_mask_t mods, xkb_mod_mask_t consumed,
+             xkb_mod_mask_t locked,
              const xkb_keysym_t *raw_syms, size_t raw_count,
              uint32_t serial)
 {
     LOG_DBG("search: input: sym=%d/0x%x, mods=0x%08x", sym, sym, mods);
 
+    const xkb_mod_mask_t bind_mods =
+        mods & seat->kbd.bind_significant & ~locked;
+    const xkb_mod_mask_t bind_consumed =
+        consumed & seat->kbd.bind_significant & ~locked;
     enum xkb_compose_status compose_status = seat->kbd.xkb_compose_state != NULL
       ? xkb_compose_state_get_status(seat->kbd.xkb_compose_state)
       : XKB_COMPOSE_NOTHING;
@@ -840,7 +845,7 @@ search_input(struct seat *seat, struct terminal *term, uint32_t key,
 
         /* Match translated symbol */
         if (bind->k.sym == sym &&
-            bind->mods == (mods & ~consumed)) {
+            bind->mods == (bind_mods & ~bind_consumed)) {
 
             if (execute_binding(seat, term, bind, serial,
                                 &update_search_result, &redraw))
@@ -850,7 +855,7 @@ search_input(struct seat *seat, struct terminal *term, uint32_t key,
             return;
         }
 
-        if (bind->mods != mods)
+        if (bind->mods != bind_mods || bind_mods != (mods & ~locked))
             continue;
 
         /* Match untranslated symbols */

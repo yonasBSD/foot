@@ -89,6 +89,8 @@
   overrides on the command line.
 * Crash when seat has no keyboard
   (https://codeberg.org/dnkl/foot/issues/963).
+* Key presses with e.g. `AltGr` triggering key combinations with the
+  base symbol (https://codeberg.org/dnkl/foot/issues/983).
 
 
 ### Security
