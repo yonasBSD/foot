@@ -475,11 +475,6 @@ dcs_put(struct terminal *term, uint8_t c)
 
     if (term->vt.dcs.put_handler != NULL)
         term->vt.dcs.put_handler(term, c);
-    else {
-        if (!ensure_size(term, term->vt.dcs.idx + 1))
-            return;
-        term->vt.dcs.data[term->vt.dcs.idx++] = c;
-    }
 }
 
 void
