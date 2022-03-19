@@ -16,17 +16,14 @@ ensure_size(struct terminal *term, size_t required_size)
     if (required_size <= term->vt.dcs.size)
         return true;
 
-    size_t new_size = (required_size + 127) / 128 * 128;
-    xassert(new_size > 0);
-
-    uint8_t *new_data = realloc(term->vt.dcs.data, new_size);
+    uint8_t *new_data = realloc(term->vt.dcs.data, required_size);
     if (new_data == NULL) {
         LOG_ERRNO("failed to increase size of DCS buffer");
         return false;
     }
 
     term->vt.dcs.data = new_data;
-    term->vt.dcs.size = new_size;
+    term->vt.dcs.size = required_size;
     return true;
 }
 
@@ -178,6 +175,24 @@ err:
 
 out:
     free(name);
+}
+
+static void
+xtgettcap_put(struct terminal *term, uint8_t c)
+{
+    struct vt *vt = &term->vt;
+
+    /* Grow buffer expontentially */
+    if (vt->dcs.idx >= vt->dcs.size) {
+        size_t new_size = vt->dcs.size * 2;
+        if (new_size == 0)
+            new_size = 128;
+
+        if (!ensure_size(term, new_size))
+            return;
+    }
+
+    vt->dcs.data[vt->dcs.idx++] = c;
 }
 
 static void
@@ -445,6 +460,7 @@ dcs_hook(struct terminal *term, uint8_t final)
     case '+':
         switch (final) {
         case 'q':  /* XTGETTCAP */
+            term->vt.dcs.put_handler = &xtgettcap_put;
             term->vt.dcs.unhook_handler = &xtgettcap_unhook;
             break;
         }
