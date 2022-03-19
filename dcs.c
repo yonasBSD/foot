@@ -10,30 +10,6 @@
 #include "vt.h"
 #include "xmalloc.h"
 
-static void
-bsu(struct terminal *term)
-{
-    /* https://gitlab.com/gnachman/iterm2/-/wikis/synchronized-updates-spec */
-
-    size_t n = term->vt.dcs.idx;
-    if (unlikely(n > 0))
-        LOG_DBG("BSU with unknown params: %.*s)", (int)n, term->vt.dcs.data);
-
-    term_enable_app_sync_updates(term);
-}
-
-static void
-esu(struct terminal *term)
-{
-    /* https://gitlab.com/gnachman/iterm2/-/wikis/synchronized-updates-spec */
-
-    size_t n = term->vt.dcs.idx;
-    if (unlikely(n > 0))
-        LOG_DBG("ESU with unknown params: %.*s)", (int)n, term->vt.dcs.data);
-
-    term_disable_app_sync_updates(term);
-}
-
 /* Decode hex-encoded string *inline*. NULL terminates */
 static char *
 hex_decode(const char *s, size_t len)
@@ -419,9 +395,14 @@ dcs_hook(struct terminal *term, uint8_t final)
     case '=':
         switch (final) {
         case 's':
+            /* BSU/ESU: https://gitlab.com/gnachman/iterm2/-/wikis/synchronized-updates-spec */
             switch (vt_param_get(term, 0, 0)) {
-            case 1: term->vt.dcs.unhook_handler = &bsu; return;
-            case 2: term->vt.dcs.unhook_handler = &esu; return;
+            case 1:
+                term->vt.dcs.unhook_handler = &term_enable_app_sync_updates;
+                return;
+            case 2:
+                term->vt.dcs.unhook_handler = &term_disable_app_sync_updates;
+                return;
             }
             break;
         }
