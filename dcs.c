@@ -10,6 +10,26 @@
 #include "vt.h"
 #include "xmalloc.h"
 
+static bool
+ensure_size(struct terminal *term, size_t required_size)
+{
+    if (required_size <= term->vt.dcs.size)
+        return true;
+
+    size_t new_size = (required_size + 127) / 128 * 128;
+    xassert(new_size > 0);
+
+    uint8_t *new_data = realloc(term->vt.dcs.data, new_size);
+    if (new_data == NULL) {
+        LOG_ERRNO("failed to increase size of DCS buffer");
+        return false;
+    }
+
+    term->vt.dcs.data = new_data;
+    term->vt.dcs.size = new_size;
+    return true;
+}
+
 /* Decode hex-encoded string *inline*. NULL terminates */
 static char *
 hex_decode(const char *s, size_t len)
@@ -200,7 +220,20 @@ append_sgr_attr_n(char **reply, size_t *len, const char *attr, size_t n)
 }
 
 static void
-decrqss(struct terminal *term)
+decrqss_put(struct terminal *term, uint8_t c)
+{
+    /* Largest request we support is two bytes */
+    if (!ensure_size(term, 2))
+        return;
+
+    struct vt *vt = &term->vt;
+    if (vt->dcs.idx > 2)
+        return;
+    vt->dcs.data[vt->dcs.idx++] = c;
+}
+
+static void
+decrqss_unhook(struct terminal *term)
 {
     const uint8_t *query = term->vt.dcs.data;
     const size_t n = term->vt.dcs.idx;
@@ -387,7 +420,8 @@ dcs_hook(struct terminal *term, uint8_t final)
     case '$':
         switch (final) {
         case 'q':
-            term->vt.dcs.unhook_handler = &decrqss;
+            term->vt.dcs.put_handler = &decrqss_put;
+            term->vt.dcs.unhook_handler = &decrqss_unhook;
             break;
         }
         break;
@@ -416,26 +450,6 @@ dcs_hook(struct terminal *term, uint8_t final)
         }
         break;
     }
-}
-
-static bool
-ensure_size(struct terminal *term, size_t required_size)
-{
-    if (required_size <= term->vt.dcs.size)
-        return true;
-
-    size_t new_size = (required_size + 127) / 128 * 128;
-    xassert(new_size > 0);
-
-    uint8_t *new_data = realloc(term->vt.dcs.data, new_size);
-    if (new_data == NULL) {
-        LOG_ERRNO("failed to increase size of DCS buffer");
-        return false;
-    }
-
-    term->vt.dcs.data = new_data;
-    term->vt.dcs.size = new_size;
-    return true;
 }
 
 void
