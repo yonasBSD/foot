@@ -6,8 +6,12 @@
 
 #include <wctype.h>
 #include <wchar.h>
-#include <stdc-predef.h>
 
+#if defined __has_include
+ #if __has_include (<stdc-predef.h>)
+   #include <stdc-predef.h>
+ #endif
+#endif
 
 #define LOG_MODULE "char32"
 #define LOG_ENABLE_DBG 0
