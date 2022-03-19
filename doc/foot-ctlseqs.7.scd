@@ -268,6 +268,9 @@ that corresponds to one of the following modes:
 |  47
 :  xterm
 :  Same as 1047 (see below)
+|  66
+:  VT320
+:  Numeric keypad mode (DECNKM); same as DECKPAM/DECKPNM when enabled/disabled
 |  1000
 :  xterm
 :  Send mouse x/y on button press/release

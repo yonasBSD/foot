@@ -45,6 +45,8 @@
 * Add "xterm" as fallback cursor where "text" is not available.
 * `[key-bindings].scrollback-home|end` options.
 * Socket activation for `foot --server` and accompanying systemd unit files
+* Support for [DECNKM](https://vt100.net/docs/vt510-rm/DECNKM.html), which
+  allows setting/saving/restoring/querying the keypad mode.
 
 
 ### Changed
@@ -88,7 +90,10 @@
 
 
 ### Security
+
 ### Contributors
+
+* Craig Barnes
 
 
 ## 1.11.0

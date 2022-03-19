@@ -393,6 +393,7 @@ struct terminal {
     struct {
         bool origin:1;
         bool application_cursor_keys:1;
+        bool application_keypad_keys:1;
         bool reverse:1;
         bool show_cursor:1;
         bool reverse_wrap:1;

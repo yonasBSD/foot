@@ -393,6 +393,11 @@ decset_decrst(struct terminal *term, unsigned param, bool enable)
         term->reverse_wrap = enable;
         break;
 
+    case 66:
+        /* DECNKM */
+        term->keypad_keys_mode = enable ? KEYPAD_APPLICATION : KEYPAD_NUMERICAL;
+        break;
+
     case 80:
         term->sixel.scrolling = !enable;
         break;
@@ -603,6 +608,7 @@ decrqm(const struct terminal *term, unsigned param, bool *enabled)
     case 12: *enabled = term->cursor_blink.decset; return true;
     case 25: *enabled = !term->hide_cursor; return true;
     case 45: *enabled = term->reverse_wrap; return true;
+    case 66: *enabled = term->keypad_keys_mode == KEYPAD_APPLICATION; return true;
     case 80: *enabled = !term->sixel.scrolling; return true;
     case 1000: *enabled = term->mouse_tracking == MOUSE_CLICK; return true;
     case 1001: *enabled = false; return true;
@@ -646,6 +652,7 @@ xtsave(struct terminal *term, unsigned param)
     case 25: term->xtsave.show_cursor = !term->hide_cursor; break;
     case 45: term->xtsave.reverse_wrap = term->reverse_wrap; break;
     case 47: term->xtsave.alt_screen = term->grid == &term->alt; break;
+    case 66: term->xtsave.application_keypad_keys = term->keypad_keys_mode == KEYPAD_APPLICATION; break;
     case 80: term->xtsave.sixel_display_mode = !term->sixel.scrolling; break;
     case 1000: term->xtsave.mouse_click = term->mouse_tracking == MOUSE_CLICK; break;
     case 1001: break;
@@ -688,6 +695,7 @@ xtrestore(struct terminal *term, unsigned param)
     case 25: enable = term->xtsave.show_cursor; break;
     case 45: enable = term->xtsave.reverse_wrap; break;
     case 47: enable = term->xtsave.alt_screen; break;
+    case 66: enable = term->xtsave.application_keypad_keys; break;
     case 80: enable = term->xtsave.sixel_display_mode; break;
     case 1000: enable = term->xtsave.mouse_click; break;
     case 1001: return;
