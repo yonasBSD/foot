@@ -577,11 +577,20 @@ action_osc_start(struct terminal *term, uint8_t c)
 static void
 action_osc_end(struct terminal *term, uint8_t c)
 {
-    if (!osc_ensure_size(term, term->vt.osc.idx + 1))
+    struct vt *vt = &term->vt;
+
+    if (!osc_ensure_size(term, vt->osc.idx + 1))
         return;
-    term->vt.osc.data[term->vt.osc.idx] = '\0';
-    term->vt.osc.bel = c == '\a';
+
+    vt->osc.data[vt->osc.idx] = '\0';
+    vt->osc.bel = c == '\a';
     osc_dispatch(term);
+
+    if (unlikely(vt->osc.idx >= 4096)) {
+        free(vt->osc.data);
+        vt->osc.data = NULL;
+        vt->osc.size = 0;
+    }
 }
 
 static void
