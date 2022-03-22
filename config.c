@@ -113,6 +113,7 @@ static const char *const binding_action_map[] = {
     [BIND_ACTION_PIPE_SELECTED] = "pipe-selected",
     [BIND_ACTION_SHOW_URLS_COPY] = "show-urls-copy",
     [BIND_ACTION_SHOW_URLS_LAUNCH] = "show-urls-launch",
+    [BIND_ACTION_SHOW_URLS_PERSISTENT] = "show-urls-persistent",
     [BIND_ACTION_TEXT_BINDING] = "text-binding",
 
     /* Mouse-specific actions */
@@ -516,7 +517,7 @@ value_to_wchars(struct context *ctx, char32_t **res)
 {
     char32_t *s = ambstoc32(ctx->value);
     if (s == NULL) {
-        LOG_CONTEXTUAL_ERR("not a valie string value");
+        LOG_CONTEXTUAL_ERR("not a valid string value");
         return false;
     }
 

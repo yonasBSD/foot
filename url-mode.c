@@ -84,7 +84,8 @@ activate_url(struct seat *seat, struct terminal *term, const struct url *url)
         }
         break;
 
-    case URL_ACTION_LAUNCH: {
+    case URL_ACTION_LAUNCH:
+    case URL_ACTION_PERSISTENT: {
         size_t argc;
         char **argv;
 
@@ -205,7 +206,18 @@ urls_input(struct seat *seat, struct terminal *term, uint32_t key,
 
     if (match) {
         activate_url(seat, term, match);
-        urls_reset(term);
+
+        switch (match->action) {
+        case URL_ACTION_COPY:
+        case URL_ACTION_LAUNCH:
+            urls_reset(term);
+            break;
+
+        case URL_ACTION_PERSISTENT:
+            term->url_keys[0] = U'\0';
+            render_refresh_urls(term);
+            break;
+        }
     }
 
     else if (is_valid) {

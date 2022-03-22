@@ -291,7 +291,7 @@ enum overlay_style {
 
 typedef tll(struct ptmx_buffer) ptmx_buffer_list_t;
 
-enum url_action { URL_ACTION_COPY, URL_ACTION_LAUNCH };
+enum url_action { URL_ACTION_COPY, URL_ACTION_LAUNCH, URL_ACTION_PERSISTENT };
 struct url {
     uint64_t id;
     char *url;

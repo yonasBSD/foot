@@ -56,6 +56,10 @@
 * `[csd].hide-when-maximized=yes|no` option
   (https://codeberg.org/dnkl/foot/issues/1019).
 * Scrollback search mode now highlights all matches.
+* `[key-binding].show-urls-persistent` action. This key binding action
+  is similar to `show-urls-launch`, but does not automatically exit
+  URL mode after activating an URL
+  (https://codeberg.org/dnkl/foot/issues/964).
 
 
 ### Changed

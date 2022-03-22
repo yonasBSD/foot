@@ -314,12 +314,14 @@ execute_binding(struct seat *seat, struct terminal *term,
     }
 
     case BIND_ACTION_SHOW_URLS_COPY:
-    case BIND_ACTION_SHOW_URLS_LAUNCH: {
+    case BIND_ACTION_SHOW_URLS_LAUNCH:
+    case BIND_ACTION_SHOW_URLS_PERSISTENT: {
         xassert(!urls_mode_is_active(term));
 
-        enum url_action url_action = action == BIND_ACTION_SHOW_URLS_COPY
-            ? URL_ACTION_COPY
-            : URL_ACTION_LAUNCH;
+        enum url_action url_action =
+            action == BIND_ACTION_SHOW_URLS_COPY ? URL_ACTION_COPY :
+            action == BIND_ACTION_SHOW_URLS_LAUNCH ? URL_ACTION_LAUNCH :
+            URL_ACTION_PERSISTENT;
 
         urls_collect(term, url_action, &term->urls);
         urls_assign_key_combos(term->conf, &term->urls);

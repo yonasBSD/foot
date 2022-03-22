@@ -56,6 +56,7 @@ enum bind_action_normal {
     BIND_ACTION_PIPE_SELECTED,
     BIND_ACTION_SHOW_URLS_COPY,
     BIND_ACTION_SHOW_URLS_LAUNCH,
+    BIND_ACTION_SHOW_URLS_PERSISTENT,
     BIND_ACTION_TEXT_BINDING,
 
     /* Mouse specific actions - i.e. they require a mouse coordinate */
@@ -67,7 +68,7 @@ enum bind_action_normal {
     BIND_ACTION_SELECT_WORD_WS,
     BIND_ACTION_SELECT_ROW,
 
-    BIND_ACTION_KEY_COUNT = BIND_ACTION_SHOW_URLS_LAUNCH + 1,
+    BIND_ACTION_KEY_COUNT = BIND_ACTION_TEXT_BINDING + 1,
     BIND_ACTION_COUNT = BIND_ACTION_SELECT_ROW + 1,
 };
 
