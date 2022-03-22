@@ -118,15 +118,18 @@ csi_sgr(struct terminal *term)
             term->vt.attrs.fg = param - 30;
             break;
 
-        case 38: {
+        case 38:
+        case 48: {
+            uint32_t color;
+            enum color_source src;
+
             /* Indexed: 38;5;<idx> */
             if (term->vt.params.idx - i - 1 >= 2 &&
                 term->vt.params.v[i + 1].value == 5)
             {
-                term->vt.attrs.fg_src = COLOR_BASE256;
-                term->vt.attrs.fg = term->vt.params.v[i + 2].value;
+                src = COLOR_BASE256;
+                color = term->vt.params.v[i + 2].value;
                 i += 2;
-
             }
 
             /* RGB: 38;2;<r>;<g>;<b> */
@@ -136,8 +139,8 @@ csi_sgr(struct terminal *term)
                 uint8_t r = term->vt.params.v[i + 2].value;
                 uint8_t g = term->vt.params.v[i + 3].value;
                 uint8_t b = term->vt.params.v[i + 4].value;
-                term->vt.attrs.fg_src = COLOR_RGB;
-                term->vt.attrs.fg = r << 16 | g << 8 | b;
+                src = COLOR_RGB;
+                color = r << 16 | g << 8 | b;
                 i += 4;
             }
 
@@ -145,10 +148,8 @@ csi_sgr(struct terminal *term)
             else if (term->vt.params.v[i].sub.idx >= 2 &&
                      term->vt.params.v[i].sub.value[0] == 5)
             {
-                const struct vt_param *param = &term->vt.params.v[i];
-
-                term->vt.attrs.fg_src = COLOR_BASE256;
-                term->vt.attrs.fg = param->sub.value[1];
+                src = COLOR_BASE256;
+                color = term->vt.params.v[i].sub.value[1];
             }
 
             /*
@@ -177,8 +178,8 @@ csi_sgr(struct terminal *term)
                 uint8_t g = param->sub.value[g_idx];
                 uint8_t b = param->sub.value[b_idx];
 
-                term->vt.attrs.fg_src = COLOR_RGB;
-                term->vt.attrs.fg = r << 16 | g << 8 | b;
+                src = COLOR_RGB;
+                color = r << 16 | g << 8 | b;
             }
 
             /* Transparent: 38:1 */
@@ -186,9 +187,19 @@ csi_sgr(struct terminal *term)
             /* CMYK:        38:4:<color-space>:c:m:y:k[:tolerance:tolerance-color-space] */
 
             /* Unrecognized */
-            else
+            else {
                 UNHANDLED_SGR(i);
+                break;
+            }
 
+            if (param == 38) {
+                term->vt.attrs.fg_src = src;
+                term->vt.attrs.fg = color;
+            } else {
+                xassert(param == 48);
+                term->vt.attrs.bg_src = src;
+                term->vt.attrs.bg = color;
+            }
             break;
         }
 
@@ -209,78 +220,6 @@ csi_sgr(struct terminal *term)
             term->vt.attrs.bg = param - 40;
             break;
 
-        case 48: {
-            /* Indexed: 48;5;<idx> */
-            if (term->vt.params.idx - i - 1 >= 2 &&
-                term->vt.params.v[i + 1].value == 5)
-            {
-                term->vt.attrs.bg_src = COLOR_BASE256;
-                term->vt.attrs.bg = term->vt.params.v[i + 2].value;
-                i += 2;
-
-            }
-
-            /* RGB: 48;2;<r>;<g>;<b> */
-            else if (term->vt.params.idx - i - 1 >= 4 &&
-                     term->vt.params.v[i + 1].value == 2)
-            {
-                uint8_t r = term->vt.params.v[i + 2].value;
-                uint8_t g = term->vt.params.v[i + 3].value;
-                uint8_t b = term->vt.params.v[i + 4].value;
-                term->vt.attrs.bg_src = COLOR_RGB;
-                term->vt.attrs.bg = r << 16 | g << 8 | b;
-                i += 4;
-            }
-
-            /* Indexed: 48:5:<idx> */
-            else if (term->vt.params.v[i].sub.idx >= 2 &&
-                     term->vt.params.v[i].sub.value[0] == 5)
-            {
-                const struct vt_param *param = &term->vt.params.v[i];
-
-                term->vt.attrs.bg_src = COLOR_BASE256;
-                term->vt.attrs.bg = param->sub.value[1];
-            }
-
-            /*
-             * RGB: 48:2:<color-space>:r:g:b[:ignored:tolerance:tolerance-color-space]
-             * RGB: 48:2:r:g:b
-             *
-             * The second version is a "bastard" version - many
-             * programs "forget" the color space ID
-             * parameter... *sigh*
-             */
-            else if (term->vt.params.v[i].sub.idx >= 4 &&
-                     term->vt.params.v[i].sub.value[0] == 2)
-            {
-                const struct vt_param *param = &term->vt.params.v[i];
-                bool have_color_space_id = param->sub.idx >= 5;
-
-                /* 0 - color space (ignored) */
-                int r_idx = 2 - !have_color_space_id;
-                int g_idx = 3 - !have_color_space_id;
-                int b_idx = 4 - !have_color_space_id;
-                /* 5 - unused */
-                /* 6 - CS tolerance */
-                /* 7 - color space associated with tolerance */
-
-                uint8_t r = param->sub.value[r_idx];
-                uint8_t g = param->sub.value[g_idx];
-                uint8_t b = param->sub.value[b_idx];
-
-                term->vt.attrs.bg_src = COLOR_RGB;
-                term->vt.attrs.bg = r << 16 | g << 8 | b;
-            }
-
-            /* Transparent: 48:1 */
-            /* CMY:         48:3:<color-space>:c:m:y[:tolerance:tolerance-color-space] */
-            /* CMYK:        48:4:<color-space>:c:m:y:k[:tolerance:tolerance-color-space] */
-
-            else
-                UNHANDLED_SGR(i);
-
-            break;
-        }
         case 49:
             term->vt.attrs.bg_src = COLOR_DEFAULT;
             break;
