@@ -15,6 +15,8 @@
 #include "util.h"
 #include "xmalloc.h"
 
+#define clamp(x, lower, upper) (min(upper, max(x, lower)))
+
 enum thickness {
     LIGHT,
     HEAVY,
@@ -1271,24 +1273,196 @@ draw_box_drawings_light_arc(struct buf *buf, char32_t wc)
 
     const int thick = thickness(LIGHT) * supersample;
 
-    const bool thick_is_odd = (thick / supersample) % 2;
-    const bool height_is_odd = buf->height % 2;
-    const bool width_is_odd = buf->width % 2;
+    const int height_pixels = buf->height;
+    const int width_pixels = buf->width;
+    const int thick_pixels = thickness(LIGHT);
 
-    const double a = (width - thick) / 2;
-    const double b = (height - thick) / 2;
+    /*
+     * The general idea here is to connect the two incoming lines using a
+     * circle, which is extended to the box-edges with vertical/horizontal
+     * lines.
+     * 
+     * The radius of the quartercircle should be as big as possible, with some
+     * restrictions: The radius should be the same for all of ╭ ╮ ╯ ╰ at a
+     * given box-size (which won't be the case if we choose the biggest
+     * possible radius for a given box, consider the following:)
+     * 
+     * 
+     * ▕  ███   ▏
+     * ▕a  │   d▔▔ 
+     * ▕   │  x 
+     * ▕   │    
+     * ▕   │    ██
+     * ▕   ╰────██
+     * ▕        ██
+     * ▕
+     * ▕
+     * ▕b      c
+     *  ▔▔▔▔▔▔▔▔▔▔
+     * for ╰ it would be possible to center the circle on the upper right
+     * corner of d, but we have set it on x instead because ╯ can only use a
+     * 2px inner radius:
+     * 
+     *  ▕  ███   ▏
+     * ▔▔a  │   d▏
+     *   x  │    ▏
+     *      │    ▏
+     * ██   │    ▏
+     * ██───╯    ▏
+     * ██        ▏
+     *           ▏
+     *           ▏
+     *   b      c▏
+     * ▔▔▔▔▔▔▔▔▔▔
+     * As the incoming lines always exactly fill pixels, and are rounded down
+     * (via float->int), we can use this to get the radius of the inner
+     * (connecting the left/upper edge of the lines) quartercircle.
+     */
+    int circle_inner_edge = (min(width_pixels, height_pixels) - thick_pixels) / 2;
 
-    const double a2 = a * a;
-    const double b2 = b * b;
+    /*
+     * We want to draw the quartercircle by filling small circles (with r =
+     * thickness/2.) whose centers are on its edge. This means to get the
+     * radius of the quartercircle, we add the exact half thickness to the
+     * radius of the inner circle.
+     */
+    double c_r = circle_inner_edge + thick_pixels/2.;
 
-    const int num_samples = height * 16;
+    /*
+     * We need to draw short lines from the end of the quartercircle to the
+     * box-edges, store one endpoint (the other is the edge of the
+     * quartercircle) in these vars.
+     */
+    int vert_to = 0,
+         hor_to = 0;
 
-    for (int i = 0; i < num_samples; i++) {
+    /* Coordinates of the circle-center. */
+    int c_x = 0,
+        c_y = 0;
+
+    /*
+     * For a given y there are up to two solutions for the circle-equation.
+     * Set to -1 for the left, and 1 for the right hemisphere.
+     */
+    int circle_hemisphere = 0;
+
+    /*
+     * The quarter circle only has to be evaluated for a small range of
+     * y-values.
+     */
+    int y_min = 0,
+        y_max = 0;
+
+    switch (wc) {
+        case  U'╭': {
+            /*
+             * Don't use supersampled coordinates yet, we want to align actual
+             * pixels.
+             *
+             * pixel-coordinates of the lower edge of the right line and the
+             * right edge of the bottom line.
+             */
+            int right_bottom_edge = (height_pixels + thick_pixels) / 2;
+            int bottom_right_edge = (width_pixels + thick_pixels) / 2;
+
+            /* find coordinates of circle-center. */
+            c_y = right_bottom_edge + circle_inner_edge;
+            c_x = bottom_right_edge + circle_inner_edge;
+
+            /* we want to render the left, not the right hemisphere of the circle. */
+            circle_hemisphere = -1;
+
+            /* don't evaluate beyond c_y, the vertical line is drawn there. */
+            y_min = 0;
+            y_max = c_y;
+
+            /*
+             * the vertical line should extend to the bottom of the box, the
+             * horizontal to the right.
+             */
+            vert_to = height_pixels;
+            hor_to = width_pixels;
+
+            break;
+        }
+        case U'╮': {
+            int left_bottom_edge = (height_pixels + thick_pixels) / 2;
+            int bottom_left_edge = (width_pixels - thick_pixels) / 2;
+
+            c_y = left_bottom_edge + circle_inner_edge;
+            c_x = bottom_left_edge - circle_inner_edge;
+
+            circle_hemisphere = 1;
+
+            y_min = 0;
+            y_max = c_y;
+
+            vert_to = height_pixels;
+            hor_to = 0;
+
+            break;
+        }
+        case U'╰': {
+            int right_top_edge = (height_pixels - thick_pixels) / 2;
+            int top_right_edge = (width_pixels + thick_pixels) / 2;
+
+            c_y = right_top_edge - circle_inner_edge;
+            c_x = top_right_edge + circle_inner_edge;
+
+            circle_hemisphere = -1;
+
+            y_min = c_y;
+            y_max = height_pixels;
+
+            vert_to = 0;
+            hor_to = width_pixels;
+
+            break;
+        }
+        case U'╯': {
+            int left_top_edge = (height_pixels - thick_pixels) / 2;
+            int top_left_edge = (width_pixels - thick_pixels) / 2;
+
+            c_y = left_top_edge - circle_inner_edge;
+            c_x = top_left_edge - circle_inner_edge;
+
+            circle_hemisphere = 1;
+
+            y_min = c_y;
+            y_max = height_pixels;
+
+            vert_to = 0;
+            hor_to = 0;
+
+            break;
+        }
+    }
+
+    /* store for horizontal+vertical line. */
+    int c_x_pixels = c_x;
+    int c_y_pixels = c_y;
+
+    /* Bring coordinates from pixel-grid to supersampled grid. */
+    c_r *= supersample;
+    c_x *= supersample;
+    c_y *= supersample;
+
+    y_min *= supersample;
+    y_max *= supersample;
+
+    double c_r2 = c_r * c_r;
+
+    /*
+     * To prevent gaps in the circle, each pixel is sampled multiple times.
+     * As the quartercircle ends (vertically) in the middle of a pixel, an
+     * uneven number helps hit that exactly.
+     */
+    for (double i = y_min*16; i <= y_max*16; i++) {
         errno = 0;
         feclearexcept(FE_ALL_EXCEPT);
 
         double y = i / 16.;
-        double x = sqrt(a2 * (1. - y * y / b2));
+        double x = circle_hemisphere * sqrt(c_r2 - (y - c_y) * (y - c_y)) + c_x;
 
         /* See math_error(7) */
         if (errno != 0 ||
@@ -1303,123 +1477,45 @@ draw_box_drawings_light_arc(struct buf *buf, char32_t wc)
         if (col < 0)
             continue;
 
-        int row_start = 0;
-        int row_end = 0;
-        int col_start = 0;
-        int col_end = 0;
+        /* rectangle big enough to fit entire circle with radius thick/2. */
+        int row1 = row - (thick/2+1);
+        int row2 = row + (thick/2+1);
+        int col1 = col - (thick/2+1);
+        int col2 = col + (thick/2+1);
 
-        /*
-         * At this point, row/col is only correct for ╯. For the other
-         * arcs, we need to mirror the arc around either the x-, y- or
-         * both axis.
-         *
-         * When doing so, we need to adjust for asymmetrical cell
-         * dimensions.
-         *
-         * The amazing box drawing art below represents the lower part
-         * of a cell, with the beginning of a vertical line in the
-         * middle. Each column represents one pixel.
-         *
-         *
-         *             Even cell            Odd cell
-         *
-         *             │       │           │         │
-         *  Even line  │ ┆   ┆ │           │ ┆   ┆   │
-         *             │ ┆   ┆ │           │ ┆   ┆   │
-         *             └─┴─┴─┴─┘           └─┴─┴─┴─┴─┘
-         *
-         *
-         *             │       │           │         │
-         *   Odd line  │ ┆ ┆   │           │   ┆ ┆   │
-         *             │ ┆ ┆   │           │   ┆ ┆   │
-         *             └─┴─┴─┴─┘           └─┴─┴─┴─┴─┘
-         *
-         * As can be seen(?), the resulting line is asymmetrical when
-         * *either* the cell is odd sized, *or* the line is odd
-         * sized. But not when both are.
-         *
-         * Hence the ‘thick % 2 ^ width % 2’ in the expressions below.
-         */
-        switch (wc) {
-        case  U'╭':
-            row_end = height - row - (thick_is_odd ^ height_is_odd);
-            row_start = row_end - thick;
-            col_end = width - col - (thick_is_odd ^ width_is_odd);
-            col_start = col_end - thick;
-            break;
-
-        case U'╮':
-            row_end = height - row - (thick_is_odd ^ height_is_odd);
-            row_start = row_end - thick;
-            col_start = col - ((thick_is_odd ^ width_is_odd) ? supersample / 2 : 0);
-            col_end = col_start + thick;
-            break;
-
-        case U'╰':
-            row_start = row - ((thick_is_odd ^ height_is_odd) ? supersample / 2 : 0);
-            row_end = row_start + thick;
-            col_end = width - col - (thick_is_odd ^ width_is_odd);
-            col_start = col_end - thick;
-            break;
-
-        case U'╯':
-            row_start = row - ((thick_is_odd ^ height_is_odd) ? supersample / 2 : 0);
-            row_end = row_start + thick;
-            col_start = col - ((thick_is_odd ^ width_is_odd) ? supersample / 2 : 0);
-            col_end = col_start + thick;
-            break;
-        }
+        int row_start = min(row1, row2),
+            row_end   = max(row1, row2),
+            col_start = min(col1, col2),
+            col_end   = max(col1, col2);
 
         xassert(row_end > row_start);
         xassert(col_end > col_start);
 
+        /*
+         * draw circle with radius thick/2 around x,y.
+         * this is accomplished by rejecting pixels where the distance from
+         * their center to x,y is greater than thick/2.
+         */
         for (int r = max(row_start, 0); r < max(min(row_end, height), 0); r++) {
+            double r_midpoint = r + 0.5;
             for (int c = max(col_start, 0); c < max(min(col_end, width), 0); c++) {
+                double c_midpoint = c + 0.5;
+
+                /* vector from point on quartercircle to midpoint of the current pixel. */
+                double center_midpoint_x = c_midpoint - x;
+                double center_midpoint_y = r_midpoint - y;
+
+                /* distance from current point to circle-center. */
+                double dist = sqrt(center_midpoint_x * center_midpoint_x + center_midpoint_y * center_midpoint_y);
+                /* skip if midpoint of pixel is outside the circle. */
+                if (dist > thick/2.)
+                    continue;
                 if (fmt == PIXMAN_a1) {
                     size_t idx = c / 8;
                     size_t bit_no = c % 8;
                     set_a1_bit(data, r * stride + idx, bit_no);
                 } else
                     data[r * stride + c] = 0xff;
-            }
-        }
-    }
-
-    /*
-     * Since a cell may not be completely symmetrical around its y-
-     * and x-axis, the mirroring done above may result in the last
-     * col/row of the arc not being filled in. This code ensures they
-     * are.
-     */
-
-    if (wc == U'╭' || wc == U'╰') {
-        for (int y = 0; y < thick; y++) {
-            int row = (height - thick) / 2 + y - ((thick_is_odd ^ height_is_odd) ? supersample / 2 : 0);
-            for (int col = width - supersample; col < width; col++) {
-                if (row >= 0 && row < height && col >= 0) {
-                    if (fmt == PIXMAN_a1) {
-                        size_t ofs = col / 8;
-                        size_t bit_no = col % 8;
-                        set_a1_bit(data, row * stride + ofs, bit_no);
-                    } else
-                        data[row * stride + col] = 0xff;
-                }
-            }
-        }
-    }
-
-    if (wc == U'╭' || wc == U'╮') {
-        for (int x = 0; x < thick; x++) {
-            int col = (width - thick) / 2 + x - ((thick_is_odd ^ width_is_odd) ? supersample / 2 : 0);
-            for (int row = height - supersample; row < height; row++) {
-                if (row >= 0 && col >= 0 && col < width) {
-                    if (fmt == PIXMAN_a1) {
-                        size_t ofs = col / 8;
-                        size_t bit_no = col % 8;
-                        set_a1_bit(data, row * stride + ofs, bit_no);
-                    } else
-                        data[row * stride + col] = 0xff;
-                }
             }
         }
     }
@@ -1442,6 +1538,10 @@ draw_box_drawings_light_arc(struct buf *buf, char32_t wc)
 
         free(data);
     }
+
+    /* draw vertical/horizontal lines from quartercircle-edge to box-edge. */
+    vline(min(c_y_pixels, vert_to), max(c_y_pixels, vert_to), (width_pixels - thick_pixels) / 2, thick_pixels);
+    hline(min(c_x_pixels, hor_to), max(c_x_pixels, hor_to), (height_pixels - thick_pixels) / 2, thick_pixels);
 }
 
 static void NOINLINE

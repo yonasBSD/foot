@@ -60,6 +60,8 @@
   (https://codeberg.org/dnkl/foot/issues/971).
 * `\r` is no longer translated to `\n` when pasting clipboard data
   (https://codeberg.org/dnkl/foot/issues/980).
+* Use circles for rendering light arc box-drawing characters
+  (https://codeberg.org/dnkl/foot/issues/988).
 
 
 ### Deprecated
