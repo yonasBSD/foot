@@ -289,7 +289,7 @@ bindings in foot. See `show-urls-launch` and `show-urls-copy` in the
 be changed with the `url-launch` option.
 
 `show-urls-copy` is an alternative to `show-urls-launch`, that changes
-what activating an URL _does_; instead of opening it, it copies it to
+what activating a URL _does_; instead of opening it, it copies it to
 the clipboard. It is unbound by default.
 
 Jump label colors, the URL underline color, and the letters used in

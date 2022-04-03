@@ -182,7 +182,7 @@ in this order:
 
 *pad*
 	Padding between border and glyphs, in pixels (subject to output
-	scaling), on the form _XxY_.
+	scaling), in the form _XxY_.
 	
 	This will add _at least_ X pixels on both the left and right
 	sides, and Y pixels on the top and bottom sides. The grid content
@@ -216,12 +216,12 @@ in this order:
 
 *initial-window-size-pixels*
 	Initial window width and height in _pixels_ (subject to output
-	scaling), on the form _WIDTHxHEIGHT_. The height _includes_ the
+	scaling), in the form _WIDTHxHEIGHT_. The height _includes_ the
 	titlebar when using CSDs. Mutually exclusive to
 	*initial-window-size-chars*. Default: _700x500_.
 
 *initial-window-size-chars*
-	Initial window width and height in _characters_, on the form
+	Initial window width and height in _characters_, in the form
 	_WIDTHxHEIGHT_. Mutually exclusive to
 	*initial-window-size-pixels*.'
 	
@@ -397,7 +397,7 @@ in this order:
 
 *uri-characters*
 	Set of characters allowed in auto-detected URLs. Any character not
-	included in this set constitutes an URL delimiter.
+	included in this set constitutes a URL delimiter.
 	
 	Default:
 	_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-\_.,~:;/?#@!$&%\*+="'()[]_
@@ -514,9 +514,9 @@ can configure the background transparency with the _alpha_ option.
 	*dimN* color will be used.
 	
 	If instead the current color matches one of the *brightN* colors,
-	the corresponding *regularn* color will be used.
+	the corresponding *regularN* color will be used.
 	
-	If the current color does not match any known colors, it is dimmed
+	If the current color does not match any known color, it is dimmed
 	by reducing the luminance (i.e. the same behavior as if the *dimN*
 	options are unconfigured). 24-bit RGB colors will typically fall
 	into this category.
@@ -641,7 +641,7 @@ This section lets you override the default key bindings.
 
 The general format is _action=combo1...comboN_. That is, each action
 may have one or more key combinations, space separated. Each
-combination is on the form _mod1+mod2+key_. The names of the modifiers
+combination is in the form _mod1+mod2+key_. The names of the modifiers
 and the key *must* be valid XKB key names.
 
 Note that if *Shift* is one of the modifiers, the _key_ *must not* be
@@ -843,7 +843,7 @@ Be careful; do not use single-letter keys that are also used in
 *[url].label-letters*, as doing so will make some URLs inaccessible.
 
 *cancel*
-	Exits URL mode without opening an URL. Default: _Control+g
+	Exits URL mode without opening a URL. Default: _Control+g
 	Control+c Control+d Escape_.
 
 *toggle-url-visible*
@@ -868,7 +868,7 @@ sequences.
 
 The format is _text=combo1...comboN_. That is, the string to emit may
 have one or more key combinations, space separated. Each combination
-is on the form _mod1+mod2+key_. The names of the modifiers and the key
+is in the form _mod1+mod2+key_. The names of the modifiers and the key
 *must* be valid XKB key names.
 
 The text string specifies the characters, or bytes, to emit when the
@@ -898,7 +898,7 @@ This section lets you override the default mouse bindings.
 
 The general format is _action=combo1...comboN_. That is, each action
 may have one or more key combinations, space separated. Each
-combination is on the form _mod1+mod2+BTN\_<name>[-COUNT]_. The names
+combination is in the form _mod1+mod2+BTN\_<name>[-COUNT]_. The names
 of the modifiers *must* be valid XKB key names, and the button name
 *must* be a valid libinput name. You can find the button names using
 *libinput debug-events*.
@@ -949,7 +949,7 @@ actions listed under *key-bindings* can be used here as well.
 	option are ignored. I.e only whitespace characters act as
 	delimiters. The selection is finalized, and copied to the _primary
 	selection_, when the button is released. Default:
-	_Control+_BTN\_LEFT-2_.
+	_Control+BTN\_LEFT-2_.
 
 *select-row*
 	Begin an interactive row-wise selection. The selection is

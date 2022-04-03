@@ -195,10 +195,10 @@ default) available; see *foot.ini*(5).
 	Start a scrollback search
 
 *ctrl*+*+*, *ctrl*+*=*
-	Increase font size by 1pt
+	Increase font size by 0.5pt
 
 *ctrl*+*-*
-	Decrease font size by 1pt
+	Decrease font size by 0.5pt
 
 *ctrl*+*0*
 	Reset font size
@@ -251,7 +251,7 @@ default) available; see *foot.ini*(5).
 	Toggle URL visibility in jump label.
 
 *escape*, *ctrl*+*g*, *ctrl*+*c*, *ctrl*+*d*
-	Exit URL mode without launching an URL.
+	Exit URL mode without launching a URL.
 
 
 # MOUSE SHORTCUTS
@@ -312,7 +312,7 @@ bindings in foot. See *show-urls-launch* and *show-urls-copy* in
 be changed with the *url-launch* option.
 
 *show-urls-copy* is an alternative to *show-urls-launch*, that changes
-what activating an URL _does_; instead of opening it, it copies it to
+what activating a URL _does_; instead of opening it, it copies it to
 the clipboard. It is unbound by default.
 
 Jump label colors, the URL underline color, and the letters used in
@@ -383,7 +383,7 @@ colors (24-bit truecolor).
 Note that using the *foot* terminfo does not limit the number of
 usable colors to 256; applications can still use 24-bit RGB colors. In
 fact, most applications work best with *foot* (including 24-bit
-colors)). Using *\*-direct* terminfo entries has been known to crash
+colors). Using *\*-direct* terminfo entries has been known to crash
 some ncurses applications even.
 
 There are however applications that need a *\*-direct* terminfo entry
