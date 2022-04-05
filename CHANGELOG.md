@@ -93,6 +93,9 @@
   (https://codeberg.org/dnkl/foot/issues/963).
 * Key presses with e.g. `AltGr` triggering key combinations with the
   base symbol (https://codeberg.org/dnkl/foot/issues/983).
+* Underline cursor sometimes being positioned too low, either making
+  it look thinner than what it should be, or being completely
+  invisible (https://codeberg.org/dnkl/foot/issues/1005).
 
 
 ### Security

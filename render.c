@@ -345,24 +345,13 @@ draw_beam_cursor(const struct terminal *term, pixman_image_t *pix,
             term->fonts[0]->ascent + term->fonts[0]->descent});
 }
 
-static void
-draw_underline_with_thickness(
-    const struct terminal *term, pixman_image_t *pix,
-    const struct fcft_font *font,
-    const pixman_color_t *color, int x, int y, int cols, int thickness)
+static int
+underline_offset(const struct terminal *term, const struct fcft_font *font)
 {
-    /* Make sure the line isn't positioned below the cell */
-    int y_ofs = font_baseline(term) -
+    return font_baseline(term) -
         (term->conf->use_custom_underline_offset
          ? -term_pt_or_px_as_pixels(term, &term->conf->underline_offset)
          : font->underline.position);
-
-    y_ofs = min(y_ofs, term->cell_height - thickness);
-
-    pixman_image_fill_rectangles(
-        PIXMAN_OP_SRC, pix, color,
-        1, &(pixman_rectangle16_t){
-            x, y + y_ofs, cols * term->cell_width, thickness});
 }
 
 static void
@@ -375,9 +364,14 @@ draw_underline_cursor(const struct terminal *term, pixman_image_t *pix,
             term, &term->conf->cursor.underline_thickness)
         : font->underline.thickness;
 
-    draw_underline_with_thickness(
-        term, pix, font, color, x, y + font->underline.thickness, cols,
-        thickness);
+    /* Make sure the line isn't positioned below the cell */
+    const int y_ofs = min(underline_offset(term, font) + thickness,
+                          term->cell_height - thickness);
+
+    pixman_image_fill_rectangles(
+        PIXMAN_OP_SRC, pix, color,
+        1, &(pixman_rectangle16_t){
+            x, y + y_ofs, cols * term->cell_width, thickness});
 }
 
 static void
@@ -385,8 +379,16 @@ draw_underline(const struct terminal *term, pixman_image_t *pix,
                const struct fcft_font *font,
                const pixman_color_t *color, int x, int y, int cols)
 {
-    draw_underline_with_thickness(
-        term, pix, font, color, x, y, cols, font->underline.thickness);
+    const int thickness = font->underline.thickness;
+
+    /* Make sure the line isn't positioned below the cell */
+    const int y_ofs = min(underline_offset(term, font),
+                          term->cell_height - thickness);
+
+    pixman_image_fill_rectangles(
+        PIXMAN_OP_SRC, pix, color,
+        1, &(pixman_rectangle16_t){
+            x, y + y_ofs, cols * term->cell_width, thickness});
 }
 
 static void
