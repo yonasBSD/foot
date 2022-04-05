@@ -422,8 +422,8 @@ applications can change these at runtime.
 	prefix) specifying the foreground (text) and background (cursor)
 	colors for the cursor.
 	
-	Default: inversed foreground and background colors.
-	
+	Default: _inverse foreground/background colors_.
+
 	Note that this value only applies to the block cursor. The other
 	cursor styles are always rendered with the foreground color.
 
@@ -551,10 +551,8 @@ can configure the background transparency with the _alpha_ option.
 
 *scrollback-indicator*
 	Two color values specifying the foreground (text) and background
-	(indicator itself) colors for the scrollback indicator.
-	
-	Default: first regular color (black) for foreground,
-	and fifth bright color (light blue) for background.
+	(indicator itself) colors for the scrollback indicator. Default:
+	_regular0 bright4_.
 
 *urls*
 	Color to use for the underline used to highlight URLs in URL
