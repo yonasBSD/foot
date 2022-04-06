@@ -13,9 +13,10 @@ say if it needs to be reopened after any of the other sections.
 foot will search for a configuration file in the following locations,
 in this order:
 
-	- *XDG_CONFIG_HOME/foot/foot.ini*
-	- *~/.config/foot/foot.ini*
-	- *XDG_CONFIG_DIRS/foot/foot.ini*
+	- *XDG_CONFIG_HOME/foot/foot.ini* (defaulting to
+	  *~/.config/foot/foot.ini* if unset)
+	- *XDG_CONFIG_DIRS/foot/foot.ini* (defaulting to
+	  */etc/xdg/foot/foot.ini* if unset)
 
 # SECTION: main
 

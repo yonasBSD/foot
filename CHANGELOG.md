@@ -98,6 +98,8 @@
 * Underline cursor sometimes being positioned too low, either making
   it look thinner than what it should be, or being completely
   invisible (https://codeberg.org/dnkl/foot/issues/1005).
+* Fallback to `/etc/xdg` if `XDG_CONFIG_DIRS` is unset
+  (https://codeberg.org/dnkl/foot/issues/1008).
 
 
 ### Security

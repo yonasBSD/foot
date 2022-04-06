@@ -444,10 +444,12 @@ open_config(void)
         }
     }
 
-    /* Finally, try foot/foot.ini in all XDG_CONFIG_DIRS */
+    /* Finally, try foot/foot.ini in all XDG_CONFIG_DIRS, or /etc/xdg
+     * if unset */
     const char *xdg_config_dirs = getenv("XDG_CONFIG_DIRS");
     xdg_config_dirs_copy = xdg_config_dirs != NULL
-        ? strdup(xdg_config_dirs) : NULL;
+        ? strdup(xdg_config_dirs)
+        : strdup("/etc/xdg");
 
     if (xdg_config_dirs_copy != NULL) {
         for (char *save = NULL,
