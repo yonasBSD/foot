@@ -414,7 +414,7 @@ open_config(void)
     char *xdg_config_dirs_copy = NULL;
 
     /* Use XDG_CONFIG_HOME, or ~/.config */
-    if (xdg_config_home != NULL) {
+    if (xdg_config_home != NULL && xdg_config_home[0] != '\0') {
         int fd = open(xdg_config_home, O_RDONLY);
         if (fd >= 0)
             path_component_add(&components, xdg_config_home, fd);
@@ -447,7 +447,7 @@ open_config(void)
     /* Finally, try foot/foot.ini in all XDG_CONFIG_DIRS, or /etc/xdg
      * if unset */
     const char *xdg_config_dirs = getenv("XDG_CONFIG_DIRS");
-    xdg_config_dirs_copy = xdg_config_dirs != NULL
+    xdg_config_dirs_copy = xdg_config_dirs != NULL && xdg_config_dirs[0] != '\0'
         ? strdup(xdg_config_dirs)
         : strdup("/etc/xdg");
 
