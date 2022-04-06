@@ -176,7 +176,7 @@ urls_input(struct seat *seat, struct terminal *term, uint32_t key,
     char32_t wc = xkb_state_key_get_utf32(seat->kbd.xkb_state, key);
 
     /*
-     * Determine if this is a “valid” key. I.e. if there is an URL
+     * Determine if this is a “valid” key. I.e. if there is a URL
      * label with a key combo where this key is the next in
      * sequence.
      */

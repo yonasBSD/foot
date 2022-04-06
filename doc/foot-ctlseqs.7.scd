@@ -605,7 +605,7 @@ All _OSC_ sequences begin with *\\E]*, sometimes abbreviated _OSC_.
 |  \\E] 7 ; _Uri_ \\E\\ 
 :  iTerm2
 :  Update the terminal's current working directory. Newly spawned
-   terminals will launch in this directory. _Uri_ must be on the format
+   terminals will launch in this directory. _Uri_ must be in the format
    *file://<hostname>/<path>*. *hostname* must refer to your local host.
 |  \\E] 8 ; id=_ID_ ; _Uri_ \\E\\ 
 :  VTE+iTerm2

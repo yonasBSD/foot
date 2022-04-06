@@ -476,7 +476,7 @@ static bool NOINLINE
 value_to_dimensions(struct context *ctx, uint32_t *x, uint32_t *y)
 {
     if (sscanf(ctx->value, "%ux%u", x, y) != 2) {
-        LOG_CONTEXTUAL_ERR("invalid dimensions (must be on the form AxB)");
+        LOG_CONTEXTUAL_ERR("invalid dimensions (must be in the form AxB)");
         return false;
     }
 
@@ -616,7 +616,7 @@ value_to_pt_or_px(struct context *ctx, struct pt_or_px *res)
 
         long value = strtol(s, &end, 10);
         if (!(errno == 0 && end == s + len - 2)) {
-            LOG_CONTEXTUAL_ERR("invalid px value (must be on the form 12px)");
+            LOG_CONTEXTUAL_ERR("invalid px value (must be in the form 12px)");
             return false;
         }
         res->pt = 0;
@@ -834,7 +834,7 @@ parse_section_main(struct context *ctx)
 
         if ((ret != 2 && ret != 3) || invalid_mode) {
             LOG_CONTEXTUAL_ERR(
-                "invalid padding (must be on the form PAD_XxPAD_Y [center])");
+                "invalid padding (must be in the form PAD_XxPAD_Y [center])");
             return false;
         }
 
@@ -1714,13 +1714,13 @@ modifiers_to_str(const struct config_key_modifiers *mods)
 }
 
 /*
- * Parses a key binding value on the form
+ * Parses a key binding value in the form
  *  "[cmd-to-exec arg1 arg2] Mods+Key"
  *
  * and extracts 'cmd-to-exec' and its arguments.
  *
  * Input:
- *  - value: raw string, on the form mention above
+ *  - value: raw string, in the form mentioned above
  *  - cmd: pointer to string to will be allocated and filled with
  *        'cmd-to-exec arg1 arg2'
  *  - argv: point to array of string. Array will be allocated. Will be
