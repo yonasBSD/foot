@@ -269,7 +269,7 @@ if scdoc.found()
   install_data(
     'LICENSE', 'README.md', 'CHANGELOG.md',
     install_dir: join_paths(get_option('datadir'), 'doc', 'foot'))
-  install_data('foot.ini', install_dir: join_paths(get_option('datadir'), 'foot'))
+  install_data('foot.ini', install_dir: join_paths(get_option('sysconfdir'), 'xdg', 'foot'))
   subdir('doc')
 endif
 

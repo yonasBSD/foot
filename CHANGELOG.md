@@ -75,6 +75,10 @@
   (https://codeberg.org/dnkl/foot/issues/980).
 * Use circles for rendering light arc box-drawing characters
   (https://codeberg.org/dnkl/foot/issues/988).
+* Example configuration is now installed to
+  `${sysconfdir}/xdg/foot/foot.ini`, typically resolving to
+  `/etc/xdg/foot/foot.ini`
+  (https://codeberg.org/dnkl/foot/issues/1001).
 
 
 ### Deprecated
