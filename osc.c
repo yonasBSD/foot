@@ -252,7 +252,7 @@ osc_selection(struct terminal *term, char *string)
 
     LOG_DBG("clipboard: target = %s data = %s", string, p);
 
-    if (strlen(p) == 1 && p[0] == '?')
+    if (p[0] == '?' && p[1] == '\0')
         osc_from_clipboard(term, string);
     else
         osc_to_clipboard(term, string, p);
@@ -587,7 +587,7 @@ osc_dispatch(struct terminal *term)
             }
 
             /* Client queried for current value */
-            if (strlen(s_color) == 1 && s_color[0] == '?') {
+            if (s_color[0] == '?' && s_color[1] == '\0') {
                 uint32_t color = term->colors.table[idx];
                 uint8_t r = (color >> 16) & 0xff;
                 uint8_t g = (color >>  8) & 0xff;
@@ -683,7 +683,7 @@ osc_dispatch(struct terminal *term)
         /* Set default foreground/background/highlight-bg/highlight-fg color */
 
         /* Client queried for current value */
-        if (strlen(string) == 1 && string[0] == '?') {
+        if (string[0] == '?' && string[1] == '\0') {
             uint32_t color = param == 10 ? term->colors.fg : term->colors.bg;
             uint8_t r = (color >> 16) & 0xff;
             uint8_t g = (color >>  8) & 0xff;
@@ -752,7 +752,7 @@ osc_dispatch(struct terminal *term)
     case 12: /* Set cursor color */
 
         /* Client queried for current value */
-        if (strlen(string) == 1 && string[0] == '?') {
+        if (string[0] == '?' && string[1] == '\0') {
             uint8_t r = (term->cursor_color.cursor >> 16) & 0xff;
             uint8_t g = (term->cursor_color.cursor >>  8) & 0xff;
             uint8_t b = (term->cursor_color.cursor >>  0) & 0xff;
@@ -800,7 +800,7 @@ osc_dispatch(struct terminal *term)
     case 104: {
         /* Reset Color Number 'c' (whole table if no parameter) */
 
-        if (strlen(string) == 0) {
+        if (string[0] == '\0') {
             LOG_DBG("resetting all colors");
             for (size_t i = 0; i < ALEN(term->colors.table); i++)
                 term->colors.table[i] = term->conf->colors.table[i];
