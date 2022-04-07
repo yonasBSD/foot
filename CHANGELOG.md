@@ -100,6 +100,8 @@
   invisible (https://codeberg.org/dnkl/foot/issues/1005).
 * Fallback to `/etc/xdg` if `XDG_CONFIG_DIRS` is unset
   (https://codeberg.org/dnkl/foot/issues/1008).
+* Improved compatibility with XTerm when `modifyOtherKeys=2`
+  (https://codeberg.org/dnkl/foot/issues/1009).
 
 
 ### Security
