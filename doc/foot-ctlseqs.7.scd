@@ -560,6 +560,11 @@ manipulation sequences. The generic format is:
 :  xterm
 :  _Ps_=0 -> report terminal name and version, in the form
    *\\EP>|foot(version)\\E\\*.
+|  \\E[ > 4 ; _Pv_ m
+:  XTMODKEYS
+:  xterm
+:  Set level of the _modifyOtherKey_ property to _Pv_. Note that foot
+   only supports level 1 and 2, where level 1 is the default setting.
 |  \\E[ ? u
 :  <unnamed>
 :  kitty
