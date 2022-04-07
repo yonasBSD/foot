@@ -1096,7 +1096,56 @@ legacy_kbd_protocol(struct seat *seat, struct terminal *term,
     bool ctrl_is_in_effect = (keymap_mods & MOD_CTRL) != 0;
     bool ctrl_seq = is_control_key(sym) || (count == 1 && IS_CTRL(utf8[0]));
 
-    if (keymap_mods != MOD_NONE && (term->modify_other_keys_2 ||
+    bool modify_other_keys2_in_effect = false;
+
+    if (term->modify_other_keys_2) {
+        /*
+         * Try to mimic XTerm’s behavior, when holding shift:
+         *
+         *   - if other modifiers are pressed (e.g. Alt), emit a CSI escape
+         *   - upper-case symbols A-Z are encoded as an CSI escape
+         *   - other upper-case symbols (e.g ‘Ö’) or emitted as is
+         *   - non-upper cased symbols are _mostly_ emitted as is (foot
+         *     always emits as is)
+         *
+         * Examples (assuming Swedish layout):
+         *   - Shift-a (‘A’) emits a CSI
+         *   - Shift-, (‘;’) emits ‘;’
+         *   - Shift-Alt-, (Alt-;) emits a CSI
+         *   - Shift-ö (‘Ö’) emits ‘Ö’
+         */
+
+        /* Any modifiers, besides shift active? */
+        const xkb_mod_mask_t shift_mask = 1 << seat->kbd.mod_shift;
+        if ((ctx->mods & ~shift_mask & seat->kbd.bind_significant) != 0)
+            modify_other_keys2_in_effect = true;
+
+        else {
+            const xkb_layout_index_t layout_idx = xkb_state_key_get_layout(
+                seat->kbd.xkb_state, ctx->key);
+
+            /*
+             * Get pressed key’s base symbol.
+             *   - for ‘A’ (shift-a), that’s ‘a’
+             *   - for ‘;’ (shift-,), that’s ‘,’
+             */
+            const xkb_keysym_t *base_syms = NULL;
+            size_t base_count = xkb_keymap_key_get_syms_by_level(
+                seat->kbd.xkb_keymap, ctx->key, layout_idx, 0, &base_syms);
+
+            /* Check if base symbol(s) is a-z. If so, emit CSI */
+            const xkb_keysym_t lower_cased_sym = xkb_keysym_to_lower(ctx->sym);
+            for (size_t i = 0; i < base_count; i++) {
+                const xkb_keysym_t s = base_syms[i];
+                if (lower_cased_sym == s && s >= XKB_KEY_a && s <= XKB_KEY_z) {
+                    modify_other_keys2_in_effect = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (keymap_mods != MOD_NONE && (modify_other_keys2_in_effect ||
                                     (ctrl_is_in_effect && !ctrl_seq)))
     {
         static const int mod_param_map[32] = {
