@@ -3231,7 +3231,7 @@ render_urls(struct terminal *term)
             continue;
 
         bool hide = false;
-        const struct coord *pos = &url->start;
+        const struct coord *pos = &url->range.start;
         const int _row
             = (pos->row
                - scrollback_end
@@ -3701,14 +3701,14 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
      * tracking points list.
      */
     struct coord *const tracking_points[] = {
-        &term->selection.start,
-        &term->selection.end,
+        &term->selection.coords.start,
+        &term->selection.coords.end,
     };
 
     /* Resize grids */
     grid_resize_and_reflow(
         &term->normal, new_normal_grid_rows, new_cols, old_rows, new_rows,
-        term->selection.end.row >= 0 ? ALEN(tracking_points) : 0,
+        term->selection.coords.end.row >= 0 ? ALEN(tracking_points) : 0,
         tracking_points);
 
     grid_resize_without_reflow(

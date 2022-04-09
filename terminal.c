@@ -1157,8 +1157,10 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
             .cursor = conf->cursor.color.cursor,
         },
         .selection = {
-            .start = {-1, -1},
-            .end = {-1, -1},
+            .coords = {
+                .start = {-1, -1},
+                .end = {-1, -1},
+            },
             .pivot = {
                 .start = {-1, -1},
                 .end = {-1, -1},
@@ -2155,8 +2157,8 @@ term_erase_scrollback(struct terminal *term)
     const int rel_start = (start - scrollback_start + num_rows) & mask;
     const int rel_end = (end - scrollback_start + num_rows) & mask;
 
-    const int sel_start = term->selection.start.row;
-    const int sel_end = term->selection.end.row;
+    const int sel_start = term->selection.coords.start.row;
+    const int sel_end = term->selection.coords.end.row;
 
     if (sel_end >= 0) {
         /*
@@ -2237,8 +2239,10 @@ UNITTEST
         },
         .grid = &term.normal,
         .selection = {
-            .start = {-1, -1},
-            .end = {-1, -1},
+            .coords = {
+                .start = {-1, -1},
+                .end = {-1, -1},
+            },
             .kind = SELECTION_NONE,
             .auto_scroll = {
                 .fd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC | TFD_NONBLOCK),
@@ -2281,14 +2285,14 @@ UNITTEST
     term.normal.offset = 14;  /* Screen covers rows 14,15,0,1,2 */
 
     /* Selection covers rows 15,0,1,2,3 */
-    term.selection.start = (struct coord){.row = 15};
-    term.selection.end = (struct coord){.row = 19};
+    term.selection.coords.start = (struct coord){.row = 15};
+    term.selection.coords.end = (struct coord){.row = 19};
     term.selection.kind = SELECTION_CHAR_WISE;
 
     populate_scrollback();
     term_erase_scrollback(&term);
-    xassert(term.selection.start.row < 0);
-    xassert(term.selection.end.row < 0);
+    xassert(term.selection.coords.start.row < 0);
+    xassert(term.selection.coords.end.row < 0);
     xassert(term.selection.kind == SELECTION_NONE);
 
     /*
@@ -2297,18 +2301,18 @@ UNITTEST
      */
 
     /* Selection covers rows 15,0 */
-    term.selection.start = (struct coord){.row = 15};
-    term.selection.end = (struct coord){.row = 16};
+    term.selection.coords.start = (struct coord){.row = 15};
+    term.selection.coords.end = (struct coord){.row = 16};
     term.selection.kind = SELECTION_CHAR_WISE;
 
     populate_scrollback();
     term_erase_scrollback(&term);
-    xassert(term.selection.start.row == 15);
-    xassert(term.selection.end.row == 16);
+    xassert(term.selection.coords.start.row == 15);
+    xassert(term.selection.coords.end.row == 16);
     xassert(term.selection.kind == SELECTION_CHAR_WISE);
 
-    term.selection.start = (struct coord){-1, -1};
-    term.selection.end = (struct coord){-1, -1};
+    term.selection.coords.start = (struct coord){-1, -1};
+    term.selection.coords.end = (struct coord){-1, -1};
     term.selection.kind = SELECTION_NONE;
 
     /*
@@ -2502,7 +2506,7 @@ term_scroll_partial(struct terminal *term, struct scroll_region region, int rows
     xassert(rows <= region.end - region.start);
 
     /* Cancel selections that cannot be scrolled */
-    if (unlikely(term->selection.end.row >= 0)) {
+    if (unlikely(term->selection.coords.end.row >= 0)) {
         /*
          * Selection is (partly) inside either the top or bottom
          * scrolling regions, or on (at least one) of the lines
@@ -2567,7 +2571,7 @@ term_scroll_reverse_partial(struct terminal *term,
     xassert(rows <= region.end - region.start);
 
     /* Cancel selections that cannot be scrolled */
-    if (unlikely(term->selection.end.row >= 0)) {
+    if (unlikely(term->selection.coords.end.row >= 0)) {
         /*
          * Selection is (partly) inside either the top or bottom
          * scrolling regions, or on (at least one) of the lines

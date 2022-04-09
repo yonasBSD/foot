@@ -411,8 +411,10 @@ auto_detected(const struct terminal *term, enum url_action action,
                             ((struct url){
                                 .id = (uint64_t)rand() << 32 | rand(),
                                 .url = url_utf8,
-                                .start = start,
-                                .end = end,
+                                .range = {
+                                    .start = start,
+                                    .end = end,
+                                },
                                 .action = action,
                                 .osc8 = false}));
                     }
@@ -466,8 +468,10 @@ osc8_uris(const struct terminal *term, enum url_action action, url_list_t *urls)
                ((struct url){
                    .id = range->id,
                    .url = xstrdup(range->uri),
-                   .start = start,
-                   .end = end,
+                   .range = {
+                       .start = start,
+                       .end = end,
+                   },
                    .action = action,
                    .url_mode_dont_change_url_attr = dont_touch_url_attr,
                    .osc8 = true}));
@@ -486,11 +490,11 @@ remove_overlapping(url_list_t *urls, int cols)
             const struct url *out = &outer->item;
             const struct url *in = &inner->item;
 
-            uint64_t in_start = in->start.row * cols + in->start.col;
-            uint64_t in_end = in->end.row * cols + in->end.col;
+            uint64_t in_start = in->range.start.row * cols + in->range.start.col;
+            uint64_t in_end = in->range.end.row * cols + in->range.end.col;
 
-            uint64_t out_start = out->start.row * cols + out->start.col;
-            uint64_t out_end = out->end.row * cols + out->end.col;
+            uint64_t out_start = out->range.start.row * cols + out->range.start.col;
+            uint64_t out_end = out->range.end.row * cols + out->range.end.col;
 
             if ((in_start <= out_start && in_end >= out_start) ||
                 (in_start <= out_end && in_end >= out_end) ||
@@ -669,8 +673,8 @@ tag_cells_for_url(struct terminal *term, const struct url *url, bool value)
     if (url->url_mode_dont_change_url_attr)
         return;
 
-    const struct coord *start = &url->start;
-    const struct coord *end = &url->end;
+    const struct coord *start = &url->range.start;
+    const struct coord *end = &url->range.end;
 
     size_t end_r = end->row & (term->grid->num_rows - 1);
 

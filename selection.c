@@ -45,16 +45,16 @@ selection_on_rows(const struct terminal *term, int row_start, int row_end)
             term->selection.start.row, term->selection.end.row,
             row_start, row_end, term->grid->offset);
 
-    if (term->selection.end.row < 0)
+    if (term->selection.coords.end.row < 0)
         return false;
 
-    xassert(term->selection.start.row != -1);
+    xassert(term->selection.coords.start.row != -1);
 
     row_start += term->grid->offset;
     row_end += term->grid->offset;
 
-    const struct coord *start = &term->selection.start;
-    const struct coord *end = &term->selection.end;
+    const struct coord *start = &term->selection.coords.start;
+    const struct coord *end = &term->selection.coords.end;
 
     if ((row_start <= start->row && row_end >= start->row) ||
         (row_start <= end->row && row_end >= end->row))
@@ -79,29 +79,29 @@ selection_on_rows(const struct terminal *term, int row_start, int row_end)
 void
 selection_view_up(struct terminal *term, int new_view)
 {
-    if (likely(term->selection.start.row < 0))
+    if (likely(term->selection.coords.start.row < 0))
         return;
 
     if (likely(new_view < term->grid->view))
         return;
 
-    term->selection.start.row += term->grid->num_rows;
-    if (term->selection.end.row >= 0)
-        term->selection.end.row += term->grid->num_rows;
+    term->selection.coords.start.row += term->grid->num_rows;
+    if (term->selection.coords.end.row >= 0)
+        term->selection.coords.end.row += term->grid->num_rows;
 }
 
 void
 selection_view_down(struct terminal *term, int new_view)
 {
-    if (likely(term->selection.start.row < 0))
+    if (likely(term->selection.coords.start.row < 0))
         return;
 
     if (likely(new_view > term->grid->view))
         return;
 
-    term->selection.start.row &= term->grid->num_rows - 1;
-    if (term->selection.end.row >= 0)
-        term->selection.end.row &= term->grid->num_rows - 1;
+    term->selection.coords.start.row &= term->grid->num_rows - 1;
+    if (term->selection.coords.end.row >= 0)
+        term->selection.coords.end.row &= term->grid->num_rows - 1;
 }
 
 static void
@@ -251,7 +251,7 @@ extract_one_const_wrapper(struct terminal *term,
 char *
 selection_to_text(const struct terminal *term)
 {
-    if (term->selection.end.row == -1)
+    if (term->selection.coords.end.row == -1)
         return NULL;
 
     struct extraction_context *ctx = extract_begin(term->selection.kind, true);
@@ -259,7 +259,7 @@ selection_to_text(const struct terminal *term)
         return NULL;
 
     foreach_selected(
-        (struct terminal *)term, term->selection.start, term->selection.end,
+        (struct terminal *)term, term->selection.coords.start, term->selection.coords.end,
         &extract_one_const_wrapper, ctx);
 
     char *text;
@@ -479,11 +479,11 @@ selection_start(struct terminal *term, int col, int row,
     switch (kind) {
     case SELECTION_CHAR_WISE:
     case SELECTION_BLOCK:
-        term->selection.start = (struct coord){col, term->grid->view + row};
-        term->selection.end = (struct coord){-1, -1};
+        term->selection.coords.start = (struct coord){col, term->grid->view + row};
+        term->selection.coords.end = (struct coord){-1, -1};
 
-        term->selection.pivot.start = term->selection.start;
-        term->selection.pivot.end = term->selection.end;
+        term->selection.pivot.start = term->selection.coords.start;
+        term->selection.pivot.end = term->selection.coords.end;
         break;
 
     case SELECTION_WORD_WISE: {
@@ -491,10 +491,10 @@ selection_start(struct terminal *term, int col, int row,
         selection_find_word_boundary_left(term, &start, spaces_only);
         selection_find_word_boundary_right(term, &end, spaces_only);
 
-        term->selection.start = (struct coord){
+        term->selection.coords.start = (struct coord){
             start.col, term->grid->view + start.row};
 
-        term->selection.pivot.start = term->selection.start;
+        term->selection.pivot.start = term->selection.coords.start;
         term->selection.pivot.end = (struct coord){end.col, term->grid->view + end.row};
 
         selection_update(term, end.col, end.row);
@@ -506,9 +506,9 @@ selection_start(struct terminal *term, int col, int row,
         selection_find_line_boundary_left(term, &start, spaces_only);
         selection_find_line_boundary_right(term, &end, spaces_only);
 
-        term->selection.start = (struct coord){
+        term->selection.coords.start = (struct coord){
             start.col, term->grid->view + start.row};
-        term->selection.pivot.start = term->selection.start;
+        term->selection.pivot.start = term->selection.coords.start;
         term->selection.pivot.end = (struct coord){end.col, term->grid->view + end.row};
 
         selection_update(term, end.col, end.row);
@@ -632,7 +632,7 @@ reset_modify_context(struct mark_context *ctx)
 static void
 selection_modify(struct terminal *term, struct coord start, struct coord end)
 {
-    xassert(term->selection.start.row != -1);
+    xassert(term->selection.coords.start.row != -1);
     xassert(start.row != -1 && start.col != -1);
     xassert(end.row != -1 && end.col != -1);
 
@@ -645,16 +645,16 @@ selection_modify(struct terminal *term, struct coord start, struct coord end)
     foreach_selected(term, start, end, &premark_selected, &ctx);
     reset_modify_context(&ctx);
 
-    if (term->selection.end.row >= 0) {
+    if (term->selection.coords.end.row >= 0) {
         /* Unmark previous selection, ignoring cells that are part of
          * the new selection */
-        foreach_selected(term, term->selection.start, term->selection.end,
+        foreach_selected(term, term->selection.coords.start, term->selection.coords.end,
                          &unmark_selected, &ctx);
         reset_modify_context(&ctx);
     }
 
-    term->selection.start = start;
-    term->selection.end = end;
+    term->selection.coords.start = start;
+    term->selection.coords.end = end;
 
     /* Mark new selection */
     foreach_selected(term, start, end, &mark_selected, &ctx);
@@ -744,20 +744,20 @@ set_pivot_point_for_block_and_char_wise(struct terminal *term,
 void
 selection_update(struct terminal *term, int col, int row)
 {
-    if (term->selection.start.row < 0)
+    if (term->selection.coords.start.row < 0)
         return;
 
     if (!term->selection.ongoing)
         return;
 
     LOG_DBG("selection updated: start = %d,%d, end = %d,%d -> %d, %d",
-            term->selection.start.row, term->selection.start.col,
-            term->selection.end.row, term->selection.end.col,
+            term->selection.coords.start.row, term->selection.coords.start.col,
+            term->selection.coords.end.row, term->selection.coords.end.col,
             row, col);
 
     xassert(term->grid->view + row != -1);
 
-    struct coord new_start = term->selection.start;
+    struct coord new_start = term->selection.coords.start;
     struct coord new_end = {col, term->grid->view + row};
 
     /* Adjust start point if the selection has changed 'direction' */
@@ -900,11 +900,11 @@ selection_update(struct terminal *term, int col, int row)
 void
 selection_dirty_cells(struct terminal *term)
 {
-    if (term->selection.start.row < 0 || term->selection.end.row < 0)
+    if (term->selection.coords.start.row < 0 || term->selection.coords.end.row < 0)
         return;
 
     foreach_selected(
-        term, term->selection.start, term->selection.end, &mark_selected,
+        term, term->selection.coords.start, term->selection.coords.end, &mark_selected,
         &(struct mark_context){0});
 }
 
@@ -912,8 +912,8 @@ static void
 selection_extend_normal(struct terminal *term, int col, int row,
                         enum selection_kind new_kind)
 {
-    const struct coord *start = &term->selection.start;
-    const struct coord *end = &term->selection.end;
+    const struct coord *start = &term->selection.coords.start;
+    const struct coord *end = &term->selection.coords.end;
 
     if (start->row > end->row ||
         (start->row == end->row && start->col > end->col))
@@ -1020,8 +1020,8 @@ selection_extend_normal(struct terminal *term, int col, int row,
 static void
 selection_extend_block(struct terminal *term, int col, int row)
 {
-    const struct coord *start = &term->selection.start;
-    const struct coord *end = &term->selection.end;
+    const struct coord *start = &term->selection.coords.start;
+    const struct coord *end = &term->selection.coords.end;
 
     struct coord top_left = {
         .row = min(start->row, end->row),
@@ -1089,7 +1089,7 @@ void
 selection_extend(struct seat *seat, struct terminal *term,
                  int col, int row, enum selection_kind new_kind)
 {
-    if (term->selection.start.row < 0 || term->selection.end.row < 0) {
+    if (term->selection.coords.start.row < 0 || term->selection.coords.end.row < 0) {
         /* No existing selection */
         return;
     }
@@ -1101,8 +1101,8 @@ selection_extend(struct seat *seat, struct terminal *term,
 
     row += term->grid->view;
 
-    if ((row == term->selection.start.row && col == term->selection.start.col) ||
-        (row == term->selection.end.row && col == term->selection.end.col))
+    if ((row == term->selection.coords.start.row && col == term->selection.coords.start.col) ||
+        (row == term->selection.coords.end.row && col == term->selection.coords.end.col))
     {
         /* Extension point *is* one of the current end points */
         return;
@@ -1138,14 +1138,14 @@ selection_finalize(struct seat *seat, struct terminal *term, uint32_t serial)
     selection_stop_scroll_timer(term);
     term->selection.ongoing = false;
 
-    if (term->selection.start.row < 0 || term->selection.end.row < 0)
+    if (term->selection.coords.start.row < 0 || term->selection.coords.end.row < 0)
         return;
 
-    xassert(term->selection.start.row != -1);
-    xassert(term->selection.end.row != -1);
+    xassert(term->selection.coords.start.row != -1);
+    xassert(term->selection.coords.end.row != -1);
 
-    term->selection.start.row &= (term->grid->num_rows - 1);
-    term->selection.end.row &= (term->grid->num_rows - 1);
+    term->selection.coords.start.row &= (term->grid->num_rows - 1);
+    term->selection.coords.end.row &= (term->grid->num_rows - 1);
 
     switch (term->conf->selection_target) {
     case SELECTION_TARGET_NONE:
@@ -1169,21 +1169,21 @@ void
 selection_cancel(struct terminal *term)
 {
     LOG_DBG("selection cancelled: start = %d,%d end = %d,%d",
-            term->selection.start.row, term->selection.start.col,
-            term->selection.end.row, term->selection.end.col);
+            term->selection.coords.start.row, term->selection.coords.start.col,
+            term->selection.coords.end.row, term->selection.coords.end.col);
 
     selection_stop_scroll_timer(term);
 
-    if (term->selection.start.row >= 0 && term->selection.end.row >= 0) {
+    if (term->selection.coords.start.row >= 0 && term->selection.coords.end.row >= 0) {
         foreach_selected(
-            term, term->selection.start, term->selection.end,
+            term, term->selection.coords.start, term->selection.coords.end,
             &unmark_selected, &(struct mark_context){0});
         render_refresh(term);
     }
 
     term->selection.kind = SELECTION_NONE;
-    term->selection.start = (struct coord){-1, -1};
-    term->selection.end = (struct coord){-1, -1};
+    term->selection.coords.start = (struct coord){-1, -1};
+    term->selection.coords.end = (struct coord){-1, -1};
     term->selection.pivot.start = (struct coord){-1, -1};
     term->selection.pivot.end = (struct coord){-1, -1};
     term->selection.direction = SELECTION_UNDIR;
@@ -1566,7 +1566,7 @@ text_to_clipboard(struct seat *seat, struct terminal *term, char *text, uint32_t
 void
 selection_to_clipboard(struct seat *seat, struct terminal *term, uint32_t serial)
 {
-    if (term->selection.start.row < 0 || term->selection.end.row < 0)
+    if (term->selection.coords.start.row < 0 || term->selection.coords.end.row < 0)
         return;
 
     /* Get selection as a string */

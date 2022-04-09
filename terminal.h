@@ -79,6 +79,11 @@ struct coord {
     int row;
 };
 
+struct range {
+    struct coord start;
+    struct coord end;
+};
+
 struct cursor {
     struct coord point;
     bool lcf;
@@ -288,8 +293,7 @@ struct url {
     uint64_t id;
     char *url;
     char32_t *key;
-    struct coord start;
-    struct coord end;
+    struct range range;
     enum url_action action;
     bool url_mode_dont_change_url_attr; /* Entering/exiting URL mode doesn’t touch the cells’ attr.url */
     bool osc8;
@@ -476,15 +480,11 @@ struct terminal {
     struct {
         enum selection_kind kind;
         enum selection_direction direction;
-        struct coord start;
-        struct coord end;
+        struct range coords;
         bool ongoing;
         bool spaces_only; /* SELECTION_SEMANTIC_WORD */
 
-        struct {
-            struct coord start;
-            struct coord end;
-        } pivot;
+        struct range pivot;
 
         struct {
             int fd;

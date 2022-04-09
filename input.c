@@ -2121,8 +2121,9 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
                     auto_scroll_direction, selection_col);
             }
 
-            if (term->selection.ongoing && (cursor_is_on_new_cell ||
-                                            term->selection.end.row < 0))
+            if (term->selection.ongoing && (
+                    cursor_is_on_new_cell ||
+                    term->selection.coords.end.row < 0))
             {
                 selection_update(term, selection_col, selection_row);
             }

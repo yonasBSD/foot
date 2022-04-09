@@ -450,11 +450,11 @@ search_match_to_end_of_word(struct terminal *term, bool spaces_only)
     if (term->search.match_len == 0)
         return;
 
-    xassert(term->selection.end.row != -1);
+    xassert(term->selection.coords.end.row != -1);
 
     const bool move_cursor = term->search.cursor == term->search.len;
 
-    const struct coord old_end = term->selection.end;
+    const struct coord old_end = term->selection.coords.end;
     struct coord new_end = old_end;
     struct row *row = NULL;
 
