@@ -409,6 +409,90 @@ search_find_next(struct terminal *term)
 #undef ROW_DEC
 }
 
+struct search_match_iterator
+search_matches_new_iter(struct terminal *term)
+{
+    return (struct search_match_iterator){
+        .term = term,
+        .start = {0, 0},
+    };
+}
+
+struct range
+search_matches_next(struct search_match_iterator *iter)
+{
+    xassert(iter->start.row >= 0);
+    xassert(iter->start.col >= 0);
+
+    struct terminal *term = iter->term;
+    //xassert(term->is_searching);
+
+    if (term->search.match_len == 0)
+        goto done;
+
+    int start_col = iter->start.col;
+
+    for (int r = iter->start.row; r < term->rows; r++) {
+        const struct row *row = grid_row_in_view(term->grid, r);
+
+        for (int c = start_col; c < term->cols; c++) {
+            if (matches_cell(term, &row->cells[c], 0) < 0)
+                continue;
+
+            struct range match = {
+                .start = {c, r},
+                .end = {-1, -1},
+            };
+            size_t match_len = 0;
+
+            for (size_t i = 0; i < term->search.len;) {
+                if (c >= term->cols) {
+                    if (++r >= term->rows)
+                        break;
+
+                    row = grid_row_in_view(term->grid, r);
+                    c = 0;
+                }
+
+                if (row->cells[c].wc >= CELL_SPACER) {
+                    c++;
+                    continue;
+                }
+
+                ssize_t additional_chars = matches_cell(term, &row->cells[c], i);
+                if (additional_chars < 0)
+                    break;
+
+                i += additional_chars;
+                match_len += additional_chars;
+                c++;
+            }
+
+            if (match_len != term->search.len) {
+                /* Didn't match (completely) */
+                continue;
+            }
+
+            match.end = (struct coord){c - 1, r};
+
+            LOG_DBG("match at %dx%d-%dx%d",
+                    match.start.row, match.start.col,
+                    match.end.row, match.end.col);
+
+            iter->start.row = r;
+            iter->start.col = c;
+            return match;
+        }
+
+        start_col = 0;
+    }
+
+done:
+    iter->start.row = -1;
+    iter->start.col = -1;
+    return (struct range){{-1, -1}, {-1,  -1}};
+}
+
 static void
 add_wchars(struct terminal *term, char32_t *src, size_t count)
 {

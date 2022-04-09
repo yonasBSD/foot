@@ -14,3 +14,11 @@ void search_input(
 void search_add_chars(struct terminal *term, const char *text, size_t len);
 
 void search_selection_cancelled(struct terminal *term);
+
+struct search_match_iterator {
+    struct terminal *term;
+    struct coord start;
+};
+
+struct search_match_iterator search_matches_new_iter(struct terminal *term);
+struct range search_matches_next(struct search_match_iterator *iter);

@@ -35,6 +35,7 @@
 #include "hsl.h"
 #include "ime.h"
 #include "quirks.h"
+#include "search.h"
 #include "selection.h"
 #include "shm.h"
 #include "sixel.h"
@@ -1539,17 +1540,30 @@ render_overlay(struct terminal *term)
 
         pixman_region32_clear(see_through);
 
-        struct grid *grid = term->grid;
-        for (int r = 0; r < term->rows; r++) {
-            struct row *row = grid_row_in_view(grid, r);
-            int y = term->margins.top + r * term->cell_height;
-            for (int c = 0; c < term->cols; c++) {
-                if (row->cells[c].attrs.selected) {
-                    int x = term->margins.left + c * term->cell_width;
-                    pixman_region32_union_rect(
-                        see_through, see_through,
-                        x, y, term->cell_width, term->cell_height);
-                }
+        struct search_match_iterator iter = search_matches_new_iter(term);
+
+        for (struct range match = search_matches_next(&iter);
+             match.start.row >= 0;
+             match = search_matches_next(&iter))
+        {
+            int r = match.start.row;
+            int start_col = match.start.col;
+            const int end_row = match.end.row;
+
+            while (true) {
+                const int end_col =
+                    r == end_row ? match.end.col : term->cols - 1;
+
+                int x = term->margins.left + start_col * term->cell_width;
+                int y = term->margins.top + r * term->cell_height;
+                int width = (end_col + 1 - start_col) * term->cell_width;
+                int height = 1 * term->cell_height;
+
+                pixman_region32_union_rect(
+                    see_through, see_through, x, y, width, height);
+
+                if (++r > end_row)
+                    break;
             }
         }
 
