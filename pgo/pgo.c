@@ -240,8 +240,10 @@ main(int argc, const char *const *argv)
             .end = row_count,
         },
         .selection = {
-            .start = {-1, -1},
-            .end = {-1, -1},
+            .coords = {
+                .start = {-1, -1},
+                .end = {-1, -1},
+            },
         },
         .delayed_render_timer = {
             .lower_fd = lower_fd,
