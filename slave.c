@@ -25,6 +25,63 @@
 
 extern char **environ;
 
+#if defined(__FreeBSD__)
+static char *
+find_file_in_path(const char *file)
+{
+    if (strchr(file, '/') != NULL)
+        return xstrdup(file);
+
+    const char *env_path = getenv("PATH");
+    char *path_list = NULL;
+
+    if (env_path != NULL && env_path[0] != '\0')
+        path_list = xstrdup(env_path);
+    else {
+        size_t sc_path_len = confstr(_CS_PATH, NULL, 0);
+        if (sc_path_len > 0) {
+            path_list = xmalloc(sc_path_len);
+            confstr(_CS_PATH, path_list, sc_path_len);
+        } else
+            return xstrdup(file);
+    }
+
+    for (const char *path = strtok(path_list, ":");
+         path != NULL;
+         path = strtok(NULL, ":"))
+    {
+        char *full = xasprintf("%s/%s", path, file);
+        if (access(full, F_OK) == 0) {
+            free(path_list);
+            return full;
+        }
+
+        free(full);
+    }
+
+    free(path_list);
+    return xstrdup(file);
+}
+
+static int
+foot_execvpe(const char *file, char *const argv[], char *const envp[])
+{
+    char *path = find_file_in_path(file);
+    int ret = execve(path, argv, envp);
+
+    /*
+     * Getting here is an error
+     */
+    free(path);
+    return ret;
+}
+
+#else   /* !__FreeBSD__ */
+
+#define foot_execvpe(file, argv, envp) execvpe(file, argv, envp)
+
+#endif  /* !__FreeBSD__ */
+
 static bool
 is_valid_shell(const char *shell)
 {
@@ -234,7 +291,7 @@ slave_exec(int ptmx, char *argv[], char *const envp[], int err_fd,
     } else
         file = argv[0];
 
-    execvpe(file, argv, envp);
+    foot_execvpe(file, argv, envp);
 
 err:
     (void)!write(err_fd, &errno, sizeof(errno));
