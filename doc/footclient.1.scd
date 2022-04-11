@@ -70,8 +70,8 @@ terminal has terminated.
 	given, defaults to _main_.
 
 *-E*,*--client-environment*
-	The child process in the new terminal instace will use
-	footclient's enviromnent, instead of the server's.
+	The child process in the new terminal instance will use
+	footclient's environment, instead of the server's.
 
 *-d*,*--log-level*={*info*,*warning*,*error*,*none*}
 	Log level, used both for log output on stderr as well as
