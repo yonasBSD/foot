@@ -25,6 +25,8 @@
 #include "version.h"
 #include "xmalloc.h"
 
+extern char **environ;
+
 struct string {
     size_t len;
     char *str;

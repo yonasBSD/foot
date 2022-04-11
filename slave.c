@@ -23,6 +23,8 @@
 #include "tokenize.h"
 #include "xmalloc.h"
 
+extern char **environ;
+
 static bool
 is_valid_shell(const char *shell)
 {
