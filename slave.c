@@ -145,8 +145,8 @@ emit_notifications(int fd, const user_notifications_t *notifications)
 }
 
 static noreturn void
-slave_exec(int ptmx, char *argv[], int err_fd, bool login_shell,
-           const user_notifications_t *notifications)
+slave_exec(int ptmx, char *argv[], char *const envp[], int err_fd,
+           bool login_shell, const user_notifications_t *notifications)
 {
     int pts = -1;
     const char *pts_name = ptsname(ptmx);
@@ -232,7 +232,7 @@ slave_exec(int ptmx, char *argv[], int err_fd, bool login_shell,
     } else
         file = argv[0];
 
-    execvp(file, argv);
+    execvpe(file, argv, envp);
 
 err:
     (void)!write(err_fd, &errno, sizeof(errno));
@@ -246,8 +246,8 @@ err:
 
 pid_t
 slave_spawn(int ptmx, int argc, const char *cwd, char *const *argv,
-            const char *term_env, const char *conf_shell, bool login_shell,
-            const user_notifications_t *notifications)
+            char *const *envp, const char *term_env, const char *conf_shell,
+            bool login_shell, const user_notifications_t *notifications)
 {
     int fork_pipe[2];
     if (pipe2(fork_pipe, O_CLOEXEC) < 0) {
@@ -319,7 +319,8 @@ slave_spawn(int ptmx, int argc, const char *cwd, char *const *argv,
         if (is_valid_shell(shell_argv[0]))
             setenv("SHELL", shell_argv[0], 1);
 
-        slave_exec(ptmx, shell_argv, fork_pipe[1], login_shell, notifications);
+        slave_exec(ptmx, shell_argv, envp != NULL ? envp : environ,
+                   fork_pipe[1], login_shell, notifications);
         BUG("Unexpected return from slave_exec()");
         break;
 

@@ -25,11 +25,11 @@
 #include "version.h"
 #include "xmalloc.h"
 
-struct override {
+struct string {
     size_t len;
     char *str;
 };
-typedef tll(struct override) override_list_t;
+typedef tll(struct string) string_list_t;
 
 static volatile sig_atomic_t aborted = 0;
 
@@ -91,6 +91,7 @@ print_usage(const char *prog_name)
         "  -H,--hold                                remain open after child process exits\n"
         "  -N,--no-wait                             detach the client process from the running terminal, exiting immediately\n"
         "  -o,--override=[section.]key=value        override configuration option\n"
+        "  -E, --client-environment                 exec shell using footclient's environment, instead of the server's\n"
         "  -d,--log-level={info|warning|error|none} log level (info)\n"
         "  -l,--log-colorize=[{never|always|auto}]  enable/disable colorization of log output on stderr\n"
         "  -v,--version                             show the version number and quit\n"
@@ -102,18 +103,27 @@ print_usage(const char *prog_name)
 }
 
 static bool NOINLINE
-push_override(override_list_t *overrides, const char *s, uint64_t *total_len)
+push_string(string_list_t *string_list, const char *s, uint64_t *total_len)
 {
     size_t len = strlen(s) + 1;
-    if (len >= 1 << (8 * sizeof(struct client_string))) {
-        LOG_ERR("override length overflow");
+    if (len >= 1 << (8 * sizeof(uint16_t))) {
+        LOG_ERR("string length overflow");
         return false;
     }
 
-    struct override o = {len, xstrdup(s)};
-    tll_push_back(*overrides, o);
+    struct string o = {len, xstrdup(s)};
+    tll_push_back(*string_list, o);
     *total_len += sizeof(struct client_string) + o.len;
     return true;
+}
+
+static void
+free_string_list(string_list_t *string_list)
+{
+    tll_foreach(*string_list, it) {
+        free(it->item.str);
+        tll_remove(*string_list, it);
+    }
 }
 
 int
@@ -140,6 +150,7 @@ main(int argc, char *const *argv)
         {"hold",               no_argument,       NULL, 'H'},
         {"no-wait",            no_argument,       NULL, 'N'},
         {"override",           required_argument, NULL, 'o'},
+        {"client-environment", no_argument,       NULL, 'E'},
         {"log-level",          required_argument, NULL, 'd'},
         {"log-colorize",       optional_argument, NULL, 'l'},
         {"version",            no_argument,       NULL, 'v'},
@@ -152,6 +163,7 @@ main(int argc, char *const *argv)
     enum log_class log_level = LOG_CLASS_INFO;
     enum log_colorize log_colorize = LOG_COLORIZE_AUTO;
     bool hold = false;
+    bool client_environment = false;
 
     /* Used to format overrides */
     bool no_wait = false;
@@ -169,35 +181,36 @@ main(int argc, char *const *argv)
     /* malloc:ed and needs to be in scope of all goto's */
     int fd = -1;
     char *_cwd = NULL;
-    override_list_t overrides = tll_init();
     struct client_string *cargv = NULL;
+    string_list_t overrides = tll_init();
+    string_list_t envp = tll_init();
 
     while (true) {
-        int c = getopt_long(argc, argv, "+t:T:a:w:W:mFLD:s:HNo:d:l::veh", longopts, NULL);
+        int c = getopt_long(argc, argv, "+t:T:a:w:W:mFLD:s:HNo:Ed:l::veh", longopts, NULL);
         if (c == -1)
             break;
 
         switch (c) {
         case 't':
             snprintf(buf, sizeof(buf), "term=%s", optarg);
-            if (!push_override(&overrides, buf, &total_len))
+            if (!push_string(&overrides, buf, &total_len))
                 goto err;
             break;
 
         case 'T':
             snprintf(buf, sizeof(buf), "title=%s", optarg);
-            if (!push_override(&overrides, buf, &total_len))
+            if (!push_string(&overrides, buf, &total_len))
                 goto err;
             break;
 
         case 'a':
             snprintf(buf, sizeof(buf), "app-id=%s", optarg);
-            if (!push_override(&overrides, buf, &total_len))
+            if (!push_string(&overrides, buf, &total_len))
                 goto err;
             break;
 
         case 'L':
-            if (!push_override(&overrides, "login-shell=yes", &total_len))
+            if (!push_string(&overrides, "login-shell=yes", &total_len))
                 goto err;
             break;
 
@@ -219,7 +232,7 @@ main(int argc, char *const *argv)
             }
 
             snprintf(buf, sizeof(buf), "initial-window-size-pixels=%ux%u", width, height);
-            if (!push_override(&overrides, buf, &total_len))
+            if (!push_string(&overrides, buf, &total_len))
                 goto err;
             break;
         }
@@ -232,18 +245,18 @@ main(int argc, char *const *argv)
             }
 
             snprintf(buf, sizeof(buf), "initial-window-size-chars=%ux%u", width, height);
-            if (!push_override(&overrides, buf, &total_len))
+            if (!push_string(&overrides, buf, &total_len))
                 goto err;
             break;
         }
 
         case 'm':
-            if (!push_override(&overrides, "initial-window-mode=maximized", &total_len))
+            if (!push_string(&overrides, "initial-window-mode=maximized", &total_len))
                 goto err;
             break;
 
         case 'F':
-            if (!push_override(&overrides, "initial-window-mode=fullscreen", &total_len))
+            if (!push_string(&overrides, "initial-window-mode=fullscreen", &total_len))
                 goto err;
             break;
 
@@ -260,8 +273,12 @@ main(int argc, char *const *argv)
             break;
 
         case 'o':
-            if (!push_override(&overrides, optarg, &total_len))
+            if (!push_string(&overrides, optarg, &total_len))
                 goto err;
+            break;
+
+        case 'E':
+            client_environment = true;
             break;
 
         case 'd': {
@@ -373,9 +390,17 @@ main(int argc, char *const *argv)
         cwd = _cwd;
     }
 
+    if (client_environment) {
+        for (char **e = environ; *e != NULL; e++) {
+            if (!push_string(&envp, *e, &total_len))
+                goto err;
+        }
+    }
+
     /* String lengths, including NULL terminator */
     const size_t cwd_len = strlen(cwd) + 1;
     const size_t override_count = tll_length(overrides);
+    const size_t env_count = tll_length(envp);
 
     const struct client_data data = {
         .hold = hold,
@@ -385,6 +410,7 @@ main(int argc, char *const *argv)
         .cwd_len = cwd_len,
         .override_count = override_count,
         .argc = argc,
+        .env_count = env_count,
     };
 
     /* Total packet length, not (yet) including argv[] */
@@ -409,7 +435,8 @@ main(int argc, char *const *argv)
         cwd_len >= 1 << (8 * sizeof(data.cwd_len)) ||
         token_len >= 1 << (8 * sizeof(data.token_len)) ||
         override_count > (size_t)(unsigned int)data.override_count ||
-        argc > (int)(unsigned int)data.argc)
+        argc > (int)(unsigned int)data.argc ||
+        env_count > (size_t)(unsigned int)data.env_count)
     {
         LOG_ERR("size overflow");
         goto err;
@@ -435,7 +462,7 @@ main(int argc, char *const *argv)
 
     /* Send overrides */
     tll_foreach(overrides, it) {
-        const struct override *o = &it->item;
+        const struct string *o = &it->item;
         struct client_string s = {o->len};
         if (sendall(fd, &s, sizeof(s)) < 0 ||
             sendall(fd, o->str, o->len) < 0)
@@ -451,6 +478,18 @@ main(int argc, char *const *argv)
             sendall(fd, argv[i], cargv[i].len) < 0)
         {
             LOG_ERRNO("failed to send setup packet (argv) to server");
+            goto err;
+        }
+    }
+
+    /* Send environment */
+    tll_foreach(envp, it) {
+        const struct string *e = &it->item;
+        struct client_string s = {e->len};
+        if (sendall(fd, &s, sizeof(s)) < 0 ||
+            sendall(fd, e->str, e->len) < 0)
+        {
+            LOG_ERRNO("failed to send setup packet (envp) to server");
             goto err;
         }
     }
@@ -473,10 +512,8 @@ main(int argc, char *const *argv)
         ret = exit_code;
 
 err:
-    tll_foreach(overrides, it) {
-        free(it->item.str);
-        tll_remove(overrides, it);
-    }
+    free_string_list(&envp);
+    free_string_list(&overrides);
     free(cargv);
     free(_cwd);
     if (fd != -1)

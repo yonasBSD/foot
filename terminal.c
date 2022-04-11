@@ -1034,7 +1034,7 @@ static void fdm_client_terminated(
 struct terminal *
 term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
           struct wayland *wayl, const char *foot_exe, const char *cwd,
-          const char *token, int argc, char *const *argv,
+          const char *token, int argc, char *const *argv, char *const *envp,
           void (*shutdown_cb)(void *data, int exit_code), void *shutdown_data)
 {
     int ptmx = -1;
@@ -1241,7 +1241,7 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
 
     /* Start the slave/client */
     if ((term->slave = slave_spawn(
-             term->ptmx, argc, term->cwd, argv,
+             term->ptmx, argc, term->cwd, argv, envp,
              conf->term, conf->shell, conf->login_shell,
              &conf->notifications)) == -1)
     {
