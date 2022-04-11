@@ -126,6 +126,22 @@ free_string_list(string_list_t *string_list)
     }
 }
 
+static bool
+send_string_list(int fd, const string_list_t *string_list)
+{
+    tll_foreach(*string_list, it) {
+        const struct client_string s = {it->item.len};
+        if (sendall(fd, &s, sizeof(s)) < 0 ||
+            sendall(fd, it->item.str, s.len) < 0)
+        {
+            LOG_ERRNO("failed to send setup packet to server");
+            return false;
+        }
+    }
+
+    return true;
+}
+
 int
 main(int argc, char *const *argv)
 {
@@ -461,16 +477,8 @@ main(int argc, char *const *argv)
     }
 
     /* Send overrides */
-    tll_foreach(overrides, it) {
-        const struct string *o = &it->item;
-        struct client_string s = {o->len};
-        if (sendall(fd, &s, sizeof(s)) < 0 ||
-            sendall(fd, o->str, o->len) < 0)
-        {
-            LOG_ERRNO("failed to send setup packet (overrides) to server");
-            goto err;
-        }
-    }
+    if (!send_string_list(fd, &overrides))
+        goto err;
 
     /* Send argv[] */
     for (size_t i = 0; i < argc; i++) {
@@ -483,16 +491,8 @@ main(int argc, char *const *argv)
     }
 
     /* Send environment */
-    tll_foreach(envp, it) {
-        const struct string *e = &it->item;
-        struct client_string s = {e->len};
-        if (sendall(fd, &s, sizeof(s)) < 0 ||
-            sendall(fd, e->str, e->len) < 0)
-        {
-            LOG_ERRNO("failed to send setup packet (envp) to server");
-            goto err;
-        }
-    }
+    if (!send_string_list(fd, &envp))
+        goto err;
 
     struct sigaction sa = {.sa_handler = &sig_handler};
     sigemptyset(&sa.sa_mask);
