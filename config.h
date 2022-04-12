@@ -328,7 +328,7 @@ bool config_load(
     struct config *conf, const char *path,
     user_notifications_t *initial_user_notifications,
     config_override_t *overrides, bool errors_are_fatal);
-void config_free(struct config conf);
+void config_free(struct config *conf);
 struct config *config_clone(const struct config *old);
 
 bool config_font_parse(const char *pattern, struct config_font *font);

@@ -464,7 +464,7 @@ test_section_main(void)
     /* TODO: initial-window-size-pixels (geometry) */
     /* TODO: initial-window-size-chars (geometry) */
 
-    config_free(conf);
+    config_free(&conf);
 }
 
 static void
@@ -482,7 +482,7 @@ test_section_bell(void)
     test_spawn_template(&ctx, &parse_section_bell, "command",
                         &conf.bell.command);
 
-    config_free(conf);
+    config_free(&conf);
 }
 
 static void
@@ -509,7 +509,7 @@ test_section_scrollback(void)
 
     /* TODO: indicator-format (enum, sort-of) */
 
-    config_free(conf);
+    config_free(&conf);
 }
 
 static void
@@ -532,7 +532,7 @@ test_section_url(void)
     /* TODO: protocols (list of wchars) */
     /* TODO: uri-characters (wchar string, but sorted) */
 
-    config_free(conf);
+    config_free(&conf);
 }
 
 static void
@@ -558,7 +558,7 @@ test_section_cursor(void)
 
     /* TODO: color (two RRGGBB values) */
 
-    config_free(conf);
+    config_free(&conf);
 }
 
 static void
@@ -575,7 +575,7 @@ test_section_mouse(void)
     test_boolean(&ctx, &parse_section_mouse, "alternate-scroll-mode",
                  &conf.mouse.alternate_scroll_mode);
 
-    config_free(conf);
+    config_free(&conf);
 }
 
 static void
@@ -630,7 +630,7 @@ test_section_colors(void)
     /* TODO: jump-labels (two colors) */
     /* TODO: scrollback-indicator (two colors) */
 
-    config_free(conf);
+    config_free(&conf);
 }
 
 static void
@@ -670,7 +670,7 @@ test_section_csd(void)
     /* TODO: verify the ‘set’ bit is actually set for colors */
     /* TODO: font */
 
-    config_free(conf);
+    config_free(&conf);
 }
 
 static void
@@ -970,7 +970,7 @@ test_section_key_bindings(void)
             binding_action_map, &conf.bindings.key, KEY_BINDING);
     }
 
-    config_free(conf);
+    config_free(&conf);
 }
 
 static void
@@ -983,7 +983,7 @@ test_section_key_bindings_collisions(void)
     test_binding_collisions(
         &ctx, BIND_ACTION_KEY_COUNT - 1, binding_action_map, KEY_BINDING);
 
-    config_free(conf);
+    config_free(&conf);
 }
 
 static void
@@ -1005,7 +1005,7 @@ test_section_search_bindings(void)
             search_binding_action_map, &conf.bindings.search, KEY_BINDING);
     }
 
-    config_free(conf);
+    config_free(&conf);
 }
 
 static void
@@ -1019,7 +1019,7 @@ test_section_search_bindings_collisions(void)
         &ctx,
         BIND_ACTION_SEARCH_COUNT - 1, search_binding_action_map, KEY_BINDING);
 
-    config_free(conf);
+    config_free(&conf);
 }
 
 static void
@@ -1041,7 +1041,7 @@ test_section_url_bindings(void)
             url_binding_action_map, &conf.bindings.url, KEY_BINDING);
     }
 
-    config_free(conf);
+    config_free(&conf);
 }
 
 static void
@@ -1055,7 +1055,7 @@ test_section_url_bindings_collisions(void)
         &ctx,
         BIND_ACTION_URL_COUNT - 1, url_binding_action_map, KEY_BINDING);
 
-    config_free(conf);
+    config_free(&conf);
 }
 
 static void
@@ -1077,7 +1077,7 @@ test_section_mouse_bindings(void)
             binding_action_map, &conf.bindings.mouse, MOUSE_BINDING);
     }
 
-    config_free(conf);
+    config_free(&conf);
 }
 
 static void
@@ -1091,7 +1091,7 @@ test_section_mouse_bindings_collisions(void)
         &ctx,
         BIND_ACTION_COUNT - 1, binding_action_map, MOUSE_BINDING);
 
-    config_free(conf);
+    config_free(&conf);
 }
 
 static void
@@ -1127,7 +1127,7 @@ test_section_text_bindings(void)
     ctx.value = "InvalidMod+y";
     xassert(!parse_section_text_bindings(&ctx));
 
-    config_free(conf);
+    config_free(&conf);
 }
 
 static void
@@ -1201,7 +1201,7 @@ test_section_tweak(void)
                 &conf.tweak.max_shm_pool_size);
 #endif
 
-    config_free(conf);
+    config_free(&conf);
 }
 
 int

@@ -122,7 +122,7 @@ instance_destroy(struct terminal_instance *instance, int exit_code)
     /* TODO: clone server conf completely, so that we can just call
      * conf_destroy() here */
     if (instance->conf != NULL) {
-        config_free(*instance->conf);
+        config_free(instance->conf);
         free(instance->conf);
     }
     free(instance);

@@ -485,12 +485,12 @@ main(int argc, char *const *argv)
 
     tll_free(overrides);
     if (!conf_successful) {
-        config_free(conf);
+        config_free(&conf);
         return ret;
     }
 
     if (check_config) {
-        config_free(conf);
+        config_free(&conf);
         return EXIT_SUCCESS;
     }
 
@@ -663,7 +663,7 @@ out:
     fdm_signal_del(fdm, SIGINT);
     fdm_destroy(fdm);
 
-    config_free(conf);
+    config_free(&conf);
 
     if (unlink_pid_file)
         unlink(pid_file);

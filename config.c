@@ -3172,8 +3172,8 @@ UNITTEST
     xassert(clone != NULL);
     xassert(clone != &original);
 
-    config_free(original);
-    config_free(*clone);
+    config_free(&original);
+    config_free(clone);
     free(clone);
 
     tll_free(overrides);
@@ -3181,35 +3181,35 @@ UNITTEST
 }
 
 void
-config_free(struct config conf)
+config_free(struct config *conf)
 {
-    free(conf.term);
-    free(conf.shell);
-    free(conf.title);
-    free(conf.app_id);
-    free(conf.word_delimiters);
-    spawn_template_free(&conf.bell.command);
-    free(conf.scrollback.indicator.text);
-    spawn_template_free(&conf.notify);
-    for (size_t i = 0; i < ALEN(conf.fonts); i++)
-        config_font_list_destroy(&conf.fonts[i]);
-    free(conf.server_socket_path);
+    free(conf->term);
+    free(conf->shell);
+    free(conf->title);
+    free(conf->app_id);
+    free(conf->word_delimiters);
+    spawn_template_free(&conf->bell.command);
+    free(conf->scrollback.indicator.text);
+    spawn_template_free(&conf->notify);
+    for (size_t i = 0; i < ALEN(conf->fonts); i++)
+        config_font_list_destroy(&conf->fonts[i]);
+    free(conf->server_socket_path);
 
-    config_font_list_destroy(&conf.csd.font);
+    config_font_list_destroy(&conf->csd.font);
 
-    free(conf.url.label_letters);
-    spawn_template_free(&conf.url.launch);
-    for (size_t i = 0; i < conf.url.prot_count; i++)
-        free(conf.url.protocols[i]);
-    free(conf.url.protocols);
-    free(conf.url.uri_characters);
+    free(conf->url.label_letters);
+    spawn_template_free(&conf->url.launch);
+    for (size_t i = 0; i < conf->url.prot_count; i++)
+        free(conf->url.protocols[i]);
+    free(conf->url.protocols);
+    free(conf->url.uri_characters);
 
-    free_key_binding_list(&conf.bindings.key);
-    free_key_binding_list(&conf.bindings.search);
-    free_key_binding_list(&conf.bindings.url);
-    free_key_binding_list(&conf.bindings.mouse);
+    free_key_binding_list(&conf->bindings.key);
+    free_key_binding_list(&conf->bindings.search);
+    free_key_binding_list(&conf->bindings.url);
+    free_key_binding_list(&conf->bindings.mouse);
 
-    user_notifications_free(&conf.notifications);
+    user_notifications_free(&conf->notifications);
 }
 
 bool
