@@ -23,6 +23,65 @@
 #include "tokenize.h"
 #include "xmalloc.h"
 
+extern char **environ;
+
+#if defined(__FreeBSD__)
+static char *
+find_file_in_path(const char *file)
+{
+    if (strchr(file, '/') != NULL)
+        return xstrdup(file);
+
+    const char *env_path = getenv("PATH");
+    char *path_list = NULL;
+
+    if (env_path != NULL && env_path[0] != '\0')
+        path_list = xstrdup(env_path);
+    else {
+        size_t sc_path_len = confstr(_CS_PATH, NULL, 0);
+        if (sc_path_len > 0) {
+            path_list = xmalloc(sc_path_len);
+            confstr(_CS_PATH, path_list, sc_path_len);
+        } else
+            return xstrdup(file);
+    }
+
+    for (const char *path = strtok(path_list, ":");
+         path != NULL;
+         path = strtok(NULL, ":"))
+    {
+        char *full = xasprintf("%s/%s", path, file);
+        if (access(full, F_OK) == 0) {
+            free(path_list);
+            return full;
+        }
+
+        free(full);
+    }
+
+    free(path_list);
+    return xstrdup(file);
+}
+
+static int
+foot_execvpe(const char *file, char *const argv[], char *const envp[])
+{
+    char *path = find_file_in_path(file);
+    int ret = execve(path, argv, envp);
+
+    /*
+     * Getting here is an error
+     */
+    free(path);
+    return ret;
+}
+
+#else   /* !__FreeBSD__ */
+
+#define foot_execvpe(file, argv, envp) execvpe(file, argv, envp)
+
+#endif  /* !__FreeBSD__ */
+
 static bool
 is_valid_shell(const char *shell)
 {
@@ -145,8 +204,8 @@ emit_notifications(int fd, const user_notifications_t *notifications)
 }
 
 static noreturn void
-slave_exec(int ptmx, char *argv[], int err_fd, bool login_shell,
-           const user_notifications_t *notifications)
+slave_exec(int ptmx, char *argv[], char *const envp[], int err_fd,
+           bool login_shell, const user_notifications_t *notifications)
 {
     int pts = -1;
     const char *pts_name = ptsname(ptmx);
@@ -232,7 +291,7 @@ slave_exec(int ptmx, char *argv[], int err_fd, bool login_shell,
     } else
         file = argv[0];
 
-    execvp(file, argv);
+    foot_execvpe(file, argv, envp);
 
 err:
     (void)!write(err_fd, &errno, sizeof(errno));
@@ -246,8 +305,8 @@ err:
 
 pid_t
 slave_spawn(int ptmx, int argc, const char *cwd, char *const *argv,
-            const char *term_env, const char *conf_shell, bool login_shell,
-            const user_notifications_t *notifications)
+            char *const *envp, const char *term_env, const char *conf_shell,
+            bool login_shell, const user_notifications_t *notifications)
 {
     int fork_pipe[2];
     if (pipe2(fork_pipe, O_CLOEXEC) < 0) {
@@ -319,7 +378,8 @@ slave_spawn(int ptmx, int argc, const char *cwd, char *const *argv,
         if (is_valid_shell(shell_argv[0]))
             setenv("SHELL", shell_argv[0], 1);
 
-        slave_exec(ptmx, shell_argv, fork_pipe[1], login_shell, notifications);
+        slave_exec(ptmx, shell_argv, envp != NULL ? envp : environ,
+                   fork_pipe[1], login_shell, notifications);
         BUG("Unexpected return from slave_exec()");
         break;
 

@@ -49,6 +49,10 @@
   allows setting/saving/restoring/querying the keypad mode.
 * Sixel support can be disabled by setting `[tweak].sixel=no`
   (https://codeberg.org/dnkl/foot/issues/950).
+* footclient: `-E,--client-environment` command line option. When
+  used, the child process in the new terminal instance inherits the
+  environment from the footclient process instead of the server’s
+  (https://codeberg.org/dnkl/foot/issues/1004).
 
 
 ### Changed

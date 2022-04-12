@@ -146,6 +146,7 @@ fdm_client(struct fdm *fdm, int fd, int events, void *data)
 
     char **argv = NULL;
     config_override_t overrides = tll_init();
+    char **envp = NULL;
 
     if (events & EPOLLHUP)
         goto shutdown;
@@ -281,7 +282,21 @@ fdm_client(struct fdm *fdm, int fd, int events, void *data)
         argv[i] = (char *)p; p += arg.len;
         LOG_DBG("argv[%hu] = %.*s", i, arg.len, argv[i]);
     }
-    argv[cdata.argc] = NULL;
+
+    /* envp */
+    envp = cdata.env_count != 0
+        ? xcalloc(cdata.env_count + 1, sizeof(envp[0]))
+        : NULL;
+
+    for (uint16_t i = 0; i < cdata.env_count; i++) {
+        struct client_string e;
+        CHECK_BUF(sizeof(e));
+        memcpy(&e, p, sizeof(e)); p += sizeof(e);
+
+        CHECK_BUF_AND_NULL(e.len);
+        envp[i] = (char *)p; p += e.len;
+        LOG_DBG("env[%hu] = %.*s", i, e.len, envp[i]);
+    }
 
 #undef CHECK_BUF_AND_NULL
 #undef CHECK_BUF
@@ -317,7 +332,7 @@ fdm_client(struct fdm *fdm, int fd, int events, void *data)
     instance->terminal = term_init(
         conf != NULL ? conf : server->conf,
         server->fdm, server->reaper, server->wayl, "footclient", cwd, token,
-        cdata.argc, argv, &term_shutdown_handler, instance);
+        cdata.argc, argv, envp, &term_shutdown_handler, instance);
 
     if (instance->terminal == NULL) {
         LOG_ERR("failed to instantiate new terminal");
@@ -336,6 +351,7 @@ fdm_client(struct fdm *fdm, int fd, int events, void *data)
         instance->client = client;
         client->instance = instance;
         free(argv);
+        free(envp);
         tll_free_and_free(overrides, free);
     }
 
@@ -345,6 +361,7 @@ shutdown:
     LOG_DBG("client FD=%d: disconnected", client->fd);
 
     free(argv);
+    free(envp);
     tll_free_and_free(overrides, free);
     fdm_del(fdm, fd);
     client->fd = -1;

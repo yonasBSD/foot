@@ -608,7 +608,7 @@ main(int argc, char *const *argv)
 
     if (!as_server && (term = term_init(
                            &conf, fdm, reaper, wayl, "foot", cwd, token,
-                           argc, argv,
+                           argc, argv, NULL,
                            &term_shutdown_cb, &shutdown_ctx)) == NULL) {
         goto out;
     }

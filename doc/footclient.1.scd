@@ -69,6 +69,10 @@ terminal has terminated.
 	Override an option set in the configuration file. If _SECTION_ is not
 	given, defaults to _main_.
 
+*-E*,*--client-environment*
+	The child process in the new terminal instance will use
+	footclient's environment, instead of the server's.
+
 *-d*,*--log-level*={*info*,*warning*,*error*,*none*}
 	Log level, used both for log output on stderr as well as
 	syslog. Default: _info_.

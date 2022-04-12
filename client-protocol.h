@@ -19,11 +19,13 @@ struct client_data {
     uint16_t cwd_len;
     uint16_t override_count;
     uint16_t argc;
+    uint16_t env_count;
 
     /* char cwd[static cwd_len]; */
     /* char token[static token_len]; */
     /* struct client_string overrides[static override_count]; */
     /* struct client_string argv[static argc]; */
+    /* struct client_string envp[static env_count]; */
 } __attribute__((packed));
 
-_Static_assert(sizeof(struct client_data) == 8, "protocol struct size error");
+_Static_assert(sizeof(struct client_data) == 10, "protocol struct size error");
