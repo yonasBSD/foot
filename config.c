@@ -310,72 +310,6 @@ struct config_file {
     int fd;           /* FD of file, O_RDONLY */
 };
 
-struct path_component {
-    const char *component;
-    int fd;
-};
-typedef tll(struct path_component) path_components_t;
-
-static void NOINLINE
-path_component_add(path_components_t *components, const char *comp, int fd)
-{
-    xassert(comp != NULL);
-    xassert(fd >= 0);
-
-    struct path_component pc = {.component = comp, .fd = fd};
-    tll_push_back(*components, pc);
-}
-
-static void NOINLINE
-path_component_destroy(struct path_component *component)
-{
-    xassert(component->fd >= 0);
-    close(component->fd);
-}
-
-static void NOINLINE
-path_components_destroy(path_components_t *components)
-{
-    tll_foreach(*components, it) {
-        path_component_destroy(&it->item);
-        tll_remove(*components, it);
-    }
-}
-
-static struct config_file
-path_components_to_config_file(const path_components_t *components)
-{
-    if (tll_length(*components) == 0)
-        goto err;
-
-    size_t len = 0;
-    tll_foreach(*components, it)
-        len += strlen(it->item.component) + 1;
-
-    char *path = malloc(len);
-    if (path == NULL)
-        goto err;
-
-    size_t idx = 0;
-    tll_foreach(*components, it) {
-        strcpy(&path[idx], it->item.component);
-        idx += strlen(it->item.component);
-        path[idx++] = '/';
-    }
-    path[idx - 1] = '\0';  /* Strip last ’/’ */
-
-    int fd_copy = dup(tll_back(*components).fd);
-    if (fd_copy < 0) {
-        free(path);
-        goto err;
-    }
-
-    return (struct config_file){.path = path, .fd = fd_copy};
-
-err:
-    return (struct config_file){.path = NULL, .fd = -1};
-}
-
 static const char *
 get_user_home_dir(void)
 {
@@ -385,108 +319,61 @@ get_user_home_dir(void)
     return passwd->pw_dir;
 }
 
-static bool
-try_open_file(path_components_t *components, const char *name)
-{
-    int parent_fd = tll_back(*components).fd;
-
-    struct stat st;
-    if (fstatat(parent_fd, name, &st, 0) == 0 && S_ISREG(st.st_mode)) {
-        int fd = openat(parent_fd, name, O_RDONLY);
-        if (fd >= 0) {
-            path_component_add(components, name, fd);
-            return true;
-        }
-    }
-
-    return false;
-}
-
 static struct config_file
 open_config(void)
 {
+    char *path = NULL;
     struct config_file ret = {.path = NULL, .fd = -1};
 
-    path_components_t components = tll_init();
-
     const char *xdg_config_home = getenv("XDG_CONFIG_HOME");
-    const char *user_home_dir = get_user_home_dir();
+    const char *xdg_config_dirs = getenv("XDG_CONFIG_DIRS");
+    const char *home_dir = get_user_home_dir();
     char *xdg_config_dirs_copy = NULL;
 
-    /* Use XDG_CONFIG_HOME, or ~/.config */
-    if (xdg_config_home != NULL && xdg_config_home[0] != '\0') {
-        int fd = open(xdg_config_home, O_RDONLY);
-        if (fd >= 0)
-            path_component_add(&components, xdg_config_home, fd);
-    } else if (user_home_dir != NULL) {
-        int home_fd = open(user_home_dir, O_RDONLY);
-        if (home_fd >= 0) {
-            int config_fd = openat(home_fd, ".config", O_RDONLY);
-            if (config_fd >= 0) {
-                path_component_add(&components, user_home_dir, home_fd);
-                path_component_add(&components, ".config", config_fd);
-            } else
-                close(home_fd);
+    /* First, check XDG_CONFIG_HOME (or .config, if unset) */
+    if (xdg_config_home != NULL && xdg_config_home[0] != '\0')
+        path = xasprintf("%s/foot/foot.ini", xdg_config_home);
+    else if (home_dir != NULL)
+        path = xasprintf("%s/.config/foot/foot.ini", home_dir);
+
+    if (path != NULL) {
+        LOG_DBG("checking for %s", path);
+        int fd = open(path, O_RDONLY | O_CLOEXEC);
+
+        if (fd >= 0) {
+            ret = (struct config_file) {.path = path, .fd = fd};
+            path = NULL;
+            goto done;
         }
     }
 
-    /* First look for foot/foot.ini */
-    if (tll_length(components) > 0) {
-        int foot_fd = openat(tll_back(components).fd, "foot", O_RDONLY);
-        if (foot_fd >= 0) {
-            path_component_add(&components, "foot", foot_fd);
-
-            if (try_open_file(&components, "foot.ini"))
-                goto done;
-
-            struct path_component pc = tll_pop_back(components);
-            path_component_destroy(&pc);
-        }
-    }
-
-    /* Finally, try foot/foot.ini in all XDG_CONFIG_DIRS, or /etc/xdg
-     * if unset */
-    const char *xdg_config_dirs = getenv("XDG_CONFIG_DIRS");
     xdg_config_dirs_copy = xdg_config_dirs != NULL && xdg_config_dirs[0] != '\0'
         ? strdup(xdg_config_dirs)
         : strdup("/etc/xdg");
 
-    if (xdg_config_dirs_copy != NULL) {
-        for (char *save = NULL,
-                 *xdg_dir = strtok_r(xdg_config_dirs_copy, ":", &save);
-             xdg_dir != NULL;
-             xdg_dir = strtok_r(NULL, ":", &save))
-        {
-            path_components_destroy(&components);
+    if (xdg_config_dirs_copy == NULL || xdg_config_dirs_copy[0] == '\0')
+        goto done;
 
-            int xdg_fd = open(xdg_dir, O_RDONLY);
-            if (xdg_fd < 0)
-                continue;
+    for (const char *conf_dir = strtok(xdg_config_dirs_copy, ":");
+         conf_dir != NULL;
+         conf_dir = strtok(NULL, ":"))
+    {
+        free(path);
+        path = xasprintf("%s/foot/foot.ini", conf_dir);
 
-            int foot_fd = openat(xdg_fd, "foot", O_RDONLY);
-            if (foot_fd < 0) {
-                close(xdg_fd);
-                continue;
-            }
-
-            xassert(tll_length(components) == 0);
-            path_component_add(&components, xdg_dir, xdg_fd);
-            path_component_add(&components, "foot", foot_fd);
-
-            if (try_open_file(&components, "foot.ini"))
-                goto done;
+        LOG_DBG("checking for %s", path);
+        int fd = open(path, O_RDONLY | O_CLOEXEC);
+        if (fd >= 0) {
+            ret = (struct config_file){.path = path, .fd = fd};
+            path = NULL;
+            goto done;
         }
     }
 
-out:
-    path_components_destroy(&components);
-    free(xdg_config_dirs_copy);
-    return ret;
-
 done:
-    xassert(tll_length(components) > 0);
-    ret = path_components_to_config_file(&components);
-    goto out;
+    free(xdg_config_dirs_copy);
+    free(path);
+    return ret;
 }
 
 static int
