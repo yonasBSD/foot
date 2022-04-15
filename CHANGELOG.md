@@ -53,6 +53,8 @@
   used, the child process in the new terminal instance inherits the
   environment from the footclient process instead of the server’s
   (https://codeberg.org/dnkl/foot/issues/1004).
+* `[csd].hide-when-maximized=yes|no` option
+  (https://codeberg.org/dnkl/foot/issues/1019).
 
 
 ### Changed
