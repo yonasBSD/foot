@@ -1361,6 +1361,9 @@ parse_section_csd(struct context *ctx)
     else if (strcmp(key, "border-width") == 0)
         return value_to_uint16(ctx, 10, &conf->csd.border_width_visible);
 
+    else if (strcmp(key, "hide-when-maximized") == 0)
+        return value_to_bool(ctx, &conf->csd.hide_when_maximized);
+
     else {
         LOG_CONTEXTUAL_ERR("not a valid action: %s", key);
         return false;
@@ -2835,6 +2838,7 @@ config_load(struct config *conf, const char *conf_path,
         .csd = {
             .preferred = CONF_CSD_PREFER_SERVER,
             .font = {0},
+            .hide_when_maximized = false,
             .title_height = 26,
             .border_width = 5,
             .border_width_visible = 0,

@@ -592,7 +592,9 @@ Examples:
 
 *size*
 	Height, in pixels (subject to output scaling), of the
-	titlebar. Default: _26_.
+	titlebar. Setting it to 0 will hide the titlebar, while still
+	showing the border (if *border-width* is set to a non-zero
+	value). Default: _26_.
 
 *color*
 	Titlebar color. Default: use the default _foreground_ color.
@@ -602,6 +604,11 @@ Examples:
 	the main *font* option. Note that the font will be sized using the
 	title bar size. That is, all *:size* and *:pixelsize* attributes
 	will be ignored. Default: _primary font_.
+
+*hide-when-maximized*
+	Boolean. When enabled, the CSD titlebar is hidden when the window
+	is maximized. The completely disable the titlebar, set *size* to 0
+	instead. Default: _no_.
 
 *border-width*
 	Width of the border, in pixels (subject to output scaling). Note

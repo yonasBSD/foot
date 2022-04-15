@@ -666,6 +666,8 @@ test_section_csd(void)
                &conf.csd.color.maximize);
     test_color(&ctx, &parse_section_csd, "button-close-color", true,
                &conf.csd.color.quit);
+    test_boolean(&ctx, &parse_section_csd, "hide-when-maximized",
+                 &conf.csd.hide_when_maximized);
 
     /* TODO: verify the ‘set’ bit is actually set for colors */
     /* TODO: font */

@@ -1768,7 +1768,8 @@ bool
 wayl_win_csd_titlebar_visible(const struct wl_window *win)
 {
     return win->csd_mode == CSD_YES &&
-        !win->is_fullscreen;
+        !win->is_fullscreen &&
+        !(win->is_maximized && win->term->conf->csd.hide_when_maximized);
 }
 
 bool

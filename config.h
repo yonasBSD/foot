@@ -262,6 +262,8 @@ struct config {
         uint16_t border_width_visible;
         uint16_t button_width;
 
+        bool hide_when_maximized;
+
         struct {
             bool title_set:1;
             bool buttons_set:1;
