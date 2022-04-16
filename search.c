@@ -288,58 +288,30 @@ matches_cell(const struct terminal *term, const struct cell *cell, size_t search
     return composed != NULL ? 1 + composed->count : 1;
 }
 
-static void
-search_find_next(struct terminal *term)
+static bool
+find_next(struct terminal *term, enum search_direction direction,
+          int start_row_abs, int start_col, int row_count,
+          struct range *match)
 {
-    struct grid *grid = term->grid;
-    bool backward = term->search.direction == SEARCH_BACKWARD;
-    term->search.direction = SEARCH_BACKWARD;
-
-    if (term->search.len == 0) {
-        term->search.match = (struct coord){-1, -1};
-        term->search.match_len = 0;
-        selection_cancel(term);
-        return;
-    }
-
-    int start_row = term->search.match.row;
-    int start_col = term->search.match.col;
-    size_t len = term->search.match_len;
-
-    xassert((len == 0 && start_row == -1 && start_col == -1) ||
-           (len > 0 && start_row >= 0 && start_col >= 0));
-
-    if (len == 0) {
-        if (backward) {
-            start_row = grid_row_absolute_in_view(grid, term->rows - 1);
-            start_col = term->cols - 1;
-        } else {
-            start_row = grid_row_absolute_in_view(grid, 0);
-            start_col = 0;
-        }
-    }
-
-    LOG_DBG("search: update: %s: starting at row=%d col=%d (offset = %d, view = %d)",
-            backward ? "backward" : "forward", start_row, start_col,
-            grid->offset, grid->view);
-
 #define ROW_DEC(_r) ((_r) = ((_r) - 1 + grid->num_rows) & (grid->num_rows - 1))
 #define ROW_INC(_r) ((_r) = ((_r) + 1) & (grid->num_rows - 1))
 
-    /* Scan backward from current end-of-output */
-    /* TODO: don't search "scrollback" in alt screen? */
+    struct grid *grid = term->grid;
+    const bool backward = direction == SEARCH_BACKWARD;
+    int start_row = start_row_abs;
+
     for (size_t r = 0;
-         r < grid->num_rows;
+         r < row_count;
          backward ? ROW_DEC(start_row) : ROW_INC(start_row), r++)
     {
+        const struct row *row = grid->rows[start_row];
+        if (row == NULL)
+            continue;
+
         for (;
              backward ? start_col >= 0 : start_col < term->cols;
              backward ? start_col-- : start_col++)
         {
-            const struct row *row = grid->rows[start_row];
-            if (row == NULL)
-                continue;
-
             if (matches_cell(term, &row->cells[start_col], 0) < 0)
                 continue;
 
@@ -384,28 +356,76 @@ search_find_next(struct terminal *term)
                 continue;
             }
 
-            /*
-             * We matched the entire buffer. Move view to ensure the
-             * match is visible, create a selection and return.
-             */
-            search_update_selection(term, start_row, start_col, end_row, end_col);
+            *match = (struct range){
+                .start = {start_col, start_row},
+                .end = {end_col - 1, end_row},
+            };
 
-            /* Update match state */
-            term->search.match.row = start_row;
-            term->search.match.col = start_col;
-            term->search.match_len = match_len;
-
-            return;
+            return true;
         }
 
         start_col = backward ? term->cols - 1 : 0;
     }
 
-    /* No match */
-    LOG_DBG("no match");
-    term->search.match = (struct coord){-1, -1};
-    term->search.match_len = 0;
-    selection_cancel(term);
+    return false;
+}
+
+static void
+search_find_next(struct terminal *term)
+{
+    struct grid *grid = term->grid;
+    enum search_direction direction = term->search.direction;
+    const bool backward = term->search.direction == SEARCH_BACKWARD;
+
+    term->search.direction = SEARCH_BACKWARD;
+
+    if (term->search.len == 0) {
+        term->search.match = (struct coord){-1, -1};
+        term->search.match_len = 0;
+        selection_cancel(term);
+        return;
+    }
+
+    int start_row = term->search.match.row;
+    int start_col = term->search.match.col;
+    size_t len = term->search.match_len;
+
+    xassert((len == 0 && start_row == -1 && start_col == -1) ||
+           (len > 0 && start_row >= 0 && start_col >= 0));
+
+    if (len == 0) {
+        if (backward) {
+            start_row = grid_row_absolute_in_view(grid, term->rows - 1);
+            start_col = term->cols - 1;
+        } else {
+            start_row = grid_row_absolute_in_view(grid, 0);
+            start_col = 0;
+        }
+    }
+
+    LOG_DBG(
+        "search: update: %s: starting at row=%d col=%d "
+        "(offset = %d, view = %d)",
+        backward ? "backward" : "forward", start_row, start_col,
+        grid->offset, grid->view);
+
+    struct range match;
+    bool found = find_next(
+        term, direction, start_row, start_col, grid->num_rows, &match);
+
+    if (found) {
+        search_update_selection(
+            term,
+            match.start.row, match.start.col,
+            match.end.row, match.end.col + 1);
+        term->search.match = match.start;
+        term->search.match_len = term->search.len;
+    } else {
+        LOG_DBG("no match");
+        term->search.match = (struct coord){-1, -1};
+        term->search.match_len = 0;
+        selection_cancel(term);
+    }
 #undef ROW_DEC
 }
 
@@ -425,69 +445,36 @@ search_matches_next(struct search_match_iterator *iter)
     xassert(iter->start.col >= 0);
 
     struct terminal *term = iter->term;
-    //xassert(term->is_searching);
+    struct grid *grid = term->grid;
 
     if (term->search.match_len == 0)
-        goto done;
+        goto no_match;
 
-    int start_col = iter->start.col;
+    struct range match;
+    bool found = find_next(
+        term, SEARCH_FORWARD,
+        grid_row_absolute_in_view(grid, iter->start.row),
+        iter->start.col,
+        term->rows - iter->start.row, &match);
 
-    for (int r = iter->start.row; r < term->rows; r++) {
-        const struct row *row = grid_row_in_view(term->grid, r);
+    if (found) {
+        LOG_DBG("match at %dx%d-%dx%d",
+                match.start.row, match.start.col,
+                match.end.row, match.end.col);
 
-        for (int c = start_col; c < term->cols; c++) {
-            if (matches_cell(term, &row->cells[c], 0) < 0)
-                continue;
+        /* Convert absolute row numbers back to view relative */
+        match.start.row = match.start.row - grid->view + grid->num_rows;
+        match.start.row &= grid->num_rows - 1;
+        match.end.row = match.end.row - grid->view + grid->num_rows;
+        match.end.row &= grid->num_rows - 1;
 
-            struct range match = {
-                .start = {c, r},
-                .end = {-1, -1},
-            };
-            size_t match_len = 0;
-
-            for (size_t i = 0; i < term->search.len;) {
-                if (c >= term->cols) {
-                    if (++r >= term->rows)
-                        break;
-
-                    row = grid_row_in_view(term->grid, r);
-                    c = 0;
-                }
-
-                if (row->cells[c].wc >= CELL_SPACER) {
-                    c++;
-                    continue;
-                }
-
-                ssize_t additional_chars = matches_cell(term, &row->cells[c], i);
-                if (additional_chars < 0)
-                    break;
-
-                i += additional_chars;
-                match_len += additional_chars;
-                c++;
-            }
-
-            if (match_len != term->search.len) {
-                /* Didn't match (completely) */
-                continue;
-            }
-
-            match.end = (struct coord){c - 1, r};
-
-            LOG_DBG("match at %dx%d-%dx%d",
-                    match.start.row, match.start.col,
-                    match.end.row, match.end.col);
-
-            iter->start.row = r;
-            iter->start.col = c;
-            return match;
-        }
-
-        start_col = 0;
+        /* Continue at next column, next time */
+        iter->start.row = match.end.row;
+        iter->start.col = match.end.col + 1;
+        return match;
     }
 
-done:
+no_match:
     iter->start.row = -1;
     iter->start.col = -1;
     return (struct range){{-1, -1}, {-1,  -1}};
