@@ -108,6 +108,8 @@
   (https://codeberg.org/dnkl/foot/issues/1009).
 * Window geometry when CSDs are enabled and CSD border width set to a
   non-zero value. This fixes window snapping in e.g. GNOME.
+* Window size “jumping” when starting an interactive resize when CSDs
+  are enabled, and CSD border width set to a non-zero value.
 
 
 ### Security

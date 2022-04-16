@@ -746,8 +746,14 @@ xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
     else if (csd_was_enabled && !enable_csd)
         csd_destroy(win);
 
-    if (enable_csd && new_width > 0 && new_height > 0)
+    if (enable_csd && new_width > 0 && new_height > 0) {
         new_height -= win->term->conf->csd.title_height;
+
+        if (!win->is_maximized) {
+            new_height -= 2 * win->term->conf->csd.border_width_visible;
+            new_width -= 2 * win->term->conf->csd.border_width_visible;
+        }
+    }
 
     xdg_surface_ack_configure(xdg_surface, serial);
 
