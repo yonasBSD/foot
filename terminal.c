@@ -1190,6 +1190,7 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
                 .render_timer = shm_chain_new(wayl->shm, false, 1),
                 .url = shm_chain_new(wayl->shm, false, 1),
                 .csd = shm_chain_new(wayl->shm, false, 1),
+                .overlay = shm_chain_new(wayl->shm, false, 1),
             },
             .scrollback_lines = conf->scrollback.lines,
             .app_sync_updates.timer_fd = app_sync_updates_fd,
@@ -1227,7 +1228,9 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
 #endif
     };
 
-   term_update_ascii_printer(term);
+    pixman_region32_init(&term->render.last_overlay_clip);
+
+    term_update_ascii_printer(term);
 
     for (size_t i = 0; i < 4; i++) {
         const struct config_font_list *font_list = &conf->fonts[i];
@@ -1663,6 +1666,8 @@ term_destroy(struct terminal *term)
     shm_chain_free(term->render.chains.render_timer);
     shm_chain_free(term->render.chains.url);
     shm_chain_free(term->render.chains.csd);
+    shm_chain_free(term->render.chains.overlay);
+    pixman_region32_fini(&term->render.last_overlay_clip);
 
     tll_free(term->tab_stops);
 
@@ -1916,7 +1921,6 @@ term_reset(struct terminal *term, bool hard)
     tll_free(term->normal.scroll_damage);
     tll_free(term->alt.scroll_damage);
     term->render.last_cursor.row = NULL;
-    term->render.was_flashing = false;
     term_damage_all(term);
 }
 

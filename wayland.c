@@ -1476,6 +1476,11 @@ wayl_win_init(struct terminal *term, const char *token)
         xdg_activation_v1_activate(wayl->xdg_activation, token, win->surface);
 #endif
 
+    if (!wayl_win_subsurface_new(win, &win->overlay, false)) {
+        LOG_ERR("failed to create overlay surface");
+        goto out;
+    }
+
     switch (conf->tweak.render_timer) {
     case RENDER_TIMER_OSD:
     case RENDER_TIMER_BOTH:
@@ -1566,6 +1571,7 @@ wayl_win_destroy(struct wl_window *win)
     wayl_win_subsurface_destroy(&win->search);
     wayl_win_subsurface_destroy(&win->scrollback_indicator);
     wayl_win_subsurface_destroy(&win->render_timer);
+    wayl_win_subsurface_destroy(&win->overlay);
 
     shm_purge(term->render.chains.search);
     shm_purge(term->render.chains.scrollback_indicator);

@@ -426,6 +426,7 @@ struct wl_window {
     struct wl_surf_subsurf search;
     struct wl_surf_subsurf scrollback_indicator;
     struct wl_surf_subsurf render_timer;
+    struct wl_surf_subsurf overlay;
 
     struct wl_callback *frame_callback;
 

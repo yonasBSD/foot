@@ -282,6 +282,12 @@ enum term_surface {
     TERM_SURF_BUTTON_CLOSE,
 };
 
+enum overlay_style {
+    OVERLAY_NONE = 0,
+    OVERLAY_SEARCH = 1,
+    OVERLAY_FLASH = 2,
+};
+
 typedef tll(struct ptmx_buffer) ptmx_buffer_list_t;
 
 enum url_action { URL_ACTION_COPY, URL_ACTION_LAUNCH };
@@ -522,6 +528,7 @@ struct terminal {
             struct buffer_chain *render_timer;
             struct buffer_chain *url;
             struct buffer_chain *csd;
+            struct buffer_chain *overlay;
         } chains;
 
         /* Scheduled for rendering, as soon-as-possible */
@@ -575,8 +582,10 @@ struct terminal {
         } last_cursor;
 
         struct buffer *last_buf;     /* Buffer we rendered to last time */
-        bool was_flashing;           /* Flash was active last time we rendered */
-        bool was_searching;
+
+        enum overlay_style last_overlay_style;
+        struct buffer *last_overlay_buf;
+        pixman_region32_t last_overlay_clip;
 
         size_t search_glyph_offset;
 
