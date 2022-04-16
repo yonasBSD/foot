@@ -3581,6 +3581,11 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
                 if (wayl_win_csd_titlebar_visible(term->window))
                     height -= term->conf->csd.title_height;
 
+                if (wayl_win_csd_borders_visible(term->window)) {
+                    height -= 2 * term->conf->csd.border_width_visible;
+                    width -= 2 * term->conf->csd.border_width_visible;
+                }
+
                 width *= scale;
                 height *= scale;
                 break;
