@@ -173,11 +173,14 @@ search_selection_cancelled(struct terminal *term)
 }
 
 static void
-search_update_selection(struct terminal *term,
-                        int start_row, int start_col,
-                        int end_row, int end_col)
+search_update_selection(struct terminal *term, const struct range *match)
 {
     struct grid *grid = term->grid;
+    int start_row = match->start.row;
+    int start_col = match->start.col;
+    int end_row = match->end.row;
+    int end_col = match->end.col;
+
     bool move_viewport = true;
 
     int view_end = (grid->view + term->rows - 1) & (grid->num_rows - 1);
@@ -223,34 +226,29 @@ search_update_selection(struct terminal *term,
             term_damage_view(term);
     }
 
+#if 0
     /* Selection endpoint is inclusive */
     if (--end_col < 0) {
         end_col = term->cols - 1;
         end_row--;
     }
+#endif
 
     /* Begin a new selection if the start coords changed */
     if (start_row != term->search.match.row ||
         start_col != term->search.match.col)
     {
-        int selection_row = start_row - grid->view;
-        while (selection_row < 0)
-            selection_row += grid->num_rows;
+        int selection_row = start_row - grid->view + grid->num_rows;
+        selection_row &= grid->num_rows - 1;
 
-        xassert(selection_row >= 0 &&
-               selection_row < grid->num_rows);
         selection_start(
             term, start_col, selection_row, SELECTION_CHAR_WISE, false);
     }
 
     /* Update selection endpoint */
     {
-        int selection_row = end_row - grid->view;
-        while (selection_row < 0)
-            selection_row += grid->num_rows;
-
-        xassert(selection_row >= 0 &&
-               selection_row < grid->num_rows);
+        int selection_row = end_row - grid->view + grid->num_rows;
+        selection_row &= grid->num_rows - 1;
         selection_update(term, end_col, selection_row);
     }
 }
@@ -414,10 +412,11 @@ search_find_next(struct terminal *term)
         term, direction, start_row, start_col, grid->num_rows, &match);
 
     if (found) {
-        search_update_selection(
-            term,
+        search_update_selection(term, &match);
+#if 0
             match.start.row, match.start.col,
             match.end.row, match.end.col + 1);
+#endif
         term->search.match = match.start;
         term->search.match_len = term->search.len;
     } else {
@@ -600,9 +599,9 @@ search_match_to_end_of_word(struct terminal *term, bool spaces_only)
 
     /* search_update_selection() expected end coordinate to be *exclusive* */
     newline(new_end);
-    search_update_selection(
-        term, term->search.match.row, term->search.match.col,
-        new_end.row, new_end.col);
+
+    struct range match = {.start = term->search.match, .end = new_end};
+    search_update_selection(term, &match);
 
     term->search.match_len = term->search.len;
 
