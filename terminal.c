@@ -3008,10 +3008,6 @@ term_xcursor_update_for_seat(struct terminal *term, struct seat *seat)
             : XCURSOR_LEFT_PTR;
         break;
     }
-    case TERM_SURF_SEARCH:
-    case TERM_SURF_SCROLLBACK_INDICATOR:
-    case TERM_SURF_RENDER_TIMER:
-    case TERM_SURF_JUMP_LABEL:
     case TERM_SURF_TITLE:
     case TERM_SURF_BUTTON_MINIMIZE:
     case TERM_SURF_BUTTON_MAXIMIZE:
@@ -3389,12 +3385,6 @@ term_surface_kind(const struct terminal *term, const struct wl_surface *surface)
 {
     if (likely(surface == term->window->surface))
         return TERM_SURF_GRID;
-    else if (surface == term->window->search.surf)
-        return TERM_SURF_SEARCH;
-    else if (surface == term->window->scrollback_indicator.surf)
-        return TERM_SURF_SCROLLBACK_INDICATOR;
-    else if (surface == term->window->render_timer.surf)
-        return TERM_SURF_RENDER_TIMER;
     else if (surface == term->window->csd.surface[CSD_SURF_TITLE].surf)
         return TERM_SURF_TITLE;
     else if (surface == term->window->csd.surface[CSD_SURF_LEFT].surf)
@@ -3411,13 +3401,8 @@ term_surface_kind(const struct terminal *term, const struct wl_surface *surface)
         return TERM_SURF_BUTTON_MAXIMIZE;
     else if (surface == term->window->csd.surface[CSD_SURF_CLOSE].surf)
         return TERM_SURF_BUTTON_CLOSE;
-    else {
-        tll_foreach(term->window->urls, it) {
-            if (surface == it->item.surf.surf)
-                return TERM_SURF_JUMP_LABEL;
-        }
+    else
         return TERM_SURF_NONE;
-    }
 }
 
 static bool

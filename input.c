@@ -1904,10 +1904,6 @@ wl_pointer_enter(void *data, struct wl_pointer *wl_pointer,
         break;
     }
 
-    case TERM_SURF_SEARCH:
-    case TERM_SURF_SCROLLBACK_INDICATOR:
-    case TERM_SURF_RENDER_TIMER:
-    case TERM_SURF_JUMP_LABEL:
     case TERM_SURF_TITLE:
     case TERM_SURF_BORDER_LEFT:
     case TERM_SURF_BORDER_RIGHT:
@@ -1993,10 +1989,6 @@ wl_pointer_leave(void *data, struct wl_pointer *wl_pointer,
             break;
 
         case TERM_SURF_NONE:
-        case TERM_SURF_SEARCH:
-        case TERM_SURF_SCROLLBACK_INDICATOR:
-        case TERM_SURF_RENDER_TIMER:
-        case TERM_SURF_JUMP_LABEL:
         case TERM_SURF_TITLE:
         case TERM_SURF_BORDER_LEFT:
         case TERM_SURF_BORDER_RIGHT:
@@ -2044,10 +2036,6 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
 
     switch (surf_kind) {
     case TERM_SURF_NONE:
-    case TERM_SURF_SEARCH:
-    case TERM_SURF_SCROLLBACK_INDICATOR:
-    case TERM_SURF_RENDER_TIMER:
-    case TERM_SURF_JUMP_LABEL:
     case TERM_SURF_BUTTON_MINIMIZE:
     case TERM_SURF_BUTTON_MAXIMIZE:
     case TERM_SURF_BUTTON_CLOSE:
@@ -2461,12 +2449,6 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
     case TERM_SURF_BUTTON_CLOSE:
         if (button == BTN_LEFT && state == WL_POINTER_BUTTON_STATE_PRESSED)
             term_shutdown(term);
-        break;
-
-    case TERM_SURF_SEARCH:
-    case TERM_SURF_SCROLLBACK_INDICATOR:
-    case TERM_SURF_RENDER_TIMER:
-    case TERM_SURF_JUMP_LABEL:
         break;
 
     case TERM_SURF_GRID: {

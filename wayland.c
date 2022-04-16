@@ -67,13 +67,14 @@ csd_instantiate(struct wl_window *win)
     xassert(wayl != NULL);
 
     for (size_t i = 0; i < CSD_SURF_MINIMIZE; i++) {
-        bool ret = wayl_win_subsurface_new(win, &win->csd.surface[i]);
+        bool ret = wayl_win_subsurface_new(win, &win->csd.surface[i], true);
         xassert(ret);
     }
 
     for (size_t i = CSD_SURF_MINIMIZE; i < CSD_SURF_COUNT; i++) {
         bool ret = wayl_win_subsurface_new_with_custom_parent(
-            win, win->csd.surface[CSD_SURF_TITLE].surf, &win->csd.surface[i]);
+            win, win->csd.surface[CSD_SURF_TITLE].surf, &win->csd.surface[i],
+            true);
         xassert(ret);
     }
 
@@ -1478,7 +1479,7 @@ wayl_win_init(struct terminal *term, const char *token)
     switch (conf->tweak.render_timer) {
     case RENDER_TIMER_OSD:
     case RENDER_TIMER_BOTH:
-        if (!wayl_win_subsurface_new(win, &win->render_timer)) {
+        if (!wayl_win_subsurface_new(win, &win->render_timer, false)) {
             LOG_ERR("failed to create render timer surface");
             goto out;
         }
@@ -1783,7 +1784,7 @@ wayl_win_csd_borders_visible(const struct wl_window *win)
 bool
 wayl_win_subsurface_new_with_custom_parent(
     struct wl_window *win, struct wl_surface *parent,
-    struct wl_surf_subsurf *surf)
+    struct wl_surf_subsurf *surf, bool allow_pointer_input)
 {
     struct wayland *wayl = win->term->wl;
 
@@ -1807,15 +1808,25 @@ wayl_win_subsurface_new_with_custom_parent(
     wl_surface_set_user_data(main_surface, win);
     wl_subsurface_set_sync(sub);
 
+    /* Disable pointer and touch events */
+    if (!allow_pointer_input) {
+        struct wl_region *empty =
+            wl_compositor_create_region(wayl->compositor);
+        wl_surface_set_input_region(main_surface, empty);
+        wl_region_destroy(empty);
+    }
+
     surf->surf = main_surface;
     surf->sub = sub;
     return true;
 }
 
 bool
-wayl_win_subsurface_new(struct wl_window *win, struct wl_surf_subsurf *surf)
+wayl_win_subsurface_new(struct wl_window *win, struct wl_surf_subsurf *surf,
+                        bool allow_pointer_input)
 {
-    return wayl_win_subsurface_new_with_custom_parent(win, win->surface, surf);
+    return wayl_win_subsurface_new_with_custom_parent(
+        win, win->surface, surf, allow_pointer_input);
 }
 
 void

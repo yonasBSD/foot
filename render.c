@@ -2159,7 +2159,9 @@ render_scrollback_position(struct terminal *term)
     }
 
     if (win->scrollback_indicator.surf == NULL) {
-        if (!wayl_win_subsurface_new(win, &win->scrollback_indicator)) {
+        if (!wayl_win_subsurface_new(
+                win, &win->scrollback_indicator, false))
+        {
             LOG_ERR("failed to create scrollback indicator surface");
             return;
         }

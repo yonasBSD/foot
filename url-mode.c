@@ -718,7 +718,7 @@ urls_render(struct terminal *term)
     xassert(tll_length(win->urls) == 0);
     tll_foreach(win->term->urls, it) {
         struct wl_url url = {.url = &it->item};
-        wayl_win_subsurface_new(win, &url.surf);
+        wayl_win_subsurface_new(win, &url.surf, false);
 
         tll_push_back(win->urls, url);
         tag_cells_for_url(term, &it->item, true);

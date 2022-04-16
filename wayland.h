@@ -515,10 +515,11 @@ bool wayl_win_csd_titlebar_visible(const struct wl_window *win);
 bool wayl_win_csd_borders_visible(const struct wl_window *win);
 
 bool wayl_win_subsurface_new(
-    struct wl_window *win, struct wl_surf_subsurf *surf);
+    struct wl_window *win, struct wl_surf_subsurf *surf,
+    bool allow_pointer_input);
 bool wayl_win_subsurface_new_with_custom_parent(
     struct wl_window *win, struct wl_surface *parent,
-    struct wl_surf_subsurf *surf);
+    struct wl_surf_subsurf *surf, bool allow_pointer_input);
 void wayl_win_subsurface_destroy(struct wl_surf_subsurf *surf);
 
 void wayl_bindings_reset(struct seat *seat);

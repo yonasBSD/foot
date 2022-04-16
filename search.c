@@ -136,7 +136,8 @@ search_begin(struct terminal *term)
     }
 
     /* On-demand instantiate wayland surface */
-    bool ret = wayl_win_subsurface_new(term->window, &term->window->search);
+    bool ret = wayl_win_subsurface_new(
+        term->window, &term->window->search, false);
     xassert(ret);
 
     const struct grid *grid = term->grid;
