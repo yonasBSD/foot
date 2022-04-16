@@ -747,9 +747,10 @@ xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
         csd_destroy(win);
 
     if (enable_csd && new_width > 0 && new_height > 0) {
-        new_height -= win->term->conf->csd.title_height;
+        if (wayl_win_csd_titlebar_visible(win))
+            new_height -= win->term->conf->csd.title_height;
 
-        if (!win->is_maximized) {
+        if (wayl_win_csd_borders_visible(win)) {
             new_height -= 2 * win->term->conf->csd.border_width_visible;
             new_width -= 2 * win->term->conf->csd.border_width_visible;
         }
@@ -1761,6 +1762,21 @@ wayl_win_set_urgent(struct wl_window *win)
 #else
     return false;
 #endif
+}
+
+bool
+wayl_win_csd_titlebar_visible(const struct wl_window *win)
+{
+    return win->csd_mode == CSD_YES &&
+        !win->is_fullscreen;
+}
+
+bool
+wayl_win_csd_borders_visible(const struct wl_window *win)
+{
+    return win->csd_mode == CSD_YES &&
+        !win->is_fullscreen &&
+        !win->is_maximized;
 }
 
 bool

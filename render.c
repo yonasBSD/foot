@@ -1560,15 +1560,17 @@ get_csd_data(const struct terminal *term, enum csd_surface surf_idx)
 {
     xassert(term->window->csd_mode == CSD_YES);
 
+    const bool borders_visible = wayl_win_csd_borders_visible(term->window);
+    const bool title_visible = wayl_win_csd_titlebar_visible(term->window);
+
     /* Only title bar is rendered in maximized mode */
-    const int border_width = !term->window->is_maximized
+    const int border_width = borders_visible
         ? term->conf->csd.border_width * term->scale : 0;
 
-    const int title_height = term->window->is_fullscreen
-        ? 0
-        : term->conf->csd.title_height * term->scale;
+    const int title_height = title_visible
+        ? term->conf->csd.title_height * term->scale : 0;
 
-    const int button_width = !term->window->is_fullscreen
+    const int button_width = title_visible
         ? term->conf->csd.button_width * term->scale : 0;
 
     const int button_close_width = term->width >= 1 * button_width
@@ -3575,11 +3577,9 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
                 width = term->conf->size.width;
                 height = term->conf->size.height;
 
-                if (term->window->csd_mode == CSD_YES) {
-                    /* Take CSD title bar into account */
-                    xassert(!term->window->is_fullscreen);
+                /* Take CSDs into account */
+                if (wayl_win_csd_titlebar_visible(term->window))
                     height -= term->conf->csd.title_height;
-                }
 
                 width *= scale;
                 height *= scale;
@@ -3760,17 +3760,14 @@ damage_view:
 #endif
 
     {
-        bool title_shown =
-            !term->window->is_fullscreen &&
-            term->window->csd_mode == CSD_YES;
+        const bool title_shown = wayl_win_csd_titlebar_visible(term->window);
+        const bool border_shown = wayl_win_csd_borders_visible(term->window);
 
-        bool border_shown =
-            !term->window->is_fullscreen &&
-            !term->window->is_maximized &&
-            term->window->csd_mode == CSD_YES;
+        const int title_height =
+            title_shown ? term->conf->csd.title_height : 0;
+        const int border_width =
+            border_shown ? term->conf->csd.border_width_visible : 0;
 
-        int title_height = title_shown ? term->conf->csd.title_height : 0;
-        int border_width = border_shown ? term->conf->csd.border_width_visible : 0;
         xdg_surface_set_window_geometry(
             term->window->xdg_surface,
             -border_width,

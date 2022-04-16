@@ -511,6 +511,9 @@ void wayl_win_destroy(struct wl_window *win);
 
 bool wayl_win_set_urgent(struct wl_window *win);
 
+bool wayl_win_csd_titlebar_visible(const struct wl_window *win);
+bool wayl_win_csd_borders_visible(const struct wl_window *win);
+
 bool wayl_win_subsurface_new(
     struct wl_window *win, struct wl_surf_subsurf *surf);
 bool wayl_win_subsurface_new_with_custom_parent(
