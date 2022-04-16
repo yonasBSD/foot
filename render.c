@@ -3760,16 +3760,23 @@ damage_view:
 #endif
 
     {
-        bool title_shown = !term->window->is_fullscreen &&
+        bool title_shown =
+            !term->window->is_fullscreen &&
+            term->window->csd_mode == CSD_YES;
+
+        bool border_shown =
+            !term->window->is_fullscreen &&
+            !term->window->is_maximized &&
             term->window->csd_mode == CSD_YES;
 
         int title_height = title_shown ? term->conf->csd.title_height : 0;
+        int border_width = border_shown ? term->conf->csd.border_width_visible : 0;
         xdg_surface_set_window_geometry(
             term->window->xdg_surface,
-            0,
-            -title_height,
-            term->width / term->scale,
-            term->height / term->scale + title_height);
+            -border_width,
+            -title_height - border_width,
+            term->width / term->scale + 2 * border_width,
+            term->height / term->scale + title_height + 2 * border_width);
     }
 
     tll_free(term->normal.scroll_damage);
