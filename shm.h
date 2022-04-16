@@ -66,6 +66,8 @@ void shm_get_many(
     int widths[static count], int heights[static count],
     struct buffer *bufs[static count]);
 
+void shm_did_not_use_buf(struct buffer *buf);
+
 bool shm_can_scroll(const struct buffer *buf);
 bool shm_scroll(struct buffer *buf, int rows,
                 int top_margin, int top_keep_rows,

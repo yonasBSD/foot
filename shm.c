@@ -510,6 +510,13 @@ err:
 }
 
 void
+shm_did_not_use_buf(struct buffer *_buf)
+{
+    struct buffer_private *buf = (struct buffer_private *)_buf;
+    buf->busy = false;
+}
+
+void
 shm_get_many(struct buffer_chain *chain, size_t count,
              int widths[static count], int heights[static count],
              struct buffer *bufs[static count])
