@@ -409,7 +409,7 @@ search_find_next(struct terminal *term)
     }
 
     LOG_DBG(
-        "search: update: %s: starting at row=%d col=%d "
+        "update: %s: starting at row=%d col=%d "
         "(offset = %d, view = %d)",
         backward ? "backward" : "forward", start_row, start_col,
         grid->offset, grid->view);
@@ -419,11 +419,9 @@ search_find_next(struct terminal *term)
         term, direction, start_row, start_col, grid->num_rows, &match);
 
     if (found) {
+        LOG_DBG("primary match found at %dx%d",
+                match.start.row, match.start.col);
         search_update_selection(term, &match);
-#if 0
-            match.start.row, match.start.col,
-            match.end.row, match.end.col + 1);
-#endif
         term->search.match = match.start;
         term->search.match_len = term->search.len;
     } else {
@@ -440,16 +438,13 @@ search_matches_new_iter(struct terminal *term)
 {
     return (struct search_match_iterator){
         .term = term,
-        .start = {0, 0},
+        .start = {-2, -2},
     };
 }
 
 struct range
 search_matches_next(struct search_match_iterator *iter)
 {
-    xassert(iter->start.row >= 0);
-    xassert(iter->start.col >= 0);
-
     struct terminal *term = iter->term;
     struct grid *grid = term->grid;
 
@@ -457,11 +452,22 @@ search_matches_next(struct search_match_iterator *iter)
         goto no_match;
 
     struct range match;
-    bool found = find_next(
-        term, SEARCH_FORWARD,
-        grid_row_absolute_in_view(grid, iter->start.row),
-        iter->start.col,
-        term->rows - iter->start.row, &match);
+    bool found;
+
+    const bool return_primary_match =
+        iter->start.row == -2 && term->selection.coords.end.row >= 0;
+
+    if (return_primary_match) {
+        /* First, return the primary match */
+        match = term->selection.coords;
+        found = true;
+    } else {
+        found = find_next(
+            term, SEARCH_FORWARD,
+            grid_row_absolute_in_view(grid, iter->start.row),
+            iter->start.col,
+            term->rows - iter->start.row, &match);
+    }
 
     if (found) {
         LOG_DBG("match at %dx%d-%dx%d",
@@ -474,9 +480,22 @@ search_matches_next(struct search_match_iterator *iter)
         match.end.row = match.end.row - grid->view + grid->num_rows;
         match.end.row &= grid->num_rows - 1;
 
-        /* Continue at next column, next time */
-        iter->start.row = match.end.row;
-        iter->start.col = match.end.col + 1;
+        if (return_primary_match) {
+            iter->start.row = 0;
+            iter->start.col = 0;
+        } else {
+            /* Continue at next column, next time */
+            iter->start.row = match.end.row;
+            iter->start.col = match.end.col + 1;
+
+            if (match.start.row == term->search.match.row &&
+                match.start.col == term->search.match.col)
+            {
+                /* Primary match is handled explicitly */
+                LOG_DBG("primary match: skipping");
+                return search_matches_next(iter);
+            }
+        }
         return match;
     }
 
