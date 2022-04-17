@@ -121,6 +121,8 @@
   non-zero value. This fixes window snapping in e.g. GNOME.
 * Window size “jumping” when starting an interactive resize when CSDs
   are enabled, and CSD border width set to a non-zero value.
+* Key binding overrides on the command line having no effect with
+  `footclient` instances (https://codeberg.org/dnkl/foot/issues/931).
 
 
 ### Security
