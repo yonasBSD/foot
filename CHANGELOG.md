@@ -55,6 +55,7 @@
   (https://codeberg.org/dnkl/foot/issues/1004).
 * `[csd].hide-when-maximized=yes|no` option
   (https://codeberg.org/dnkl/foot/issues/1019).
+* Scrollback search mode now highlights all matches.
 
 
 ### Changed
