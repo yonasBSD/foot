@@ -1564,6 +1564,8 @@ render_overlay(struct terminal *term)
 
                 if (++r > end_row)
                     break;
+
+                start_col = 0;
             }
         }
 
