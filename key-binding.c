@@ -125,7 +125,7 @@ key_binding_new_for_term(struct key_binding_manager *mgr,
             tll_length(mgr->binding_sets));
 }
 
-struct key_binding_set *
+struct key_binding_set * NOINLINE
 key_binding_for(struct key_binding_manager *mgr, const struct terminal *term,
                 const struct seat *seat)
 {
@@ -358,7 +358,7 @@ maybe_repair_key_combo(const struct seat *seat,
     return sym;
 }
 
-static void
+static void NOINLINE
 convert_key_binding(struct key_set *set,
                     const struct config_key_binding *conf_binding,
                     key_binding_list_t *bindings)
@@ -443,7 +443,7 @@ convert_mouse_bindings(struct key_set *set)
     }
 }
 
-static void
+static void NOINLINE
 load_keymap(struct key_set *set)
 {
     LOG_DBG("load keymap: set=%p, seat=%p, conf=%p",
@@ -488,7 +488,7 @@ key_bindings_destroy(key_binding_list_t *bindings)
     }
 }
 
-static void
+static void NOINLINE
 unload_keymap(struct key_set *set)
 {
     key_bindings_destroy(&set->public.key);
