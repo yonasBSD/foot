@@ -42,7 +42,7 @@ bool
 selection_on_rows(const struct terminal *term, int row_start, int row_end)
 {
     LOG_DBG("on rows: %d-%d, range: %d-%d (offset=%d)",
-            term->selection.start.row, term->selection.end.row,
+            term->selection.coords.start.row, term->selection.coords.end.row,
             row_start, row_end, term->grid->offset);
 
     if (term->selection.coords.end.row < 0)

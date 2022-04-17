@@ -123,6 +123,8 @@
   are enabled, and CSD border width set to a non-zero value.
 * Key binding overrides on the command line having no effect with
   `footclient` instances (https://codeberg.org/dnkl/foot/issues/931).
+* Search prev/next not updating the selection correctly when the
+  previous and new match overlaps.
 
 
 ### Security

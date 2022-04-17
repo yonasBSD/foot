@@ -235,9 +235,15 @@ search_update_selection(struct terminal *term, const struct range *match)
     }
 #endif
 
-    /* Begin a new selection if the start coords changed */
+    /*
+     * Begin a new selection if the start coords changed
+     *
+     * Note: check column against selection.coords, since our “old”
+     * start column isn’t reliable - we modify it when searching
+     * “next” or “prev”.
+     */
     if (start_row != term->search.match.row ||
-        start_col != term->search.match.col)
+        start_col != term->selection.coords.start.col)
     {
         int selection_row = start_row - grid->view + grid->num_rows;
         selection_row &= grid->num_rows - 1;
