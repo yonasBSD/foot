@@ -380,237 +380,6 @@ execute_binding(struct seat *seat, struct terminal *term,
     return false;
 }
 
-static xkb_mod_mask_t
-conf_modifiers_to_mask(const struct seat *seat,
-                       const struct config_key_modifiers *modifiers)
-{
-    xkb_mod_mask_t mods = 0;
-    if (seat->kbd.mod_shift != XKB_MOD_INVALID)
-        mods |= modifiers->shift << seat->kbd.mod_shift;
-    if (seat->kbd.mod_ctrl != XKB_MOD_INVALID)
-        mods |= modifiers->ctrl << seat->kbd.mod_ctrl;
-    if (seat->kbd.mod_alt != XKB_MOD_INVALID)
-        mods |= modifiers->alt << seat->kbd.mod_alt;
-    if (seat->kbd.mod_super != XKB_MOD_INVALID)
-        mods |= modifiers->super << seat->kbd.mod_super;
-    return mods;
-}
-
-static xkb_keycode_list_t
-key_codes_for_xkb_sym(struct xkb_keymap *keymap, xkb_keysym_t sym)
-{
-    xkb_keycode_list_t key_codes = tll_init();
-
-    /*
-     * Find all key codes that map to this symbol.
-     *
-     * This allows us to match bindings in other layouts
-     * too.
-     */
-    struct xkb_state *state = xkb_state_new(keymap);
-
-    for (xkb_keycode_t code = xkb_keymap_min_keycode(keymap);
-         code <= xkb_keymap_max_keycode(keymap);
-         code++)
-    {
-        if (xkb_state_key_get_one_sym(state, code) == sym)
-            tll_push_back(key_codes, code);
-    }
-
-    xkb_state_unref(state);
-    return key_codes;
-}
-
-static xkb_keysym_t
-maybe_repair_key_combo(const struct seat *seat,
-                       xkb_keysym_t sym, xkb_mod_mask_t mods)
-{
-    /*
-     * Detect combos containing a shifted symbol and the corresponding
-     * modifier, and replace the shifted symbol with its unshifted
-     * variant.
-     *
-     * For example, the combo is “Control+Shift+U”. In this case,
-     * Shift is the modifier used to “shift” ‘u’ to ‘U’, after which
-     * ‘Shift’ will have been “consumed”. Since we filter out consumed
-     * modifiers when matching key combos, this key combo will never
-     * trigger (we will never be able to match the ‘Shift’ modifier).
-     *
-     * There are two correct variants of the above key combo:
-     *  - “Control+U”           (upper case ‘U’)
-     *  - “Control+Shift+u”     (lower case ‘u’)
-     *
-     * What we do here is, for each key *code*, check if there are any
-     * (shifted) levels where it produces ‘sym’. If there are, check
-     * *which* sets of modifiers are needed to produce it, and compare
-     * with ‘mods’.
-     *
-     * If there is at least one common modifier, it means ‘sym’ is a
-     * “shifted” symbol, with the corresponding shifting modifier
-     * explicitly included in the key combo. I.e. the key combo will
-     * never trigger.
-     *
-     * We then proceed and “repair” the key combo by replacing ‘sym’
-     * with the corresponding unshifted symbol.
-     *
-     * To reduce the noise, we ignore all key codes where the shifted
-     * symbol is the same as the unshifted symbol.
-     */
-
-    for (xkb_keycode_t code = xkb_keymap_min_keycode(seat->kbd.xkb_keymap);
-         code <= xkb_keymap_max_keycode(seat->kbd.xkb_keymap);
-         code++)
-    {
-        xkb_layout_index_t layout_idx =
-            xkb_state_key_get_layout(seat->kbd.xkb_state, code);
-
-        /* Get all unshifted symbols for this key */
-        const xkb_keysym_t *base_syms = NULL;
-        size_t base_count = xkb_keymap_key_get_syms_by_level(
-            seat->kbd.xkb_keymap, code, layout_idx, 0, &base_syms);
-
-        if (base_count == 0 || sym == base_syms[0]) {
-            /* No unshifted symbols, or unshifted symbol is same as ‘sym’ */
-            continue;
-        }
-
-        /* Name of the unshifted symbol, for logging */
-        char base_name[100];
-        xkb_keysym_get_name(base_syms[0], base_name, sizeof(base_name));
-
-        /* Iterate all shift levels */
-        for (xkb_level_index_t level_idx = 1;
-             level_idx < xkb_keymap_num_levels_for_key(
-                 seat->kbd.xkb_keymap, code, layout_idx);
-             level_idx++) {
-
-            /* Get all symbols for current shift level */
-            const xkb_keysym_t *shifted_syms = NULL;
-            size_t shifted_count = xkb_keymap_key_get_syms_by_level(
-                seat->kbd.xkb_keymap, code,
-                layout_idx, level_idx, &shifted_syms);
-
-            for (size_t i = 0; i < shifted_count; i++) {
-                if (shifted_syms[i] != sym)
-                    continue;
-
-                /* Get modifier sets that produces the current shift level */
-                xkb_mod_mask_t mod_masks[16];
-                size_t mod_mask_count = xkb_keymap_key_get_mods_for_level(
-                    seat->kbd.xkb_keymap, code, layout_idx, level_idx,
-                    mod_masks, ALEN(mod_masks));
-
-                /* Check if key combo’s modifier set intersects */
-                for (size_t j = 0; j < mod_mask_count; j++) {
-                    if ((mod_masks[j] & mods) != mod_masks[j])
-                        continue;
-
-                    char combo[64] = {0};
-
-                    for (int k = 0; k < sizeof(xkb_mod_mask_t) * 8; k++) {
-                        if (!(mods & (1u << k)))
-                            continue;
-
-                        const char *mod_name = xkb_keymap_mod_get_name(
-                            seat->kbd.xkb_keymap, k);
-                        strcat(combo, mod_name);
-                        strcat(combo, "+");
-                    }
-
-                    size_t len = strlen(combo);
-                    xkb_keysym_get_name(
-                        sym, &combo[len], sizeof(combo) - len);
-
-                    LOG_WARN(
-                        "%s: combo with both explicit modifier and shifted symbol "
-                        "(level=%d, mod-mask=0x%08x), "
-                        "replacing with %s",
-                        combo, level_idx, mod_masks[j], base_name);
-
-                    /* Replace with unshifted symbol */
-                    return base_syms[0];
-                }
-            }
-        }
-    }
-
-    return sym;
-}
-
-static void
-convert_key_binding(const struct seat *seat,
-                    const struct config_key_binding *conf_binding,
-                    key_binding_list_t *bindings)
-{
-    xkb_mod_mask_t mods = conf_modifiers_to_mask(seat, &conf_binding->modifiers);
-    xkb_keysym_t sym = maybe_repair_key_combo(seat, conf_binding->k.sym, mods);
-
-    struct key_binding binding = {
-        .type = KEY_BINDING,
-        .action = conf_binding->action,
-        .aux = &conf_binding->aux,
-        .mods = mods,
-        .k = {
-            .sym = sym,
-            .key_codes = key_codes_for_xkb_sym(seat->kbd.xkb_keymap, sym),
-        },
-    };
-    tll_push_back(*bindings, binding);
-}
-
-static void
-convert_key_bindings(const struct config *conf, struct seat *seat)
-{
-    for (size_t i = 0; i < conf->bindings.key.count; i++) {
-        const struct config_key_binding *binding = &conf->bindings.key.arr[i];
-        convert_key_binding(seat, binding, &seat->kbd.bindings.key);
-    }
-}
-
-static void
-convert_search_bindings(const struct config *conf, struct seat *seat)
-{
-    for (size_t i = 0; i < conf->bindings.search.count; i++) {
-        const struct config_key_binding *binding = &conf->bindings.search.arr[i];
-        convert_key_binding(seat, binding, &seat->kbd.bindings.search);
-    }
-}
-
-static void
-convert_url_bindings(const struct config *conf, struct seat *seat)
-{
-    for (size_t i = 0; i < conf->bindings.url.count; i++) {
-        const struct config_key_binding *binding = &conf->bindings.url.arr[i];
-        convert_key_binding(seat, binding, &seat->kbd.bindings.url);
-    }
-}
-
-static void
-convert_mouse_binding(struct seat *seat,
-                      const struct config_key_binding *conf_binding)
-{
-    struct key_binding binding = {
-        .type = MOUSE_BINDING,
-        .action = conf_binding->action,
-        .aux = &conf_binding->aux,
-        .mods = conf_modifiers_to_mask(seat, &conf_binding->modifiers),
-        .m = {
-            .button = conf_binding->m.button,
-            .count = conf_binding->m.count,
-        },
-    };
-    tll_push_back(seat->mouse.bindings, binding);
-}
-
-static void
-convert_mouse_bindings(const struct config *conf, struct seat *seat)
-{
-    for (size_t i = 0; i < conf->bindings.mouse.count; i++) {
-        const struct config_key_binding *binding = &conf->bindings.mouse.arr[i];
-        convert_mouse_binding(seat, binding);
-    }
-}
-
 static void
 keyboard_keymap(void *data, struct wl_keyboard *wl_keyboard,
                 uint32_t format, int32_t fd, uint32_t size)
@@ -646,7 +415,7 @@ keyboard_keymap(void *data, struct wl_keyboard *wl_keyboard,
         seat->kbd.xkb = NULL;
     }
 
-    wayl_bindings_reset(seat);
+    key_binding_unload_keymap(wayl->key_binding_manager, seat);
 
     /* Verify keymap is in a format we understand */
     switch ((enum wl_keyboard_keymap_format)format) {
@@ -728,10 +497,7 @@ keyboard_keymap(void *data, struct wl_keyboard *wl_keyboard,
     munmap(map_str, size);
     close(fd);
 
-    convert_key_bindings(wayl->conf, seat);
-    convert_search_bindings(wayl->conf, seat);
-    convert_url_bindings(wayl->conf, seat);
-    convert_mouse_bindings(wayl->conf, seat);
+    key_binding_load_keymap(wayl->key_binding_manager, seat);
 }
 
 static void
@@ -1558,13 +1324,17 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
     size_t raw_count = xkb_keymap_key_get_syms_by_level(
         seat->kbd.xkb_keymap, key, layout_idx, 0, &raw_syms);
 
+    const struct key_binding_set *bindings = key_binding_for(
+        seat->wayl->key_binding_manager, term, seat);
+    xassert(bindings != NULL);
+
     if (pressed) {
         if (term->is_searching) {
             if (should_repeat)
                 start_repeater(seat, key);
 
             search_input(
-                seat, term, key, sym, mods, consumed, locked,
+                seat, term, bindings, key, sym, mods, consumed, locked,
                 raw_syms, raw_count, serial);
             return;
         }
@@ -1574,7 +1344,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
                 start_repeater(seat, key);
 
             urls_input(
-                seat, term, key, sym, mods, consumed, locked,
+                seat, term, bindings, key, sym, mods, consumed, locked,
                 raw_syms, raw_count, serial);
             return;
         }
@@ -1602,7 +1372,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
      * User configurable bindings
      */
     if (pressed) {
-        tll_foreach(seat->kbd.bindings.key, it) {
+        tll_foreach(bindings->key, it) {
             const struct key_binding *bind = &it->item;
 
             /* Match translated symbol */
@@ -2475,8 +2245,11 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
                     mods &= ~seat->kbd.selection_override_modmask;
 
                     const struct key_binding *match = NULL;
+                    const struct key_binding_set *bindings = key_binding_for(
+                        wayl->key_binding_manager, term, seat);
+                    xassert(bindings != NULL);
 
-                    tll_foreach(seat->mouse.bindings, it) {
+                    tll_foreach(bindings->mouse, it) {
                         const struct key_binding *binding = &it->item;
 
                         if (binding->m.button != button) {

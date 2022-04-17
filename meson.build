@@ -210,6 +210,7 @@ executable(
   'foot-features.h',
   'ime.c', 'ime.h',
   'input.c', 'input.h',
+  'key-binding.c', 'key-binding.h',
   'main.c',
   'notify.c', 'notify.h',
   'quirks.c', 'quirks.h',

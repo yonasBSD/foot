@@ -23,10 +23,10 @@
 #include "char32.h"
 #include "debug.h"
 #include "input.h"
+#include "key-binding.h"
 #include "macros.h"
 #include "tokenize.h"
 #include "util.h"
-#include "wayland.h"
 #include "xmalloc.h"
 #include "xsnprintf.h"
 
@@ -3306,4 +3306,20 @@ check_if_font_is_monospaced(const char *pattern,
 
     fcft_destroy(f);
     return is_monospaced;
+}
+
+xkb_mod_mask_t
+conf_modifiers_to_mask(const struct seat *seat,
+                       const struct config_key_modifiers *modifiers)
+{
+    xkb_mod_mask_t mods = 0;
+    if (seat->kbd.mod_shift != XKB_MOD_INVALID)
+        mods |= modifiers->shift << seat->kbd.mod_shift;
+    if (seat->kbd.mod_ctrl != XKB_MOD_INVALID)
+        mods |= modifiers->ctrl << seat->kbd.mod_ctrl;
+    if (seat->kbd.mod_alt != XKB_MOD_INVALID)
+        mods |= modifiers->alt << seat->kbd.mod_alt;
+    if (seat->kbd.mod_super != XKB_MOD_INVALID)
+        mods |= modifiers->super << seat->kbd.mod_super;
+    return mods;
 }

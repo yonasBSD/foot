@@ -156,27 +156,9 @@ seat_add_text_input(struct seat *seat)
 }
 
 static void
-key_bindings_destroy(key_binding_list_t *bindings)
+seat_add_key_bindings(struct seat *seat)
 {
-    tll_foreach(*bindings, it) {
-        struct key_binding *bind = &it->item;
-        switch (bind->type) {
-        case KEY_BINDING: tll_free(it->item.k.key_codes); break;
-        case MOUSE_BINDING: break;
-        }
-
-        tll_remove(*bindings, it);
-    }
-}
-
-void
-wayl_bindings_reset(struct seat *seat)
-{
-
-    key_bindings_destroy(&seat->kbd.bindings.key);
-    key_bindings_destroy(&seat->kbd.bindings.search);
-    key_bindings_destroy(&seat->kbd.bindings.url);
-    key_bindings_destroy(&seat->mouse.bindings);
+    key_binding_new_for_seat(seat->wayl->key_binding_manager, seat);
 }
 
 static void
@@ -186,7 +168,7 @@ seat_destroy(struct seat *seat)
         return;
 
     tll_free(seat->mouse.buttons);
-    wayl_bindings_reset(seat);
+    key_binding_remove_seat(seat->wayl->key_binding_manager, seat);
 
     if (seat->kbd.xkb_compose_state != NULL)
         xkb_compose_state_unref(seat->kbd.xkb_compose_state);
@@ -952,6 +934,7 @@ handle_global(void *data, struct wl_registry *registry,
         seat_add_data_device(seat);
         seat_add_primary_selection(seat);
         seat_add_text_input(seat);
+        seat_add_key_bindings(seat);
         wl_seat_add_listener(wl_seat, &seat_listener, seat);
     }
 
@@ -1207,7 +1190,8 @@ fdm_wayl(struct fdm *fdm, int fd, int events, void *data)
 }
 
 struct wayland *
-wayl_init(const struct config *conf, struct fdm *fdm)
+wayl_init(const struct config *conf, struct fdm *fdm,
+          struct key_binding_manager *key_binding_manager)
 {
     struct wayland *wayl = calloc(1, sizeof(*wayl));
     if (unlikely(wayl == NULL)) {
@@ -1217,6 +1201,7 @@ wayl_init(const struct config *conf, struct fdm *fdm)
 
     wayl->conf = conf;
     wayl->fdm = fdm;
+    wayl->key_binding_manager = key_binding_manager;
     wayl->fd = -1;
 
     if (!fdm_hook_add(fdm, &fdm_hook, wayl, FDM_HOOK_PRIORITY_LOW)) {

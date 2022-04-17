@@ -6,7 +6,6 @@
 #include <uchar.h>
 
 #include <wayland-client.h>
-#include <xkbcommon/xkbcommon.h>
 
 /* Wayland protocols */
 #include <presentation-time.h>
@@ -28,103 +27,6 @@
 
 /* Forward declarations */
 struct terminal;
-
-enum bind_action_normal {
-    BIND_ACTION_NONE,
-    BIND_ACTION_NOOP,
-    BIND_ACTION_SCROLLBACK_UP_PAGE,
-    BIND_ACTION_SCROLLBACK_UP_HALF_PAGE,
-    BIND_ACTION_SCROLLBACK_UP_LINE,
-    BIND_ACTION_SCROLLBACK_DOWN_PAGE,
-    BIND_ACTION_SCROLLBACK_DOWN_HALF_PAGE,
-    BIND_ACTION_SCROLLBACK_DOWN_LINE,
-    BIND_ACTION_SCROLLBACK_HOME,
-    BIND_ACTION_SCROLLBACK_END,
-    BIND_ACTION_CLIPBOARD_COPY,
-    BIND_ACTION_CLIPBOARD_PASTE,
-    BIND_ACTION_PRIMARY_PASTE,
-    BIND_ACTION_SEARCH_START,
-    BIND_ACTION_FONT_SIZE_UP,
-    BIND_ACTION_FONT_SIZE_DOWN,
-    BIND_ACTION_FONT_SIZE_RESET,
-    BIND_ACTION_SPAWN_TERMINAL,
-    BIND_ACTION_MINIMIZE,
-    BIND_ACTION_MAXIMIZE,
-    BIND_ACTION_FULLSCREEN,
-    BIND_ACTION_PIPE_SCROLLBACK,
-    BIND_ACTION_PIPE_VIEW,
-    BIND_ACTION_PIPE_SELECTED,
-    BIND_ACTION_SHOW_URLS_COPY,
-    BIND_ACTION_SHOW_URLS_LAUNCH,
-    BIND_ACTION_SHOW_URLS_PERSISTENT,
-    BIND_ACTION_TEXT_BINDING,
-
-    /* Mouse specific actions - i.e. they require a mouse coordinate */
-    BIND_ACTION_SELECT_BEGIN,
-    BIND_ACTION_SELECT_BEGIN_BLOCK,
-    BIND_ACTION_SELECT_EXTEND,
-    BIND_ACTION_SELECT_EXTEND_CHAR_WISE,
-    BIND_ACTION_SELECT_WORD,
-    BIND_ACTION_SELECT_WORD_WS,
-    BIND_ACTION_SELECT_ROW,
-
-    BIND_ACTION_KEY_COUNT = BIND_ACTION_TEXT_BINDING + 1,
-    BIND_ACTION_COUNT = BIND_ACTION_SELECT_ROW + 1,
-};
-
-enum bind_action_search {
-    BIND_ACTION_SEARCH_NONE,
-    BIND_ACTION_SEARCH_CANCEL,
-    BIND_ACTION_SEARCH_COMMIT,
-    BIND_ACTION_SEARCH_FIND_PREV,
-    BIND_ACTION_SEARCH_FIND_NEXT,
-    BIND_ACTION_SEARCH_EDIT_LEFT,
-    BIND_ACTION_SEARCH_EDIT_LEFT_WORD,
-    BIND_ACTION_SEARCH_EDIT_RIGHT,
-    BIND_ACTION_SEARCH_EDIT_RIGHT_WORD,
-    BIND_ACTION_SEARCH_EDIT_HOME,
-    BIND_ACTION_SEARCH_EDIT_END,
-    BIND_ACTION_SEARCH_DELETE_PREV,
-    BIND_ACTION_SEARCH_DELETE_PREV_WORD,
-    BIND_ACTION_SEARCH_DELETE_NEXT,
-    BIND_ACTION_SEARCH_DELETE_NEXT_WORD,
-    BIND_ACTION_SEARCH_EXTEND_WORD,
-    BIND_ACTION_SEARCH_EXTEND_WORD_WS,
-    BIND_ACTION_SEARCH_CLIPBOARD_PASTE,
-    BIND_ACTION_SEARCH_PRIMARY_PASTE,
-    BIND_ACTION_SEARCH_COUNT,
-};
-
-enum bind_action_url {
-    BIND_ACTION_URL_NONE,
-    BIND_ACTION_URL_CANCEL,
-    BIND_ACTION_URL_TOGGLE_URL_ON_JUMP_LABEL,
-    BIND_ACTION_URL_COUNT,
-};
-
-typedef tll(xkb_keycode_t) xkb_keycode_list_t;
-
-struct key_binding {
-    enum key_binding_type type;
-
-    int action; /* enum bind_action_* */
-    xkb_mod_mask_t mods;
-
-    union {
-        struct {
-            xkb_keysym_t sym;
-            xkb_keycode_list_t key_codes;
-        } k;
-
-        struct {
-            uint32_t button;
-            int count;
-        } m;
-    };
-
-    const struct binding_aux *aux;
-};
-typedef tll(struct key_binding) key_binding_list_t;
 
 /* Mime-types we support when dealing with data offers (e.g. copy-paste, or DnD) */
 enum data_offer_mime_type {
@@ -219,12 +121,6 @@ struct seat {
         bool alt;
         bool ctrl;
         bool super;
-
-        struct {
-            key_binding_list_t key;
-            key_binding_list_t search;
-            key_binding_list_t url;
-        } bindings;
     } kbd;
 
     /* Pointer state */
@@ -260,8 +156,6 @@ struct seat {
         /* We used a discrete axis event in the current pointer frame */
         double aggregated[2];
         bool have_discrete;
-
-        key_binding_list_t bindings;
     } mouse;
 
     /* Clipboard */
@@ -465,6 +359,7 @@ struct terminal;
 struct wayland {
     const struct config *conf;
     struct fdm *fdm;
+    struct key_binding_manager *key_binding_manager;
 
     int fd;
 
@@ -500,7 +395,8 @@ struct wayland {
     tll(struct terminal *) terms;
 };
 
-struct wayland *wayl_init(const struct config *conf, struct fdm *fdm);
+struct wayland *wayl_init(const struct config *conf, struct fdm *fdm,
+                          struct key_binding_manager *key_binding_manager);
 void wayl_destroy(struct wayland *wayl);
 
 bool wayl_reload_xcursor_theme(struct seat *seat, int new_scale);
@@ -523,5 +419,3 @@ bool wayl_win_subsurface_new_with_custom_parent(
     struct wl_window *win, struct wl_surface *parent,
     struct wl_surf_subsurf *surf, bool allow_pointer_input);
 void wayl_win_subsurface_destroy(struct wl_surf_subsurf *surf);
-
-void wayl_bindings_reset(struct seat *seat);

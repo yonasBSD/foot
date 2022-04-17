@@ -14,10 +14,11 @@
 #include <tllist.h>
 #include <fcft/fcft.h>
 
-#include "config.h"
 #include "composed.h"
+#include "config.h"
 #include "debug.h"
 #include "fdm.h"
+#include "key-binding.h"
 #include "macros.h"
 #include "reaper.h"
 #include "shm.h"

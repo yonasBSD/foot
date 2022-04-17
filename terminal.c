@@ -1262,6 +1262,8 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
 
     memcpy(term->colors.table, term->conf->colors.table, sizeof(term->colors.table));
 
+    key_binding_new_for_term(wayl->key_binding_manager, term);
+
     /* Initialize the Wayland window backend */
     if ((term->window = wayl_win_init(term, token)) == NULL)
         goto err;
@@ -1576,6 +1578,8 @@ term_destroy(struct terminal *term)
 {
     if (term == NULL)
         return 0;
+
+    key_binding_unref_term(term->wl->key_binding_manager, term);
 
     tll_foreach(term->wl->terms, it) {
         if (it->item == term) {

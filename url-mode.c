@@ -13,6 +13,7 @@
 #include "log.h"
 #include "char32.h"
 #include "grid.h"
+#include "key-binding.h"
 #include "render.h"
 #include "selection.h"
 #include "spawn.h"
@@ -118,7 +119,8 @@ activate_url(struct seat *seat, struct terminal *term, const struct url *url)
 }
 
 void
-urls_input(struct seat *seat, struct terminal *term, uint32_t key,
+urls_input(struct seat *seat, struct terminal *term,
+           const struct key_binding_set *bindings, uint32_t key,
            xkb_keysym_t sym, xkb_mod_mask_t mods, xkb_mod_mask_t consumed,
            xkb_mod_mask_t locked,
            const xkb_keysym_t *raw_syms, size_t raw_count,
@@ -130,7 +132,7 @@ urls_input(struct seat *seat, struct terminal *term, uint32_t key,
         consumed & seat->kbd.bind_significant & ~locked;
 
     /* Key bindings */
-    tll_foreach(seat->kbd.bindings.url, it) {
+    tll_foreach(bindings->url, it) {
         const struct key_binding *bind = &it->item;
 
         /* Match translated symbol */

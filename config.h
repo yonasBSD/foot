@@ -336,5 +336,10 @@ struct config *config_clone(const struct config *old);
 bool config_font_parse(const char *pattern, struct config_font *font);
 void config_font_list_destroy(struct config_font_list *font_list);
 
+struct seat;
+xkb_mod_mask_t
+conf_modifiers_to_mask(
+    const struct seat *seat, const struct config_key_modifiers *modifiers);
+
 bool check_if_font_is_monospaced(
     const char *pattern, user_notifications_t *notifications);

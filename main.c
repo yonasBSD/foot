@@ -21,8 +21,9 @@
 #include "log.h"
 
 #include "config.h"
-#include "foot-features.h"
 #include "fdm.h"
+#include "foot-features.h"
+#include "key-binding.h"
 #include "macros.h"
 #include "reaper.h"
 #include "render.h"
@@ -569,6 +570,7 @@ main(int argc, char *const *argv)
 
     struct fdm *fdm = NULL;
     struct reaper *reaper = NULL;
+    struct key_binding_manager *key_binding_manager = NULL;
     struct wayland *wayl = NULL;
     struct renderer *renderer = NULL;
     struct terminal *term = NULL;
@@ -600,7 +602,10 @@ main(int argc, char *const *argv)
     if ((reaper = reaper_init(fdm)) == NULL)
         goto out;
 
-    if ((wayl = wayl_init(&conf, fdm)) == NULL)
+    if ((key_binding_manager = key_binding_manager_new()) == NULL)
+        goto out;
+
+    if ((wayl = wayl_init(&conf, fdm, key_binding_manager)) == NULL)
         goto out;
 
     if ((renderer = render_init(fdm, wayl)) == NULL)
@@ -658,6 +663,7 @@ out:
     shm_fini();
     render_destroy(renderer);
     wayl_destroy(wayl);
+    key_binding_manager_destroy(key_binding_manager);
     reaper_destroy(reaper);
     fdm_signal_del(fdm, SIGTERM);
     fdm_signal_del(fdm, SIGINT);
