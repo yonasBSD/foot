@@ -1615,6 +1615,7 @@ render_overlay(struct terminal *term)
         PIXMAN_OP_SRC, buf->pix[0], &color, 1,
         &(pixman_rectangle16_t){0, 0, term->width, term->height});
 
+    quirk_weston_subsurface_desync_on(overlay->sub);
     wl_subsurface_set_position(overlay->sub, 0, 0);
     wl_surface_set_buffer_scale(overlay->surf, term->scale);
     wl_surface_attach(overlay->surf, buf->wl_buf, 0, 0);
@@ -1626,6 +1627,7 @@ render_overlay(struct terminal *term)
         damage_bounds.y2 - damage_bounds.y1);
 
     wl_surface_commit(overlay->surf);
+    quirk_weston_subsurface_desync_off(overlay->sub);
 
     buf->age = 0;
     term->render.last_overlay_buf = buf;
