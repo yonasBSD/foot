@@ -1202,7 +1202,6 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
                 .count = conf->render_worker_count,
                 .queue = tll_init(),
             },
-            .presentation_timings = conf->presentation_timings,
         },
         .delayed_render_timer = {
             .is_armed = false,

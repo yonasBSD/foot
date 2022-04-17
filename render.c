@@ -2920,7 +2920,7 @@ grid_render(struct terminal *term)
 
     wl_surface_set_buffer_scale(term->window->surface, term->scale);
 
-    if (term->wl->presentation != NULL && term->render.presentation_timings) {
+    if (term->wl->presentation != NULL && term->conf->presentation_timings) {
         struct timespec commit_time;
         clock_gettime(term->wl->presentation_clock_id, &commit_time);
 

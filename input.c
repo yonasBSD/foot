@@ -489,11 +489,6 @@ keyboard_keymap(void *data, struct wl_keyboard *wl_keyboard,
         seat->kbd.key_arrow_down = xkb_keymap_key_by_name(seat->kbd.xkb_keymap, "DOWN");
     }
 
-    /* Set selection-override modmask from configured mods and seat's mod indices */
-    const struct config_key_modifiers* override_mods =
-        &wayl->conf->mouse.selection_override_modifiers;
-    seat->kbd.selection_override_modmask = conf_modifiers_to_mask(seat, override_mods);
-
     munmap(map_str, size);
     close(fd);
 
@@ -2237,17 +2232,19 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
                 if (seat->wl_keyboard != NULL && seat->kbd.xkb_state != NULL) {
                     /* Seat has keyboard - use mouse bindings *with* modifiers */
 
+                    const struct key_binding_set *bindings = key_binding_for(
+                        wayl->key_binding_manager, term, seat);
+                    xassert(bindings != NULL);
+
                     xkb_mod_mask_t mods;
                     get_current_modifiers(seat, &mods, NULL, 0);
                     mods &= seat->kbd.bind_significant;
 
-                    /* Ignore selection override modifiers when matching modifiers */
-                    mods &= ~seat->kbd.selection_override_modmask;
+                    /* Ignore selection override modifiers when
+                     * matching modifiers */
+                    mods &= ~bindings->selection_overrides;
 
                     const struct key_binding *match = NULL;
-                    const struct key_binding_set *bindings = key_binding_for(
-                        wayl->key_binding_manager, term, seat);
-                    xassert(bindings != NULL);
 
                     tll_foreach(bindings->mouse, it) {
                         const struct key_binding *binding = &it->item;
@@ -2278,7 +2275,7 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
                 else {
                     /* Seat does NOT have a keyboard - use mouse bindings *without* modifiers */
                     const struct config_key_binding *match = NULL;
-                    const struct config *conf = seat->wayl->conf;
+                    const struct config *conf = term->conf;
 
                     for (size_t i = 0; i < conf->bindings.mouse.count; i++) {
                         const struct config_key_binding *binding =

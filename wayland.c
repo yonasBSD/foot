@@ -1013,7 +1013,7 @@ handle_global(void *data, struct wl_registry *registry,
     }
 
     else if (strcmp(interface, wp_presentation_interface.name) == 0) {
-        if (wayl->conf->presentation_timings) {
+        if (wayl->presentation_timings) {
             const uint32_t required = 1;
             if (!verify_iface_version(interface, version, required))
                 return;
@@ -1190,8 +1190,8 @@ fdm_wayl(struct fdm *fdm, int fd, int events, void *data)
 }
 
 struct wayland *
-wayl_init(const struct config *conf, struct fdm *fdm,
-          struct key_binding_manager *key_binding_manager)
+wayl_init(struct fdm *fdm, struct key_binding_manager *key_binding_manager,
+          bool presentation_timings)
 {
     struct wayland *wayl = calloc(1, sizeof(*wayl));
     if (unlikely(wayl == NULL)) {
@@ -1199,10 +1199,10 @@ wayl_init(const struct config *conf, struct fdm *fdm,
         return NULL;
     }
 
-    wayl->conf = conf;
     wayl->fdm = fdm;
     wayl->key_binding_manager = key_binding_manager;
     wayl->fd = -1;
+    wayl->presentation_timings = presentation_timings;
 
     if (!fdm_hook_add(fdm, &fdm_hook, wayl, FDM_HOOK_PRIORITY_LOW)) {
         LOG_ERR("failed to add FDM hook");
@@ -1253,16 +1253,16 @@ wayl_init(const struct config *conf, struct fdm *fdm,
         LOG_WARN("no primary selection available");
 
 #if defined(HAVE_XDG_ACTIVATION)
-    if (wayl->xdg_activation == NULL && conf->bell.urgent) {
+    if (wayl->xdg_activation == NULL) {
 #else
-    if (conf->bell.urgent) {
+    if (true) {
 #endif
         LOG_WARN(
             "no XDG activation support; "
             "bell.urgent will fall back to coloring the window margins red");
     }
 
-    if (conf->presentation_timings && wayl->presentation == NULL) {
+    if (presentation_timings && wayl->presentation == NULL) {
         LOG_ERR("presentation time interface not implemented by compositor");
         goto out;
     }

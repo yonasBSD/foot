@@ -605,8 +605,11 @@ main(int argc, char *const *argv)
     if ((key_binding_manager = key_binding_manager_new()) == NULL)
         goto out;
 
-    if ((wayl = wayl_init(&conf, fdm, key_binding_manager)) == NULL)
+    if ((wayl = wayl_init(
+             fdm, key_binding_manager, conf.presentation_timings)) == NULL)
+    {
         goto out;
+    }
 
     if ((renderer = render_init(fdm, wayl)) == NULL)
         goto out;

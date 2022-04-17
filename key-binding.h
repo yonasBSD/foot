@@ -112,6 +112,7 @@ struct key_binding_set {
     key_binding_list_t search;
     key_binding_list_t url;
     key_binding_list_t mouse;
+    xkb_mod_mask_t selection_overrides;
 };
 
 struct key_binding_manager;

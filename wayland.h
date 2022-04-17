@@ -6,6 +6,7 @@
 #include <uchar.h>
 
 #include <wayland-client.h>
+#include <xkbcommon/xkbcommon.h>
 
 /* Wayland protocols */
 #include <presentation-time.h>
@@ -22,7 +23,6 @@
 #include <fcft/fcft.h>
 #include <tllist.h>
 
-#include "config.h"
 #include "fdm.h"
 
 /* Forward declarations */
@@ -354,10 +354,8 @@ struct wl_window {
     int resize_timeout_fd;
 };
 
-struct config;
 struct terminal;
 struct wayland {
-    const struct config *conf;
     struct fdm *fdm;
     struct key_binding_manager *key_binding_manager;
 
@@ -381,6 +379,7 @@ struct wayland {
     struct xdg_activation_v1 *xdg_activation;
 #endif
 
+    bool presentation_timings;
     struct wp_presentation *presentation;
     uint32_t presentation_clock_id;
 
@@ -395,8 +394,9 @@ struct wayland {
     tll(struct terminal *) terms;
 };
 
-struct wayland *wayl_init(const struct config *conf, struct fdm *fdm,
-                          struct key_binding_manager *key_binding_manager);
+struct wayland *wayl_init(
+    struct fdm *fdm, struct key_binding_manager *key_binding_manager,
+    bool presentation_timings);
 void wayl_destroy(struct wayland *wayl);
 
 bool wayl_reload_xcursor_theme(struct seat *seat, int new_scale);

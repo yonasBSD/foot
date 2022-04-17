@@ -460,6 +460,9 @@ load_keymap(struct key_set *set)
     convert_search_bindings(set);
     convert_url_bindings(set);
     convert_mouse_bindings(set);
+
+    set->public.selection_overrides = conf_modifiers_to_mask(
+        set->seat, &set->conf->mouse.selection_override_modifiers);
 }
 
 void
@@ -495,6 +498,7 @@ unload_keymap(struct key_set *set)
     key_bindings_destroy(&set->public.search);
     key_bindings_destroy(&set->public.url);
     key_bindings_destroy(&set->public.mouse);
+    set->public.selection_overrides = 0;
 }
 
 void

@@ -591,7 +591,6 @@ struct terminal {
 
         size_t search_glyph_offset;
 
-        bool presentation_timings;
         struct timespec input_time;
     } render;
 
