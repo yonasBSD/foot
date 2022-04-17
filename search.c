@@ -485,8 +485,8 @@ search_matches_next(struct search_match_iterator *iter)
             iter->start.col = 0;
         } else {
             /* Continue at next column, next time */
-            iter->start.row = match.end.row;
-            iter->start.col = match.end.col + 1;
+            iter->start.row = match.start.row;
+            iter->start.col = match.start.col + 1;
 
             if (match.start.row == term->search.match.row &&
                 match.start.col == term->search.match.col)
