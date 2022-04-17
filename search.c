@@ -623,9 +623,6 @@ search_match_to_end_of_word(struct terminal *term, bool spaces_only)
     if (move_cursor)
         term->search.cursor = term->search.len;
 
-    /* search_update_selection() expected end coordinate to be *exclusive* */
-    newline(new_end);
-
     struct range match = {.start = term->search.match, .end = new_end};
     search_update_selection(term, &match);
 
