@@ -295,15 +295,15 @@ matches_cell(const struct terminal *term, const struct cell *cell, size_t search
 
 static bool
 find_next(struct terminal *term, enum search_direction direction,
-          int start_row_abs, int start_col, int row_count,
-          struct range *match)
+          struct coord abs_start, int row_count, struct range *match)
 {
 #define ROW_DEC(_r) ((_r) = ((_r) - 1 + grid->num_rows) & (grid->num_rows - 1))
 #define ROW_INC(_r) ((_r) = ((_r) + 1) & (grid->num_rows - 1))
 
     struct grid *grid = term->grid;
     const bool backward = direction == SEARCH_BACKWARD;
-    int start_row = start_row_abs;
+    int start_row = abs_start.row;
+    int start_col = abs_start.col;
 
     for (size_t r = 0;
          r < row_count;
@@ -391,32 +391,30 @@ search_find_next(struct terminal *term)
         return;
     }
 
-    int start_row = term->search.match.row;
-    int start_col = term->search.match.col;
+    struct coord start = term->search.match;
     size_t len = term->search.match_len;
 
-    xassert((len == 0 && start_row == -1 && start_col == -1) ||
-           (len > 0 && start_row >= 0 && start_col >= 0));
+    xassert((len == 0 && start.row == -1 && start.col == -1) ||
+           (len > 0 && start.row >= 0 && start.col >= 0));
 
     if (len == 0) {
         if (backward) {
-            start_row = grid_row_absolute_in_view(grid, term->rows - 1);
-            start_col = term->cols - 1;
+            start.row = grid_row_absolute_in_view(grid, term->rows - 1);
+            start.col = term->cols - 1;
         } else {
-            start_row = grid_row_absolute_in_view(grid, 0);
-            start_col = 0;
+            start.row = grid_row_absolute_in_view(grid, 0);
+            start.col = 0;
         }
     }
 
     LOG_DBG(
         "update: %s: starting at row=%d col=%d "
         "(offset = %d, view = %d)",
-        backward ? "backward" : "forward", start_row, start_col,
+        backward ? "backward" : "forward", start.row, start.col,
         grid->offset, grid->view);
 
     struct range match;
-    bool found = find_next(
-        term, direction, start_row, start_col, grid->num_rows, &match);
+    bool found = find_next(term, direction, start, grid->num_rows, &match);
 
     if (found) {
         LOG_DBG("primary match found at %dx%d",
@@ -462,10 +460,11 @@ search_matches_next(struct search_match_iterator *iter)
         match = term->selection.coords;
         found = true;
     } else {
+        struct coord abs_start = iter->start;
+        abs_start.row = grid_row_absolute_in_view(grid, abs_start.row);
+
         found = find_next(
-            term, SEARCH_FORWARD,
-            grid_row_absolute_in_view(grid, iter->start.row),
-            iter->start.col,
+            term, SEARCH_FORWARD, abs_start,
             term->rows - iter->start.row, &match);
     }
 
