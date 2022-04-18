@@ -440,7 +440,7 @@ search_find_next(struct terminal *term)
 
     struct coord end = start;
     if (backward) {
-        /* Search backards, until we reach the cell *after* current start */
+        /* Search backwards, until we reach the cell *after* current start */
         if (++end.col >= term->cols) {
             end.col = 0;
             end.row++;
