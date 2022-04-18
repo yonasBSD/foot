@@ -530,6 +530,12 @@ search_matches_next(struct search_match_iterator *iter)
             iter->start.row = match.start.row;
             iter->start.col = match.start.col + 1;
 
+            if (iter->start.col >= term->cols) {
+                iter->start.col = 0;
+                iter->start.row++;
+                iter->start.row &= grid->num_rows - 1;
+            }
+
             if (match.start.row == term->search.match.row &&
                 match.start.col == term->search.match.col)
             {
