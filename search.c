@@ -306,6 +306,16 @@ find_next(struct terminal *term, enum search_direction direction,
     LOG_DBG("%s: start: %dx%d, end: %dx%d", backward ? "backward" : "forward",
             abs_start.row, abs_start.col, abs_end.row, abs_end.col);
 
+    xassert(abs_start.row >= 0);
+    xassert(abs_start.row < grid->num_rows);
+    xassert(abs_start.col >= 0);
+    xassert(abs_start.col < term->cols);
+
+    xassert(abs_end.row >= 0);
+    xassert(abs_end.row < grid->num_rows);
+    xassert(abs_end.col >= 0);
+    xassert(abs_end.col < term->cols);
+
     for (int match_start_row = abs_start.row, match_start_col = abs_start.col;
          ;
          backward ? ROW_DEC(match_start_row) : ROW_INC(match_start_row)) {
