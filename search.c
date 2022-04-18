@@ -609,21 +609,21 @@ search_match_to_end_of_word(struct terminal *term, bool spaces_only)
     struct coord new_end = old_end;
     struct row *row = NULL;
 
-#define newline(coord) __extension__                                    \
+#define advance_pos(coord) __extension__                                \
         ({                                                              \
             bool wrapped_around = false;                                \
-            if (++(coord).col >= term->cols) {                           \
+            if (++(coord).col >= term->cols) {                          \
                 (coord).row = ((coord).row + 1) & (grid->num_rows - 1); \
                 (coord).col = 0;                                        \
-                row = grid->rows[(coord).row];                    \
+                row = grid->rows[(coord).row];                          \
                 if (has_wrapped_around(term, (coord.row)))              \
                     wrapped_around = true;                              \
             }                                                           \
-            wrapped_around;                                             \
+            !wrapped_around;                                             \
         })
 
     /* First character to consider is the *next* character */
-    if (newline(new_end))
+    if (!advance_pos(new_end))
         return;
 
     xassert(grid->rows[new_end.row] != NULL);
@@ -641,7 +641,7 @@ search_match_to_end_of_word(struct terminal *term, bool spaces_only)
         return;
 
     do {
-        if (newline(pos))
+        if (!advance_pos(pos))
             break;
         if (!extract_one(term, row, &row->cells[pos.col], pos.col, ctx))
             break;
@@ -676,7 +676,7 @@ search_match_to_end_of_word(struct terminal *term, bool spaces_only)
 
     term->search.match_len = term->search.len;
 
-#undef newline
+#undef advance_pos
 }
 
 static size_t
