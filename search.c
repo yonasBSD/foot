@@ -609,6 +609,8 @@ search_match_to_end_of_word(struct terminal *term, bool spaces_only)
     struct coord new_end = old_end;
     struct row *row = NULL;
 
+    /* Advances a coordinate by one column, to the right. Returns
+     * false if we’ve reached the scrollback wrap-around */
 #define advance_pos(coord) __extension__                                \
         ({                                                              \
             bool wrapped_around = false;                                \
