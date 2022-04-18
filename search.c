@@ -302,8 +302,6 @@ find_next(struct terminal *term, enum search_direction direction,
 
     struct grid *grid = term->grid;
     const bool backward = direction == SEARCH_BACKWARD;
-    int start_row = abs_start.row;
-    int start_col = abs_start.col;
 
     /* TODO: fixme */
     int row_count = backward
@@ -313,19 +311,22 @@ find_next(struct terminal *term, enum search_direction direction,
     if (row_count <= 0)
         row_count += grid->num_rows;
 
+    int match_start_row = abs_start.row;
+    int match_start_col = abs_start.col;
+
     for (size_t r = 0;
          r < row_count;
-         backward ? ROW_DEC(start_row) : ROW_INC(start_row), r++)
+         backward ? ROW_DEC(match_start_row) : ROW_INC(match_start_row), r++)
     {
-        const struct row *row = grid->rows[start_row];
+        const struct row *row = grid->rows[match_start_row];
         if (row == NULL)
             continue;
 
         for (;
-             backward ? start_col >= 0 : start_col < term->cols;
-             backward ? start_col-- : start_col++)
+             backward ? match_start_col >= 0 : match_start_col < term->cols;
+             backward ? match_start_col-- : match_start_col++)
         {
-            if (matches_cell(term, &row->cells[start_col], 0) < 0)
+            if (matches_cell(term, &row->cells[match_start_col], 0) < 0)
                 continue;
 
             /*
@@ -335,33 +336,34 @@ find_next(struct terminal *term, enum search_direction direction,
 
             LOG_DBG("search: initial match at row=%d, col=%d", start_row, start_col);
 
-            int end_row = start_row;
-            int end_col = start_col;
+            int match_end_row = match_start_row;
+            int match_end_col = match_start_col;
             size_t match_len = 0;
 
             for (size_t i = 0; i < term->search.len;) {
-                if (end_col >= term->cols) {
-                    end_row = (end_row + 1) & (grid->num_rows - 1);
-                    end_col = 0;
+                if (match_end_col >= term->cols) {
+                    match_end_row = (match_end_row + 1) & (grid->num_rows - 1);
+                    match_end_col = 0;
 
-                    if (has_wrapped_around(term, end_row))
+                    if (has_wrapped_around(term, match_end_row))
                         break;
 
-                    row = grid->rows[end_row];
+                    row = grid->rows[match_end_row];
                 }
 
-                if (row->cells[end_col].wc >= CELL_SPACER) {
-                    end_col++;
+                if (row->cells[match_end_col].wc >= CELL_SPACER) {
+                    match_end_col++;
                     continue;
                 }
 
-                ssize_t additional_chars = matches_cell(term, &row->cells[end_col], i);
+                ssize_t additional_chars = matches_cell(
+                    term, &row->cells[match_end_col], i);
                 if (additional_chars < 0)
                     break;
 
                 i += additional_chars;
                 match_len += additional_chars;
-                end_col++;
+                match_end_col++;
             }
 
             if (match_len != term->search.len) {
@@ -370,14 +372,14 @@ find_next(struct terminal *term, enum search_direction direction,
             }
 
             *match = (struct range){
-                .start = {start_col, start_row},
-                .end = {end_col - 1, end_row},
+                .start = {match_start_col, match_start_row},
+                .end = {match_end_col - 1, match_end_row},
             };
 
             return true;
         }
 
-        start_col = backward ? term->cols - 1 : 0;
+        match_start_col = backward ? term->cols - 1 : 0;
     }
 
     return false;
