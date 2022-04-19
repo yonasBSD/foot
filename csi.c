@@ -1497,6 +1497,24 @@ csi_dispatch(struct terminal *term, uint8_t final)
             }
             break; /* final == 'm' */
 
+        case 'n': {
+            int resource = vt_param_get(term, 0, 2);  /* Default is modifyFuncionKeys */
+            switch (resource) {
+            case 0:  /* modifyKeyboard */
+            case 1:  /* modifyCursorKeys */
+            case 2:  /* modifyFunctionKeys */
+                break;
+
+            case 4:  /* modifyOtherKeys */
+                /* We don’t support fully disabling modifyOtherKeys,
+                 * but simply revert back to mode ‘1’ */
+                term->modify_other_keys_2 = false;
+                LOG_DBG("modifyOtherKeys=1");
+                break;
+            }
+            break;
+        }
+
         case 'u': {
             int flags = vt_param_get(term, 0, 0) & KITTY_KBD_SUPPORTED;
 

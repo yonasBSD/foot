@@ -563,8 +563,14 @@ manipulation sequences. The generic format is:
 |  \\E[ > 4 ; _Pv_ m
 :  XTMODKEYS
 :  xterm
-:  Set level of the _modifyOtherKey_ property to _Pv_. Note that foot
+:  Set level of the _modifyOtherKeys_ property to _Pv_. Note that foot
    only supports level 1 and 2, where level 1 is the default setting.
+|  \\E[ > 4 n
+:  <unnamed>
+:  xterm
+:  Resets the _modifyOtherKeys_ property to level 1. Note that in foot,
+   this sequence does not completely disable _modifyOtherKeys_, since
+   foot only supports level 1 and level 2 (and not level 0).
 |  \\E[ ? u
 :  <unnamed>
 :  kitty

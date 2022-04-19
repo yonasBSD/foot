@@ -60,6 +60,10 @@
   is similar to `show-urls-launch`, but does not automatically exit
   URL mode after activating an URL
   (https://codeberg.org/dnkl/foot/issues/964).
+* Support for `CSI > 4 n`, disable _modifyOtherKeys_. Note that since
+  foot only supports level 1 and 2 (and not level 0), this sequence
+  does not disable _modifyOtherKeys_ completely, but simply reverts it
+  back to level 1 (the default).
 
 
 ### Changed
