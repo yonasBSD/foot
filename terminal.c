@@ -2859,7 +2859,9 @@ term_mouse_grabbed(const struct terminal *term, const struct seat *seat)
     xkb_mod_mask_t mods;
     get_current_modifiers(seat, &mods, NULL, 0);
 
-    const xkb_mod_mask_t override_modmask = seat->kbd.selection_override_modmask;
+    const struct key_binding_set *bindings =
+        key_binding_for(term->wl->key_binding_manager, term, seat);
+    const xkb_mod_mask_t override_modmask = bindings->selection_overrides;
     bool override_mods_pressed = (mods & override_modmask) == override_modmask;
 
     return term->mouse_tracking == MOUSE_NONE ||

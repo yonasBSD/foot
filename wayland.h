@@ -111,8 +111,6 @@ struct seat {
         xkb_mod_mask_t bind_significant;
         xkb_mod_mask_t kitty_significant;
 
-        xkb_mod_mask_t selection_override_modmask;
-
         xkb_keycode_t key_arrow_up;
         xkb_keycode_t key_arrow_down;
 
