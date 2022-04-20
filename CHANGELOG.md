@@ -45,6 +45,8 @@
 * Add "xterm" as fallback cursor where "text" is not available.
 * `[key-bindings].scrollback-home|end` options.
 * Socket activation for `foot --server` and accompanying systemd unit files
+* Support for re-mapping input, i.e. mapping input to custom escape
+  sequences (https://codeberg.org/dnkl/foot/issues/325).
 * Support for [DECNKM](https://vt100.net/docs/vt510-rm/DECNKM.html), which
   allows setting/saving/restoring/querying the keypad mode.
 * Sixel support can be disabled by setting `[tweak].sixel=no`
@@ -71,8 +73,6 @@
 * Minimum required meson version is now 0.58.
 * Mouse selections are now finalized when the window is resized
   (https://codeberg.org/dnkl/foot/issues/922).
-* Support for re-mapping input, i.e. mapping input to custom escape
-  sequences (https://codeberg.org/dnkl/foot/issues/325).
 * OSC-4 and OSC-11 replies now uses four digits instead of 2
   (https://codeberg.org/dnkl/foot/issues/971).
 * `\r` is no longer translated to `\n` when pasting clipboard data
