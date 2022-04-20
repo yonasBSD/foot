@@ -1253,6 +1253,18 @@ emit_escapes:
     return term_to_slave(term, buf, sizeof(buf) - left);
 }
 
+/* Copied from libxkbcommon (internal function) */
+static bool
+keysym_is_modifier(xkb_keysym_t keysym)
+{
+    return
+        (keysym >= XKB_KEY_Shift_L && keysym <= XKB_KEY_Hyper_R) ||
+        /* libX11 only goes upto XKB_KEY_ISO_Level5_Lock. */
+        (keysym >= XKB_KEY_ISO_Lock && keysym <= XKB_KEY_ISO_Last_Group_Lock) ||
+        keysym == XKB_KEY_Mode_switch ||
+        keysym == XKB_KEY_Num_Lock;
+}
+
 static void
 key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
                   uint32_t key, uint32_t state)
@@ -1277,17 +1289,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
 
     xkb_keysym_t sym = xkb_state_key_get_one_sym(seat->kbd.xkb_state, key);
 
-    if (pressed && term->conf->mouse.hide_when_typing &&
-
-        /* TODO: better way to detect modifiers */
-        sym != XKB_KEY_Shift_L && sym != XKB_KEY_Shift_R &&
-        sym != XKB_KEY_Control_L && sym != XKB_KEY_Control_R &&
-        sym != XKB_KEY_Alt_L && sym != XKB_KEY_Alt_R &&
-        sym != XKB_KEY_ISO_Level3_Shift &&
-        sym != XKB_KEY_Super_L && sym != XKB_KEY_Super_R &&
-        sym != XKB_KEY_Meta_L && sym != XKB_KEY_Meta_R &&
-        sym != XKB_KEY_Menu)
-    {
+    if (pressed && term->conf->mouse.hide_when_typing && !keysym_is_modifier(sym)) {
         seat->pointer.hidden = true;
         term_xcursor_update_for_seat(term, seat);
     }
