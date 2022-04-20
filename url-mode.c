@@ -173,7 +173,7 @@ urls_input(struct seat *seat, struct terminal *term,
         return;
     }
 
-    if (mods & ~consumed)
+    if (mods & ~consumed & ~locked)
         return;
 
     char32_t wc = xkb_state_key_get_utf32(seat->kbd.xkb_state, key);
