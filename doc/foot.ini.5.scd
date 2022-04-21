@@ -1,6 +1,7 @@
 foot.ini(5)
 
 # NAME
+
 foot.ini - configuration file for *foot*(1)
 
 # DESCRIPTION
@@ -17,6 +18,9 @@ in this order:
 	  *~/.config/foot/foot.ini* if unset)
 	- *XDG_CONFIG_DIRS/foot/foot.ini* (defaulting to
 	  */etc/xdg/foot/foot.ini* if unset)
+
+An example configuration file containing all options with their default value
+commented out will usually be installed to */etc/xdg/foot/foot.ini*.
 
 # SECTION: main
 
@@ -301,7 +305,6 @@ in this order:
 	(including SMT). Note that this is not always the best value. In
 	some cases, the number of physical _cores_ is better.
 
-
 # SECTION: bell
 
 *urgent*
@@ -333,7 +336,6 @@ in this order:
 	Whether to run the command on *BEL* even while focused. Default:
 	_no_
 
-
 # SECTION: scrollback
 
 *lines*
@@ -358,7 +360,6 @@ in this order:
 	indicator. Either _percentage_, _line_, or a custom fixed
 	string. This option is ignored if
 	*indicator-position=none*. Default: _empty string_.
-
 
 # SECTION: url
 
@@ -403,7 +404,6 @@ in this order:
 	Default:
 	_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-\_.,~:;/?#@!$&%\*+="'()[]_
 
-
 # SECTION: cursor
 
 This section controls the cursor style and color. Note that
@@ -446,7 +446,6 @@ applications can change these at runtime.
 	
 	Default: _font underline thickness_.
 
-
 # SECTION: mouse
 
 *hide-when-typing*
@@ -470,7 +469,6 @@ applications can change these at runtime.
 	(disable).
 	
 	Default: _yes_.
-
 
 # SECTION: colors
 
@@ -559,7 +557,6 @@ can configure the background transparency with the _alpha_ option.
 	Color to use for the underline used to highlight URLs in URL
 	mode. Default: _regular3_.
 
-
 # SECTION: csd
 
 This section controls the look of the _CSDs_ (Client Side
@@ -639,7 +636,6 @@ Examples:
 *button-close-color*
 	Close button's background color. Default: use the default
 	_regular1_ color (red).
-
 
 # SECTION: key-bindings
 
@@ -765,7 +761,6 @@ e.g. *search-start=none*.
 	jump label with a key sequence that will place the URL in the
 	clipboard. Default: _none_.
 
-
 # SECTION: search-bindings
 
 This section lets you override the default key bindings used in
@@ -844,7 +839,6 @@ scrollback search mode. The syntax is exactly the same as the regular
 	Paste from the _primary selection_ into the search
 	buffer. Default: _Shift+Insert_.
 
-
 # SECTION: url-bindings
 
 This section lets you override the default key bindings used in URL
@@ -870,7 +864,6 @@ Be careful; do not use single-letter keys that are also used in
 	label.
 	
 	Default: _t_.
-
 
 # SECTION: text-bindings
 
@@ -901,7 +894,6 @@ name for the Super/logo key):
 Another example: to remap _Super+c_ to _Control+c_:
 
 *\\x03 = Mod4+c*
-
 
 # SECTION: mouse-bindings
 
@@ -979,10 +971,8 @@ actions listed under *key-bindings* can be used here as well.
 	*select-extend* operations to be character wise. This action is
 	ignored for block selections. Default: _Control+BTN\_RIGHT_.
 
-
 *primary-paste*
 	Pastes from the _primary selection_. Default: _BTN\_MIDDLE_.
-
 
 # TWEAK
 
@@ -1222,7 +1212,6 @@ any of these options.
 
 *sixel*
 	Boolean. When enabled, foot will process sixel images. Default: _yes_
-
 
 # SEE ALSO
 

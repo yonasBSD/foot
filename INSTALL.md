@@ -149,8 +149,8 @@ Available compile-time options:
 | `-Ddefault-terminfo`                 | string  | `foot`                | Default value of `TERM`          | none               |
 | `-Dcustom-terminfo-install-location` | string  | `${datadir}/terminfo` | Value to set `TERMINFO` to       | None               |
 
-Documentation includes the man pages, the example `foot.ini`, readme,
-changelog and license files.
+Documentation includes the man pages, readme, changelog and license
+files.
 
 `-Ddefault-terminfo`: I strongly recommend leaving the default
 value. Use this option if you plan on installing the terminfo files

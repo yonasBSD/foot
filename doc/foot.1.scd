@@ -1,9 +1,11 @@
 foot(1)
 
 # NAME
+
 foot - Wayland terminal emulator
 
 # SYNOPSIS
+
 *foot* [_OPTIONS_]++
 *foot* [_OPTIONS_] <_command_> [_COMMAND OPTIONS_]
 
@@ -23,8 +25,7 @@ the foot command line
 # OPTIONS
 
 *-c*,*--config*=_PATH_
-	Path to configuration file. Default:
-	*$XDG_CONFIG_HOME/foot/foot.ini*.
+	Path to configuration file, see *foot.ini*(5) for details.
 
 *-C*,*--check-config*
 	Verify configuration and then exit with 0 if ok, otherwise exit
@@ -164,13 +165,6 @@ the foot command line
 	with the same results as with xterm, instead of producing an
 	"invalid option" error.
 
-# EXIT STATUS
-
-Foot will exit with code 230 if there is a failure in foot itself.
-
-In all other cases, the exit code is that of the client application
-(i.e. the shell).
-
 # KEYBOARD SHORTCUTS
 
 The following keyboard shortcuts are available by default. They can be
@@ -211,7 +205,6 @@ default) available; see *foot.ini*(5).
 *ctrl*+*shift*+*u*
 	Activate URL mode, allowing you to "launch" URLs.
 
-
 ## SCROLLBACK SEARCH
 
 *ctrl*+*r*
@@ -245,7 +238,7 @@ default) available; see *foot.ini*(5).
 	selection. The terminal selection is kept, allowing you to press
 	*ctrl*+*shift*+*c* to copy it to the clipboard.
 
-# URL MODE
+## URL MODE
 
 *t*
 	Toggle URL visibility in jump label.
@@ -253,8 +246,7 @@ default) available; see *foot.ini*(5).
 *escape*, *ctrl*+*g*, *ctrl*+*c*, *ctrl*+*d*
 	Exit URL mode without launching a URL.
 
-
-# MOUSE SHORTCUTS
+## MOUSE SHORTCUTS
 
 *left*, single-click
 	Drag to select; when released, the selected text is copied to the
@@ -365,7 +357,18 @@ numbers, when in _application_ mode.
 
 # CONFIGURATION
 
-See *foot.ini*(5)
+foot will search for a configuration file in the following locations,
+in this order:
+
+	- *XDG_CONFIG_HOME/foot/foot.ini* (defaulting to
+	  *~/.config/foot/foot.ini* if unset)
+	- *XDG_CONFIG_DIRS/foot/foot.ini* (defaulting to
+	  */etc/xdg/foot/foot.ini* if unset)
+
+An example configuration file containing all options with their default value
+commented out will usually be installed to */etc/xdg/foot/foot.ini*.
+
+For more information, see *foot.ini*(5).
 
 # TERMINFO
 
@@ -446,6 +449,12 @@ capability in the multi query. This allows us to send a proper
 success/fail flag for each queried capability. Responses for all
 queried capabilities are always sent. No queries are ever dropped.
 
+# EXIT STATUS
+
+Foot will exit with code 230 if there is a failure in foot itself.
+
+In all other cases, the exit code is that of the client application
+(i.e. the shell).
 
 # ENVIRONMENT
 
@@ -456,11 +465,12 @@ The following environment variables are used by foot:
 	specified and the *shell* option in *foot.ini*(5) is not set.
 
 *XDG\_CONFIG\_HOME*
-	Used to determine the default location of *foot.ini*(5).
+	Used to determine the location of the configuration file, see
+	*foot.ini*(5) for details.
 
 *XDG\_CONFIG\_DIRS*
-	Used to determine the default fallback location of *foot.ini*(5),
-	when not found in *${XDG\_CONFIG\_HOME:-~/.config}*.
+	Used to determine the location of the configuration file, see
+	*foot.ini*(5) for details.
 
 *XDG\_RUNTIME\_DIR*
 	Used to construct the default _PATH_ for the *--server*
@@ -506,7 +516,6 @@ The report should contain the following:
 - If reporting a crash, please try to provide a *bt full* backtrace
   with symbols.
 - Steps to reproduce. The more details the better.
-
 
 # IRC
 

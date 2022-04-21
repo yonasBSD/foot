@@ -266,11 +266,11 @@ if systemd.found()
 endif
 
 scdoc = dependency('scdoc', native: true, required: get_option('docs'))
+install_data('foot.ini', install_dir: join_paths(get_option('sysconfdir'), 'xdg', 'foot'))
 if scdoc.found()
   install_data(
     'LICENSE', 'README.md', 'CHANGELOG.md',
     install_dir: join_paths(get_option('datadir'), 'doc', 'foot'))
-  install_data('foot.ini', install_dir: join_paths(get_option('sysconfdir'), 'xdg', 'foot'))
   subdir('doc')
 endif
 
