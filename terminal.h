@@ -263,7 +263,7 @@ enum selection_kind {
 };
 enum selection_direction {SELECTION_UNDIR, SELECTION_LEFT, SELECTION_RIGHT};
 enum selection_scroll_direction {SELECTION_SCROLL_NOT, SELECTION_SCROLL_UP, SELECTION_SCROLL_DOWN};
-enum search_direction { SEARCH_BACKWARD, SEARCH_FORWARD};
+enum search_direction { SEARCH_BACKWARD_SAME_POSITION, SEARCH_BACKWARD, SEARCH_FORWARD };
 
 struct ptmx_buffer {
     void *data;
@@ -503,7 +503,6 @@ struct terminal {
         size_t len;
         size_t sz;
         size_t cursor;
-        enum search_direction direction;
 
         int original_view;
         bool view_followed_offset;

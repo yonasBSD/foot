@@ -129,6 +129,8 @@
   `footclient` instances (https://codeberg.org/dnkl/foot/issues/931).
 * Search prev/next not updating the selection correctly when the
   previous and new match overlaps.
+* Various minor fixes to scrollback search, and how it finds the
+  next/prev match.
 
 
 ### Security

@@ -301,7 +301,7 @@ find_next(struct terminal *term, enum search_direction direction,
 #define ROW_INC(_r) ((_r) = ((_r) + 1) & (grid->num_rows - 1))
 
     struct grid *grid = term->grid;
-    const bool backward = direction == SEARCH_BACKWARD;
+    const bool backward = direction != SEARCH_FORWARD;
 
     LOG_DBG("%s: start: %dx%d, end: %dx%d", backward ? "backward" : "forward",
             abs_start.row, abs_start.col, abs_end.row, abs_end.col);
@@ -401,13 +401,9 @@ find_next(struct terminal *term, enum search_direction direction,
 }
 
 static void
-search_find_next(struct terminal *term)
+search_find_next(struct terminal *term, enum search_direction direction)
 {
     struct grid *grid = term->grid;
-    enum search_direction direction = term->search.direction;
-    const bool backward = term->search.direction == SEARCH_BACKWARD;
-
-    term->search.direction = SEARCH_BACKWARD;
 
     if (term->search.len == 0) {
         term->search.match = (struct coord){-1, -1};
@@ -423,13 +419,49 @@ search_find_next(struct terminal *term)
            (len > 0 && start.row >= 0 && start.col >= 0));
 
     if (len == 0) {
-        if (backward) {
-            start.row = grid_row_absolute_in_view(grid, term->rows - 1);
-            start.col = term->cols - 1;
-        } else {
+        /* No previous match, start from the top, or bottom, of the scrollback */
+        switch (direction) {
+        case SEARCH_FORWARD:
             start.row = grid_row_absolute_in_view(grid, 0);
             start.col = 0;
+            break;
+
+        case SEARCH_BACKWARD:
+        case SEARCH_BACKWARD_SAME_POSITION:
+            start.row = grid_row_absolute_in_view(grid, term->rows - 1);
+            start.col = term->cols - 1;
+            break;
         }
+    } else {
+        /* Continue from last match */
+        xassert(start.row >= 0);
+        xassert(start.col >= 0);
+
+        switch (direction) {
+        case SEARCH_BACKWARD_SAME_POSITION:
+            break;
+
+        case SEARCH_BACKWARD:
+            if (--start.col < 0) {
+                start.col = term->cols - 1;
+                start.row += grid->num_rows - 1;
+                start.row &= grid->num_rows - 1;
+            }
+            break;
+
+        case SEARCH_FORWARD:
+            if (++start.col >= term->cols) {
+                start.col = 0;
+                start.row++;
+                start.row &= grid->num_rows - 1;
+            }
+            break;
+        }
+
+        xassert(start.row >= 0);
+        xassert(start.row < grid->num_rows);
+        xassert(start.col >= 0);
+        xassert(start.col < term->cols);
     }
 
     LOG_DBG(
@@ -439,20 +471,26 @@ search_find_next(struct terminal *term)
         grid->offset, grid->view);
 
     struct coord end = start;
-    if (backward) {
-        /* Search backwards, until we reach the cell *after* current start */
-        if (++end.col >= term->cols) {
-            end.col = 0;
-            end.row++;
-        }
-    } else {
+    switch (direction) {
+    case SEARCH_FORWARD:
         /* Search forward, until we reach the cell *before* current start */
         if (--end.col < 0) {
             end.col = term->cols - 1;
             end.row += grid->num_rows - 1;
+            end.row &= grid->num_rows - 1;
         }
+        break;
+
+    case SEARCH_BACKWARD:
+    case SEARCH_BACKWARD_SAME_POSITION:
+        /* Search backwards, until we reach the cell *after* current start */
+        if (++end.col >= term->cols) {
+            end.col = 0;
+            end.row++;
+            end.row &= grid->num_rows - 1;
+        }
+        break;
     }
-    end.row &= grid->num_rows - 1;
 
     struct range match;
     bool found = find_next(term, direction, start, end, &match);
@@ -748,14 +786,15 @@ from_clipboard_done(void *user)
     struct terminal *term = user;
 
     LOG_DBG("search: buffer: %ls", (const wchar_t *)term->search.buf);
-    search_find_next(term);
+    search_find_next(term, SEARCH_BACKWARD_SAME_POSITION);
     render_refresh_search(term);
 }
 
 static bool
 execute_binding(struct seat *seat, struct terminal *term,
                 const struct key_binding *binding, uint32_t serial,
-                bool *update_search_result, bool *redraw)
+                bool *update_search_result, enum search_direction *direction,
+                bool *redraw)
 {
     *update_search_result = *redraw = false;
     const enum bind_action_search action = binding->action;
@@ -791,20 +830,7 @@ execute_binding(struct seat *seat, struct terminal *term,
             term->search.last.len = 0;
         }
 
-        else if (term->search.match_len > 0) {
-            int new_col = term->search.match.col - 1;
-            int new_row = term->search.match.row;
-
-            if (new_col < 0) {
-                new_col = term->cols - 1;
-                new_row--;
-            }
-
-            if (new_row >= 0) {
-                term->search.match.col = new_col;
-                term->search.match.row = new_row;
-            }
-        }
+        *direction = SEARCH_BACKWARD;
         *update_search_result = *redraw = true;
         return true;
 
@@ -817,21 +843,7 @@ execute_binding(struct seat *seat, struct terminal *term,
             term->search.last.len = 0;
         }
 
-        else if (term->search.match_len > 0) {
-            int new_col = term->search.match.col + 1;
-            int new_row = term->search.match.row;
-
-            if (new_col >= term->cols) {
-                new_col = 0;
-                new_row++;
-            }
-
-            if (new_row < grid->num_rows) {
-                term->search.match.col = new_col;
-                term->search.match.row = new_row;
-                term->search.direction = SEARCH_FORWARD;
-             }
-        }
+        *direction = SEARCH_FORWARD;
         *update_search_result = *redraw = true;
         return true;
 
@@ -990,6 +1002,7 @@ search_input(struct seat *seat, struct terminal *term,
       ? xkb_compose_state_get_status(seat->kbd.xkb_compose_state)
       : XKB_COMPOSE_NOTHING;
 
+    enum search_direction search_direction = SEARCH_BACKWARD_SAME_POSITION;
     bool update_search_result = false;
     bool redraw = false;
 
@@ -1002,7 +1015,8 @@ search_input(struct seat *seat, struct terminal *term,
             bind->mods == (bind_mods & ~bind_consumed)) {
 
             if (execute_binding(seat, term, bind, serial,
-                                &update_search_result, &redraw))
+                                &update_search_result, &search_direction,
+                                &redraw))
             {
                 goto update_search;
             }
@@ -1016,7 +1030,8 @@ search_input(struct seat *seat, struct terminal *term,
         for (size_t i = 0; i < raw_count; i++) {
             if (bind->k.sym == raw_syms[i]) {
                 if (execute_binding(seat, term, bind, serial,
-                                    &update_search_result, &redraw))
+                                    &update_search_result, &search_direction,
+                                    &redraw))
                 {
                     goto update_search;
                 }
@@ -1028,7 +1043,8 @@ search_input(struct seat *seat, struct terminal *term,
         tll_foreach(bind->k.key_codes, code) {
             if (code->item == key) {
                 if (execute_binding(seat, term, bind, serial,
-                                    &update_search_result, &redraw))
+                                    &update_search_result, &search_direction,
+                                    &redraw))
                 {
                     goto update_search;
                 }
@@ -1052,6 +1068,7 @@ search_input(struct seat *seat, struct terminal *term,
     }
 
     update_search_result = redraw = count > 0;
+    search_direction = SEARCH_BACKWARD_SAME_POSITION;
 
     if (count == 0)
         return;
@@ -1061,7 +1078,7 @@ search_input(struct seat *seat, struct terminal *term,
 update_search:
     LOG_DBG("search: buffer: %ls", (const wchar_t *)term->search.buf);
     if (update_search_result)
-        search_find_next(term);
+        search_find_next(term, search_direction);
     if (redraw)
         render_refresh_search(term);
 }
