@@ -55,49 +55,46 @@
 * OSC-22 - set xcursor pointer.
 * Add "xterm" as fallback cursor where "text" is not available.
 * `[key-bindings].scrollback-home|end` options.
-* Socket activation for `foot --server` and accompanying systemd unit files
+* Socket activation for `foot --server` and accompanying systemd unit
+  files
 * Support for re-mapping input, i.e. mapping input to custom escape
-  sequences ([#325](https://codeberg.org/dnkl/foot/issues/325)).
-* Support for [DECNKM](https://vt100.net/docs/vt510-rm/DECNKM.html), which
-  allows setting/saving/restoring/querying the keypad mode.
+  sequences ([#325][325]).
+* Support for [DECNKM](https://vt100.net/docs/vt510-rm/DECNKM.html),
+  which allows setting/saving/restoring/querying the keypad mode.
 * Sixel support can be disabled by setting `[tweak].sixel=no`
-  ([#950](https://codeberg.org/dnkl/foot/issues/950)).
+  ([#950][950]).
 * footclient: `-E,--client-environment` command line option. When
   used, the child process in the new terminal instance inherits the
   environment from the footclient process instead of the server’s
-  ([#1004](https://codeberg.org/dnkl/foot/issues/1004)).
-* `[csd].hide-when-maximized=yes|no` option
-  ([#1019](https://codeberg.org/dnkl/foot/issues/1019)).
+  ([#1004][1004]).
+* `[csd].hide-when-maximized=yes|no` option ([#1019][1019]).
 * Scrollback search mode now highlights all matches.
 * `[key-binding].show-urls-persistent` action. This key binding action
   is similar to `show-urls-launch`, but does not automatically exit
-  URL mode after activating an URL
-  ([#964](https://codeberg.org/dnkl/foot/issues/964)).
+  URL mode after activating an URL ([#964][964]).
 * Support for `CSI > 4 n`, disable _modifyOtherKeys_. Note that since
   foot only supports level 1 and 2 (and not level 0), this sequence
   does not disable _modifyOtherKeys_ completely, but simply reverts it
   back to level 1 (the default).
 * `-Dtests=false|true` meson command line option. When disabled, test
   binaries will neither be built, nor will `ninja test` attempt to
-  execute them. Enabled by default
-  ([#919](https://codeberg.org/dnkl/foot/issues/919)).
+  execute them. Enabled by default ([#919][919]).
 
 
 ### Changed
 
 * Minimum required meson version is now 0.58.
 * Mouse selections are now finalized when the window is resized
-  ([#922](https://codeberg.org/dnkl/foot/issues/922)).
+  ([#922][922]).
 * OSC-4 and OSC-11 replies now uses four digits instead of 2
-  ([#971](https://codeberg.org/dnkl/foot/issues/971)).
+  ([#971][971]).
 * `\r` is no longer translated to `\n` when pasting clipboard data
-  ([#980](https://codeberg.org/dnkl/foot/issues/980)).
+  ([#980][980]).
 * Use circles for rendering light arc box-drawing characters
-  ([#988](https://codeberg.org/dnkl/foot/issues/988)).
+  ([#988][988]).
 * Example configuration is now installed to
   `${sysconfdir}/xdg/foot/foot.ini`, typically resolving to
-  `/etc/xdg/foot/foot.ini`
-  ([#1001](https://codeberg.org/dnkl/foot/issues/1001)).
+  `/etc/xdg/foot/foot.ini` ([#1001][1001]).
 
 
 ### Removed
@@ -110,37 +107,33 @@
 ### Fixed
 
 * Build: missing `wayland_client` dependency in `test-config`
-  ([#918](https://codeberg.org/dnkl/foot/issues/918)).
+  ([#918][918]).
 * “(null)” being logged as font-name (for some fonts) when warning
   about a non-monospaced primary font.
 * Rare crash when the window is resized while a mouse selection is
-  ongoing ([#922](https://codeberg.org/dnkl/foot/issues/922)).
-* Large selections crossing the scrollback wrap-around
-  ([#924](https://codeberg.org/dnkl/foot/issues/924)).
-* Crash in `pipe-scrollback`
-  ([#926](https://codeberg.org/dnkl/foot/issues/926)).
+  ongoing ([#922][922]).
+* Large selections crossing the scrollback wrap-around ([#924][924]).
+* Crash in `pipe-scrollback` ([#926][926]).
 * Exit code being 0 when a foot server with no open windows terminate
-  due to e.g. a Wayland connection failure
-  ([#943](https://codeberg.org/dnkl/foot/issues/943)).
+  due to e.g. a Wayland connection failure ([#943][943]).
 * Key binding collisions not detected for bindings specified as option
   overrides on the command line.
-* Crash when seat has no keyboard
-  ([#963](https://codeberg.org/dnkl/foot/issues/963)).
+* Crash when seat has no keyboard ([#963][963]).
 * Key presses with e.g. `AltGr` triggering key combinations with the
-  base symbol ([#983](https://codeberg.org/dnkl/foot/issues/983)).
+  base symbol ([#983][983]).
 * Underline cursor sometimes being positioned too low, either making
   it look thinner than what it should be, or being completely
-  invisible ([#1005](https://codeberg.org/dnkl/foot/issues/1005)).
+  invisible ([#1005][1005]).
 * Fallback to `/etc/xdg` if `XDG_CONFIG_DIRS` is unset
-  ([#1008](https://codeberg.org/dnkl/foot/issues/1008)).
+  ([#1008][1008]).
 * Improved compatibility with XTerm when `modifyOtherKeys=2`
-  ([#1009](https://codeberg.org/dnkl/foot/issues/1009)).
+  ([#1009][1009]).
 * Window geometry when CSDs are enabled and CSD border width set to a
   non-zero value. This fixes window snapping in e.g. GNOME.
 * Window size “jumping” when starting an interactive resize when CSDs
   are enabled, and CSD border width set to a non-zero value.
 * Key binding overrides on the command line having no effect with
-  `footclient` instances ([#931](https://codeberg.org/dnkl/foot/issues/931)).
+  `footclient` instances ([#931][931]).
 * Search prev/next not updating the selection correctly when the
   previous and new match overlaps.
 * Various minor fixes to scrollback search, and how it finds the
@@ -160,6 +153,29 @@
 * Merlin Büge
 * jvoisin
 * merkix
+
+[325]: https://codeberg.org/dnkl/foot/issues/325
+[950]: https://codeberg.org/dnkl/foot/issues/950
+[1004]: https://codeberg.org/dnkl/foot/issues/1004
+[1019]: https://codeberg.org/dnkl/foot/issues/1019
+[964]: https://codeberg.org/dnkl/foot/issues/964
+[919]: https://codeberg.org/dnkl/foot/issues/919
+[922]: https://codeberg.org/dnkl/foot/issues/922
+[971]: https://codeberg.org/dnkl/foot/issues/971
+[980]: https://codeberg.org/dnkl/foot/issues/980
+[988]: https://codeberg.org/dnkl/foot/issues/988
+[1001]: https://codeberg.org/dnkl/foot/issues/1001
+[918]: https://codeberg.org/dnkl/foot/issues/918
+[922]: https://codeberg.org/dnkl/foot/issues/922
+[924]: https://codeberg.org/dnkl/foot/issues/924
+[926]: https://codeberg.org/dnkl/foot/issues/926
+[943]: https://codeberg.org/dnkl/foot/issues/943
+[963]: https://codeberg.org/dnkl/foot/issues/963
+[983]: https://codeberg.org/dnkl/foot/issues/983
+[1005]: https://codeberg.org/dnkl/foot/issues/1005
+[1008]: https://codeberg.org/dnkl/foot/issues/1008
+[1009]: https://codeberg.org/dnkl/foot/issues/1009
+[931]: https://codeberg.org/dnkl/foot/issues/931
 
 
 ## 1.11.0
