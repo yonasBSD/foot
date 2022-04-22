@@ -44,6 +44,10 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* build: missing symbols when linking the `pgo` helper binary.
+
+
 ### Security
 ### Contributors
 
