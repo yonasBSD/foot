@@ -1,6 +1,6 @@
 # Changelog
 
-* [Unreleased](#unreleased)
+* [1.12.0](#1-12-0)
 * [1.11.0](#1-11-0)
 * [1.10.3](#1-10-3)
 * [1.10.2](#1-10-2)
@@ -37,7 +37,7 @@
 * [1.2.0](#1-2-0)
 
 
-## Unreleased
+## 1.12.0
 
 ### Added
 
@@ -89,7 +89,6 @@
   (https://codeberg.org/dnkl/foot/issues/1001).
 
 
-### Deprecated
 ### Removed
 
 * DECSET mode 27127 (which was first added in release 1.6.0).
@@ -137,11 +136,19 @@
   next/prev match.
 
 
-### Security
-
 ### Contributors
 
+* Ashish SHUKLA
 * Craig Barnes
+* Enes Hecan
+* Johannes Altmanninger
+* L3MON4D3
+* Leonardo Neumann
+* Mariusz Bialonczyk
+* Max Gautier
+* Merlin Büge
+* jvoisin
+* merkix
 
 
 ## 1.11.0
