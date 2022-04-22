@@ -179,6 +179,13 @@ key_binding_for(
     struct key_binding_manager *mgr, const struct terminal *term,
     const struct seat *seat)
 {
+    return &kbd;
+}
+
+void
+key_binding_new_for_term(
+    struct key_binding_manager *mgr, const struct terminal *term)
+{
     if (!kbd_initialized) {
         kbd_initialized = true;
         kbd = (struct key_binding_set){
@@ -189,8 +196,11 @@ key_binding_for(
             .selection_overrides = 0,
         };
     }
+}
 
-    return &kbd;
+void
+key_binding_unref_term(struct key_binding_manager *mgr, const struct terminal *term)
+{
 }
 
 int
