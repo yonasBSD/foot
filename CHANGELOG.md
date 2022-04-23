@@ -84,6 +84,13 @@
   binaries will neither be built, nor will `ninja test` attempt to
   execute them. Enabled by default ([#919][919]).
 
+[325]: https://codeberg.org/dnkl/foot/issues/325
+[950]: https://codeberg.org/dnkl/foot/issues/950
+[1004]: https://codeberg.org/dnkl/foot/issues/1004
+[1019]: https://codeberg.org/dnkl/foot/issues/1019
+[964]: https://codeberg.org/dnkl/foot/issues/964
+[919]: https://codeberg.org/dnkl/foot/issues/919
+
 
 ### Changed
 
@@ -99,6 +106,12 @@
 * Example configuration is now installed to
   `${sysconfdir}/xdg/foot/foot.ini`, typically resolving to
   `/etc/xdg/foot/foot.ini` ([#1001][1001]).
+
+[922]: https://codeberg.org/dnkl/foot/issues/922
+[971]: https://codeberg.org/dnkl/foot/issues/971
+[980]: https://codeberg.org/dnkl/foot/issues/980
+[988]: https://codeberg.org/dnkl/foot/issues/988
+[1001]: https://codeberg.org/dnkl/foot/issues/1001
 
 
 ### Removed
@@ -143,6 +156,18 @@
 * Various minor fixes to scrollback search, and how it finds the
   next/prev match.
 
+[918]: https://codeberg.org/dnkl/foot/issues/918
+[922]: https://codeberg.org/dnkl/foot/issues/922
+[924]: https://codeberg.org/dnkl/foot/issues/924
+[926]: https://codeberg.org/dnkl/foot/issues/926
+[943]: https://codeberg.org/dnkl/foot/issues/943
+[963]: https://codeberg.org/dnkl/foot/issues/963
+[983]: https://codeberg.org/dnkl/foot/issues/983
+[1005]: https://codeberg.org/dnkl/foot/issues/1005
+[1008]: https://codeberg.org/dnkl/foot/issues/1008
+[1009]: https://codeberg.org/dnkl/foot/issues/1009
+[931]: https://codeberg.org/dnkl/foot/issues/931
+
 
 ### Contributors
 
@@ -157,29 +182,6 @@
 * Merlin Büge
 * jvoisin
 * merkix
-
-[325]: https://codeberg.org/dnkl/foot/issues/325
-[950]: https://codeberg.org/dnkl/foot/issues/950
-[1004]: https://codeberg.org/dnkl/foot/issues/1004
-[1019]: https://codeberg.org/dnkl/foot/issues/1019
-[964]: https://codeberg.org/dnkl/foot/issues/964
-[919]: https://codeberg.org/dnkl/foot/issues/919
-[922]: https://codeberg.org/dnkl/foot/issues/922
-[971]: https://codeberg.org/dnkl/foot/issues/971
-[980]: https://codeberg.org/dnkl/foot/issues/980
-[988]: https://codeberg.org/dnkl/foot/issues/988
-[1001]: https://codeberg.org/dnkl/foot/issues/1001
-[918]: https://codeberg.org/dnkl/foot/issues/918
-[922]: https://codeberg.org/dnkl/foot/issues/922
-[924]: https://codeberg.org/dnkl/foot/issues/924
-[926]: https://codeberg.org/dnkl/foot/issues/926
-[943]: https://codeberg.org/dnkl/foot/issues/943
-[963]: https://codeberg.org/dnkl/foot/issues/963
-[983]: https://codeberg.org/dnkl/foot/issues/983
-[1005]: https://codeberg.org/dnkl/foot/issues/1005
-[1008]: https://codeberg.org/dnkl/foot/issues/1008
-[1009]: https://codeberg.org/dnkl/foot/issues/1009
-[931]: https://codeberg.org/dnkl/foot/issues/931
 
 
 ## 1.11.0
