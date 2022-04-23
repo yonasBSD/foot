@@ -400,6 +400,7 @@ with the terminal emulator itself. Foot implements the following OSCs:
 * `OSC 12` - change cursor color
 * `OSC 17` - change highlight (selection) background color
 * `OSC 19` - change highlight (selection) foreground color
+* `OSC 22` - set the xcursor (mouse) pointer
 * `OSC 52` - copy/paste clipboard data
 * `OSC 104` - reset color palette
 * `OSC 110` - reset default foreground color
