@@ -539,7 +539,16 @@ search_matches_next(struct search_match_iterator *iter)
         /* First, return the primary match */
         match = term->selection.coords;
         found = true;
-    } else {
+    }
+
+    else if (iter->start.row >= term->rows) {
+        goto no_match;
+    }
+
+    else {
+        xassert(iter->start.row >= 0);
+        xassert(iter->start.row < term->rows);
+
         struct coord abs_start = iter->start;
         abs_start.row = grid_row_absolute_in_view(grid, abs_start.row);
 
