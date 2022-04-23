@@ -270,6 +270,11 @@ void
 selection_find_word_boundary_left(struct terminal *term, struct coord *pos,
                                   bool spaces_only)
 {
+    xassert(pos->row >= 0);
+    xassert(pos->row < term->rows);
+    xassert(pos->col >= 0);
+    xassert(pos->col < term->cols);
+
     const struct row *r = grid_row_in_view(term->grid, pos->row);
     char32_t c = r->cells[pos->col].wc;
 
@@ -343,6 +348,11 @@ void
 selection_find_word_boundary_right(struct terminal *term, struct coord *pos,
                                    bool spaces_only)
 {
+    xassert(pos->row >= 0);
+    xassert(pos->row < term->rows);
+    xassert(pos->col >= 0);
+    xassert(pos->col < term->cols);
+
     const struct row *r = grid_row_in_view(term->grid, pos->row);
     char32_t c = r->cells[pos->col].wc;
 
