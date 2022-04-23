@@ -580,9 +580,13 @@ search_matches_next(struct search_match_iterator *iter)
 
             if (iter->start.col >= term->cols) {
                 iter->start.col = 0;
-                iter->start.row++;
-                iter->start.row &= grid->num_rows - 1;
+                iter->start.row++;  /* Overflow is caught in next iteration */
             }
+
+            xassert(iter->start.row >= 0);
+            xassert(iter->start.row <= term->rows);
+            xassert(iter->start.col >= 0);
+            xassert(iter->start.col < term->cols);
 
             if (match.start.row == term->search.match.row &&
                 match.start.col == term->search.match.col)
