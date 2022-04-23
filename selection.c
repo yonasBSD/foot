@@ -1533,6 +1533,8 @@ static const struct zwp_primary_selection_source_v1_listener primary_selection_s
 bool
 text_to_clipboard(struct seat *seat, struct terminal *term, char *text, uint32_t serial)
 {
+    xassert(serial != 0);
+
     struct wl_clipboard *clipboard = &seat->clipboard;
 
     if (clipboard->data_source != NULL) {
@@ -1568,7 +1570,6 @@ text_to_clipboard(struct seat *seat, struct terminal *term, char *text, uint32_t
     wl_data_device_set_selection(seat->data_device, clipboard->data_source, serial);
 
     /* Needed when sending the selection to other client */
-    xassert(serial != 0);
     clipboard->serial = serial;
     return true;
 }
@@ -1980,6 +1981,8 @@ text_to_primary(struct seat *seat, struct terminal *term, char *text, uint32_t s
 {
     if (term->wl->primary_selection_device_manager == NULL)
         return false;
+
+    xassert(serial != 0);
 
     struct wl_primary *primary = &seat->primary;
 
