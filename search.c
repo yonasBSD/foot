@@ -561,6 +561,15 @@ search_matches_next(struct search_match_iterator *iter)
         match.end.row = match.end.row - grid->view + grid->num_rows;
         match.end.row &= grid->num_rows - 1;
 
+        xassert(match.start.row >= 0);
+        xassert(match.start.row < term->rows);
+        xassert(match.end.row >= 0);
+        xassert(match.end.row < term->rows);
+
+        xassert(match.end.row > match.start.row ||
+                (match.end.row == match.start.row &&
+                 match.end.col >= match.start.col));
+
         if (return_primary_match) {
             iter->start.row = 0;
             iter->start.col = 0;
