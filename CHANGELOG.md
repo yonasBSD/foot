@@ -46,6 +46,11 @@
 ### Fixed
 
 * build: missing symbols when linking the `pgo` helper binary.
+* UI not refreshing when pasting something into the scrollback search
+  box, that does not result in a grid update (for example, when the
+  search criteria did not result in any matches) ([#1040][1040]).
+
+[1040]: https://codeberg.org/dnkl/foot/issues/1040
 
 
 ### Security
