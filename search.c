@@ -467,7 +467,8 @@ search_find_next(struct terminal *term, enum search_direction direction)
     LOG_DBG(
         "update: %s: starting at row=%d col=%d "
         "(offset = %d, view = %d)",
-        backward ? "backward" : "forward", start.row, start.col,
+        direction != SEARCH_FORWARD ? "backward" : "forward",
+        start.row, start.col,
         grid->offset, grid->view);
 
     struct coord end = start;
