@@ -116,6 +116,11 @@ search_cancel_keep_selection(struct terminal *term)
 
     term_xcursor_update(term);
     render_refresh(term);
+
+    /* Work around Sway bug - unmapping a sub-surface does not damage
+     * the underlying surface */
+    term_damage_margins(term);
+    term_damage_view(term);
 }
 
 void
@@ -795,7 +800,6 @@ execute_binding(struct seat *seat, struct terminal *term,
             grid->view = ensure_view_is_allocated(
                 term, term->search.original_view);
         }
-        term_damage_view(term);
         search_cancel(term);
         return true;
 
