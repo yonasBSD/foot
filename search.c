@@ -209,6 +209,13 @@ search_update_selection(struct terminal *term, const struct range *match)
         const int old_view = grid->view;
         int new_view = grid_row_sb_to_abs(grid, term->rows, rebased_new_view);
 
+        /* Scrollback may not be completely filled yet */
+        {
+            const int mask = grid->num_rows - 1;
+            while (grid->rows[new_view] == NULL)
+                new_view = (new_view + 1) & mask;
+        }
+
 #if defined(_DEBUG)
         /* Verify all to-be-visible rows have been allocated */
         for (int r = 0; r < term->rows; r++)
