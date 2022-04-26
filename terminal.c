@@ -1929,6 +1929,16 @@ term_reset(struct terminal *term, bool hard)
     tll_free(term->alt.scroll_damage);
     term->render.last_cursor.row = NULL;
     term_damage_all(term);
+
+    term->sixel.scrolling = true;
+    term->sixel.cursor_right_of_graphics = false;
+    term->sixel.use_private_palette = true;
+    term->sixel.max_width = SIXEL_MAX_WIDTH;
+    term->sixel.max_height = SIXEL_MAX_HEIGHT;
+    term->sixel.palette_size = SIXEL_MAX_COLORS;
+    free(term->sixel.private_palette);
+    free(term->sixel.shared_palette);
+    term->sixel.private_palette = term->sixel.shared_palette = NULL;
 }
 
 static bool

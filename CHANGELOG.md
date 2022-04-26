@@ -68,6 +68,8 @@
   scrollback search mode ([#1036][1036]).
 * Scrollback search mode not always highlighting all matches
   correctly.
+* Sixel options not being reset on hard resets (`\Ec`)
+
 
 [1040]: https://codeberg.org/dnkl/foot/issues/1040
 [1036]: https://codeberg.org/dnkl/foot/issues/1036
