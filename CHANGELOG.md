@@ -42,7 +42,7 @@
 ### Added
 
 * Workaround for Sway bug [#6960][sway-6960]: scrollback search and
-  the OSC-555 (“flash”) escape sequence leaves dimmed (search )and
+  the OSC-555 (“flash”) escape sequence leaves dimmed (search) and
   yellow (flash) artifacts ([#1046][1046]).
 
 [sway-6960]: https://github.com/swaywm/sway/issues/6960
