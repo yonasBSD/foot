@@ -82,11 +82,7 @@ search_ensure_size(struct terminal *term, size_t wanted_size)
 static bool
 has_wrapped_around(const struct terminal *term, int abs_row_no)
 {
-    const struct grid *grid = term->grid;
-    int scrollback_start = grid->offset + term->rows;
-    int rebased_row = abs_row_no - scrollback_start + grid->num_rows;
-    rebased_row &= grid->num_rows - 1;
-
+    int rebased_row = grid_row_abs_to_sb(term->grid, term->rows, abs_row_no);
     return rebased_row == 0;
 }
 
@@ -182,6 +178,9 @@ search_update_selection(struct terminal *term, const struct range *match)
     int end_row = match->end.row;
     int end_col = match->end.col;
 
+    xassert(start_row >= 0);
+    xassert(start_row < grid->num_rows);
+
     bool move_viewport = true;
 
     int view_end = (grid->view + term->rows - 1) & (grid->num_rows - 1);
@@ -196,24 +195,14 @@ search_update_selection(struct terminal *term, const struct range *match)
     }
 
     if (move_viewport) {
-        int old_view = grid->view;
-        int new_view = start_row - term->rows / 2;
+        int rebased_new_view = grid_row_abs_to_sb(grid, term->rows, start_row);
 
-        while (new_view < 0)
-            new_view += grid->num_rows;
+        rebased_new_view -= term->rows / 2;
+        rebased_new_view =
+            min(max(rebased_new_view, 0), grid->num_rows - term->rows);
 
-        new_view = ensure_view_is_allocated(term, new_view);
-
-        /* Don't scroll past scrollback history */
-        int end = (grid->offset + term->rows - 1) & (grid->num_rows - 1);
-        if (end >= grid->offset) {
-            /* Not wrapped */
-            if (new_view >= grid->offset && new_view <= end)
-                new_view = grid->offset;
-        } else {
-            if (new_view >= grid->offset || new_view <= end)
-                new_view = grid->offset;
-        }
+        const int old_view = grid->view;
+        int new_view = grid_row_sb_to_abs(grid, term->rows, rebased_new_view);
 
 #if defined(_DEBUG)
         /* Verify all to-be-visible rows have been allocated */
@@ -227,23 +216,8 @@ search_update_selection(struct terminal *term, const struct range *match)
             term_damage_view(term);
     }
 
-#if 0
-    /* Selection endpoint is inclusive */
-    if (--end_col < 0) {
-        end_col = term->cols - 1;
-        end_row--;
-    }
-#endif
-
-    /*
-     * Begin a new selection if the start coords changed
-     *
-     * Note: check column against selection.coords, since our “old”
-     * start column isn’t reliable - we modify it when searching
-     * “next” or “prev”.
-     */
     if (start_row != term->search.match.row ||
-        start_col != term->selection.coords.start.col)
+        start_col != term->search.match.col)
     {
         int selection_row = start_row - grid->view + grid->num_rows;
         selection_row &= grid->num_rows - 1;
@@ -516,7 +490,7 @@ search_matches_new_iter(struct terminal *term)
 {
     return (struct search_match_iterator){
         .term = term,
-        .start = {-2, -2},
+        .start = {0, 0},
     };
 }
 
@@ -529,86 +503,63 @@ search_matches_next(struct search_match_iterator *iter)
     if (term->search.match_len == 0)
         goto no_match;
 
-    struct range match;
-    bool found;
-
-    const bool return_primary_match =
-        iter->start.row == -2 && term->selection.coords.end.row >= 0;
-
-    if (return_primary_match) {
-        /* First, return the primary match */
-        match = term->selection.coords;
-        found = true;
-    }
-
-    else if (iter->start.row >= term->rows) {
+    if (iter->start.row >= term->rows)
         goto no_match;
+
+    xassert(iter->start.row >= 0);
+    xassert(iter->start.row < term->rows);
+    xassert(iter->start.col >= 0);
+    xassert(iter->start.col < term->cols);
+
+    struct coord abs_start = iter->start;
+    abs_start.row = grid_row_absolute_in_view(grid, abs_start.row);
+
+    struct coord abs_end = {
+        term->cols - 1,
+        grid_row_absolute_in_view(grid, term->rows - 1)};
+
+    struct range match;
+    bool found = find_next(term, SEARCH_FORWARD, abs_start, abs_end, &match);
+    if (!found)
+        goto no_match;
+
+    LOG_DBG("match at (absolute coordinates) %dx%d-%dx%d",
+            match.start.row, match.start.col,
+            match.end.row, match.end.col);
+
+    /* Convert absolute row numbers back to view relative */
+    match.start.row = match.start.row - grid->view + grid->num_rows;
+    match.start.row &= grid->num_rows - 1;
+    match.end.row = match.end.row - grid->view + grid->num_rows;
+    match.end.row &= grid->num_rows - 1;
+
+    LOG_DBG("match at (view-local coordinates) %dx%d-%dx%d, view=%d",
+            match.start.row, match.start.col,
+            match.end.row, match.end.col, grid->view);
+
+    xassert(match.start.row >= 0);
+    xassert(match.start.row < term->rows);
+    xassert(match.end.row >= 0);
+    xassert(match.end.row < term->rows);
+
+    xassert(match.end.row > match.start.row ||
+            (match.end.row == match.start.row &&
+             match.end.col >= match.start.col));
+
+    /* Continue at next column, next time */
+    iter->start.row = match.start.row;
+    iter->start.col = match.start.col + 1;
+
+    if (iter->start.col >= term->cols) {
+        iter->start.col = 0;
+        iter->start.row++;  /* Overflow is caught in next iteration */
     }
 
-    else {
-        xassert(iter->start.row >= 0);
-        xassert(iter->start.row < term->rows);
-        xassert(iter->start.col >= 0);
-        xassert(iter->start.col < term->cols);
-
-        struct coord abs_start = iter->start;
-        abs_start.row = grid_row_absolute_in_view(grid, abs_start.row);
-
-        struct coord abs_end = {
-            term->cols - 1,
-            grid_row_absolute_in_view(grid, term->rows - 1)};
-
-        found = find_next(term, SEARCH_FORWARD, abs_start, abs_end, &match);
-    }
-
-    if (found) {
-        LOG_DBG("match at %dx%d-%dx%d",
-                match.start.row, match.start.col,
-                match.end.row, match.end.col);
-
-        /* Convert absolute row numbers back to view relative */
-        match.start.row = match.start.row - grid->view + grid->num_rows;
-        match.start.row &= grid->num_rows - 1;
-        match.end.row = match.end.row - grid->view + grid->num_rows;
-        match.end.row &= grid->num_rows - 1;
-
-        xassert(match.start.row >= 0);
-        xassert(match.start.row < term->rows);
-        xassert(match.end.row >= 0);
-        xassert(match.end.row < term->rows);
-
-        xassert(match.end.row > match.start.row ||
-                (match.end.row == match.start.row &&
-                 match.end.col >= match.start.col));
-
-        if (return_primary_match) {
-            iter->start.row = 0;
-            iter->start.col = 0;
-        } else {
-            /* Continue at next column, next time */
-            iter->start.row = match.start.row;
-            iter->start.col = match.start.col + 1;
-
-            if (iter->start.col >= term->cols) {
-                iter->start.col = 0;
-                iter->start.row++;  /* Overflow is caught in next iteration */
-            }
-
-            xassert(iter->start.row >= 0);
-            xassert(iter->start.row <= term->rows);
-            xassert(iter->start.col >= 0);
-            xassert(iter->start.col < term->cols);
-
-            if (match.start.row == term->search.match.row &&
-                match.start.col == term->search.match.col)
-            {
-                /* Primary match is handled explicitly */
-                LOG_DBG("primary match: skipping");
-                return search_matches_next(iter);
-            }
-        }
-        return match;
-    }
+    xassert(iter->start.row >= 0);
+    xassert(iter->start.row <= term->rows);
+    xassert(iter->start.col >= 0);
+    xassert(iter->start.col < term->cols);
+    return match;
 
 no_match:
     iter->start.row = -1;
@@ -663,14 +614,17 @@ search_match_to_end_of_word(struct terminal *term, bool spaces_only)
     if (term->search.match_len == 0)
         return;
 
-    xassert(term->selection.coords.end.row != -1);
+    xassert(term->selection.coords.end.row >= 0);
 
     struct grid *grid = term->grid;
     const bool move_cursor = term->search.cursor == term->search.len;
 
-    const struct coord old_end = term->selection.coords.end;
+    struct coord old_end = selection_get_end(term);
     struct coord new_end = old_end;
     struct row *row = NULL;
+
+    xassert(new_end.row >= 0);
+    xassert(new_end.row < grid->num_rows);
 
     /* Advances a coordinate by one column, to the right. Returns
      * false if we’ve reached the scrollback wrap-around */
@@ -691,12 +645,16 @@ search_match_to_end_of_word(struct terminal *term, bool spaces_only)
     if (!advance_pos(new_end))
         return;
 
+    xassert(new_end.row >= 0);
+    xassert(new_end.row < grid->num_rows);
     xassert(grid->rows[new_end.row] != NULL);
 
     /* Find next word boundary */
-    new_end.row -= grid->view;
+    new_end.row -= grid->view + grid->num_rows;
+    new_end.row &= grid->num_rows - 1;
     selection_find_word_boundary_right(term, &new_end, spaces_only);
     new_end.row += grid->view;
+    new_end.row &= grid->num_rows - 1;
 
     struct coord pos = old_end;
     row = grid->rows[pos.row];

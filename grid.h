@@ -21,6 +21,10 @@ void grid_resize_and_reflow(
     size_t tracking_points_count,
     struct coord *const _tracking_points[static tracking_points_count]);
 
+/* Convert row numbers between scrollback-relative and absolute coordinates */
+int grid_row_abs_to_sb(const struct grid *grid, int screen_rows, int abs_row);
+int grid_row_sb_to_abs(const struct grid *grid, int screen_rows, int sb_rel_row);
+
 static inline int
 grid_row_absolute(const struct grid *grid, int row_no)
 {
@@ -32,6 +36,7 @@ grid_row_absolute_in_view(const struct grid *grid, int row_no)
 {
     return (grid->view + row_no) & (grid->num_rows - 1);
 }
+
 
 static inline struct row *
 _grid_row_maybe_alloc(struct grid *grid, int row_no, bool alloc_if_null)

@@ -79,3 +79,6 @@ void selection_find_word_boundary_left(
     struct terminal *term, struct coord *pos, bool spaces_only);
 void selection_find_word_boundary_right(
     struct terminal *term, struct coord *pos, bool spaces_only);
+
+struct coord selection_get_start(const struct terminal *term);
+struct coord selection_get_end(const struct terminal *term);

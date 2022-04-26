@@ -38,6 +38,29 @@ static const char *const mime_type_map[] = {
     [DATA_OFFER_MIME_TEXT_UTF8_STRING] = "UTF8_STRING",
 };
 
+static inline struct coord
+bounded(const struct grid *grid, struct coord coord)
+{
+    coord.row &= grid->num_rows - 1;
+    return coord;
+}
+
+struct coord
+selection_get_start(const struct terminal *term)
+{
+    if (term->selection.coords.start.row < 0)
+        return term->selection.coords.start;
+    return bounded(term->grid, term->selection.coords.start);
+}
+
+struct coord
+selection_get_end(const struct terminal *term)
+{
+    if (term->selection.coords.end.row < 0)
+        return term->selection.coords.end;
+    return bounded(term->grid, term->selection.coords.end);
+}
+
 bool
 selection_on_rows(const struct terminal *term, int row_start, int row_end)
 {
@@ -2461,3 +2484,4 @@ const struct zwp_primary_selection_device_v1_listener primary_selection_device_l
     .data_offer = &primary_data_offer,
     .selection = &primary_selection,
 };
+

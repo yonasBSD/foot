@@ -2154,18 +2154,18 @@ term_erase(struct terminal *term, int start_row, int start_col,
 void
 term_erase_scrollback(struct terminal *term)
 {
-    const int num_rows = term->grid->num_rows;
+    const struct grid *grid = term->grid;
+    const int num_rows = grid->num_rows;
     const int mask = num_rows - 1;
 
-    const int start = (term->grid->offset + term->rows) & mask;
-    const int end = (term->grid->offset - 1) & mask;
+    const int start = (grid->offset + term->rows) & mask;
+    const int end = (grid->offset - 1) & mask;
 
-    const int scrollback_start = term->grid->offset + term->rows;
-    const int rel_start = (start - scrollback_start + num_rows) & mask;
-    const int rel_end = (end - scrollback_start + num_rows) & mask;
+    const int rel_start = grid_row_abs_to_sb(grid, term->rows, start);
+    const int rel_end = grid_row_abs_to_sb(grid, term->rows, end);
 
-    const int sel_start = term->selection.coords.start.row;
-    const int sel_end = term->selection.coords.end.row;
+    const int sel_start = selection_get_start(term).row;
+    const int sel_end = selection_get_end(term).row;
 
     if (sel_end >= 0) {
         /*
@@ -2183,8 +2183,8 @@ term_erase_scrollback(struct terminal *term)
          * closer to the screen bottom.
          */
 
-        const int rel_sel_start = (sel_start - scrollback_start + num_rows) & mask;
-        const int rel_sel_end = (sel_end - scrollback_start + num_rows) & mask;
+        const int rel_sel_start = grid_row_abs_to_sb(grid, term->rows, sel_start);
+        const int rel_sel_end = grid_row_abs_to_sb(grid, term->rows, sel_end);
 
         if ((rel_sel_start <= rel_start && rel_sel_end >= rel_start) ||
             (rel_sel_start <= rel_end && rel_sel_end >= rel_end) ||
@@ -2196,8 +2196,9 @@ term_erase_scrollback(struct terminal *term)
 
     tll_foreach(term->grid->sixel_images, it) {
         struct sixel *six = &it->item;
-        const int six_start = (six->pos.row - scrollback_start + num_rows) & mask;
-        const int six_end = (six->pos.row + six->rows - 1 - scrollback_start + num_rows) & mask;
+        const int six_start = grid_row_abs_to_sb(grid, term->rows, six->pos.row);
+        const int six_end = grid_row_abs_to_sb(
+            grid, term->rows, six->pos.row + six->rows - 1);
 
         if ((six_start <= rel_start && six_end >= rel_start) ||
             (six_start <= rel_end && six_end >= rel_end) ||
