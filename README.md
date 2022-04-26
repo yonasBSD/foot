@@ -182,7 +182,7 @@ These are the default shortcuts. See `man foot.ini` and the example
 : Same as <kbd>ctrl</kbd>+<kbd>w</kbd>, except that the only word
   separating characters are whitespace characters.
 
-<kbd>ctrl</kbd>+<kbd>v</kbd>
+<kbd>ctrl</kbd>+<kbd>v</kbd>, <kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>v</kbd>, <kbd>ctrl</kbd>+<kbd>y</kbd>, <kbd>XF86Paste</kbd>
 : Paste from clipboard into the search buffer.
 
 <kbd>shift</kbd>+<kbd>insert</kbd>

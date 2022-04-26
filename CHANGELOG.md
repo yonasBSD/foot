@@ -44,6 +44,10 @@
 * Workaround for Sway bug [#6960][sway-6960]: scrollback search and
   the OSC-555 (“flash”) escape sequence leaves dimmed (search) and
   yellow (flash) artifacts ([#1046][1046]).
+* `Control+Shift+v` and `XF86Paste` have been added to the default set
+  of key bindings that paste from the clipboard into the scrollback
+  search buffer. This is in addition to the pre-existing `Control+v`
+  and `Control+y` bindings.
 
 [sway-6960]: https://github.com/swaywm/sway/issues/6960
 [1046]: https://codeberg.org/dnkl/foot/issues/1046

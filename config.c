@@ -2686,7 +2686,9 @@ add_default_search_bindings(struct config *conf)
         {BIND_ACTION_SEARCH_EXTEND_WORD, m_ctrl, {{XKB_KEY_w}}},
         {BIND_ACTION_SEARCH_EXTEND_WORD_WS, m_ctrl_shift, {{XKB_KEY_w}}},
         {BIND_ACTION_SEARCH_CLIPBOARD_PASTE, m_ctrl, {{XKB_KEY_v}}},
+        {BIND_ACTION_SEARCH_CLIPBOARD_PASTE, m_ctrl_shift, {{XKB_KEY_v}}},
         {BIND_ACTION_SEARCH_CLIPBOARD_PASTE, m_ctrl, {{XKB_KEY_y}}},
+        {BIND_ACTION_SEARCH_CLIPBOARD_PASTE, m_none, {{XKB_KEY_XF86Paste}}},
         {BIND_ACTION_SEARCH_PRIMARY_PASTE, m_shift, {{XKB_KEY_Insert}}},
     };
 
