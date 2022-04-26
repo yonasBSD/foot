@@ -52,6 +52,8 @@
 * foot freezing in scrollback search mode, using 100% CPU ([#1036][1036]).
 * Crash when extending a selection to the next word boundary in
   scrollback search mode ([#1036][1036]).
+* Scrollback search mode not always highlighting all matches
+  correctly.
 
 [1040]: https://codeberg.org/dnkl/foot/issues/1040
 [1036]: https://codeberg.org/dnkl/foot/issues/1036
