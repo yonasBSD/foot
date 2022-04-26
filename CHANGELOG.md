@@ -58,7 +58,8 @@
 * UI not refreshing when pasting something into the scrollback search
   box, that does not result in a grid update (for example, when the
   search criteria did not result in any matches) ([#1040][1040]).
-* foot freezing in scrollback search mode, using 100% CPU ([#1036][1036]).
+* foot freezing in scrollback search mode, using 100% CPU
+  ([#1036][1036], [#1047][1047]).
 * Crash when extending a selection to the next word boundary in
   scrollback search mode ([#1036][1036]).
 * Scrollback search mode not always highlighting all matches
@@ -66,6 +67,7 @@
 
 [1040]: https://codeberg.org/dnkl/foot/issues/1040
 [1036]: https://codeberg.org/dnkl/foot/issues/1036
+[1047]: https://codeberg.org/dnkl/foot/issues/1036
 
 
 ### Security

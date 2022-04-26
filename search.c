@@ -375,6 +375,13 @@ find_next(struct terminal *term, enum search_direction direction,
 
             if (match_len != term->search.len) {
                 /* Didn't match (completely) */
+
+                if (match_start_row == abs_end.row &&
+                    match_start_col == abs_end.col)
+                {
+                    break;
+                }
+
                 continue;
             }
 
@@ -563,9 +570,15 @@ search_matches_next(struct search_match_iterator *iter)
     xassert(match.end.row >= 0);
     xassert(match.end.row < term->rows);
 
+    /* Assert match end comes *after* the match start */
     xassert(match.end.row > match.start.row ||
             (match.end.row == match.start.row &&
              match.end.col >= match.start.col));
+
+    /* Assert the match starts at, or after, the iterator position */
+    xassert(match.start.row > iter->start.row ||
+            (match.start.row == iter->start.row &&
+             match.start.col >= iter->start.col));
 
     /* Continue at next column, next time */
     iter->start.row = match.start.row;
