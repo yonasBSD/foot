@@ -222,6 +222,15 @@ search_update_selection(struct terminal *term, const struct range *match)
             xassert(grid->rows[(new_view + r) & (grid->num_rows - 1)] != NULL);
 #endif
 
+#if defined(_DEBUG)
+        {
+            int rel_start_row = grid_row_abs_to_sb(grid, term->rows, start_row);
+            int rel_view = grid_row_abs_to_sb(grid, term->rows, new_view);
+            xassert(rel_view <= rel_start_row);
+            xassert(rel_start_row < rel_view + term->rows);
+        }
+#endif
+
         /* Update view */
         grid->view = new_view;
         if (new_view != old_view)
