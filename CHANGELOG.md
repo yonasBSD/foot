@@ -54,6 +54,12 @@
 
 
 ### Changed
+
+* Scrollback search’s `extend-to-word-boundary` no longer stops at
+  space-to-word boundaries, making selection extension feel more
+  natural.
+
+
 ### Deprecated
 ### Removed
 ### Fixed
