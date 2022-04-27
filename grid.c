@@ -15,6 +15,34 @@
 
 #define TIME_REFLOW 0
 
+/*
+ * “sb” (scrollback relative) coordinates
+ *
+ * The scrollback relative row number 0 is the *first*, and *oldest*
+ * row in the scrollback history (and thus the *first* row to be
+ * scrolled out). Thus, a higher number means further *down* in the
+ * scrollback, with the *highest* number being at the bottom of the
+ * screen, where new input appears.
+ */
+int
+grid_row_abs_to_sb(const struct grid *grid, int screen_rows, int abs_row)
+{
+    const int scrollback_start = grid->offset + screen_rows;
+    int rebased_row = abs_row - scrollback_start + grid->num_rows;
+
+    rebased_row &= grid->num_rows - 1;
+    return rebased_row;
+}
+
+int grid_row_sb_to_abs(const struct grid *grid, int screen_rows, int sb_rel_row)
+{
+    const int scrollback_start = grid->offset + screen_rows;
+    int abs_row = sb_rel_row + scrollback_start;
+
+    abs_row &= grid->num_rows - 1;
+    return abs_row;
+}
+
 static void
 ensure_row_has_extra_data(struct row *row)
 {

@@ -500,6 +500,7 @@ keyboard_enter(void *data, struct wl_keyboard *wl_keyboard, uint32_t serial,
                struct wl_surface *surface, struct wl_array *keys)
 {
     xassert(surface != NULL);
+    xassert(serial != 0);
 
     struct seat *seat = data;
     struct wl_window *win = wl_surface_get_user_data(surface);
@@ -1269,6 +1270,8 @@ static void
 key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
                   uint32_t key, uint32_t state)
 {
+    xassert(serial != 0);
+
     seat->kbd.serial = serial;
     if (seat->kbd.xkb == NULL ||
         seat->kbd.xkb_keymap == NULL ||
@@ -1621,6 +1624,7 @@ wl_pointer_enter(void *data, struct wl_pointer *wl_pointer,
                  wl_fixed_t surface_x, wl_fixed_t surface_y)
 {
     xassert(surface != NULL);
+    xassert(serial != 0);
 
     if (surface == NULL)  {
         /* Seen on mutter-3.38 */
@@ -1983,6 +1987,8 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
 {
     LOG_DBG("BUTTON: pointer=%p, serial=%u, button=%x, state=%u",
             (void *)wl_pointer, serial, button, state);
+
+    xassert(serial != 0);
 
     struct seat *seat = data;
     struct wayland *wayl = seat->wayl;

@@ -40,12 +40,46 @@
 
 ## Unreleased
 ### Added
+
+* Workaround for Sway bug [#6960][sway-6960]: scrollback search and
+  the OSC-555 (“flash”) escape sequence leaves dimmed (search) and
+  yellow (flash) artifacts ([#1046][1046]).
+* `Control+Shift+v` and `XF86Paste` have been added to the default set
+  of key bindings that paste from the clipboard into the scrollback
+  search buffer. This is in addition to the pre-existing `Control+v`
+  and `Control+y` bindings.
+
+[sway-6960]: https://github.com/swaywm/sway/issues/6960
+[1046]: https://codeberg.org/dnkl/foot/issues/1046
+
+
 ### Changed
+
+* Scrollback search’s `extend-to-word-boundary` no longer stops at
+  space-to-word boundaries, making selection extension feel more
+  natural.
+
+
 ### Deprecated
 ### Removed
 ### Fixed
 
 * build: missing symbols when linking the `pgo` helper binary.
+* UI not refreshing when pasting something into the scrollback search
+  box, that does not result in a grid update (for example, when the
+  search criteria did not result in any matches) ([#1040][1040]).
+* foot freezing in scrollback search mode, using 100% CPU
+  ([#1036][1036], [#1047][1047]).
+* Crash when extending a selection to the next word boundary in
+  scrollback search mode ([#1036][1036]).
+* Scrollback search mode not always highlighting all matches
+  correctly.
+* Sixel options not being reset on hard resets (`\Ec`)
+
+
+[1040]: https://codeberg.org/dnkl/foot/issues/1040
+[1036]: https://codeberg.org/dnkl/foot/issues/1036
+[1047]: https://codeberg.org/dnkl/foot/issues/1036
 
 
 ### Security
@@ -84,6 +118,13 @@
   binaries will neither be built, nor will `ninja test` attempt to
   execute them. Enabled by default ([#919][919]).
 
+[325]: https://codeberg.org/dnkl/foot/issues/325
+[950]: https://codeberg.org/dnkl/foot/issues/950
+[1004]: https://codeberg.org/dnkl/foot/issues/1004
+[1019]: https://codeberg.org/dnkl/foot/issues/1019
+[964]: https://codeberg.org/dnkl/foot/issues/964
+[919]: https://codeberg.org/dnkl/foot/issues/919
+
 
 ### Changed
 
@@ -99,6 +140,12 @@
 * Example configuration is now installed to
   `${sysconfdir}/xdg/foot/foot.ini`, typically resolving to
   `/etc/xdg/foot/foot.ini` ([#1001][1001]).
+
+[922]: https://codeberg.org/dnkl/foot/issues/922
+[971]: https://codeberg.org/dnkl/foot/issues/971
+[980]: https://codeberg.org/dnkl/foot/issues/980
+[988]: https://codeberg.org/dnkl/foot/issues/988
+[1001]: https://codeberg.org/dnkl/foot/issues/1001
 
 
 ### Removed
@@ -143,6 +190,18 @@
 * Various minor fixes to scrollback search, and how it finds the
   next/prev match.
 
+[918]: https://codeberg.org/dnkl/foot/issues/918
+[922]: https://codeberg.org/dnkl/foot/issues/922
+[924]: https://codeberg.org/dnkl/foot/issues/924
+[926]: https://codeberg.org/dnkl/foot/issues/926
+[943]: https://codeberg.org/dnkl/foot/issues/943
+[963]: https://codeberg.org/dnkl/foot/issues/963
+[983]: https://codeberg.org/dnkl/foot/issues/983
+[1005]: https://codeberg.org/dnkl/foot/issues/1005
+[1008]: https://codeberg.org/dnkl/foot/issues/1008
+[1009]: https://codeberg.org/dnkl/foot/issues/1009
+[931]: https://codeberg.org/dnkl/foot/issues/931
+
 
 ### Contributors
 
@@ -157,29 +216,6 @@
 * Merlin Büge
 * jvoisin
 * merkix
-
-[325]: https://codeberg.org/dnkl/foot/issues/325
-[950]: https://codeberg.org/dnkl/foot/issues/950
-[1004]: https://codeberg.org/dnkl/foot/issues/1004
-[1019]: https://codeberg.org/dnkl/foot/issues/1019
-[964]: https://codeberg.org/dnkl/foot/issues/964
-[919]: https://codeberg.org/dnkl/foot/issues/919
-[922]: https://codeberg.org/dnkl/foot/issues/922
-[971]: https://codeberg.org/dnkl/foot/issues/971
-[980]: https://codeberg.org/dnkl/foot/issues/980
-[988]: https://codeberg.org/dnkl/foot/issues/988
-[1001]: https://codeberg.org/dnkl/foot/issues/1001
-[918]: https://codeberg.org/dnkl/foot/issues/918
-[922]: https://codeberg.org/dnkl/foot/issues/922
-[924]: https://codeberg.org/dnkl/foot/issues/924
-[926]: https://codeberg.org/dnkl/foot/issues/926
-[943]: https://codeberg.org/dnkl/foot/issues/943
-[963]: https://codeberg.org/dnkl/foot/issues/963
-[983]: https://codeberg.org/dnkl/foot/issues/983
-[1005]: https://codeberg.org/dnkl/foot/issues/1005
-[1008]: https://codeberg.org/dnkl/foot/issues/1008
-[1009]: https://codeberg.org/dnkl/foot/issues/1009
-[931]: https://codeberg.org/dnkl/foot/issues/931
 
 
 ## 1.11.0

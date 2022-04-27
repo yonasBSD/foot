@@ -38,6 +38,29 @@ static const char *const mime_type_map[] = {
     [DATA_OFFER_MIME_TEXT_UTF8_STRING] = "UTF8_STRING",
 };
 
+static inline struct coord
+bounded(const struct grid *grid, struct coord coord)
+{
+    coord.row &= grid->num_rows - 1;
+    return coord;
+}
+
+struct coord
+selection_get_start(const struct terminal *term)
+{
+    if (term->selection.coords.start.row < 0)
+        return term->selection.coords.start;
+    return bounded(term->grid, term->selection.coords.start);
+}
+
+struct coord
+selection_get_end(const struct terminal *term)
+{
+    if (term->selection.coords.end.row < 0)
+        return term->selection.coords.end;
+    return bounded(term->grid, term->selection.coords.end);
+}
+
 bool
 selection_on_rows(const struct terminal *term, int row_start, int row_end)
 {
@@ -270,6 +293,11 @@ void
 selection_find_word_boundary_left(struct terminal *term, struct coord *pos,
                                   bool spaces_only)
 {
+    xassert(pos->row >= 0);
+    xassert(pos->row < term->rows);
+    xassert(pos->col >= 0);
+    xassert(pos->col < term->cols);
+
     const struct row *r = grid_row_in_view(term->grid, pos->row);
     char32_t c = r->cells[pos->col].wc;
 
@@ -341,8 +369,14 @@ selection_find_word_boundary_left(struct terminal *term, struct coord *pos,
 
 void
 selection_find_word_boundary_right(struct terminal *term, struct coord *pos,
-                                   bool spaces_only)
+                                   bool spaces_only,
+                                   bool stop_on_space_to_word_boundary)
 {
+    xassert(pos->row >= 0);
+    xassert(pos->row < term->rows);
+    xassert(pos->col >= 0);
+    xassert(pos->col < term->cols);
+
     const struct row *r = grid_row_in_view(term->grid, pos->row);
     char32_t c = r->cells[pos->col].wc;
 
@@ -362,6 +396,7 @@ selection_find_word_boundary_right(struct terminal *term, struct coord *pos,
         !initial_is_space && !isword(c, spaces_only, term->conf->word_delimiters);
     bool initial_is_word =
         c != 0 && isword(c, spaces_only, term->conf->word_delimiters);
+    bool have_seen_word = initial_is_word;
 
     while (true) {
         int next_col = pos->col + 1;
@@ -402,12 +437,21 @@ selection_find_word_boundary_right(struct terminal *term, struct coord *pos,
         bool is_word =
             c != 0 && isword(c, spaces_only, term->conf->word_delimiters);
 
-        if (initial_is_space && !is_space)
-            break;
-        if (initial_is_delim && !is_delim)
-            break;
+        if (stop_on_space_to_word_boundary) {
+            if (initial_is_space && !is_space)
+                break;
+            if (initial_is_delim && !is_delim)
+                break;
+        } else {
+            if (initial_is_space && ((have_seen_word && is_space) || is_delim))
+                break;
+            if (initial_is_delim && ((have_seen_word && is_delim) || is_space))
+                break;
+        }
         if (initial_is_word && !is_word)
             break;
+
+        have_seen_word = is_word;
 
         pos->col = next_col;
         pos->row = next_row;
@@ -489,7 +533,7 @@ selection_start(struct terminal *term, int col, int row,
     case SELECTION_WORD_WISE: {
         struct coord start = {col, row}, end = {col, row};
         selection_find_word_boundary_left(term, &start, spaces_only);
-        selection_find_word_boundary_right(term, &end, spaces_only);
+        selection_find_word_boundary_right(term, &end, spaces_only, true);
 
         term->selection.coords.start = (struct coord){
             start.col, term->grid->view + start.row};
@@ -830,7 +874,7 @@ selection_update(struct terminal *term, int col, int row)
         case SELECTION_RIGHT: {
             struct coord end = {col, row};
             selection_find_word_boundary_right(
-                term, &end, term->selection.spaces_only);
+                term, &end, term->selection.spaces_only, true);
             new_end = (struct coord){end.col, term->grid->view + end.row};
             break;
         }
@@ -980,7 +1024,7 @@ selection_extend_normal(struct terminal *term, int col, int row,
         struct coord pivot_end = pivot_start;
 
         selection_find_word_boundary_left(term, &pivot_start, spaces_only);
-        selection_find_word_boundary_right(term, &pivot_end, spaces_only);
+        selection_find_word_boundary_right(term, &pivot_end, spaces_only, true);
 
         term->selection.pivot.start =
             (struct coord){pivot_start.col, term->grid->view + pivot_start.row};
@@ -1523,6 +1567,8 @@ static const struct zwp_primary_selection_source_v1_listener primary_selection_s
 bool
 text_to_clipboard(struct seat *seat, struct terminal *term, char *text, uint32_t serial)
 {
+    xassert(serial != 0);
+
     struct wl_clipboard *clipboard = &seat->clipboard;
 
     if (clipboard->data_source != NULL) {
@@ -1558,7 +1604,6 @@ text_to_clipboard(struct seat *seat, struct terminal *term, char *text, uint32_t
     wl_data_device_set_selection(seat->data_device, clipboard->data_source, serial);
 
     /* Needed when sending the selection to other client */
-    xassert(serial != 0);
     clipboard->serial = serial;
     return true;
 }
@@ -1970,6 +2015,8 @@ text_to_primary(struct seat *seat, struct terminal *term, char *text, uint32_t s
 {
     if (term->wl->primary_selection_device_manager == NULL)
         return false;
+
+    xassert(serial != 0);
 
     struct wl_primary *primary = &seat->primary;
 
@@ -2448,3 +2495,4 @@ const struct zwp_primary_selection_device_v1_listener primary_selection_device_l
     .data_offer = &primary_data_offer,
     .selection = &primary_selection,
 };
+

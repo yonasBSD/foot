@@ -3572,7 +3572,7 @@ frame_callback(void *data, struct wl_callback *wl_callback, uint32_t callback_da
     if (urls)
         render_urls(term);
 
-    if (grid && (!term->delayed_render_timer.is_armed | csd | search | urls))
+    if ((grid && !term->delayed_render_timer.is_armed) || (csd | search | urls))
         grid_render(term);
 
     tll_foreach(term->wl->seats, it) {

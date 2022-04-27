@@ -73,7 +73,7 @@ See [INSTALL.md](INSTALL.md).
 **foot** can be configured by creating a file
 `$XDG_CONFIG_HOME/foot/foot.ini` (defaulting to
 `~/.config/foot/foot.ini`).  A template for that can usually be found
-in `/usr/share/foot/foot.ini` or
+in `/etc/xdg/foot/foot.ini` or
 [here](https://codeberg.org/dnkl/foot/src/branch/master/foot.ini).
 
 Further information can be found in foot's man page `foot.ini(5)`.
@@ -182,7 +182,7 @@ These are the default shortcuts. See `man foot.ini` and the example
 : Same as <kbd>ctrl</kbd>+<kbd>w</kbd>, except that the only word
   separating characters are whitespace characters.
 
-<kbd>ctrl</kbd>+<kbd>v</kbd>
+<kbd>ctrl</kbd>+<kbd>v</kbd>, <kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>v</kbd>, <kbd>ctrl</kbd>+<kbd>y</kbd>, <kbd>XF86Paste</kbd>
 : Paste from clipboard into the search buffer.
 
 <kbd>shift</kbd>+<kbd>insert</kbd>
@@ -400,6 +400,7 @@ with the terminal emulator itself. Foot implements the following OSCs:
 * `OSC 12` - change cursor color
 * `OSC 17` - change highlight (selection) background color
 * `OSC 19` - change highlight (selection) foreground color
+* `OSC 22` - set the xcursor (mouse) pointer
 * `OSC 52` - copy/paste clipboard data
 * `OSC 104` - reset color palette
 * `OSC 110` - reset default foreground color
@@ -410,6 +411,9 @@ with the terminal emulator itself. Foot implements the following OSCs:
 * `OSC 555` - flash screen (**foot specific**)
 * `OSC 777` - desktop notification (only the `;notify` sub-command of
   OSC 777 is supported.)
+
+See the **foot-ctlseq**(7) man page for a complete list of supported
+control sequences.
 
 
 ## Programmatically checking if running in foot

@@ -53,7 +53,7 @@ pipeline:
       # Release
       - mkdir -p bld/release-x64
       - cd bld/release-x64
-      - meson --buildtype=release -Dgrapheme-clustering=enabled -Dfcft:grapheme-shaping=enabled -Dfcft:run-shaping=enabled  -Dfcft:test-text-shaping=true ../..
+      - meson --buildtype=release -Db_pgo=generate -Dgrapheme-clustering=enabled -Dfcft:grapheme-shaping=enabled -Dfcft:run-shaping=enabled  -Dfcft:test-text-shaping=true ../..
       - ninja -v -k0
       - ninja -v test
       - ./foot --version
@@ -100,7 +100,7 @@ pipeline:
       # Release
       - mkdir -p bld/release-x86
       - cd bld/release-x86
-      - meson --buildtype=release -Dgrapheme-clustering=enabled -Dfcft:grapheme-shaping=enabled -Dfcft:run-shaping=enabled -Dfcft:test-text-shaping=true ../..
+      - meson --buildtype=release -Db_pgo=generate -Dgrapheme-clustering=enabled -Dfcft:grapheme-shaping=enabled -Dfcft:run-shaping=enabled -Dfcft:test-text-shaping=true ../..
       - ninja -v -k0
       - ninja -v test
       - ./foot --version
