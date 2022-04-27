@@ -2,7 +2,7 @@
 #include <string.h>
 
 #define LOG_MODULE "extract"
-#define LOG_ENABLE_DBG 1
+#define LOG_ENABLE_DBG 0
 #include "log.h"
 #include "char32.h"
 
