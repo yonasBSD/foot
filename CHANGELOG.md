@@ -1,6 +1,6 @@
 # Changelog
 
-* [Unreleased](#unreleased)
+* [1.12.1](#1-12-1)
 * [1.12.0](#1-12-0)
 * [1.11.0](#1-11-0)
 * [1.10.3](#1-10-3)
@@ -38,7 +38,8 @@
 * [1.2.0](#1-2-0)
 
 
-## Unreleased
+## 1.12.1
+
 ### Added
 
 * Workaround for Sway bug [#6960][sway-6960]: scrollback search and
@@ -60,8 +61,6 @@
   natural.
 
 
-### Deprecated
-### Removed
 ### Fixed
 
 * build: missing symbols when linking the `pgo` helper binary.
@@ -76,14 +75,9 @@
   correctly.
 * Sixel options not being reset on hard resets (`\Ec`)
 
-
 [1040]: https://codeberg.org/dnkl/foot/issues/1040
 [1036]: https://codeberg.org/dnkl/foot/issues/1036
 [1047]: https://codeberg.org/dnkl/foot/issues/1036
-
-
-### Security
-### Contributors
 
 
 ## 1.12.0
