@@ -686,7 +686,7 @@ search_match_to_end_of_word(struct terminal *term, bool spaces_only)
     /* Find next word boundary */
     new_end.row -= grid->view + grid->num_rows;
     new_end.row &= grid->num_rows - 1;
-    selection_find_word_boundary_right(term, &new_end, spaces_only);
+    selection_find_word_boundary_right(term, &new_end, spaces_only, false);
     new_end.row += grid->view;
     new_end.row &= grid->num_rows - 1;
 
