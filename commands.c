@@ -59,8 +59,8 @@ cmd_scrollback_up(struct terminal *term, int rows)
         xassert(grid->rows[(new_view + r) & (grid->num_rows - 1)] != NULL);
 #endif
 
-    LOG_DBG("scrollback UP: %d -> %d (offset = %d, end = %d, rows = %d)",
-            view, new_view, offset, end, grid_rows);
+    LOG_DBG("scrollback UP: %d -> %d (offset = %d, rows = %d)",
+            view, new_view, offset, grid_rows);
 
     selection_view_up(term, new_view);
     term->grid->view = new_view;
@@ -113,8 +113,8 @@ cmd_scrollback_down(struct terminal *term, int rows)
         xassert(grid->rows[(new_view + r) & (grid_rows - 1)] != NULL);
 #endif
 
-    LOG_DBG("scrollback DOWN: %d -> %d (offset = %d, end = %d, rows = %d)",
-            view, new_view, offset, end, grid_rows);
+    LOG_DBG("scrollback DOWN: %d -> %d (offset = %d, rows = %d)",
+            view, new_view, offset, grid_rows);
 
     selection_view_down(term, new_view);
     term->grid->view = new_view;
