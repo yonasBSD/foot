@@ -88,7 +88,7 @@
 
 [1040]: https://codeberg.org/dnkl/foot/issues/1040
 [1036]: https://codeberg.org/dnkl/foot/issues/1036
-[1047]: https://codeberg.org/dnkl/foot/issues/1036
+[1047]: https://codeberg.org/dnkl/foot/issues/1047
 
 
 ## 1.12.0
