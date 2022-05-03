@@ -295,6 +295,22 @@ struct wl_url {
 
 enum csd_mode {CSD_UNKNOWN, CSD_NO, CSD_YES};
 
+#if defined(HAVE_XDG_ACTIVATION)
+typedef void (*activation_token_cb_t)(const char *token, void *data);
+
+/*
+ * This context holds data used both in the token::done callback, and
+ * when cleaning up created, by not-yet-done tokens in
+ * wayl_win_destroy().
+ */
+struct xdg_activation_token_context {
+    struct wl_window *win;                        /* Need for win->xdg_tokens */
+    struct xdg_activation_token_v1 *xdg_token;    /* Used to match token in done() */
+    activation_token_cb_t cb;                     /* User provided callback */
+    void *cb_data;                                /* Callback user pointer */
+};
+#endif
+
 struct wayland;
 struct wl_window {
     struct terminal *term;
@@ -302,7 +318,7 @@ struct wl_window {
     struct xdg_surface *xdg_surface;
     struct xdg_toplevel *xdg_toplevel;
 #if defined(HAVE_XDG_ACTIVATION)
-    struct xdg_activation_token_v1 *xdg_activation_token;
+    tll(struct xdg_activation_token_context *) xdg_tokens;
 #endif
 
     struct zxdg_toplevel_decoration_v1 *xdg_toplevel_decoration;
@@ -417,3 +433,9 @@ bool wayl_win_subsurface_new_with_custom_parent(
     struct wl_window *win, struct wl_surface *parent,
     struct wl_surf_subsurf *surf, bool allow_pointer_input);
 void wayl_win_subsurface_destroy(struct wl_surf_subsurf *surf);
+
+#if defined(HAVE_XDG_ACTIVATION)
+bool wayl_get_activation_token(
+    struct wayland *wayl, struct seat *seat, uint32_t serial,
+    struct wl_window *win, activation_token_cb_t cb, void *cb_data);
+#endif

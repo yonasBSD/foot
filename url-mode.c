@@ -50,8 +50,86 @@ execute_binding(struct seat *seat, struct terminal *term,
     return true;
 }
 
+static bool
+spawn_url_launcher_with_token(struct terminal *term,
+                              const char *url,
+                              const char *xdg_activation_token)
+{
+    size_t argc;
+    char **argv;
+
+    int dev_null = open("/dev/null", O_RDWR);
+
+    if (dev_null < 0) {
+        LOG_ERRNO("failed to open /dev/null");
+        return false;
+    }
+
+    bool ret = false;
+
+    if (spawn_expand_template(
+            &term->conf->url.launch, 1,
+            (const char *[]){"url"},
+            (const char *[]){url},
+            &argc, &argv))
+    {
+        ret = spawn(term->reaper, term->cwd, argv,
+              dev_null, dev_null, dev_null, xdg_activation_token);
+
+        for (size_t i = 0; i < argc; i++)
+            free(argv[i]);
+        free(argv);
+    }
+
+    close(dev_null);
+    return ret;
+}
+
+#if defined(HAVE_XDG_ACTIVATION)
+struct spawn_activation_context {
+    struct terminal *term;
+    char *url;
+};
+
 static void
-activate_url(struct seat *seat, struct terminal *term, const struct url *url)
+activation_token_done(const char *token, void *data)
+{
+    struct spawn_activation_context *ctx = data;
+
+    spawn_url_launcher_with_token(ctx->term, ctx->url, token);
+    free(ctx->url);
+    free(ctx);
+}
+#endif
+
+static bool
+spawn_url_launcher(struct seat *seat, struct terminal *term, const char *url,
+                   uint32_t serial)
+{
+#if defined(HAVE_XDG_ACTIVATION)
+    struct spawn_activation_context *ctx = xmalloc(sizeof(*ctx));
+    *ctx = (struct spawn_activation_context){
+        .term = term,
+        .url = xstrdup(url),
+    };
+
+    if (wayl_get_activation_token(
+            seat->wayl, seat, serial, term->window, &activation_token_done, ctx))
+    {
+        /* Context free:d by callback */
+        return true;
+    }
+
+    free(ctx->url);
+    free(ctx);
+#endif
+
+    return spawn_url_launcher_with_token(term, url, NULL);
+}
+
+static void
+activate_url(struct seat *seat, struct terminal *term, const struct url *url,
+             uint32_t serial)
 {
     char *url_string = NULL;
 
@@ -87,30 +165,7 @@ activate_url(struct seat *seat, struct terminal *term, const struct url *url)
 
     case URL_ACTION_LAUNCH:
     case URL_ACTION_PERSISTENT: {
-        size_t argc;
-        char **argv;
-
-        int dev_null = open("/dev/null", O_RDWR);
-
-        if (dev_null < 0) {
-            LOG_ERRNO("failed to open /dev/null");
-            break;
-        }
-
-        if (spawn_expand_template(
-                &term->conf->url.launch, 1,
-                (const char *[]){"url"},
-                (const char *[]){url_string},
-                &argc, &argv))
-        {
-            spawn(term->reaper, term->cwd, argv, dev_null, dev_null, dev_null);
-
-            for (size_t i = 0; i < argc; i++)
-                free(argv[i]);
-            free(argv);
-        }
-
-        close(dev_null);
+        spawn_url_launcher(seat, term, url_string, serial);
         break;
     }
     }
@@ -207,7 +262,7 @@ urls_input(struct seat *seat, struct terminal *term,
     }
 
     if (match) {
-        activate_url(seat, term, match);
+        activate_url(seat, term, match, serial);
 
         switch (match->action) {
         case URL_ACTION_COPY:

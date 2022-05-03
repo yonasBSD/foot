@@ -41,6 +41,12 @@
 
 ## Unreleased
 ### Added
+
+* XDG activation support when opening URLs ([#1058][1058]).
+
+[1058]: https://codeberg.org/dnkl/foot/issues/1058
+
+
 ### Changed
 ### Deprecated
 ### Removed

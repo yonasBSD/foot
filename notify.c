@@ -48,7 +48,7 @@ notify_notify(const struct terminal *term, const char *title, const char *body)
 
     /* Redirect stdin to /dev/null, but ignore failure to open */
     int devnull = open("/dev/null", O_RDONLY);
-    spawn(term->reaper, NULL, argv, devnull, -1, -1);
+    spawn(term->reaper, NULL, argv, devnull, -1, -1, NULL);
 
     if (devnull >= 0)
         close(devnull);

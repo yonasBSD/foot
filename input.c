@@ -281,7 +281,8 @@ execute_binding(struct seat *seat, struct terminal *term,
             }
         }
 
-        if (!spawn(term->reaper, NULL, binding->aux->pipe.args, pipe_fd[0], stdout_fd, stderr_fd))
+        if (!spawn(term->reaper, NULL, binding->aux->pipe.args,
+                   pipe_fd[0], stdout_fd, stderr_fd, NULL))
             goto pipe_err;
 
         /* Close read end */

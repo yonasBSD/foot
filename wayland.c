@@ -1566,8 +1566,12 @@ wayl_win_destroy(struct wl_window *win)
     shm_purge(term->render.chains.csd);
 
 #if defined(HAVE_XDG_ACTIVATION)
-    if (win->xdg_activation_token != NULL)
-        xdg_activation_token_v1_destroy(win->xdg_activation_token);
+    tll_foreach(win->xdg_tokens, it) {
+        xdg_activation_token_v1_destroy(it->item->xdg_token);
+        free(it->item);
+
+        tll_remove(win->xdg_tokens, it);
+    }
 #endif
     if (win->frame_callback != NULL)
         wl_callback_destroy(win->frame_callback);
@@ -1706,51 +1710,21 @@ wayl_roundtrip(struct wayland *wayl)
 
 #if defined(HAVE_XDG_ACTIVATION)
 static void
-activation_token_done(void *data, struct xdg_activation_token_v1 *xdg_token,
-                      const char *token)
+activation_token_for_urgency_done(const char *token, void *data)
 {
     struct wl_window *win = data;
     struct wayland *wayl = win->term->wl;
 
-    LOG_DBG("activation token: %s", token);
-
     xdg_activation_v1_activate(wayl->xdg_activation, token, win->surface);
-
-    xassert(win->xdg_activation_token == xdg_token);
-    xdg_activation_token_v1_destroy(xdg_token);
-    win->xdg_activation_token = NULL;
 }
-
-static const struct xdg_activation_token_v1_listener activation_token_listener = {
-    .done = &activation_token_done,
-};
 #endif /* HAVE_XDG_ACTIVATION */
 
 bool
 wayl_win_set_urgent(struct wl_window *win)
 {
 #if defined(HAVE_XDG_ACTIVATION)
-    struct wayland *wayl = win->term->wl;
-
-    if (wayl->xdg_activation == NULL)
-        return false;
-
-    if (win->xdg_activation_token != NULL)
-        return true;
-
-    struct xdg_activation_token_v1 *token =
-        xdg_activation_v1_get_activation_token(wayl->xdg_activation);
-
-    if (token == NULL) {
-        LOG_ERR("failed to retrieve XDG activation token");
-        return false;
-    }
-
-    xdg_activation_token_v1_add_listener(token, &activation_token_listener, win);
-    xdg_activation_token_v1_set_surface(token, win->surface);
-    xdg_activation_token_v1_commit(token);
-    win->xdg_activation_token = token;
-    return true;
+    return wayl_get_activation_token(
+        win->term->wl, NULL, 0, win, &activation_token_for_urgency_done, win);
 #else
     return false;
 #endif
@@ -1833,3 +1807,72 @@ wayl_win_subsurface_destroy(struct wl_surf_subsurf *surf)
     surf->surf = NULL;
     surf->sub = NULL;
 }
+
+#if defined(HAVE_XDG_ACTIVATION)
+
+static void
+activation_token_done(void *data, struct xdg_activation_token_v1 *xdg_token,
+                      const char *token)
+{
+    LOG_DBG("XDG activation token done: %s", token);
+
+    struct xdg_activation_token_context *ctx = data;
+    struct wl_window *win = ctx->win;
+
+    ctx->cb(token, ctx->cb_data);
+
+    tll_foreach(win->xdg_tokens, it) {
+        if (it->item->xdg_token != xdg_token)
+            continue;
+
+        xassert(win == it->item->win);
+
+        free(ctx);
+        xdg_activation_token_v1_destroy(xdg_token);
+        tll_remove(win->xdg_tokens, it);
+        return;
+    }
+
+    xassert(false);
+}
+
+static const struct
+xdg_activation_token_v1_listener activation_token_listener = {
+    .done = &activation_token_done,
+};
+
+bool
+wayl_get_activation_token(
+    struct wayland *wayl, struct seat *seat, uint32_t serial,
+    struct wl_window *win,
+    void (*cb)(const char *token, void *data), void *cb_data)
+{
+    if (wayl->xdg_activation == NULL)
+        return false;
+
+    struct xdg_activation_token_v1 *token =
+        xdg_activation_v1_get_activation_token(wayl->xdg_activation);
+
+    if (token == NULL) {
+        LOG_ERR("failed to retrieve XDG activation token");
+        return false;
+    }
+
+    struct xdg_activation_token_context *ctx = xmalloc(sizeof(*ctx));
+    *ctx = (struct xdg_activation_token_context){
+        .win = win,
+        .xdg_token = token,
+        .cb = cb,
+        .cb_data = cb_data,
+    };
+    tll_push_back(win->xdg_tokens, ctx);
+
+    if (seat != NULL && serial != 0)
+        xdg_activation_token_v1_set_serial(token, serial, seat->wl_seat);
+
+    xdg_activation_token_v1_set_surface(token, win->surface);
+    xdg_activation_token_v1_add_listener(token, &activation_token_listener, ctx);
+    xdg_activation_token_v1_commit(token);
+    return true;
+}
+#endif

@@ -3119,7 +3119,8 @@ term_bell(struct terminal *term)
         (!term->kbd_focus || term->conf->bell.command_focused))
     {
         int devnull = open("/dev/null", O_RDONLY);
-        spawn(term->reaper, NULL, term->conf->bell.command.argv.args, devnull, -1, -1);
+        spawn(term->reaper, NULL, term->conf->bell.command.argv.args,
+              devnull, -1, -1, NULL);
 
         if (devnull >= 0)
             close(devnull);
@@ -3131,7 +3132,7 @@ term_spawn_new(const struct terminal *term)
 {
     return spawn(
         term->reaper, term->cwd, (char *const []){term->foot_exe, NULL},
-        -1, -1, -1);
+        -1, -1, -1, NULL);
 }
 
 void
