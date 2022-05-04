@@ -18,3 +18,6 @@ option('default-terminfo', type: 'string', value: 'foot',
 
 option('custom-terminfo-install-location', type: 'string', value: '',
        description: 'Path to foot\'s terminfo, relative to ${prefix}. If set, foot will set $TERMINFO to this value in the client process.')
+
+option('systemd-units-dir', type: 'string', value: '',
+      description: 'Where to install the systemd service files (absolute path). Default: ${systemduserunitdir}')

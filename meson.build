@@ -252,7 +252,13 @@ if systemd.found()
   configuration = configuration_data()
   configuration.set('bindir', join_paths(get_option('prefix'), get_option('bindir')))
 
-  systemd_units_dir = systemd.get_variable('systemduserunitdir')
+  custom_units_dir = get_option('systemd-units-dir')
+  if (custom_units_dir == '')
+    systemd_units_dir = systemd.get_variable('systemduserunitdir')
+  else
+    systemd_units_dir = custom_units_dir
+  endif
+
   configure_file(
     configuration: configuration,
     input: 'foot-server@.service.in',

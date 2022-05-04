@@ -140,15 +140,16 @@ mkdir -p bld/release && cd bld/release
 
 Available compile-time options:
 
-| Option                               | Type    | Default               | Description                                    | Extra dependencies |
-|--------------------------------------|---------|-----------------------|------------------------------------------------|--------------------|
-| `-Ddocs`                             | feature | `auto`                | Builds and install documentation               | scdoc              |
-| `-Dtests`                            | bool    | `true`                | Build tests (adds a `ninja test` build target) | none               |
-| `-Dime`                              | bool    | `true`                | Enables IME support                            | None               |
-| `-Dgrapheme-clustering`              | feature | `auto`                | Enables grapheme clustering                    | libutf8proc        |
-| `-Dterminfo`                         | feature | `enabled`             | Build and install terminfo files               | tic (ncurses)      |
-| `-Ddefault-terminfo`                 | string  | `foot`                | Default value of `TERM`                        | none               |
-| `-Dcustom-terminfo-install-location` | string  | `${datadir}/terminfo` | Value to set `TERMINFO` to                     | None               |
+| Option                               | Type    | Default                 | Description                                           | Extra dependencies |
+|--------------------------------------|---------|-------------------------|-------------------------------------------------------|--------------------|
+| `-Ddocs`                             | feature | `auto`                  | Builds and install documentation                      | scdoc              |
+| `-Dtests`                            | bool    | `true`                  | Build tests (adds a `ninja test` build target)        | none               |
+| `-Dime`                              | bool    | `true`                  | Enables IME support                                   | None               |
+| `-Dgrapheme-clustering`              | feature | `auto`                  | Enables grapheme clustering                           | libutf8proc        |
+| `-Dterminfo`                         | feature | `enabled`               | Build and install terminfo files                      | tic (ncurses)      |
+| `-Ddefault-terminfo`                 | string  | `foot`                  | Default value of `TERM`                               | none               |
+| `-Dcustom-terminfo-install-location` | string  | `${datadir}/terminfo`   | Value to set `TERMINFO` to                            | None               |
+| `-Dsystemd-units-dir`                | string  | `${systemduserunitdir}` | Where to install the systemd service files (absolute) | None               |
 
 Documentation includes the man pages, readme, changelog and license
 files.

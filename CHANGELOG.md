@@ -40,9 +40,11 @@
 
 
 ## Unreleased
+
 ### Added
 
 * XDG activation support when opening URLs ([#1058][1058]).
+* `-Dsystemd-units-dir=<path>` meson command line option.
 
 [1058]: https://codeberg.org/dnkl/foot/issues/1058
 
