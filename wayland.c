@@ -706,9 +706,18 @@ xdg_toplevel_close(void *data, struct xdg_toplevel *xdg_toplevel)
     term_shutdown(term);
 }
 
+static void
+xdg_toplevel_configure_bounds(void *data,
+                              struct xdg_toplevel *xdg_toplevel,
+                              int32_t width, int32_t height)
+{
+    /* TODO: ensure we don't pick a bigger size */
+}
+
 static const struct xdg_toplevel_listener xdg_toplevel_listener = {
     .configure = &xdg_toplevel_configure,
     /*.close = */&xdg_toplevel_close,  /* epoll-shim defines a macro ‘close’... */
+    .configure_bounds = &xdg_toplevel_configure_bounds,
 };
 
 static void
@@ -902,7 +911,7 @@ handle_global(void *data, struct wl_registry *registry,
          */
 
         wayl->shell = wl_registry_bind(
-            wayl->registry, name, &xdg_wm_base_interface, min(version, 2));
+            wayl->registry, name, &xdg_wm_base_interface, min(version, 4));
         xdg_wm_base_add_listener(wayl->shell, &xdg_wm_base_listener, wayl);
     }
 
