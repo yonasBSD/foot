@@ -1726,10 +1726,12 @@ get_csd_data(const struct terminal *term, enum csd_surface surf_idx)
     const int button_close_width = term->width >= 1 * button_width
         ? button_width : 0;
 
-    const int button_maximize_width = term->width >= 2 * button_width
+    const int button_maximize_width =
+        term->width >= 2 * button_width && term->window->wm_capabilities.maximize
         ? button_width : 0;
 
-    const int button_minimize_width = term->width >= 3 * button_width
+    const int button_minimize_width =
+        term->width >= 3 * button_width && term->window->wm_capabilities.minimize
         ? button_width : 0;
 
     switch (surf_idx) {

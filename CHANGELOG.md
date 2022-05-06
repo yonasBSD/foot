@@ -56,12 +56,15 @@
   `key-bindings.unicode-input` and `search-bindings.unicode-input` key
   bindings. Note that there is no visual feedback, as the preferred
   way of entering Unicode characters is with an IME ([#1116][1116]).
+* Support for `xdg_toplevel.wm_capabilities`, to adapt the client-side
+  decoration buttons to the compositor capabilities ([#1061][1061]).
 
 [1058]: https://codeberg.org/dnkl/foot/issues/1058
 [1070]: https://codeberg.org/dnkl/foot/issues/1070
 [30]: https://codeberg.org/dnkl/foot/issues/30
 [1112]: https://codeberg.org/dnkl/foot/issues/1112
 [1116]: https://codeberg.org/dnkl/foot/issues/1116
+[1061]: https://codeberg.org/dnkl/foot/pulls/1061
 
 
 ### Changed

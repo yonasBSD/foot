@@ -339,6 +339,11 @@ struct wl_window {
         uint32_t serial;
     } csd;
 
+    struct {
+        bool maximize:1;
+        bool minimize:1;
+    } wm_capabilities;
+
     struct wl_surf_subsurf search;
     struct wl_surf_subsurf scrollback_indicator;
     struct wl_surf_subsurf render_timer;

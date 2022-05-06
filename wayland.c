@@ -714,10 +714,38 @@ xdg_toplevel_configure_bounds(void *data,
     /* TODO: ensure we don't pick a bigger size */
 }
 
+#if defined(XDG_TOPLEVEL_WM_CAPABILITIES_SINCE_VERSION)
+static void
+xdg_toplevel_wm_capabilities(void *data,
+                             struct xdg_toplevel *xdg_toplevel,
+                             struct wl_array *caps)
+{
+    struct wl_window *win = data;
+
+    win->wm_capabilities.maximize = false;
+    win->wm_capabilities.minimize = false;
+
+    uint32_t *cap_ptr;
+    wl_array_for_each(cap_ptr, caps) {
+        switch (*cap_ptr) {
+        case XDG_TOPLEVEL_WM_CAPABILITIES_MAXIMIZE:
+            win->wm_capabilities.maximize = true;
+            break;
+        case XDG_TOPLEVEL_WM_CAPABILITIES_MINIMIZE:
+            win->wm_capabilities.minimize = true;
+            break;
+        }
+    }
+}
+#endif
+
 static const struct xdg_toplevel_listener xdg_toplevel_listener = {
     .configure = &xdg_toplevel_configure,
     /*.close = */&xdg_toplevel_close,  /* epoll-shim defines a macro ‘close’... */
     .configure_bounds = &xdg_toplevel_configure_bounds,
+#if defined(XDG_TOPLEVEL_WM_CAPABILITIES_SINCE_VERSION)
+    .wm_capabilities = xdg_toplevel_wm_capabilities,
+#endif
 };
 
 static void
@@ -905,13 +933,22 @@ handle_global(void *data, struct wl_registry *registry,
             return;
 
         /*
-         * We *require* version 1, but _can_ use version 2. Version 2
+         * We *require* version 1, but _can_ use version 5. Version 2
          * adds 'tiled' window states. We use that information to
-         * restore the window size when window is un-tiled.
+         * restore the window size when window is un-tiled. Version 5
+         * adds 'wm_capabilities'. We use that information to draw
+         * window decorations.
          */
+#if defined(XDG_TOPLEVEL_WM_CAPABILITIES_SINCE_VERSION)
+        const uint32_t preferred = XDG_TOPLEVEL_WM_CAPABILITIES_SINCE_VERSION;
+#elif defined(XDG_TOPLEVEL_STATE_TILED_LEFT_SINCE_VERSION)
+        const uint32_t preferred = XDG_TOPLEVEL_STATE_TILED_LEFT_SINCE_VERSION;
+#else
+        const uint32_t preferred = required;
+#endif
 
         wayl->shell = wl_registry_bind(
-            wayl->registry, name, &xdg_wm_base_interface, min(version, 4));
+            wayl->registry, name, &xdg_wm_base_interface, min(version, preferred));
         xdg_wm_base_add_listener(wayl->shell, &xdg_wm_base_listener, wayl);
     }
 
@@ -1426,6 +1463,9 @@ wayl_win_init(struct terminal *term, const char *token)
     win->csd_mode = CSD_UNKNOWN;
     win->csd.move_timeout_fd = -1;
     win->resize_timeout_fd = -1;
+
+    win->wm_capabilities.maximize = true;
+    win->wm_capabilities.minimize = true;
 
     win->surface = wl_compositor_create_surface(wayl->compositor);
     if (win->surface == NULL) {
