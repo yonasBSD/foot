@@ -51,6 +51,11 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* Graphical corruption when viewport is at the top of the scrollback,
+  and the output is scrolling.
+
+
 ### Security
 ### Contributors
 

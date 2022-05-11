@@ -23,6 +23,7 @@
 #include "log.h"
 
 #include "async.h"
+#include "commands.h"
 #include "config.h"
 #include "debug.h"
 #include "extract.h"
@@ -34,9 +35,9 @@
 #include "reaper.h"
 #include "render.h"
 #include "selection.h"
+#include "shm.h"
 #include "sixel.h"
 #include "slave.h"
-#include "shm.h"
 #include "spawn.h"
 #include "url-mode.h"
 #include "util.h"
@@ -2544,13 +2545,22 @@ term_scroll_partial(struct terminal *term, struct scroll_region region, int rows
 
     sixel_scroll_up(term, rows);
 
+    /* How many lines from the scrollback start is the current viewport? */
+    int view_sb_start_distance = grid_row_abs_to_sb(
+        term->grid, term->rows, term->grid->view);
+
     bool view_follows = term->grid->view == term->grid->offset;
     term->grid->offset += rows;
     term->grid->offset &= term->grid->num_rows - 1;
 
-    if (view_follows) {
+    if (likely(view_follows)) {
         selection_view_down(term, term->grid->offset);
         term->grid->view = term->grid->offset;
+    } else if (unlikely(rows > view_sb_start_distance)) {
+        /* Part of current view is being scrolled out */
+        int new_view = grid_row_sb_to_abs(term->grid, term->rows, 0);
+        selection_view_down(term, new_view);
+        cmd_scrollback_down(term, rows - view_sb_start_distance);
     }
 
     /* Top non-scrolling region. */
@@ -2611,8 +2621,7 @@ term_scroll_reverse_partial(struct terminal *term,
 
     bool view_follows = term->grid->view == term->grid->offset;
     term->grid->offset -= rows;
-    while (term->grid->offset < 0)
-        term->grid->offset += term->grid->num_rows;
+    term->grid->offset += term->grid->num_rows;
     term->grid->offset &= term->grid->num_rows - 1;
 
     xassert(term->grid->offset >= 0);
