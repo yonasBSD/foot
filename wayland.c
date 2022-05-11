@@ -1715,6 +1715,7 @@ activation_token_for_urgency_done(const char *token, void *data)
     struct wl_window *win = data;
     struct wayland *wayl = win->term->wl;
 
+    win->urgency_token_is_pending = false;
     xdg_activation_v1_activate(wayl->xdg_activation, token, win->surface);
 }
 #endif /* HAVE_XDG_ACTIVATION */
@@ -1723,11 +1724,22 @@ bool
 wayl_win_set_urgent(struct wl_window *win)
 {
 #if defined(HAVE_XDG_ACTIVATION)
-    return wayl_get_activation_token(
+    if (win->urgency_token_is_pending) {
+        /* We already have a pending token. Don’t request another one,
+         * to avoid flooding the Wayland socket */
+        return true;
+    }
+
+    bool success = wayl_get_activation_token(
         win->term->wl, NULL, 0, win, &activation_token_for_urgency_done, win);
-#else
-    return false;
+
+    if (success) {
+        win->urgency_token_is_pending = true;
+        return true;
+    }
 #endif
+
+    return false;
 }
 
 bool

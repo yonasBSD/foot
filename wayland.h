@@ -319,6 +319,7 @@ struct wl_window {
     struct xdg_toplevel *xdg_toplevel;
 #if defined(HAVE_XDG_ACTIVATION)
     tll(struct xdg_activation_token_context *) xdg_tokens;
+    bool urgency_token_is_pending;
 #endif
 
     struct zxdg_toplevel_decoration_v1 *xdg_toplevel_decoration;
