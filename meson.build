@@ -247,16 +247,16 @@ install_data(
   install_dir: join_paths(get_option('datadir'), 'applications'))
 
 systemd = dependency('systemd', required: false)
-if systemd.found()
+custom_systemd_units_dir = get_option('systemd-units-dir')
 
+if systemd.found() or custom_systemd_units_dir != ''
   configuration = configuration_data()
   configuration.set('bindir', join_paths(get_option('prefix'), get_option('bindir')))
 
-  custom_units_dir = get_option('systemd-units-dir')
-  if (custom_units_dir == '')
+  if (custom_systemd_units_dir == '')
     systemd_units_dir = systemd.get_variable('systemduserunitdir')
   else
-    systemd_units_dir = custom_units_dir
+    systemd_units_dir = custom_systemd_units_dir
   endif
 
   configure_file(
