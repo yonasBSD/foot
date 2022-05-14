@@ -455,12 +455,12 @@ main(int argc, char *const *argv)
             const char *const fallback_locale = fallback_locales[i];
 
             if (setlocale(LC_CTYPE, fallback_locale) != NULL) {
-                LOG_WARN("locale '%s' is not UTF-8, using '%s' instead",
+                LOG_WARN("'%s' is not a UTF-8 locale, using '%s' instead",
                          locale, fallback_locale);
 
                 user_notification_add_fmt(
                     &user_notifications, USER_NOTIFICATION_WARNING,
-                    "locale '%s' is not UTF-8, using '%s' instead",
+                    "'%s' is not a UTF-8 locale, using '%s' instead",
                     locale, fallback_locale);
 
                 bad_locale = false;
@@ -469,13 +469,13 @@ main(int argc, char *const *argv)
         }
 
         if (bad_locale) {
-            LOG_ERR("locale '%s' is not UTF-8, "
-                    "and failed to enable a fallback locale", locale);
+            LOG_ERR(
+                "'%s' is not a UTF-8 locale, and failed to find a fallback",
+                locale);
 
             user_notification_add_fmt(
                 &user_notifications, USER_NOTIFICATION_ERROR,
-                "locale '%s' is not UTF-8, "
-                "and failed to enable a fallback locale",
+                "'%s' is not a UTF-8 locale, and failed to find a fallback",
                 locale);
         }
     }
