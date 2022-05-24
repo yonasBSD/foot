@@ -15,7 +15,7 @@ foot will search for a configuration file in the following locations,
 in this order:
 
 	- *XDG_CONFIG_HOME/foot/foot.ini* (defaulting to
-	  *~/.config/foot/foot.ini* if unset)
+	  *$HOME/.config/foot/foot.ini* if unset)
 	- *XDG_CONFIG_DIRS/foot/foot.ini* (defaulting to
 	  */etc/xdg/foot/foot.ini* if unset)
 

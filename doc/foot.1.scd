@@ -361,7 +361,7 @@ foot will search for a configuration file in the following locations,
 in this order:
 
 	- *XDG_CONFIG_HOME/foot/foot.ini* (defaulting to
-	  *~/.config/foot/foot.ini* if unset)
+	  *$HOME/.config/foot/foot.ini* if unset)
 	- *XDG_CONFIG_DIRS/foot/foot.ini* (defaulting to
 	  */etc/xdg/foot/foot.ini* if unset)
 
@@ -463,6 +463,10 @@ The following environment variables are used by foot:
 *SHELL*
 	The default child process to run, when no _command_ argument is
 	specified and the *shell* option in *foot.ini*(5) is not set.
+
+*HOME*
+	Used to determine the location of the configuration file, see
+	*foot.ini*(5) for details.
 
 *XDG\_CONFIG\_HOME*
 	Used to determine the location of the configuration file, see

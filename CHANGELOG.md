@@ -50,6 +50,11 @@
 
 
 ### Changed
+
+* Use `$HOME` instead of `getpwuid()` to retrieve the user’s home
+  directory when searching for `foot.ini`.
+
+
 ### Deprecated
 ### Removed
 ### Fixed
