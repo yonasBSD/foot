@@ -104,6 +104,12 @@ struct config_spawn_template {
     struct argv argv;
 };
 
+struct env_var {
+    char *name;
+    char *value;
+};
+typedef tll(struct env_var) env_var_list_t;
+
 struct config {
     char *term;
     char *shell;
@@ -295,6 +301,8 @@ struct config {
 
     struct config_spawn_template notify;
     bool notify_focus_inhibit;
+
+    env_var_list_t env_vars;
 
     struct {
         enum fcft_scaling_filter fcft_filter;

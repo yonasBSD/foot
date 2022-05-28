@@ -2201,6 +2201,29 @@ err:
 }
 
 static bool
+parse_section_environment(struct context *ctx)
+{
+    struct config *conf = ctx->conf;
+    const char *key = ctx->key;
+    const char *value = ctx->value;
+
+    tll_foreach(conf->env_vars, it) {
+        if (strcmp(it->item.name, key) == 0) {
+            free(it->item.value);
+            it->item.value = xstrdup(value);
+            return true;
+        }
+    }
+
+    struct env_var var = {
+        .name = xstrdup(key),
+        .value = xstrdup(value),
+    };
+    tll_push_back(conf->env_vars, var);
+    return true;
+}
+
+static bool
 parse_section_tweak(struct context *ctx)
 {
     struct config *conf = ctx->conf;
@@ -2403,6 +2426,7 @@ enum section {
     SECTION_URL_BINDINGS,
     SECTION_MOUSE_BINDINGS,
     SECTION_TEXT_BINDINGS,
+    SECTION_ENVIRONMENT,
     SECTION_TWEAK,
     SECTION_COUNT,
 };
@@ -2427,6 +2451,7 @@ static const struct {
     [SECTION_URL_BINDINGS] =    {&parse_section_url_bindings, "url-bindings"},
     [SECTION_MOUSE_BINDINGS] =  {&parse_section_mouse_bindings, "mouse-bindings"},
     [SECTION_TEXT_BINDINGS] =   {&parse_section_text_bindings, "text-bindings"},
+    [SECTION_ENVIRONMENT] =     {&parse_section_environment, "environment"},
     [SECTION_TWEAK] =           {&parse_section_tweak, "tweak"},
 };
 
@@ -2867,6 +2892,7 @@ config_load(struct config *conf, const char *conf_path,
             .sixel = true,
         },
 
+        .env_vars = tll_init(),
         .notifications = tll_init(),
     };
 
@@ -3147,6 +3173,14 @@ config_clone(const struct config *old)
     key_binding_list_clone(&conf->bindings.url, &old->bindings.url);
     key_binding_list_clone(&conf->bindings.mouse, &old->bindings.mouse);
 
+    tll_foreach(old->env_vars, it) {
+        struct env_var copy = {
+            .name = xstrdup(it->item.name),
+            .value = xstrdup(it->item.value),
+        };
+        tll_push_back(conf->env_vars, copy);
+    }
+
     conf->notifications.length = 0;
     conf->notifications.head = conf->notifications.tail = 0;
     tll_foreach(old->notifications, it) {
@@ -3206,6 +3240,12 @@ config_free(struct config *conf)
     free_key_binding_list(&conf->bindings.search);
     free_key_binding_list(&conf->bindings.url);
     free_key_binding_list(&conf->bindings.mouse);
+
+    tll_foreach(conf->env_vars, it) {
+        free(it->item.name);
+        free(it->item.value);
+        tll_remove(conf->env_vars, it);
+    }
 
     user_notifications_free(&conf->notifications);
 }

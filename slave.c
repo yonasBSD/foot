@@ -305,8 +305,9 @@ err:
 
 pid_t
 slave_spawn(int ptmx, int argc, const char *cwd, char *const *argv,
-            char *const *envp, const char *term_env, const char *conf_shell,
-            bool login_shell, const user_notifications_t *notifications)
+            char *const *envp, const env_var_list_t *extra_env_vars,
+            const char *term_env, const char *conf_shell, bool login_shell,
+            const user_notifications_t *notifications)
 {
     int fork_pipe[2];
     if (pipe2(fork_pipe, O_CLOEXEC) < 0) {
@@ -355,6 +356,11 @@ slave_spawn(int ptmx, int argc, const char *cwd, char *const *argv,
 #if defined(FOOT_TERMINFO_PATH)
         setenv("TERMINFO", FOOT_TERMINFO_PATH, 1);
 #endif
+
+        if (extra_env_vars != NULL) {
+            tll_foreach(*extra_env_vars, it)
+                setenv(it->item.name, it->item.value, 1);
+        }
 
         char **_shell_argv = NULL;
         char **shell_argv = NULL;

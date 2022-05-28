@@ -1248,7 +1248,7 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
 
     /* Start the slave/client */
     if ((term->slave = slave_spawn(
-             term->ptmx, argc, term->cwd, argv, envp,
+             term->ptmx, argc, term->cwd, argv, envp, &conf->env_vars,
              conf->term, conf->shell, conf->login_shell,
              &conf->notifications)) == -1)
     {
