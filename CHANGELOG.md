@@ -45,8 +45,12 @@
 
 * XDG activation support when opening URLs ([#1058][1058]).
 * `-Dsystemd-units-dir=<path>` meson command line option.
+* Support for custom environment variables in `foot.ini`
+  ([#1070][1070]).
+
 
 [1058]: https://codeberg.org/dnkl/foot/issues/1058
+[1070]: https://codeberg.org/dnkl/foot/issues/1070
 
 
 ### Changed
