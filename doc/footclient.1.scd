@@ -136,7 +136,7 @@ terminfo entries manually, by copying *foot* and *foot-direct* to
 
 # ENVIRONMENT
 
-The following environment variables are used by footclient:
+## Variables used by footclient
 
 *XDG\_RUNTIME\_DIR*
 	Used to construct the default _PATH_ for the *--server-socket*
@@ -146,7 +146,7 @@ The following environment variables are used by footclient:
 	Used to construct the default _PATH_ for the *--server-socket*
 	option, when no explicit argument is given (see above).
 
-The following environment variables are set in the child process:
+## Variables set in the child process
 
 *TERM*
 	terminfo/termcap identifier. This is used by client applications
@@ -157,6 +157,9 @@ The following environment variables are set in the child process:
 *COLORTERM*
 	This variable is set to *truecolor*, to indicate to client
 	applications that 24-bit RGB colors are supported.
+
+In addition to the variables listed above, custom environment
+variables may be defined in *foot.ini*(5).
 
 # SEE ALSO
 

@@ -458,7 +458,7 @@ In all other cases, the exit code is that of the client application
 
 # ENVIRONMENT
 
-The following environment variables are used by foot:
+## Variables used by foot
 
 *SHELL*
 	The default child process to run, when no _command_ argument is
@@ -492,7 +492,7 @@ The following environment variables are used by foot:
 	The size to use for *Xcursor*(3) pointers (typically set by the
 	Wayland compositor).
 
-The following environment variables are set in the child process:
+## Variables set in the child process
 
 *TERM*
 	terminfo/termcap identifier. This is used by client applications
@@ -503,6 +503,9 @@ The following environment variables are set in the child process:
 *COLORTERM*
 	This variable is set to *truecolor*, to indicate to client
 	applications that 24-bit RGB colors are supported.
+
+In addition to the variables listed above, custom environment
+variables may be defined in *foot.ini*(5).
 
 # BUGS
 

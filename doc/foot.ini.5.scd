@@ -305,6 +305,19 @@ commented out will usually be installed to */etc/xdg/foot/foot.ini*.
 	(including SMT). Note that this is not always the best value. In
 	some cases, the number of physical _cores_ is better.
 
+# SECTION: environment
+
+This section is used to define environment variables that will be set
+in the client application, in addition to the variables inherited from
+the terminal process itself.
+
+The format is simply:
+
+*name*=_value_
+
+Note: do not set *TERM* here; use the *term* option in the main
+(default) section instead.
+
 # SECTION: bell
 
 *urgent*
