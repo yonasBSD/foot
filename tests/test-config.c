@@ -1133,6 +1133,42 @@ test_section_text_bindings(void)
 }
 
 static void
+test_section_environment(void)
+{
+    struct config conf = {0};
+    struct context ctx = {
+        .conf = &conf, .section = "environment", .path = "unittest"};
+
+    /* A single variable */
+    ctx.key = "FOO";
+    ctx.value = "bar";
+    xassert(parse_section_environment(&ctx));
+    xassert(tll_length(conf.env_vars) == 1);
+    xassert(strcmp(tll_front(conf.env_vars).name, "FOO") == 0);
+    xassert(strcmp(tll_front(conf.env_vars).value, "bar") == 0);
+
+    /* Add a second variable */
+    ctx.key = "BAR";
+    ctx.value = "123";
+    xassert(parse_section_environment(&ctx));
+    xassert(tll_length(conf.env_vars) == 2);
+    xassert(strcmp(tll_back(conf.env_vars).name, "BAR") == 0);
+    xassert(strcmp(tll_back(conf.env_vars).value, "123") == 0);
+
+    /* Replace the *value* of the first variable */
+    ctx.key = "FOO";
+    ctx.value = "456";
+    xassert(parse_section_environment(&ctx));
+    xassert(tll_length(conf.env_vars) == 2);
+    xassert(strcmp(tll_front(conf.env_vars).name, "FOO") == 0);
+    xassert(strcmp(tll_front(conf.env_vars).value, "456") == 0);
+    xassert(strcmp(tll_back(conf.env_vars).name, "BAR") == 0);
+    xassert(strcmp(tll_back(conf.env_vars).value, "123") == 0);
+
+    config_free(&conf);
+}
+
+static void
 test_section_tweak(void)
 {
     struct config conf = {0};
@@ -1227,6 +1263,7 @@ main(int argc, const char *const *argv)
     test_section_mouse_bindings();
     test_section_mouse_bindings_collisions();
     test_section_text_bindings();
+    test_section_environment();
     test_section_tweak();
     log_deinit();
     return 0;
