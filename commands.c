@@ -32,20 +32,12 @@ cmd_scrollback_up(struct terminal *term, int rows)
         scrollback_start &= grid_rows - 1;
     }
 
-    /* Number of rows to scroll, without going past the scrollback start */
-    int max_rows = 0;
-    if (view + screen_rows >= grid_rows) {
-        /* View crosses scrollback wrap-around */
-        xassert(scrollback_start <= view);
-        max_rows = view - scrollback_start;
-    } else {
-        if (scrollback_start <= view)
-            max_rows = view - scrollback_start;
-        else
-            max_rows = view + (grid_rows - scrollback_start);
-    }
+    /* The view row number in scrollback relative coordinates. This is
+     * the maximum number of rows we’re allowed to scroll */
+    int view_sb_rel = view - scrollback_start + grid_rows;
+    view_sb_rel &= grid_rows - 1;
 
-    rows = min(rows, max_rows);
+    rows = min(rows, view_sb_rel);
     if (rows == 0)
         return;
 
