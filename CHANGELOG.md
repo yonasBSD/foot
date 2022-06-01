@@ -61,6 +61,9 @@
 
 * Graphical corruption when viewport is at the top of the scrollback,
   and the output is scrolling.
+* Improved text reflow of logical lines with trailing empty cells ([#1055][1055])
+
+[1055]: https://codeberg.org/dnkl/foot/issues/1055
 
 
 ### Security

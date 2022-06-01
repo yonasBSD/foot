@@ -703,6 +703,11 @@ grid_resize_and_reflow(
             }
         }
 
+        if (!old_row->linebreak /*&& col_count > 0*/) {
+            /* Don’t truncate logical lines */
+            col_count = old_cols;
+        }
+
         xassert(col_count >= 0 && col_count <= old_cols);
 
         /* Do we have a (at least one) tracking point on this row */
