@@ -284,7 +284,7 @@ grid_row_alloc(int cols, bool initialize)
 {
     struct row *row = xmalloc(sizeof(*row));
     row->dirty = false;
-    row->linebreak = false;
+    row->linebreak = true;
     row->extra = NULL;
 
     if (initialize) {
@@ -502,7 +502,7 @@ _line_wrap(struct grid *old_grid, struct row **new_grid, struct row *row,
     } else {
         /* Scrollback is full, need to re-use a row */
         grid_row_reset_extra(new_row);
-        new_row->linebreak = false;
+        new_row->linebreak = true;
 
         tll_foreach(old_grid->sixel_images, it) {
             if (it->item.pos.row == *row_idx) {
@@ -833,6 +833,14 @@ grid_resize_and_reflow(
                     &new_row->cells[new_col_idx], &old_row->cells[from],
                     amount * sizeof(struct cell));
 
+                /*
+                 * We’ve “printed” to this line - reset linebreak.
+                 *
+                 * If the old line ends with a hard linebreak, we’ll
+                 * set linebreak=true on the last new row we print to.
+                 */
+                new_row->linebreak = false;
+
                 count -= amount;
                 from += amount;
                 new_col_idx += amount;
@@ -891,7 +899,7 @@ grid_resize_and_reflow(
         }
 
 
-        if (old_row->linebreak) {
+        if (old_row->linebreak && col_count > 0) {
             /* Erase the remaining cells */
             memset(&new_row->cells[new_col_idx], 0,
                    (new_cols - new_col_idx) * sizeof(new_row->cells[0]));
