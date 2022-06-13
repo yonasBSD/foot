@@ -753,7 +753,7 @@ action_utf8_print(struct terminal *term, char32_t wc)
 
             /* Look for existing combining chain */
             while (true) {
-                if (collision_count > 128) {
+                if (unlikely(collision_count > 128)) {
                     static bool have_warned = false;
                     if (!have_warned) {
                         have_warned = true;
