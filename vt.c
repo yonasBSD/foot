@@ -738,8 +738,20 @@ action_utf8_print(struct terminal *term, char32_t wc)
 
             xassert(wanted_count <= 255);
 
+            size_t collision_count = 0;
+
             /* Look for existing combining chain */
             while (true) {
+                if (collision_count > 128) {
+                    static bool have_warned = false;
+                    if (!have_warned) {
+                        have_warned = true;
+                        LOG_WARN("ignoring composed character: "
+                                 "too many collisions in hash table");
+                    }
+                    return;
+                }
+
                 const struct composed *cc = composed_lookup(term->composed, key);
                 if (cc == NULL)
                     break;
@@ -756,6 +768,7 @@ action_utf8_print(struct terminal *term, char32_t wc)
                     cc->chars[wanted_count - 1] != wc)
                 {
                     key++;
+                    collision_count++;
                     continue;
                 }
 
@@ -766,6 +779,7 @@ action_utf8_print(struct terminal *term, char32_t wc)
 
                 if (!match) {
                     key++;
+                    collision_count++;
                     continue;
                 }
 
