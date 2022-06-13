@@ -622,8 +622,21 @@ action_put(struct terminal *term, uint8_t c)
 static inline uint32_t
 chain_key(uint32_t old_key, uint32_t new_wc)
 {
-    /* Rotate left 8 bits, xor with new char */
-    return ((old_key << 8) | (old_key >> (32 - 8))) ^ new_wc;
+    unsigned bits = 32 - __builtin_clz(CELL_COMB_CHARS_HI - CELL_COMB_CHARS_LO);
+
+    /* Rotate old key 8 bits */
+    uint32_t new_key = (old_key << 8) | (old_key >> (bits - 8));
+
+    /* xor with new char */
+    new_key ^= new_wc;
+
+    /* Multiply with magic hash constant */
+    new_key *= 2654435761;
+
+    /* And mask, to ensure the new value is within range */
+    new_key &= CELL_COMB_CHARS_HI - CELL_COMB_CHARS_LO;
+
+    return new_key;
 }
 
 static void
@@ -667,8 +680,6 @@ action_utf8_print(struct terminal *term, char32_t wc)
             key = chain_key(composed->key, wc);
         } else
             key = chain_key(base, wc);
-
-        key &= CELL_COMB_CHARS_HI - CELL_COMB_CHARS_LO;
 
 #if defined(FOOT_GRAPHEME_CLUSTERING)
         if (grapheme_clustering) {
@@ -767,6 +778,10 @@ action_utf8_print(struct terminal *term, char32_t wc)
                     cc->count != wanted_count ||
                     cc->chars[wanted_count - 1] != wc)
                 {
+#if 0
+                    LOG_WARN("COLLISION: base: %04x/%04x, count: %d/%zu, last: %04x/%04x",
+                             cc->chars[0], base, cc->count, wanted_count, cc->chars[wanted_count - 1], wc);
+#endif
                     key++;
                     collision_count++;
                     continue;
