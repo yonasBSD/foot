@@ -57,6 +57,12 @@
 
 * Use `$HOME` instead of `getpwuid()` to retrieve the user’s home
   directory when searching for `foot.ini`.
+* HT, VT and FF are no longer stripped when pasting in non-bracketed
+  mode ([#1084][1084]).
+* NUL is now stripped when pasting in non-bracketed mode
+  ([#1084][1084]).
+
+[1084]: https://codeberg.org/dnkl/foot/issues/1084
 
 
 ### Deprecated

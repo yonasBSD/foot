@@ -1845,9 +1845,22 @@ fdm_receive(struct fdm *fdm, int fd, int events, void *data)
                 skip_one();
                 goto again;
 
-            /* Additional control characters stripped by default (but
-             * configurable) in XTerm: BS, HT, DEL */
-            case '\b': case '\t': case '\v': case '\f': case '\x7f':
+            /*
+             * In addition to stripping non-formatting C0 controls,
+             * XTerm has an option, “disallowedPasteControls”, that
+             * defines C0 controls that will be replaced with spaces
+             * when pasted.
+             *
+             * It’s default value is BS,DEL,ENQ,EOT,NUL
+             *
+             * Instead of replacing them with spaces, we allow them in
+             * bracketed paste mode, and strip them completely in
+             * non-bracketed mode.
+             *
+             * Note some of the (default) XTerm controls are already
+             * handled above.
+             */
+            case '\b': case '\x7f': case '\x00':
                 if (!ctx->bracketed) {
                     skip_one();
                     goto again;
