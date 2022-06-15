@@ -18,6 +18,40 @@
 #include "xmalloc.h"
 
 static void
+ime_reset_pending_preedit(struct seat *seat)
+{
+    free(seat->ime.preedit.pending.text);
+    seat->ime.preedit.pending.text = NULL;
+}
+
+static void
+ime_reset_pending_commit(struct seat *seat)
+{
+    free(seat->ime.commit.pending.text);
+    seat->ime.commit.pending.text = NULL;
+}
+
+void
+ime_reset_pending(struct seat *seat)
+{
+    ime_reset_pending_preedit(seat);
+    ime_reset_pending_commit(seat);
+}
+
+void
+ime_reset_preedit(struct seat *seat)
+{
+    if (seat->ime.preedit.cells == NULL)
+        return;
+
+    free(seat->ime.preedit.text);
+    free(seat->ime.preedit.cells);
+    seat->ime.preedit.text = NULL;
+    seat->ime.preedit.cells = NULL;
+    seat->ime.preedit.count = 0;
+}
+
+static void
 enter(void *data, struct zwp_text_input_v3 *zwp_text_input_v3,
       struct wl_surface *surface)
 {
@@ -322,40 +356,6 @@ done(void *data, struct zwp_text_input_v3 *zwp_text_input_v3,
         else
             render_refresh(term);
     }
-}
-
-void
-ime_reset_pending_preedit(struct seat *seat)
-{
-    free(seat->ime.preedit.pending.text);
-    seat->ime.preedit.pending.text = NULL;
-}
-
-void
-ime_reset_pending_commit(struct seat *seat)
-{
-    free(seat->ime.commit.pending.text);
-    seat->ime.commit.pending.text = NULL;
-}
-
-void
-ime_reset_pending(struct seat *seat)
-{
-    ime_reset_pending_preedit(seat);
-    ime_reset_pending_commit(seat);
-}
-
-void
-ime_reset_preedit(struct seat *seat)
-{
-    if (seat->ime.preedit.cells == NULL)
-        return;
-
-    free(seat->ime.preedit.text);
-    free(seat->ime.preedit.cells);
-    seat->ime.preedit.text = NULL;
-    seat->ime.preedit.cells = NULL;
-    seat->ime.preedit.count = 0;
 }
 
 static void
