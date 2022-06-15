@@ -3576,7 +3576,7 @@ frame_callback(void *data, struct wl_callback *wl_callback, uint32_t callback_da
         grid_render(term);
 
     tll_foreach(term->wl->seats, it) {
-        if (it->item.kbd_focus == term)
+        if (it->item.ime_focus == term)
             ime_update_cursor_rect(&it->item);
     }
 
@@ -4058,7 +4058,7 @@ fdm_hook_refresh_pending_terminals(struct fdm *fdm, void *data)
                 grid_render(term);
 
             tll_foreach(term->wl->seats, it) {
-                if (it->item.kbd_focus == term)
+                if (it->item.ime_focus == term)
                     ime_update_cursor_rect(&it->item);
             }
 

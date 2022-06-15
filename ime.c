@@ -56,12 +56,18 @@ enter(void *data, struct zwp_text_input_v3 *zwp_text_input_v3,
       struct wl_surface *surface)
 {
     struct seat *seat = data;
+    struct wl_window *win = wl_surface_get_user_data(surface);
+    struct terminal *term = win->term;
 
-    LOG_DBG("enter: seat=%s", seat->name);
+    LOG_DBG("enter: seat=%s, term=%p", seat->name, (const void *)term);
+
+    if (seat->kbd_focus != term) {
+        LOG_WARN("compositor sent ime::enter() event before the "
+                 "corresponding keyboard_enter() event");
+    }
 
     /* The main grid is the *only* input-receiving surface we have */
-    xassert(seat->kbd_focus != NULL);
-    seat->ime.focused = true;
+    seat->ime_focus = term;
     ime_enable(seat);
 }
 
@@ -73,7 +79,7 @@ leave(void *data, struct zwp_text_input_v3 *zwp_text_input_v3,
     LOG_DBG("leave: seat=%s", seat->name);
 
     ime_disable(seat);
-    seat->ime.focused = false;
+    seat->ime_focus = NULL;
 }
 
 static void
@@ -138,7 +144,7 @@ done(void *data, struct zwp_text_input_v3 *zwp_text_input_v3,
 
     LOG_DBG("done: serial=%u", serial);
     struct seat *seat = data;
-    struct terminal *term = seat->kbd_focus;
+    struct terminal *term = seat->ime_focus;
 
     if (seat->ime.serial != serial) {
         LOG_DBG("IME serial mismatch: expected=0x%08x, got 0x%08x",
@@ -364,10 +370,10 @@ ime_send_cursor_rect(struct seat *seat)
     if (unlikely(seat->wayl->text_input_manager == NULL))
         return;
 
-    if (!seat->ime.focused)
+    if (seat->ime_focus == NULL)
         return;
 
-    struct terminal *term = seat->kbd_focus;
+    struct terminal *term = seat->ime_focus;
 
     if (!term->ime_enabled)
         return;
@@ -399,10 +405,10 @@ ime_enable(struct seat *seat)
     if (unlikely(seat->wayl->text_input_manager == NULL))
         return;
 
-    if (!seat->ime.focused)
+    if (seat->ime_focus == NULL)
         return;
 
-    struct terminal *term = seat->kbd_focus;
+    struct terminal *term = seat->ime_focus;
     if (term == NULL)
         return;
 
@@ -437,7 +443,7 @@ ime_disable(struct seat *seat)
     if (unlikely(seat->wayl->text_input_manager == NULL))
         return;
 
-    if (!seat->ime.focused)
+    if (seat->ime_focus == NULL)
         return;
 
     ime_reset_pending(seat);
@@ -451,7 +457,7 @@ ime_disable(struct seat *seat)
 void
 ime_update_cursor_rect(struct seat *seat)
 {
-    struct terminal *term = seat->kbd_focus;
+    struct terminal *term = seat->ime_focus;
 
     /* Set in render_ime_preedit() */
     if (seat->ime.preedit.cells != NULL)

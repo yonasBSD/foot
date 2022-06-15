@@ -81,6 +81,7 @@ struct seat {
     /* Focused terminals */
     struct terminal *kbd_focus;
     struct terminal *mouse_focus;
+    struct terminal *ime_focus;
 
     /* Keyboard state */
     struct wl_keyboard *wl_keyboard;
@@ -202,7 +203,6 @@ struct seat {
             } pending;
         } surrounding;
 
-        bool focused;
         uint32_t serial;
     } ime;
 #endif
