@@ -869,6 +869,40 @@ osc_dispatch(struct terminal *term)
         term->colors.use_custom_selection = term->conf->colors.use_custom.selection;
         break;
 
+    case 133:
+        /*
+         * Shell integration; see
+         * https://iterm2.com/documentation-escape-codes.html (Shell
+         * Integration/FinalTerm)
+         *
+         * [PROMPT]prompt% [COMMAND_START] ls -l
+         * [COMMAND_EXECUTED]
+         * -rw-r--r-- 1 user group 127 May 1 2016 filename
+         * [COMMAND_FINISHED]
+         */
+        switch (string[0]) {
+        case 'A':
+            LOG_DBG("FTCS_PROMPT: %dx%d",
+                     term->grid->cursor.point.row,
+                    term->grid->cursor.point.col);
+
+            term->grid->cur_row->prompt_marker = true;
+            break;
+
+        case 'B':
+            LOG_DBG("FTCS_COMMAND_START");
+            break;
+
+        case 'C':
+            LOG_DBG("FTCS_COMMAND_EXECUTED");
+            break;
+
+        case 'D':
+            LOG_DBG("FTCS_COMMAND_FINISHED");
+            break;
+        }
+        break;
+
     case 555:
         osc_flash(term);
         break;

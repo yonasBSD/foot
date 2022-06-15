@@ -25,6 +25,12 @@ void grid_resize_and_reflow(
 int grid_row_abs_to_sb(const struct grid *grid, int screen_rows, int abs_row);
 int grid_row_sb_to_abs(const struct grid *grid, int screen_rows, int sb_rel_row);
 
+int grid_sb_start_ignore_uninitialized(const struct grid *grid, int screen_rows);
+int grid_row_abs_to_sb_precalc_sb_start(
+    const struct grid *grid, int sb_start, int abs_row);
+int grid_row_sb_to_abs_precalc_sb_start(
+    const struct grid *grid, int sb_start, int sb_rel_row);
+
 static inline int
 grid_row_absolute(const struct grid *grid, int row_no)
 {
@@ -36,7 +42,6 @@ grid_row_absolute_in_view(const struct grid *grid, int row_no)
 {
     return (grid->view + row_no) & (grid->num_rows - 1);
 }
-
 
 static inline struct row *
 _grid_row_maybe_alloc(struct grid *grid, int row_no, bool alloc_if_null)

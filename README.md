@@ -24,6 +24,9 @@ The fast, lightweight and minimalistic Wayland terminal emulator.
    1. [Mouse](#mouse)
 1. [Server (daemon) mode](#server-daemon-mode)
 1. [URLs](#urls)
+1. [Shell integration](#shell-integration)
+   1. [Current working directory](#current-working-directory)
+   1. [Jumping between prompts](#jumping-between-prompts)
 1. [Alt/meta](#alt-meta)
 1. [Backspace](#backspace)
 1. [Keypad](#keypad)
@@ -157,12 +160,20 @@ These are the default shortcuts. See `man foot.ini` and the example
 <kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>n</kbd>
 : Spawn a new terminal. If the shell has been [configured to emit the
   OSC 7 escape
-  sequence](https://codeberg.org/dnkl/foot/wiki#user-content-how-to-configure-my-shell-to-emit-the-osc-7-escape-sequence),
+  sequence](https://codeberg.org/dnkl/foot/wiki#user-content-spawning-new-terminal-instances-in-the-current-working-directory),
   the new terminal will start in the current working directory.
 
 <kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>u</kbd>
 : Enter URL mode, where all currently visible URLs are tagged with a
   jump label with a key sequence that will open the URL.
+
+<kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>z</kbd>
+: Jump to the previous, currently not visible, prompt. Requires [shell
+  integration](https://codeberg.org/dnkl/foot/wiki#user-content-jumping-between-prompts).
+
+<kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>x</kbd>
+: Jump to the next prompt. Requires [shell
+  integration](https://codeberg.org/dnkl/foot/wiki#user-content-jumping-between-prompts).
 
 
 #### Scrollback search
@@ -296,6 +307,44 @@ Jump label colors, the URL underline color, and the letters used in
 the jump label key sequences can be configured.
 
 
+## Shell integration
+
+### Current working directory
+
+New foot terminal instances (bound to
+<kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>n</kbd> by default) will open in
+the current working directory, **if** the shell in the “parent”
+terminal reports directory changes.
+
+This is done with the OSC-7 escape sequence. Most shells can be
+scripted to do this, if they do not support it natively. See the
+[wiki](https://codeberg.org/dnkl/foot/wiki#user-content-spawning-new-terminal-instances-in-the-current-working-directory)
+for details.
+
+
+### Jumping between prompts
+
+Foot can move the current viewport to focus prompts of already
+executed commands (bound to
+<kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>z</kbd>/<kbd>x</kbd> by
+default).
+
+For this to work, the shell needs to emit an OSC-133;A
+(`\E]133;A\E\\`) sequence before each prompt.
+
+In zsh, one way to do this is to add a `precmd` hook:
+
+```zsh
+precmd() {
+    print -Pn "\e]133;A\e\\"
+}
+```
+
+See the
+[wiki](https://codeberg.org/dnkl/foot/wiki#user-content-jumping-between-prompts)
+for details, and examples for other shells.
+
+
 ## Alt/meta
 
 By default, foot prefixes _Meta characters_ with ESC. This corresponds
@@ -392,7 +441,7 @@ with the terminal emulator itself. Foot implements the following OSCs:
   supported)
 * `OSC 2` - change window title
 * `OSC 4` - change color palette
-* `OSC 7` - report CWD
+* `OSC 7` - report CWD (see [shell integration](#shell-integration))
 * `OSC 8` - hyperlink
 * `OSC 9` - desktop notification
 * `OSC 10` - change (default) foreground color
@@ -408,6 +457,7 @@ with the terminal emulator itself. Foot implements the following OSCs:
 * `OSC 112` - reset cursor color
 * `OSC 117` - reset highlight background color
 * `OSC 119` - reset highlight foreground color
+* `OSC 133` - [shell integration](#shell-integration)
 * `OSC 555` - flash screen (**foot specific**)
 * `OSC 777` - desktop notification (only the `;notify` sub-command of
   OSC 777 is supported.)

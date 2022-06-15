@@ -36,6 +36,8 @@ enum bind_action_normal {
     BIND_ACTION_SHOW_URLS_LAUNCH,
     BIND_ACTION_SHOW_URLS_PERSISTENT,
     BIND_ACTION_TEXT_BINDING,
+    BIND_ACTION_PROMPT_PREV,
+    BIND_ACTION_PROMPT_NEXT,
 
     /* Mouse specific actions - i.e. they require a mouse coordinate */
     BIND_ACTION_SELECT_BEGIN,

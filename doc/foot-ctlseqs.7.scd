@@ -677,6 +677,9 @@ All _OSC_ sequences begin with *\\E]*, sometimes abbreviated _OSC_.
 |  \\E] 119 \\E\\ 
 :  xterm
 :  Reset selection foreground color
+|  \\E] 133 ; A \\E\\ 
+:  FinalTerm
+:  Mark start of shell prompt
 |  \\E] 555 \\E\\ 
 :  foot
 :  Flash the entire terminal (foot extension)

@@ -19,23 +19,14 @@ cmd_scrollback_up(struct terminal *term, int rows)
         return;
 
     const struct grid *grid = term->grid;
-    const int offset = grid->offset;
     const int view = grid->view;
     const int grid_rows = grid->num_rows;
-    const int screen_rows = term->rows;
-
-    int scrollback_start = (offset + screen_rows) & (grid_rows - 1);
-
-    /* Part of the scrollback may be uninitialized */
-    while (grid->rows[scrollback_start] == NULL) {
-        scrollback_start++;
-        scrollback_start &= grid_rows - 1;
-    }
 
     /* The view row number in scrollback relative coordinates. This is
      * the maximum number of rows we’re allowed to scroll */
-    int view_sb_rel = view - scrollback_start + grid_rows;
-    view_sb_rel &= grid_rows - 1;
+    int sb_start = grid_sb_start_ignore_uninitialized(grid, term->rows);
+    int view_sb_rel =
+        grid_row_abs_to_sb_precalc_sb_start(grid, sb_start, view);
 
     rows = min(rows, view_sb_rel);
     if (rows == 0)

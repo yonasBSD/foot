@@ -205,6 +205,13 @@ default) available; see *foot.ini*(5).
 *ctrl*+*shift*+*u*
 	Activate URL mode, allowing you to "launch" URLs.
 
+*ctrl*+*shift*+*z*
+	Jump to the previous, currently not visible, prompt. Requires
+	shell integration.
+
+*ctrl*+*shift*+*x*
+	Jump to the next prompt. Requires shell integration.
+
 ## SCROLLBACK SEARCH
 
 *ctrl*+*r*
@@ -369,6 +376,38 @@ An example configuration file containing all options with their default value
 commented out will usually be installed to */etc/xdg/foot/foot.ini*.
 
 For more information, see *foot.ini*(5).
+
+# SHELL INTEGRATION
+
+## Current working directory
+
+New foot terminal instances (bound to *ctrl*+*shift*+*n* by default)
+will open in the current working directory, if the shell in the
+“parent” terminal reports directory changes.
+
+This is done with the OSC-7 escape sequence. Most shells can be
+scripted to do this, if they do not support it natively. See the wiki
+(https://codeberg.org/dnkl/foot/wiki#user-content-spawning-new-terminal-instances-in-the-current-working-directory)
+for details.
+
+
+## Jumping between prompts
+
+Foot can move the current viewport to focus prompts of already
+executed commands (bound to *ctrl*+*shift*+*z*/*x* by default).
+
+For this to work, the shell needs to emit an OSC-133;A
+(*\\E]133;A\\E\\\\*) sequence before each prompt.
+
+In zsh, one way to do this is to add a _precmd_ hook:
+
+	*precmd() {
+		print -Pn "\\e]133;A\\e\\\\"
+	}*
+
+See the wiki
+(https://codeberg.org/dnkl/foot/wiki#user-content-jumping-between-prompts)
+for details, and examples for other shells.
 
 # TERMINFO
 

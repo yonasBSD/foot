@@ -23,8 +23,9 @@
 #define LOG_MODULE "input"
 #define LOG_ENABLE_DBG 0
 #include "log.h"
-#include "config.h"
 #include "commands.h"
+#include "config.h"
+#include "grid.h"
 #include "keymap.h"
 #include "kitty-keymap.h"
 #include "macros.h"
@@ -334,6 +335,86 @@ execute_binding(struct seat *seat, struct terminal *term,
         xassert(binding->aux->type == BINDING_AUX_TEXT);
         term_to_slave(term, binding->aux->text.data, binding->aux->text.len);
         return true;
+
+    case BIND_ACTION_PROMPT_PREV: {
+        if (term->grid != &term->normal)
+            return false;
+
+        struct grid *grid = term->grid;
+        const int sb_start =
+            grid_sb_start_ignore_uninitialized(grid, term->rows);
+
+        /* Check each row from current view-1 (that is, the first
+         * currently not visible row), up to, and including, the
+         * scrollback start */
+        for (int r_sb_rel =
+                 grid_row_abs_to_sb_precalc_sb_start(
+                     grid, sb_start, grid->view) - 1;
+             r_sb_rel >= 0; r_sb_rel--)
+        {
+            const int r_abs =
+                grid_row_sb_to_abs_precalc_sb_start(grid, sb_start, r_sb_rel);
+
+            const struct row *row = grid->rows[r_abs];
+            xassert(row != NULL);
+
+            if (!row->prompt_marker)
+                continue;
+
+            grid->view = r_abs;
+            term_damage_view(term);
+            render_refresh(term);
+            break;
+        }
+
+        return true;
+    }
+
+    case BIND_ACTION_PROMPT_NEXT: {
+        if (term->grid != &term->normal)
+            return false;
+
+        struct grid *grid = term->grid;
+        const int num_rows = grid->num_rows;
+
+        if (grid->view == grid->offset) {
+            /* Already at the bottom */
+            return true;
+        }
+
+        /* Check each row from view+1, to the bottom of the scrollback */
+        for (int r_abs = (grid->view + 1) & (num_rows - 1);
+             ;
+             r_abs = (r_abs + 1) & (num_rows - 1))
+        {
+            const struct row *row = grid->rows[r_abs];
+            xassert(row != NULL);
+
+            if (!row->prompt_marker) {
+                if (r_abs == grid->offset + term->rows - 1) {
+                    /* We’ve reached the bottom of the scrollback */
+                    break;
+                }
+                continue;
+            }
+
+            int sb_start = grid_sb_start_ignore_uninitialized(grid, term->rows);
+            int ofs_sb_rel =
+                grid_row_abs_to_sb_precalc_sb_start(grid, sb_start, grid->offset);
+            int new_view_sb_rel =
+                grid_row_abs_to_sb_precalc_sb_start(grid, sb_start, r_abs);
+
+            new_view_sb_rel = min(ofs_sb_rel, new_view_sb_rel);
+            grid->view = grid_row_sb_to_abs_precalc_sb_start(
+                grid, sb_start, new_view_sb_rel);
+
+            term_damage_view(term);
+            render_refresh(term);
+            break; 
+        }
+
+        return true;
+    }
 
     case BIND_ACTION_SELECT_BEGIN:
         selection_start(

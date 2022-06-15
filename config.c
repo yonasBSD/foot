@@ -115,6 +115,8 @@ static const char *const binding_action_map[] = {
     [BIND_ACTION_SHOW_URLS_LAUNCH] = "show-urls-launch",
     [BIND_ACTION_SHOW_URLS_PERSISTENT] = "show-urls-persistent",
     [BIND_ACTION_TEXT_BINDING] = "text-binding",
+    [BIND_ACTION_PROMPT_PREV] = "prompt-prev",
+    [BIND_ACTION_PROMPT_NEXT] = "prompt-next",
 
     /* Mouse-specific actions */
     [BIND_ACTION_SELECT_BEGIN] = "select-begin",
@@ -2663,6 +2665,8 @@ add_default_key_bindings(struct config *conf)
         {BIND_ACTION_FONT_SIZE_RESET, m_ctrl, {{XKB_KEY_KP_0}}},
         {BIND_ACTION_SPAWN_TERMINAL, m_ctrl_shift, {{XKB_KEY_n}}},
         {BIND_ACTION_SHOW_URLS_LAUNCH, m_ctrl_shift, {{XKB_KEY_u}}},
+        {BIND_ACTION_PROMPT_PREV, m_ctrl_shift, {{XKB_KEY_z}}},
+        {BIND_ACTION_PROMPT_NEXT, m_ctrl_shift, {{XKB_KEY_x}}},
     };
 
     conf->bindings.key.count = ALEN(bindings);

@@ -47,10 +47,13 @@
 * `-Dsystemd-units-dir=<path>` meson command line option.
 * Support for custom environment variables in `foot.ini`
   ([#1070][1070]).
-
+* Support for jumping to previous/next prompt (requires shell
+  integration). By default bound to `ctrl`+`shift`+`z` and
+  `ctrl`+`shift`+`x` respectively ([#30][30]).
 
 [1058]: https://codeberg.org/dnkl/foot/issues/1058
 [1070]: https://codeberg.org/dnkl/foot/issues/1070
+[30]: https://codeberg.org/dnkl/foot/issues/30
 
 
 ### Changed

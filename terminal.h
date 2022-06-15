@@ -116,9 +116,13 @@ struct row_data {
 
 struct row {
     struct cell *cells;
+    struct row_data *extra;
+
     bool dirty;
     bool linebreak;
-    struct row_data *extra;
+
+    /* Shell integration */
+    bool prompt_marker;
 };
 
 struct sixel {

@@ -773,6 +773,14 @@ e.g. *search-start=none*.
 	jump label with a key sequence that will place the URL in the
 	clipboard. Default: _none_.
 
+*prompt-prev*
+	Jump to the previous, currently not visible, prompt (requires
+	shell integration, see *foot*(1)). Default: _Control+Shift+z_.
+
+*prompt-next*
+	Jump the next prompt (requires shell integration, see
+	*foot*(1)). Default: _Control+Shift+x_.
+
 # SECTION: search-bindings
 
 This section lets you override the default key bindings used in

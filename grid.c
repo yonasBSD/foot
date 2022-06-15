@@ -24,6 +24,7 @@
  * scrollback, with the *highest* number being at the bottom of the
  * screen, where new input appears.
  */
+
 int
 grid_row_abs_to_sb(const struct grid *grid, int screen_rows, int abs_row)
 {
@@ -39,6 +40,38 @@ int grid_row_sb_to_abs(const struct grid *grid, int screen_rows, int sb_rel_row)
     const int scrollback_start = grid->offset + screen_rows;
     int abs_row = sb_rel_row + scrollback_start;
 
+    abs_row &= grid->num_rows - 1;
+    return abs_row;
+}
+
+int
+grid_sb_start_ignore_uninitialized(const struct grid *grid, int screen_rows)
+{
+    int scrollback_start = grid->offset + screen_rows;
+    scrollback_start &= grid->num_rows - 1;
+
+    while (grid->rows[scrollback_start] == NULL) {
+        scrollback_start++;
+        scrollback_start &= grid->num_rows - 1;
+    }
+
+    return scrollback_start;
+}
+
+int
+grid_row_abs_to_sb_precalc_sb_start(const struct grid *grid, int sb_start,
+                                    int abs_row)
+{
+    int rebased_row = abs_row - sb_start + grid->num_rows;
+    rebased_row &= grid->num_rows - 1;
+    return rebased_row;
+}
+
+int
+grid_row_sb_to_abs_precalc_sb_start(const struct grid *grid, int sb_start,
+                                    int sb_rel_row)
+{
+    int abs_row = sb_rel_row + sb_start;
     abs_row &= grid->num_rows - 1;
     return abs_row;
 }
@@ -196,6 +229,7 @@ grid_snapshot(const struct grid *grid)
         clone_row->cells = xmalloc(grid->num_cols * sizeof(clone_row->cells[0]));
         clone_row->linebreak = row->linebreak;
         clone_row->dirty = row->dirty;
+        clone_row->prompt_marker = row->prompt_marker;
 
         for (int c = 0; c < grid->num_cols; c++)
             clone_row->cells[c] = row->cells[c];
@@ -286,6 +320,7 @@ grid_row_alloc(int cols, bool initialize)
     row->dirty = false;
     row->linebreak = true;
     row->extra = NULL;
+    row->prompt_marker = false;
 
     if (initialize) {
         row->cells = xcalloc(cols, sizeof(row->cells[0]));
@@ -344,6 +379,7 @@ grid_resize_without_reflow(
 
         new_row->dirty = old_row->dirty;
         new_row->linebreak = false;
+        new_row->prompt_marker = old_row->prompt_marker;
 
         if (new_cols > old_cols) {
             /* Clear "new" columns */
@@ -503,6 +539,7 @@ _line_wrap(struct grid *old_grid, struct row **new_grid, struct row *row,
         /* Scrollback is full, need to re-use a row */
         grid_row_reset_extra(new_row);
         new_row->linebreak = true;
+        new_row->prompt_marker = false;
 
         tll_foreach(old_grid->sixel_images, it) {
             if (it->item.pos.row == *row_idx) {
@@ -833,6 +870,9 @@ grid_resize_and_reflow(
 
                 xassert(new_col_idx + amount <= new_cols);
                 xassert(from + amount <= old_cols);
+
+                if (from == 0)
+                    new_row->prompt_marker = old_row->prompt_marker;
 
                 memcpy(
                     &new_row->cells[new_col_idx], &old_row->cells[from],
