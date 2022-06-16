@@ -27,6 +27,7 @@
 #include "render.h"
 #include "selection.h"
 #include "shm.h"
+#include "shm-formats.h"
 #include "util.h"
 #include "xmalloc.h"
 
@@ -227,6 +228,22 @@ static void
 shm_format(void *data, struct wl_shm *wl_shm, uint32_t format)
 {
     struct wayland *wayl = data;
+
+#if defined(_DEBUG)
+    bool have_description = false;
+
+    for (size_t i = 0; i < ALEN(shm_formats); i++) {
+        if (shm_formats[i].format == format) {
+            LOG_DBG("shm: 0x%08x: %s", format, shm_formats[i].description);
+            have_description = true;
+            break;
+        }
+    }
+
+    if (!have_description)
+        LOG_DBG("shm: 0x%08x: unknown", format);
+#endif
+
     if (format == WL_SHM_FORMAT_ARGB8888)
         wayl->have_argb8888 = true;
 }

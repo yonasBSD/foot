@@ -224,7 +224,7 @@ executable(
   'tokenize.c', 'tokenize.h',
   'url-mode.c', 'url-mode.h',
   'user-notification.c', 'user-notification.h',
-  'wayland.c', 'wayland.h',
+  'wayland.c', 'wayland.h', 'shm-formats.h',
   wl_proto_src + wl_proto_headers, version,
   dependencies: [math, threads, libepoll, pixman, wayland_client, wayland_cursor, xkb, fontconfig, utf8proc,
                  tllist, fcft],
