@@ -2392,6 +2392,12 @@ drop(void *data, struct wl_data_device *wl_data_device)
 
     struct wl_clipboard *clipboard = &seat->clipboard;
 
+    if (clipboard->mime_type == DATA_OFFER_MIME_UNSET) {
+        LOG_WARN("compositor called data_device::drop() "
+                 "even though we rejected the drag-and-drop");
+        return;
+    }
+
     struct dnd_context *ctx = xmalloc(sizeof(*ctx));
     *ctx = (struct dnd_context){
         .term = term,

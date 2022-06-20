@@ -74,10 +74,15 @@
 
 * Graphical corruption when viewport is at the top of the scrollback,
   and the output is scrolling.
-* Improved text reflow of logical lines with trailing empty cells ([#1055][1055])
+* Improved text reflow of logical lines with trailing empty cells
+  ([#1055][1055])
 * IME focus is now tracked independently from keyboard focus.
+* Workaround for buggy compositors (e.g. some versions of GNOME)
+  allowing drag-and-drops even though foot has reported it does not
+  support the offered mime-types ([#1092][1092]).
 
 [1055]: https://codeberg.org/dnkl/foot/issues/1055
+[1092]: https://codeberg.org/dnkl/foot/issues/1092
 
 
 ### Security
