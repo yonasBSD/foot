@@ -2343,6 +2343,7 @@ enter(void *data, struct wl_data_device *wl_data_device, uint32_t serial,
     /* Either terminal is already busy sending paste data, or mouse
      * pointer isn’t over the grid */
     seat->clipboard.window = NULL;
+    wl_data_offer_accept(offer, serial, NULL);
     wl_data_offer_set_actions(offer, 0, 0);
 }
 
