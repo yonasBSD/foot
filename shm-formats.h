@@ -1,5 +1,7 @@
 #pragma once
 
+#include <wayland-version.h>
+
 #if defined(_DEBUG)
 static const struct shm_formats {
     uint32_t format;
@@ -109,9 +111,11 @@ static const struct shm_formats {
     {WL_SHM_FORMAT_NV15, "NV15"},
     {WL_SHM_FORMAT_Q410, "Q410"},
     {WL_SHM_FORMAT_Q401, "Q401"},
+#if WAYLAND_VERSION_MAJOR > 1 || WAYLAND_VERSION_MINOR >= 20
     {WL_SHM_FORMAT_XRGB16161616, "XRGB16161616"},
     {WL_SHM_FORMAT_XBGR16161616, "XBGR16161616"},
     {WL_SHM_FORMAT_ARGB16161616, "ARGB16161616"},
     {WL_SHM_FORMAT_ABGR16161616, "ABGR16161616"},
+#endif
 };
 #endif
