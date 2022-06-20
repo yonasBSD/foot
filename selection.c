@@ -2322,6 +2322,9 @@ enter(void *data, struct wl_data_device *wl_data_device, uint32_t serial,
 
     xassert(offer == seat->clipboard.data_offer);
 
+    if (seat->clipboard.mime_type == DATA_OFFER_MIME_UNSET)
+        goto reject_offer;
+
     /* Remember _which_ terminal the current DnD offer is targeting */
     xassert(seat->clipboard.window == NULL);
     tll_foreach(wayl->terms, it) {
@@ -2340,6 +2343,7 @@ enter(void *data, struct wl_data_device *wl_data_device, uint32_t serial,
         }
     }
 
+reject_offer:
     /* Either terminal is already busy sending paste data, or mouse
      * pointer isn’t over the grid */
     seat->clipboard.window = NULL;
