@@ -2348,7 +2348,10 @@ reject_offer:
      * pointer isn’t over the grid */
     seat->clipboard.window = NULL;
     wl_data_offer_accept(offer, serial, NULL);
-    wl_data_offer_set_actions(offer, 0, 0);
+    wl_data_offer_set_actions(
+        offer,
+        WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE,
+        WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE);
 }
 
 static void
