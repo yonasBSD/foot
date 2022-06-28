@@ -80,9 +80,12 @@
 * Workaround for buggy compositors (e.g. some versions of GNOME)
   allowing drag-and-drops even though foot has reported it does not
   support the offered mime-types ([#1092][1092]).
+* Keyboard enter/leave events being ignored if there is no keymap
+  ([#1097][1097]).
 
 [1055]: https://codeberg.org/dnkl/foot/issues/1055
 [1092]: https://codeberg.org/dnkl/foot/issues/1092
+[1097]: https://codeberg.org/dnkl/foot/issues/1097
 
 
 ### Security

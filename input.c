@@ -591,9 +591,6 @@ keyboard_enter(void *data, struct wl_keyboard *wl_keyboard, uint32_t serial,
     LOG_DBG("%s: keyboard_enter: keyboard=%p, serial=%u, surface=%p",
             seat->name, (void *)wl_keyboard, serial, (void *)surface);
 
-    if (seat->kbd.xkb == NULL)
-        return;
-
     term_kbd_focus_in(term);
     seat->kbd_focus = term;
     seat->kbd.serial = serial;
@@ -652,9 +649,6 @@ keyboard_leave(void *data, struct wl_keyboard *wl_keyboard, uint32_t serial,
 
     LOG_DBG("keyboard_leave: keyboard=%p, serial=%u, surface=%p",
             (void *)wl_keyboard, serial, (void *)surface);
-
-    if (seat->kbd.xkb == NULL)
-        return;
 
     xassert(
         seat->kbd_focus == NULL ||
