@@ -1811,7 +1811,7 @@ static inline void
 erase_line(struct terminal *term, struct row *row)
 {
     erase_cell_range(term, row, 0, term->cols - 1);
-    row->linebreak = true;
+    row->linebreak = false;
     row->prompt_marker = false;
 }
 
@@ -3298,6 +3298,7 @@ term_print(struct terminal *term, char32_t wc, int width)
     /* *Must* get current cell *after* linewrap+insert */
     struct row *row = grid->cur_row;
     row->dirty = true;
+    row->linebreak = true;
 
     struct cell *cell = &row->cells[col];
     cell->wc = term->vt.last_printed = wc;
@@ -3357,6 +3358,7 @@ ascii_printer_fast(struct terminal *term, char32_t wc)
 
     struct row *row = grid->cur_row;
     row->dirty = true;
+    row->linebreak = true;
 
     struct cell *cell = &row->cells[col];
     cell->wc = term->vt.last_printed = wc;
