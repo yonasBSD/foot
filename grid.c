@@ -740,7 +740,7 @@ grid_resize_and_reflow(
             }
         }
 
-        if (!old_row->linebreak /*&& col_count > 0*/) {
+        if (!old_row->linebreak && col_count > 0) {
             /* Don’t truncate logical lines */
             col_count = old_cols;
         }
