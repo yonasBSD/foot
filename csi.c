@@ -128,7 +128,8 @@ csi_sgr(struct terminal *term)
                 term->vt.params.v[i + 1].value == 5)
             {
                 src = COLOR_BASE256;
-                color = term->vt.params.v[i + 2].value;
+                color = min(term->vt.params.v[i + 2].value,
+                            ALEN(term->colors.table) - 1);
                 i += 2;
             }
 
@@ -149,7 +150,8 @@ csi_sgr(struct terminal *term)
                      term->vt.params.v[i].sub.value[0] == 5)
             {
                 src = COLOR_BASE256;
-                color = term->vt.params.v[i].sub.value[1];
+                color = min(term->vt.params.v[i].sub.value[1],
+                            ALEN(term->colors.table) - 1);
             }
 
             /*

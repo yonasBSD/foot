@@ -82,10 +82,14 @@
   support the offered mime-types ([#1092][1092]).
 * Keyboard enter/leave events being ignored if there is no keymap
   ([#1097][1097]).
+* Crash when application emitted an invalid `CSI 38;5;<idx>m`, `CSI
+  38:5:<idx>m`, `CSI 48;5;<idx>m` or `CSI 48:5:<idx>m` sequence
+  ([#1111][1111]).
 
 [1055]: https://codeberg.org/dnkl/foot/issues/1055
 [1092]: https://codeberg.org/dnkl/foot/issues/1092
 [1097]: https://codeberg.org/dnkl/foot/issues/1097
+[1111]: https://codeberg.org/dnkl/foot/issues/1111
 
 
 ### Security
