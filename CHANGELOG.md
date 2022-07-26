@@ -64,8 +64,11 @@
   mode ([#1084][1084]).
 * NUL is now stripped when pasting in non-bracketed mode
   ([#1084][1084]).
+* `alt`+`escape` now emits `\E\E` instead of a `CSI 27` sequence
+  ([#1105][1105]).
 
 [1084]: https://codeberg.org/dnkl/foot/issues/1084
+[1105]: https://codeberg.org/dnkl/foot/issues/1105
 
 
 ### Deprecated
