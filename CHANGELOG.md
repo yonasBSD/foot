@@ -88,11 +88,15 @@
 * Crash when application emitted an invalid `CSI 38;5;<idx>m`, `CSI
   38:5:<idx>m`, `CSI 48;5;<idx>m` or `CSI 48:5:<idx>m` sequence
   ([#1111][1111]).
+* Certain dead-key combinations resulting in different escape
+  sequences compared to kitty, when the kitty keyboard protocol is
+  used ([#1120][1120]).
 
 [1055]: https://codeberg.org/dnkl/foot/issues/1055
 [1092]: https://codeberg.org/dnkl/foot/issues/1092
 [1097]: https://codeberg.org/dnkl/foot/issues/1097
 [1111]: https://codeberg.org/dnkl/foot/issues/1111
+[1120]: https://codeberg.org/dnkl/foot/issues/1120
 
 
 ### Security

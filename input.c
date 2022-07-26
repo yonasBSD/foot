@@ -1239,7 +1239,7 @@ emit_escapes:
             ? ctx->level0_syms.syms[0]
             : sym;
 
-        if (composed && is_text)
+        if (composed)
             key = utf32;
         else {
             key = xkb_keysym_to_utf32(sym_to_use);
