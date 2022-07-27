@@ -50,10 +50,13 @@
 * Support for jumping to previous/next prompt (requires shell
   integration). By default bound to `ctrl`+`shift`+`z` and
   `ctrl`+`shift`+`x` respectively ([#30][30]).
+* `colors.search-box-no-match` and `colors.search-box-match` options
+  to `foot.ini` ([#1112][1112]).
 
 [1058]: https://codeberg.org/dnkl/foot/issues/1058
 [1070]: https://codeberg.org/dnkl/foot/issues/1070
 [30]: https://codeberg.org/dnkl/foot/issues/30
+[1112]: https://codeberg.org/dnkl/foot/issues/1112
 
 
 ### Changed

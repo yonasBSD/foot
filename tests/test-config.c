@@ -668,6 +668,12 @@ test_section_colors(void)
     test_two_colors(&ctx, &parse_section_colors, "scrollback-indicator", false,
                     &conf.colors.scrollback_indicator.fg,
                     &conf.colors.scrollback_indicator.bg);
+    test_two_colors(&ctx, &parse_section_colors, "search-box-no-match", false,
+                    &conf.colors.search_box.no_match.fg,
+                    &conf.colors.search_box.no_match.bg);
+    test_two_colors(&ctx, &parse_section_colors, "search-box-match", false,
+                    &conf.colors.search_box.match.fg,
+                    &conf.colors.search_box.match.bg);
 
     for (size_t i = 0; i < 255; i++) {
         char key_name[4];

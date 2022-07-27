@@ -218,10 +218,24 @@ struct config {
         } scrollback_indicator;
 
         struct {
+            struct {
+                uint32_t fg;
+                uint32_t bg;
+            } no_match;
+
+            struct {
+                uint32_t fg;
+                uint32_t bg;
+            } match;
+        } search_box;
+
+        struct {
             bool selection:1;
             bool jump_label:1;
             bool scrollback_indicator:1;
             bool url:1;
+            bool search_box_no_match:1;
+            bool search_box_match:1;
             uint8_t dim;
         } use_custom;
     } colors;

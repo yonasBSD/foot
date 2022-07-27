@@ -1171,6 +1171,34 @@ parse_section_colors(struct context *ctx)
         return true;
     }
 
+    else if (strcmp(key, "search-box-no-match") == 0) {
+        if (!value_to_two_colors(
+                ctx,
+                &conf->colors.search_box.no_match.fg,
+                &conf->colors.search_box.no_match.bg,
+                false))
+        {
+            return false;
+        }
+
+        conf->colors.use_custom.search_box_no_match = true;
+        return true;
+    }
+
+    else if (strcmp(key, "search-box-match") == 0) {
+        if (!value_to_two_colors(
+                ctx,
+                &conf->colors.search_box.match.fg,
+                &conf->colors.search_box.match.bg,
+                false))
+        {
+            return false;
+        }
+
+        conf->colors.use_custom.search_box_match = true;
+        return true;
+    }
+
     else if (strcmp(key, "urls") == 0) {
         if (!value_to_color(ctx, &conf->colors.url, false))
             return false;

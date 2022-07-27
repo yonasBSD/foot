@@ -566,6 +566,16 @@ can configure the background transparency with the _alpha_ option.
 	(indicator itself) colors for the scrollback indicator. Default:
 	_regular0 bright4_.
 
+*search-box-no-match*
+	Two color values specifying the foreground (text) and background
+	colors for the scrollback search box, when there are no
+	matches. Default: _regular0 regular1_.
+
+*search-box-match*
+	Two color values specifying the foreground (text) and background
+	colors for the scrollback search box, when the search box is
+	either empty, or there are matches. Default: _regular0 regular3_.
+
 *urls*
 	Color to use for the underline used to highlight URLs in URL
 	mode. Default: _regular3_.

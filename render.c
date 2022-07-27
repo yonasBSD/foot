@@ -3046,10 +3046,20 @@ render_search_box(struct terminal *term)
 #define WINDOW_X(x) (margin + x)
 #define WINDOW_Y(y) (term->height - margin - height + y)
 
-    /* Background - yellow on empty/match, red on mismatch */
-    pixman_color_t color = color_hex_to_pixman(
-        term->search.match_len == text_len
-        ? term->colors.table[3] : term->colors.table[1]);
+    const bool is_match = term->search.match_len == text_len;
+    const bool custom_colors = is_match
+        ? term->conf->colors.use_custom.search_box_match
+        : term->conf->colors.use_custom.search_box_no_match;
+
+    /* Background - yellow on empty/match, red on mismatch (default) */
+    const pixman_color_t color = color_hex_to_pixman(
+        is_match
+        ? (custom_colors
+           ? term->conf->colors.search_box.match.bg
+           : term->colors.table[3])
+        : (custom_colors
+           ? term->conf->colors.search_box.no_match.bg
+           : term->colors.table[1]));
 
     pixman_image_fill_rectangles(
         PIXMAN_OP_SRC, buf->pix[0], &color,
@@ -3065,7 +3075,12 @@ render_search_box(struct terminal *term)
     const int x_ofs = term->font_x_ofs;
     int x = x_left;
     int y = margin;
-    pixman_color_t fg = color_hex_to_pixman(term->colors.table[0]);
+    pixman_color_t fg = color_hex_to_pixman(
+        custom_colors
+        ? (is_match
+           ? term->conf->colors.search_box.match.fg
+           : term->conf->colors.search_box.no_match.fg)
+        : term->colors.table[0]);
 
     /* Move offset we start rendering at, to ensure the cursor is visible */
     for (size_t i = 0, cell_idx = 0; i <= term->search.cursor; cell_idx += widths[i], i++) {
