@@ -94,6 +94,8 @@
 * Certain dead-key combinations resulting in different escape
   sequences compared to kitty, when the kitty keyboard protocol is
   used ([#1120][1120]).
+* Search matches ending with a double-width character not being
+  highlighted correctly.
 
 [1055]: https://codeberg.org/dnkl/foot/issues/1055
 [1092]: https://codeberg.org/dnkl/foot/issues/1092

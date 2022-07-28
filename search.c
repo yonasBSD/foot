@@ -371,6 +371,9 @@ find_next(struct terminal *term, enum search_direction direction,
                 i += additional_chars;
                 match_len += additional_chars;
                 match_end_col++;
+
+                while (match_row->cells[match_end_col].wc > CELL_SPACER)
+                    match_end_col++;
             }
 
             if (match_len != term->search.len) {
