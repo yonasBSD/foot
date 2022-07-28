@@ -36,6 +36,7 @@
 #include "spawn.h"
 #include "terminal.h"
 #include "tokenize.h"
+#include "unicode-mode.h"
 #include "url-mode.h"
 #include "util.h"
 #include "vt.h"
@@ -415,6 +416,10 @@ execute_binding(struct seat *seat, struct terminal *term,
 
         return true;
     }
+
+    case BIND_ACTION_UNICODE_INPUT:
+        unicode_mode_activate(seat);
+        return true;
 
     case BIND_ACTION_SELECT_BEGIN:
         selection_start(
@@ -1405,7 +1410,69 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
     xassert(bindings != NULL);
 
     if (pressed) {
-        if (term->is_searching) {
+        if (seat->unicode_mode.active) {
+            if (sym == XKB_KEY_Return ||
+                sym == XKB_KEY_space ||
+                sym == XKB_KEY_KP_Enter ||
+                sym == XKB_KEY_KP_Space)
+            {
+                char utf8[MB_CUR_MAX];
+                size_t chars = c32rtomb(
+                    utf8, seat->unicode_mode.character, &(mbstate_t){0});
+
+                LOG_DBG("Unicode input: 0x%06x -> %.*s",
+                        seat->unicode_mode.character, (int)chars, utf8);
+
+                if (chars != (size_t)-1) {
+                    if (term->is_searching)
+                        search_add_chars(term, utf8, chars);
+                    else
+                        term_to_slave(term, utf8, chars);
+                }
+
+                unicode_mode_deactivate(seat);
+            }
+
+            else if (sym == XKB_KEY_Escape ||
+                     (seat->kbd.ctrl && (sym == XKB_KEY_c ||
+                                         sym == XKB_KEY_d ||
+                                         sym == XKB_KEY_g)))
+            {
+                unicode_mode_deactivate(seat);
+            }
+
+            else if (sym == XKB_KEY_BackSpace) {
+                if (seat->unicode_mode.count > 0) {
+                    seat->unicode_mode.character >>= 4;
+                    seat->unicode_mode.count--;
+                    unicode_mode_updated(seat);
+                }
+            }
+
+            else if (seat->unicode_mode.count < 6) {
+                int digit = -1;
+
+                /* 0-9, a-f, A-F */
+                if (sym >= XKB_KEY_0 && sym <= XKB_KEY_9)
+                    digit = sym - XKB_KEY_0;
+                else if (sym >= XKB_KEY_a && sym <= XKB_KEY_f)
+                    digit = 0xa + (sym - XKB_KEY_a);
+                else if (sym >= XKB_KEY_A && sym <= XKB_KEY_F)
+                    digit = 0xa + (sym - XKB_KEY_A);
+
+                if (digit >= 0) {
+                    xassert(digit >= 0 && digit <= 0xf);
+                    seat->unicode_mode.character <<= 4;
+                    seat->unicode_mode.character |= digit;
+                    seat->unicode_mode.count++;
+                    unicode_mode_updated(seat);
+                }
+            }
+
+            return;
+        }
+
+        else if (term->is_searching) {
             if (should_repeat)
                 start_repeater(seat, key);
 

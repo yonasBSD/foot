@@ -117,6 +117,7 @@ static const char *const binding_action_map[] = {
     [BIND_ACTION_TEXT_BINDING] = "text-binding",
     [BIND_ACTION_PROMPT_PREV] = "prompt-prev",
     [BIND_ACTION_PROMPT_NEXT] = "prompt-next",
+    [BIND_ACTION_UNICODE_INPUT] = "unicode-input",
 
     /* Mouse-specific actions */
     [BIND_ACTION_SELECT_BEGIN] = "select-begin",
@@ -148,6 +149,7 @@ static const char *const search_binding_action_map[] = {
     [BIND_ACTION_SEARCH_EXTEND_WORD_WS] = "extend-to-next-whitespace",
     [BIND_ACTION_SEARCH_CLIPBOARD_PASTE] = "clipboard-paste",
     [BIND_ACTION_SEARCH_PRIMARY_PASTE] = "primary-paste",
+    [BIND_ACTION_SEARCH_UNICODE_INPUT] = "unicode-input",
 };
 
 static const char *const url_binding_action_map[] = {

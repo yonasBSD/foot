@@ -18,6 +18,7 @@
 #include "render.h"
 #include "selection.h"
 #include "shm.h"
+#include "unicode-mode.h"
 #include "util.h"
 #include "xmalloc.h"
 
@@ -991,6 +992,10 @@ execute_binding(struct seat *seat, struct terminal *term,
         text_from_primary(
             seat, term, &from_clipboard_cb, &from_clipboard_done, term);
         *update_search_result = *redraw = true;
+        return true;
+
+    case BIND_ACTION_SEARCH_UNICODE_INPUT:
+        unicode_mode_activate(seat);
         return true;
 
     case BIND_ACTION_SEARCH_COUNT:

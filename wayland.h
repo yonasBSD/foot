@@ -206,6 +206,12 @@ struct seat {
         uint32_t serial;
     } ime;
 #endif
+
+    struct {
+        bool active;
+        int count;
+        char32_t character;
+    } unicode_mode;
 };
 
 enum csd_surface {

@@ -52,11 +52,16 @@
   `ctrl`+`shift`+`x` respectively ([#30][30]).
 * `colors.search-box-no-match` and `colors.search-box-match` options
   to `foot.ini` ([#1112][1112]).
+* Very basic Unicode input mode via the new
+  `key-bindings.unicode-input` and `search-bindings.unicode-input` key
+  bindings. Note that there is no visual feedback, as the preferred
+  way of entering Unicode characters is with an IME ([#1116][1116]).
 
 [1058]: https://codeberg.org/dnkl/foot/issues/1058
 [1070]: https://codeberg.org/dnkl/foot/issues/1070
 [30]: https://codeberg.org/dnkl/foot/issues/30
 [1112]: https://codeberg.org/dnkl/foot/issues/1112
+[1116]: https://codeberg.org/dnkl/foot/issues/1116
 
 
 ### Changed

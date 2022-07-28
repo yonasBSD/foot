@@ -791,6 +791,32 @@ e.g. *search-start=none*.
 	Jump the next prompt (requires shell integration, see
 	*foot*(1)). Default: _Control+Shift+x_.
 
+*unicode-input*
+	Input a Unicode character by typing its codepoint in hexadecimal,
+	followed by *Enter* or *Space*.
+	
+	For example, to input the character _ö_ (LATIN SMALL LETTER O WITH
+	DIAERESIS, Unicode codepoint 0xf6), you would first activate this
+	key binding, then type: *f*, *6*, *Enter*.
+	
+	Another example: to input 😍 (SMILING FACE WITH HEART-SHAPED EYES,
+	Unicode codepoint 0x1f60d), activate this key binding, then type:
+	*1*, *f*, *6*, *0*, *d*, *Enter*.
+	
+	Recognized key bindings in Unicode input mode:
+	
+	- Enter, Space: commit the Unicode character, then exit this mode.
+	- Escape, Ctrl+c, Ctrl+d, Ctrl+g: abort input, then exit this mode.
+	- 0-9, a-f: append next digit to the Unicode's codepoint.
+	- Backspace: undo the last digit.
+	
+	Note that there is no visual feedback while in this mode. This is
+	by design; foot's Unicode input mode is considered to be a
+	fallback. The preferred way of entering Unicode characters, emojis
+	etc is by using an IME.
+	
+	Default: _none_.
+
 # SECTION: search-bindings
 
 This section lets you override the default key bindings used in
@@ -868,6 +894,10 @@ scrollback search mode. The syntax is exactly the same as the regular
 *primary-paste*
 	Paste from the _primary selection_ into the search
 	buffer. Default: _Shift+Insert_.
+
+*unicode-input*
+	Unicode input mode. See _key-bindings.unicode-input_ for
+	details. Default: _none_.
 
 # SECTION: url-bindings
 

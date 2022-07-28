@@ -222,6 +222,7 @@ executable(
   'slave.c', 'slave.h',
   'spawn.c', 'spawn.h',
   'tokenize.c', 'tokenize.h',
+  'unicode-mode.c', 'unicode-mode.h',
   'url-mode.c', 'url-mode.h',
   'user-notification.c', 'user-notification.h',
   'wayland.c', 'wayland.h', 'shm-formats.h',
