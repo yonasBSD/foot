@@ -96,6 +96,7 @@
   used ([#1120][1120]).
 * Search matches ending with a double-width character not being
   highlighted correctly.
+* Selection not being cancelled correctly when scrolled out.
 
 [1055]: https://codeberg.org/dnkl/foot/issues/1055
 [1092]: https://codeberg.org/dnkl/foot/issues/1092

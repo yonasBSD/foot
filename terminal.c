@@ -2537,11 +2537,11 @@ term_scroll_partial(struct terminal *term, struct scroll_region region, int rows
          * scrolled in (i.e. re-used lines).
          */
         if (selection_on_top_region(term, region) ||
-            selection_on_bottom_region(term, region) ||
-            selection_on_rows(term, region.end - rows, region.end - 1))
+            selection_on_bottom_region(term, region))
         {
             selection_cancel(term);
-        }
+        } else
+            selection_scroll_up(term, rows);
     }
 
     sixel_scroll_up(term, rows);
@@ -2611,11 +2611,11 @@ term_scroll_reverse_partial(struct terminal *term,
          * scrolled in (i.e. re-used lines).
          */
         if (selection_on_top_region(term, region) ||
-            selection_on_bottom_region(term, region) ||
-            selection_on_rows(term, region.start, region.start + rows - 1))
+            selection_on_bottom_region(term, region))
         {
             selection_cancel(term);
-        }
+        } else
+            selection_scroll_down(term, rows);
     }
 
     sixel_scroll_down(term, rows);

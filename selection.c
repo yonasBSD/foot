@@ -64,39 +64,83 @@ selection_get_end(const struct terminal *term)
 bool
 selection_on_rows(const struct terminal *term, int row_start, int row_end)
 {
+    xassert(term->selection.coords.end.row >= 0);
+
     LOG_DBG("on rows: %d-%d, range: %d-%d (offset=%d)",
             term->selection.coords.start.row, term->selection.coords.end.row,
             row_start, row_end, term->grid->offset);
 
-    if (term->selection.coords.end.row < 0)
-        return false;
-
-    xassert(term->selection.coords.start.row != -1);
-
     row_start += term->grid->offset;
     row_end += term->grid->offset;
+    xassert(row_end >= row_start);
 
     const struct coord *start = &term->selection.coords.start;
     const struct coord *end = &term->selection.coords.end;
 
-    if ((row_start <= start->row && row_end >= start->row) ||
-        (row_start <= end->row && row_end >= end->row))
+    const struct grid *grid = term->grid;
+    const int sb_start = grid->offset + term->rows;
+
+    /* Use scrollback relative coords when checking for overlap */
+    const int rel_row_start =
+        grid_row_abs_to_sb_precalc_sb_start(grid, sb_start, row_start);
+    const int rel_row_end =
+        grid_row_abs_to_sb_precalc_sb_start(grid, sb_start, row_start);
+    int rel_sel_start =
+        grid_row_abs_to_sb_precalc_sb_start(grid, sb_start, start->row);
+    int rel_sel_end =
+        grid_row_abs_to_sb_precalc_sb_start(grid, sb_start, end->row);
+
+    if (rel_sel_start > rel_sel_end) {
+        int tmp = rel_sel_start;
+        rel_sel_start = rel_sel_end;
+        rel_sel_end = tmp;
+    }
+
+    if ((rel_row_start <= rel_sel_start && rel_row_end >= rel_sel_start) ||
+        (rel_row_start <= rel_sel_end && rel_row_end >= rel_sel_end))
     {
         /* The range crosses one of the selection boundaries */
         return true;
     }
 
-    /* For the last check we must ensure start <= end */
-    if (start->row > end->row) {
-        const struct coord *tmp = start;
-        start = end;
-        end = tmp;
-    }
-
-    if (row_start >= start->row && row_end <= end->row)
+    if (rel_row_start >= rel_sel_start && rel_row_end <= rel_sel_end)
         return true;
 
     return false;
+}
+
+void
+selection_scroll_up(struct terminal *term, int rows)
+{
+    xassert(term->selection.coords.end.row >= 0);
+
+    const int rel_row_start =
+        grid_row_abs_to_sb(term->grid, term->rows, term->selection.coords.start.row);
+    const int rel_row_end =
+        grid_row_abs_to_sb(term->grid, term->rows, term->selection.coords.end.row);
+    const int actual_start = min(rel_row_start, rel_row_end);
+
+    if (actual_start - rows < 0) {
+        /* Part of the selection will be scrolled out, cancel it */
+        selection_cancel(term);
+    }
+}
+
+void
+selection_scroll_down(struct terminal *term, int rows)
+{
+    xassert(term->selection.coords.end.row >= 0);
+
+    const int rel_row_start =
+        grid_row_abs_to_sb(term->grid, term->rows, term->selection.coords.start.row);
+    const int rel_row_end =
+        grid_row_abs_to_sb(term->grid, term->rows, term->selection.coords.end.row);
+    const int actual_end = max(rel_row_start, rel_row_end);
+
+    if (actual_end + rows <= term->grid->num_rows) {
+        /* Part of the selection will be scrolled out, cancel it */
+        selection_cancel(term);
+    }
 }
 
 void
