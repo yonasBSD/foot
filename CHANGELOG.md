@@ -98,12 +98,14 @@
   highlighted correctly.
 * Selection not being cancelled correctly when scrolled out.
 * Extending a multi-page selection behaving inconsistently.
+* Poor performance when making very large selections ([#1114][1114]).
 
 [1055]: https://codeberg.org/dnkl/foot/issues/1055
 [1092]: https://codeberg.org/dnkl/foot/issues/1092
 [1097]: https://codeberg.org/dnkl/foot/issues/1097
 [1111]: https://codeberg.org/dnkl/foot/issues/1111
 [1120]: https://codeberg.org/dnkl/foot/issues/1120
+[1114]: https://codeberg.org/dnkl/foot/issues/1114
 
 
 ### Security
