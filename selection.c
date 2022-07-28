@@ -181,14 +181,14 @@ foreach_selected_normal(
     const struct coord *start = &_start;
     const struct coord *end = &_end;
 
-    const int scrollback_start = term->grid->offset + term->rows;
     const int grid_rows = term->grid->num_rows;
 
     /* Start/end rows, relative to the scrollback start */
+    /* Start/end rows, relative to the scrollback start */
     const int rel_start_row =
-        (start->row - scrollback_start + grid_rows) & (grid_rows - 1);
+        grid_row_abs_to_sb(term->grid, term->rows, start->row);
     const int rel_end_row =
-        (end->row - scrollback_start + grid_rows) & (grid_rows - 1);
+        grid_row_abs_to_sb(term->grid, term->rows, end->row);
 
     int start_row, end_row;
     int start_col, end_col;
@@ -244,14 +244,13 @@ foreach_selected_block(
     const struct coord *start = &_start;
     const struct coord *end = &_end;
 
-    const int scrollback_start = term->grid->offset + term->rows;
     const int grid_rows = term->grid->num_rows;
 
     /* Start/end rows, relative to the scrollback start */
     const int rel_start_row =
-        (start->row - scrollback_start + grid_rows) & (grid_rows - 1);
+        grid_row_abs_to_sb(term->grid, term->rows, start->row);
     const int rel_end_row =
-        (end->row - scrollback_start + grid_rows) & (grid_rows - 1);
+        grid_row_abs_to_sb(term->grid, term->rows, end->row);
 
     struct coord top_left = {
         .row = (rel_start_row < rel_end_row
