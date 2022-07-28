@@ -1002,27 +1002,37 @@ selection_extend_normal(struct terminal *term, int col, int row,
     const struct coord *start = &term->selection.coords.start;
     const struct coord *end = &term->selection.coords.end;
 
-    if (start->row > end->row ||
-        (start->row == end->row && start->col > end->col))
+    const int rel_row = grid_row_abs_to_sb(term->grid, term->rows, row);
+    int rel_start_row = grid_row_abs_to_sb(term->grid, term->rows, start->row);
+    int rel_end_row = grid_row_abs_to_sb(term->grid, term->rows, end->row);
+
+    if (rel_start_row > rel_end_row ||
+        (rel_start_row == rel_end_row && start->col > end->col))
     {
         const struct coord *tmp = start;
         start = end;
         end = tmp;
-    }
 
-    xassert(start->row < end->row || start->col < end->col);
+        int tmp_row = rel_start_row;
+        rel_start_row = rel_end_row;
+        rel_end_row = tmp_row;
+    }
 
     struct coord new_start, new_end;
     enum selection_direction direction;
 
-    if (row < start->row || (row == start->row && col < start->col)) {
+    if (rel_row < rel_start_row ||
+        (rel_row == rel_start_row && col < start->col))
+    {
         /* Extend selection to start *before* current start */
         new_start = *end;
         new_end = (struct coord){col, row};
         direction = SELECTION_LEFT;
     }
 
-    else if (row > end->row || (row == end->row && col > end->col)) {
+    else if (rel_row > rel_end_row ||
+             (rel_row == rel_end_row && col > end->col))
+    {
         /* Extend selection to end *after* current end */
         new_start = *start;
         new_end = (struct coord){col, row};
@@ -1032,10 +1042,10 @@ selection_extend_normal(struct terminal *term, int col, int row,
     else {
         /* Shrink selection from start or end, depending on which one is closest */
 
-        const int linear = row * term->cols + col;
+        const int linear = rel_row * term->cols + col;
 
-        if (abs(linear - (start->row * term->cols + start->col)) <
-            abs(linear - (end->row * term->cols + end->col)))
+        if (abs(linear - (rel_start_row * term->cols + start->col)) <
+            abs(linear - (rel_end_row * term->cols + end->col)))
         {
             /* Move start point */
             new_start = *end;
@@ -1110,33 +1120,41 @@ selection_extend_block(struct terminal *term, int col, int row)
     const struct coord *start = &term->selection.coords.start;
     const struct coord *end = &term->selection.coords.end;
 
+    const int rel_start_row =
+        grid_row_abs_to_sb(term->grid, term->rows, start->row);
+    const int rel_end_row =
+        grid_row_abs_to_sb(term->grid, term->rows, end->row);
+
     struct coord top_left = {
-        .row = min(start->row, end->row),
+        .row = rel_start_row < rel_end_row ? start->row : end->row,
         .col = min(start->col, end->col),
     };
 
     struct coord top_right = {
-        .row = min(start->row, end->row),
+        .row = top_left.row,
         .col = max(start->col, end->col),
     };
 
     struct coord bottom_left = {
-        .row = max(start->row, end->row),
+        .row = rel_start_row > rel_end_row ? start->row : end->row,
         .col = min(start->col, end->col),
     };
 
     struct coord bottom_right = {
-        .row = max(start->row, end->row),
+        .row = bottom_left.row,
         .col = max(start->col, end->col),
     };
 
+    const int rel_row = grid_row_abs_to_sb(term->grid, term->rows, row);
+    const int rel_top_row = grid_row_abs_to_sb(term->grid, term->rows, top_left.row);
+    const int rel_bottom_row = grid_row_abs_to_sb(term->grid, term->rows, bottom_left.row);
     struct coord new_start;
     struct coord new_end;
 
     enum selection_direction direction = SELECTION_UNDIR;
 
-    if (row <= top_left.row ||
-        abs(row - top_left.row) < abs(row - bottom_left.row))
+    if (rel_row <= rel_top_row ||
+        abs(rel_row - rel_top_row) < abs(rel_row - rel_bottom_row))
     {
         /* Move one of the top corners */
 
