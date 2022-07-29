@@ -1,8 +1,8 @@
 [Service]
-ExecStart=@bindir@/foot --server=0
+ExecStart=@bindir@/foot --server=3
 Environment=WAYLAND_DISPLAY=%i
+UnsetEnvironment=LISTEN_PID LISTEN_FDS LISTEN_FDNAMES
 NonBlocking=true
-StandardInput=socket
 
 [Unit]
 Requires=%N.socket
