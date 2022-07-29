@@ -2639,6 +2639,9 @@ parse_config_file(FILE *f, struct config *conf, const char *path, bool errors_ar
 
         if (!section_parser(ctx))
             error_or_continue();
+
+        /* For next iteration of getline() */
+        errno = 0;
     }
 
     if (errno != 0) {
