@@ -806,7 +806,7 @@ e.g. *search-start=none*.
 	Recognized key bindings in Unicode input mode:
 	
 	- Enter, Space: commit the Unicode character, then exit this mode.
-	- Escape, Ctrl+c, Ctrl+d, Ctrl+g: abort input, then exit this mode.
+	- Escape, q, Ctrl+c, Ctrl+d, Ctrl+g: abort input, then exit this mode.
 	- 0-9, a-f: append next digit to the Unicode's codepoint.
 	- Backspace: undo the last digit.
 	

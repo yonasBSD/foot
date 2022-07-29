@@ -68,6 +68,7 @@ unicode_mode_input(struct seat *seat, struct terminal *term,
     }
 
     else if (sym == XKB_KEY_Escape ||
+             sym == XKB_KEY_q ||
              (seat->kbd.ctrl && (sym == XKB_KEY_c ||
                                  sym == XKB_KEY_d ||
                                  sym == XKB_KEY_g)))
