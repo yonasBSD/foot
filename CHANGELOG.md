@@ -109,6 +109,7 @@
 * Poor performance when making very large selections ([#1114][1114]).
 * Bogus error message when using systemd socket activation for server
   mode ([#1107][1107])
+* Empty line at the bottom after a window resize ([#1108][1108]).
 
 [1055]: https://codeberg.org/dnkl/foot/issues/1055
 [1092]: https://codeberg.org/dnkl/foot/issues/1092
@@ -117,6 +118,7 @@
 [1120]: https://codeberg.org/dnkl/foot/issues/1120
 [1114]: https://codeberg.org/dnkl/foot/issues/1114
 [1107]: https://codeberg.org/dnkl/foot/issues/1107
+[1108]: https://codeberg.org/dnkl/foot/issues/1108
 
 
 ### Security
