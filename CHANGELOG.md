@@ -1,6 +1,6 @@
 # Changelog
 
-* [Unreleased](#unreleased)
+* [1.13.0](#1-13-0)
 * [1.12.1](#1-12-1)
 * [1.12.0](#1-12-0)
 * [1.11.0](#1-11-0)
@@ -39,7 +39,7 @@
 * [1.2.0](#1-2-0)
 
 
-## Unreleased
+## 1.13.0
 
 ### Added
 
@@ -82,8 +82,6 @@
 [1105]: https://codeberg.org/dnkl/foot/issues/1105
 
 
-### Deprecated
-### Removed
 ### Fixed
 
 * Graphical corruption when viewport is at the top of the scrollback,
@@ -121,8 +119,13 @@
 [1108]: https://codeberg.org/dnkl/foot/issues/1108
 
 
-### Security
 ### Contributors
+
+* Craig Barnes
+* Lorenz
+* Max Gautier
+* Simon Ser
+* Stefan Prosiegel
 
 
 ## 1.12.1
