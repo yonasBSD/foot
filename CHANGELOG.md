@@ -43,6 +43,10 @@
 ## Unreleased
 ### Added
 ### Changed
+
+* Window is now dimmed while in Unicode input mode.
+
+
 ### Deprecated
 ### Removed
 ### Fixed

@@ -289,9 +289,10 @@ enum term_surface {
 };
 
 enum overlay_style {
-    OVERLAY_NONE = 0,
-    OVERLAY_SEARCH = 1,
-    OVERLAY_FLASH = 2,
+    OVERLAY_NONE,
+    OVERLAY_SEARCH,
+    OVERLAY_FLASH,
+    OVERLAY_UNICODE_MODE,
 };
 
 typedef tll(struct ptmx_buffer) ptmx_buffer_list_t;
