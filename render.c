@@ -1466,10 +1466,21 @@ static void
 render_overlay(struct terminal *term)
 {
     struct wl_surf_subsurf *overlay = &term->window->overlay;
+    bool unicode_mode_active = false;
+
+    /* Check if unicode mode is active on at least one seat focusing
+     * this terminal instance */
+    tll_foreach(term->wl->seats, it) {
+        if (it->item.unicode_mode.active) {
+            unicode_mode_active = true;
+            break;
+        }
+    }
 
     const enum overlay_style style =
         term->is_searching ? OVERLAY_SEARCH :
         term->flash.active ? OVERLAY_FLASH :
+        unicode_mode_active ? OVERLAY_UNICODE_MODE :
         OVERLAY_NONE;
 
     if (likely(style == OVERLAY_NONE)) {
@@ -1488,9 +1499,21 @@ render_overlay(struct terminal *term)
 
     pixman_image_set_clip_region32(buf->pix[0], NULL);
 
-    pixman_color_t color = style == OVERLAY_SEARCH
-        ? (pixman_color_t){0, 0, 0, 0x7fff}
-        : (pixman_color_t){.red=0x7fff, .green=0x7fff, .blue=0, .alpha=0x7fff};
+    pixman_color_t color;
+
+    switch (style) {
+    case OVERLAY_NONE:
+        break;
+
+    case OVERLAY_SEARCH:
+    case OVERLAY_UNICODE_MODE:
+        color = (pixman_color_t){0, 0, 0, 0x7fff};
+        break;
+
+    case OVERLAY_FLASH:
+        color = (pixman_color_t){.red=0x7fff, .green=0x7fff, .blue=0, .alpha=0x7fff};
+        break;
+    }
 
     /* Bounding rectangle of damaged areas - for wl_surface_damage_buffer() */
     pixman_box32_t damage_bounds;
@@ -1517,7 +1540,7 @@ render_overlay(struct terminal *term)
          * region that needs to be *cleared* in this frame.
          *
          * Finally, the union of the two “diff” regions above, gives
-         * us the total region affecte by a change, in either way. We
+         * us the total region affected by a change, in either way. We
          * use this as the bounding box for the
          * wl_surface_damage_buffer() call.
          */
@@ -1605,7 +1628,7 @@ render_overlay(struct terminal *term)
     else if (buf == term->render.last_overlay_buf &&
              style == term->render.last_overlay_style)
     {
-        xassert(style == OVERLAY_FLASH);
+        xassert(style == OVERLAY_FLASH || style == OVERLAY_UNICODE_MODE);
         shm_did_not_use_buf(buf);
         return;
     } else {
