@@ -1709,11 +1709,9 @@ wl_pointer_enter(void *data, struct wl_pointer *wl_pointer,
                  uint32_t serial, struct wl_surface *surface,
                  wl_fixed_t surface_x, wl_fixed_t surface_y)
 {
-    xassert(surface != NULL);
-    xassert(serial != 0);
-
-    if (surface == NULL)  {
+    if (unlikely(surface == NULL))  {
         /* Seen on mutter-3.38 */
+        LOG_WARN("compositor sent pointer_enter event with a NULL surface");
         return;
     }
 
@@ -1866,6 +1864,16 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
     struct seat *seat = data;
     struct wayland *wayl = seat->wayl;
     struct terminal *term = seat->mouse_focus;
+
+    if (unlikely(term == NULL)) {
+        /* Typically happens when the compositor sent a pointer enter
+         * event with a NULL surface - see wl_pointer_enter().
+         *
+         * In this case, we never set seat->mouse_focus (since we
+         * can’t map the enter event to a specific window). */
+        return;
+    }
+
     struct wl_window *win = term->window;
 
     LOG_DBG("pointer_motion: pointer=%p, x=%d, y=%d", (void *)wl_pointer,
