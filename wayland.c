@@ -706,6 +706,7 @@ xdg_toplevel_close(void *data, struct xdg_toplevel *xdg_toplevel)
     term_shutdown(term);
 }
 
+#if defined(XDG_TOPLEVEL_CONFIGURE_BOUNDS_SINCE_VERSION)
 static void
 xdg_toplevel_configure_bounds(void *data,
                               struct xdg_toplevel *xdg_toplevel,
@@ -713,6 +714,7 @@ xdg_toplevel_configure_bounds(void *data,
 {
     /* TODO: ensure we don't pick a bigger size */
 }
+#endif
 
 #if defined(XDG_TOPLEVEL_WM_CAPABILITIES_SINCE_VERSION)
 static void
@@ -742,7 +744,9 @@ xdg_toplevel_wm_capabilities(void *data,
 static const struct xdg_toplevel_listener xdg_toplevel_listener = {
     .configure = &xdg_toplevel_configure,
     /*.close = */&xdg_toplevel_close,  /* epoll-shim defines a macro ‘close’... */
+#if defined(XDG_TOPLEVEL_CONFIGURE_BOUNDS_SINCE_VERSION)
     .configure_bounds = &xdg_toplevel_configure_bounds,
+#endif
 #if defined(XDG_TOPLEVEL_WM_CAPABILITIES_SINCE_VERSION)
     .wm_capabilities = xdg_toplevel_wm_capabilities,
 #endif
