@@ -50,6 +50,10 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* Compiling against wayland-protocols < 1.25
+
+
 ### Security
 ### Contributors
 
