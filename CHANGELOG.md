@@ -52,6 +52,9 @@
 ### Fixed
 
 * Compiling against wayland-protocols < 1.25
+* Crash on buggy compositors (GNOME) that sometimes send pointer-enter
+  events with a NULL surface. Foot now ignores these events, and the
+  subsequent motion and leave events.
 
 
 ### Security
