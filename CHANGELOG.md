@@ -45,6 +45,8 @@
 ### Changed
 
 * Window is now dimmed while in Unicode input mode.
+* Selected empty cells are **never** highlighted as being
+  selected. They used to be, when followed by non-empty cells.
 
 
 ### Deprecated
@@ -55,6 +57,8 @@
 * Crash on buggy compositors (GNOME) that sometimes send pointer-enter
   events with a NULL surface. Foot now ignores these events, and the
   subsequent motion and leave events.
+* Regression: “random” selected empty cells being highlighted as
+  selected when they should not.
 
 
 ### Security
