@@ -737,8 +737,27 @@ mark_selected_region(struct terminal *term, pixman_box32_t *boxes,
                 row->dirty = true;
 
             for (int c = box->x1, empty_count = 0; c < box->x2; c++) {
-                if (selected && row->cells[c].wc == 0) {
-                    empty_count++;
+                if (row->cells[c].wc == 0) {
+                    /*
+                     * We used to highlight empty cells *if* they were
+                     * followed by non-empty cell(s), since this
+                     * corresponds to what gets extracted when the
+                     * selection is copied (that is, empty cells
+                     * “between” non-empty cells are converted to
+                     * spaces).
+                     *
+                     * However, they way we handle selection updates
+                     * (diffing the “old” selection area against the
+                     * “new” one, using pixman regions), means we
+                     * can’t correctly update the state of empty
+                     * cells. The result is “random” empty cells being
+                     * rendered as selected when they shouldn’t.
+                     *
+                     * “Fix” by *never* highlighting selected empty
+                     * cells (they still get converted to spaces when
+                     * copied, if followed by non-empty cells).
+                     */
+                    /* empty_count++; */
                     continue;
                 }
 
