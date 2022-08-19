@@ -150,6 +150,7 @@ struct config {
 
     bool use_custom_underline_offset;
     struct pt_or_px underline_offset;
+    struct pt_or_px underline_thickness;
 
     bool box_drawings_uses_font_glyphs;
     bool can_shape_grapheme;

@@ -42,6 +42,12 @@
 
 ## Unreleased
 ### Added
+
+* Support for adjusting the thickness of regular underlines ([#1136][1136]).
+
+[1136]: https://codeberg.org/dnkl/foot/issues/1136
+
+
 ### Changed
 
 * Window is now dimmed while in Unicode input mode.

@@ -904,6 +904,9 @@ parse_section_main(struct context *ctx)
         return true;
     }
 
+    else if (strcmp(key, "underline-thickness") == 0)
+        return value_to_pt_or_px(ctx, &conf->underline_thickness);
+
     else if (strcmp(key, "dpi-aware") == 0) {
         if (strcmp(value, "auto") == 0)
             conf->dpi_aware = DPI_AWARE_AUTO;
@@ -2833,6 +2836,7 @@ config_load(struct config *conf, const char *conf_path,
         .vertical_letter_offset = {.pt = 0, .px = 0},
         .use_custom_underline_offset = false,
         .box_drawings_uses_font_glyphs = false,
+        .underline_thickness = {.pt = 0., .px = -1},
         .dpi_aware = DPI_AWARE_AUTO, /* DPI-aware when scaling-factor == 1 */
         .bell = {
             .urgent = false,

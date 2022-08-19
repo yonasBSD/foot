@@ -372,7 +372,10 @@ draw_underline(const struct terminal *term, pixman_image_t *pix,
                const struct fcft_font *font,
                const pixman_color_t *color, int x, int y, int cols)
 {
-    const int thickness = font->underline.thickness;
+    const int thickness = term->conf->underline_thickness.px >= 0
+        ? term_pt_or_px_as_pixels(
+            term, &term->conf->underline_thickness)
+        : font->underline.thickness;
 
     /* Make sure the line isn't positioned below the cell */
     const int y_ofs = min(underline_offset(term, font),

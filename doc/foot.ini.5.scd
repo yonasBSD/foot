@@ -132,6 +132,18 @@ commented out will usually be installed to */etc/xdg/foot/foot.ini*.
 	
 	Default: _unset_.
 
+*underline-thickness*
+	Use a custom thickness (height) for underlines. The thickness is, by
+	default, in _points_.
+
+	To specify a thickness in _pixels_, append *px*:
+	*underline-thickness=1px*.
+
+	If left unset (the default), the thickness specified in the font is
+	used.
+
+	Default: _unset_
+
 *box-drawings-uses-font-glyphs* Boolean. When disabled, foot generates
 	box/line drawing characters itself. The are several advantages to
 	doing this instead of using font glyphs:

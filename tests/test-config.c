@@ -470,6 +470,7 @@ test_section_main(void)
     test_pt_or_px(&ctx, &parse_section_main, "letter-spacing", &conf.letter_spacing);
     test_pt_or_px(&ctx, &parse_section_main, "horizontal-letter-offset", &conf.horizontal_letter_offset);
     test_pt_or_px(&ctx, &parse_section_main, "vertical-letter-offset", &conf.vertical_letter_offset);
+    test_pt_or_px(&ctx, &parse_section_main, "underline-thickness", &conf.underline_thickness);
 
     test_uint16(&ctx, &parse_section_main, "resize-delay-ms", &conf.resize_delay_ms);
     test_uint16(&ctx, &parse_section_main, "workers", &conf.render_worker_count);
