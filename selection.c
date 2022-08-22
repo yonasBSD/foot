@@ -713,7 +713,8 @@ pixman_region_for_coords(const struct terminal *term,
 
 static void
 mark_selected_region(struct terminal *term, pixman_box32_t *boxes,
-                     size_t count, bool selected, bool dirty_cells)
+                     size_t count, bool selected, bool dirty_cells,
+                     bool highlight_empty)
 {
     for (size_t i = 0; i < count; i++) {
         const pixman_box32_t *box = &boxes[i];
@@ -737,7 +738,9 @@ mark_selected_region(struct terminal *term, pixman_box32_t *boxes,
                 row->dirty = true;
 
             for (int c = box->x1, empty_count = 0; c < box->x2; c++) {
-                if (row->cells[c].wc == 0) {
+                struct cell *cell = &row->cells[c];
+
+                if (cell->wc == 0 && !highlight_empty) {
                     /*
                      * We used to highlight empty cells *if* they were
                      * followed by non-empty cell(s), since this
@@ -757,7 +760,36 @@ mark_selected_region(struct terminal *term, pixman_box32_t *boxes,
                      * cells (they still get converted to spaces when
                      * copied, if followed by non-empty cells).
                      */
-                    /* empty_count++; */
+                    empty_count++;
+
+                    /*
+                     * When the selection is *modified*, empty cells
+                     * are treated just like non-empty cells; they are
+                     * marked as selected, and dirtied.
+                     *
+                     * This is due to how the algorithm for updating
+                     * the selection works; it uses regions to
+                     * calculate the difference between the “old” and
+                     * the “new” selection. This makes it impossible
+                     * to tell if an empty cell is a *trailing* empty
+                     * cell (that should not be highlighted), or an
+                     * empty cells between non-empty cells (that
+                     * *should* be highlighted).
+                     *
+                     * Then, when a frame is rendered, we loop the
+                     * *visibible* cells that belong to the
+                     * selection. At this point, we *can* tell if an
+                     * empty cell is trailing or not.
+                     *
+                     * So, what we need to do is check if a
+                     * ‘selected’, and empty cell has been marked as
+                     * selected, temporarily unmark (forcing it dirty,
+                     * to ensure it gets re-rendered). If it is *not*
+                     * a trailing empty cell, it will get re-tagged as
+                     * selected in the for-loop below.
+                     */
+                    cell->attrs.clean = false;
+                    cell->attrs.selected = false;
                     continue;
                 }
 
@@ -810,10 +842,10 @@ selection_modify(struct terminal *term, struct coord start, struct coord end)
     pixman_box32_t *boxes = NULL;
 
     boxes = pixman_region32_rectangles(&no_longer_selected, &n_rects);
-    mark_selected_region(term, boxes, n_rects, false, true);
+    mark_selected_region(term, boxes, n_rects, false, true, true);
 
     boxes = pixman_region32_rectangles(&newly_selected, &n_rects);
-    mark_selected_region(term, boxes, n_rects, true, true);
+    mark_selected_region(term, boxes, n_rects, true, true, true);
 
     pixman_region32_fini(&newly_selected);
     pixman_region32_fini(&no_longer_selected);
@@ -1078,7 +1110,7 @@ selection_dirty_cells(struct terminal *term)
     int n_rects = -1;
     pixman_box32_t *boxes =
         pixman_region32_rectangles(&visible_and_selected, &n_rects);
-    mark_selected_region(term, boxes, n_rects, true, false);
+    mark_selected_region(term, boxes, n_rects, true, false, false);
 
     pixman_region32_fini(&visible_and_selected);
     pixman_region32_fini(&view);

@@ -51,8 +51,6 @@
 ### Changed
 
 * Window is now dimmed while in Unicode input mode.
-* Selected empty cells are **never** highlighted as being
-  selected. They used to be, when followed by non-empty cells.
 * Default color theme from a variant of the Zenburn theme, to a
   variant of the Solarized dark theme.
 
