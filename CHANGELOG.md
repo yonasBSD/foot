@@ -45,8 +45,6 @@
 ### Changed
 
 * Window is now dimmed while in Unicode input mode.
-* Selected empty cells are **never** highlighted as being
-  selected. They used to be, when followed by non-empty cells.
 
 
 ### Deprecated
