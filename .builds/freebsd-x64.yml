@@ -19,7 +19,7 @@ packages:
   - noto-emoji
 
 sources:
-  - https://codeberg.org/dnkl/foot
+  - https://git.sr.ht/~dnkl/foot
 
 # triggers:
 #   - action: email
