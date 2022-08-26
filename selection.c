@@ -1110,7 +1110,9 @@ selection_dirty_cells(struct terminal *term)
     int n_rects = -1;
     pixman_box32_t *boxes =
         pixman_region32_rectangles(&visible_and_selected, &n_rects);
-    mark_selected_region(term, boxes, n_rects, true, false, false);
+
+    const bool highlight_empty = term->selection.kind == SELECTION_BLOCK;
+    mark_selected_region(term, boxes, n_rects, true, false, highlight_empty);
 
     pixman_region32_fini(&visible_and_selected);
     pixman_region32_fini(&view);
