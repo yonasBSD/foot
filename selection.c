@@ -711,11 +711,26 @@ pixman_region_for_coords(const struct terminal *term,
     }
 }
 
+enum mark_selection_variant {
+    MARK_SELECTION_MARK_AND_DIRTY,
+    MARK_SELECTION_UNMARK_AND_DIRTY,
+    MARK_SELECTION_MARK_FOR_RENDER,
+};
+
 static void
 mark_selected_region(struct terminal *term, pixman_box32_t *boxes,
-                     size_t count, bool selected, bool dirty_cells,
-                     bool highlight_empty)
+                     size_t count, enum mark_selection_variant mark_variant)
 {
+    const bool selected =
+        mark_variant == MARK_SELECTION_MARK_AND_DIRTY ||
+        mark_variant == MARK_SELECTION_MARK_FOR_RENDER;
+    const bool dirty_cells =
+        mark_variant == MARK_SELECTION_MARK_AND_DIRTY ||
+        mark_variant == MARK_SELECTION_UNMARK_AND_DIRTY;
+    const bool highlight_empty =
+        mark_variant != MARK_SELECTION_MARK_FOR_RENDER ||
+        term->selection.kind == SELECTION_BLOCK;
+
     for (size_t i = 0; i < count; i++) {
         const pixman_box32_t *box = &boxes[i];
 
@@ -842,10 +857,10 @@ selection_modify(struct terminal *term, struct coord start, struct coord end)
     pixman_box32_t *boxes = NULL;
 
     boxes = pixman_region32_rectangles(&no_longer_selected, &n_rects);
-    mark_selected_region(term, boxes, n_rects, false, true, true);
+    mark_selected_region(term, boxes, n_rects, MARK_SELECTION_UNMARK_AND_DIRTY);
 
     boxes = pixman_region32_rectangles(&newly_selected, &n_rects);
-    mark_selected_region(term, boxes, n_rects, true, true, true);
+    mark_selected_region(term, boxes, n_rects, MARK_SELECTION_MARK_AND_DIRTY);
 
     pixman_region32_fini(&newly_selected);
     pixman_region32_fini(&no_longer_selected);
@@ -1110,9 +1125,7 @@ selection_dirty_cells(struct terminal *term)
     int n_rects = -1;
     pixman_box32_t *boxes =
         pixman_region32_rectangles(&visible_and_selected, &n_rects);
-
-    const bool highlight_empty = term->selection.kind == SELECTION_BLOCK;
-    mark_selected_region(term, boxes, n_rects, true, false, highlight_empty);
+    mark_selected_region(term, boxes, n_rects, MARK_SELECTION_MARK_FOR_RENDER);
 
     pixman_region32_fini(&visible_and_selected);
     pixman_region32_fini(&view);
