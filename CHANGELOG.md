@@ -57,6 +57,10 @@
   subsequent motion and leave events.
 * Regression: “random” selected empty cells being highlighted as
   selected when they should not.
+* Crash when either resizing the terminal window, or scrolling in the
+  scrollback history ([#1074][1074])
+
+[1074]: https://codeberg.org/dnkl/foot/pulls/1074
 
 
 ### Security
