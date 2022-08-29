@@ -943,6 +943,21 @@ grid_resize_and_reflow(
 
             if (r + 1 < old_rows)
                 line_wrap();
+            else if (new_row->extra != NULL &&
+                     new_row->extra->uri_ranges.count > 0)
+            {
+                /*
+                 * line_wrap() "closes" still-open URIs. Since this is
+                 * the *last* row, and since we’re line-breaking due
+                 * to a hard line-break (rather than running out of
+                 * cells in the "new_row"), there shouldn’t be an open
+                 * URI (it would have been closed when we reached the
+                 * end of the URI while reflowing the last "old"
+                 * row).
+                 */
+                uint32_t last_idx = new_row->extra->uri_ranges.count - 1;
+                xassert(new_row->extra->uri_ranges.v[last_idx].end >= 0);
+            }
         }
 
         grid_row_free(old_grid[old_row_idx]);
