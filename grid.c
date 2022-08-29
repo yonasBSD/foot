@@ -935,13 +935,14 @@ grid_resize_and_reflow(
             start += cols;
         }
 
-
         if (old_row->linebreak) {
             /* Erase the remaining cells */
             memset(&new_row->cells[new_col_idx], 0,
                    (new_cols - new_col_idx) * sizeof(new_row->cells[0]));
             new_row->linebreak = true;
-            line_wrap();
+
+            if (r + 1 < old_rows)
+                line_wrap();
         }
 
         grid_row_free(old_grid[old_row_idx]);
@@ -984,25 +985,6 @@ grid_resize_and_reflow(
 
     /* Set offset such that the last reflowed row is at the bottom */
     grid->offset = new_row_idx - new_screen_rows + 1;
-
-    if (new_col_idx == 0) {
-        int next_to_last_new_row_idx = new_row_idx - 1;
-        next_to_last_new_row_idx += new_rows;
-        next_to_last_new_row_idx &= new_rows - 1;
-
-        const struct row *next_to_last_row = new_grid[next_to_last_new_row_idx];
-        if (next_to_last_row != NULL && next_to_last_row->linebreak) {
-            /*
-             * The next to last row is actually the *last* row. But we
-             * ended the reflow with a line-break, causing an empty
-             * row to be inserted at the bottom. Undo this.
-             */
-            /* TODO: can we detect this in the reflow loop above instead? */
-            grid->offset--;
-            grid_row_free(new_grid[new_row_idx]);
-            new_grid[new_row_idx] = NULL;
-        }
-    }
 
     while (grid->offset < 0)
         grid->offset += new_rows;
