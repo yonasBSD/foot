@@ -1016,29 +1016,23 @@ grid_resize_and_reflow(
             new_grid[idx] = grid_row_alloc(new_cols, true);
     }
 
-    grid->view = view_follows ? grid->offset : viewport.row;
-
-    /* If enlarging the window, the old viewport may be too far down,
-     * with unallocated rows. Make sure this cannot happen */
-    while (true) {
-        int idx = (grid->view + new_screen_rows - 1) & (new_rows - 1);
-        if (new_grid[idx] != NULL)
-            break;
-        grid->view--;
-        if (grid->view < 0)
-            grid->view += new_rows;
-    }
-    for (size_t r = 0; r < new_screen_rows; r++) {
-        int UNUSED idx = (grid->view + r) & (new_rows - 1);
-        xassert(new_grid[idx] != NULL);
-    }
-
     /* Free old grid (rows already free:d) */
     free(grid->rows);
 
     grid->rows = new_grid;
     grid->num_rows = new_rows;
     grid->num_cols = new_cols;
+
+    /*
+     * Set new viewport, making sure it’s not too far down.
+     *
+     * This is done by using scrollback-start relative cooardinates,
+     * and bounding the new viewport to (grid_rows - screen_rows).
+     */
+    int sb_view = grid_row_abs_to_sb(
+        grid, new_screen_rows, view_follows ? grid->offset : viewport.row);
+    grid->view = grid_row_sb_to_abs(
+        grid, new_screen_rows, min(sb_view, new_rows - new_screen_rows));
 
     /* Convert absolute coordinates to screen relative */
     cursor.row -= grid->offset;
