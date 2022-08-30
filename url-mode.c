@@ -677,18 +677,23 @@ urls_assign_key_combos(const struct config *conf, url_list_t *urls)
     if (count == 0)
         return;
 
-    uint64_t seen_ids[count];
     char32_t *combos[count];
     generate_key_combos(conf, count, combos);
 
     size_t combo_idx = 0;
-    size_t id_idx = 0;
 
     tll_foreach(*urls, it) {
         bool id_already_seen = false;
 
-        for (size_t i = 0; i < id_idx; i++) {
-            if (it->item.id == seen_ids[i]) {
+        /* Look for already processed URLs where both the URI and the
+         * ID matches */
+        tll_foreach(*urls, it2) {
+            if (&it->item == &it2->item)
+                break;
+
+            if (it->item.id == it2->item.id &&
+                strcmp(it->item.url, it2->item.url) == 0)
+            {
                 id_already_seen = true;
                 break;
             }
@@ -696,7 +701,6 @@ urls_assign_key_combos(const struct config *conf, url_list_t *urls)
 
         if (id_already_seen)
             continue;
-        seen_ids[id_idx++] = it->item.id;
 
         /*
          * Scan previous URLs, and check if *this* URL matches any of
@@ -730,7 +734,7 @@ urls_assign_key_combos(const struct config *conf, url_list_t *urls)
         char *key = ac32tombs(it->item.key);
         xassert(key != NULL);
 
-        LOG_DBG("URL: %s (%s)", it->item.url, key);
+        LOG_DBG("URL: %s (key=%s, id=%"PRIu64")", it->item.url, key, it->item.id);
         free(key);
     }
 #endif
