@@ -935,13 +935,29 @@ grid_resize_and_reflow(
             start += cols;
         }
 
-
         if (old_row->linebreak) {
             /* Erase the remaining cells */
             memset(&new_row->cells[new_col_idx], 0,
                    (new_cols - new_col_idx) * sizeof(new_row->cells[0]));
             new_row->linebreak = true;
-            line_wrap();
+
+            if (r + 1 < old_rows)
+                line_wrap();
+            else if (new_row->extra != NULL &&
+                     new_row->extra->uri_ranges.count > 0)
+            {
+                /*
+                 * line_wrap() "closes" still-open URIs. Since this is
+                 * the *last* row, and since we’re line-breaking due
+                 * to a hard line-break (rather than running out of
+                 * cells in the "new_row"), there shouldn’t be an open
+                 * URI (it would have been closed when we reached the
+                 * end of the URI while reflowing the last "old"
+                 * row).
+                 */
+                uint32_t last_idx = new_row->extra->uri_ranges.count - 1;
+                xassert(new_row->extra->uri_ranges.v[last_idx].end >= 0);
+            }
         }
 
         grid_row_free(old_grid[old_row_idx]);
@@ -985,25 +1001,6 @@ grid_resize_and_reflow(
     /* Set offset such that the last reflowed row is at the bottom */
     grid->offset = new_row_idx - new_screen_rows + 1;
 
-    if (new_col_idx == 0) {
-        int next_to_last_new_row_idx = new_row_idx - 1;
-        next_to_last_new_row_idx += new_rows;
-        next_to_last_new_row_idx &= new_rows - 1;
-
-        const struct row *next_to_last_row = new_grid[next_to_last_new_row_idx];
-        if (next_to_last_row != NULL && next_to_last_row->linebreak) {
-            /*
-             * The next to last row is actually the *last* row. But we
-             * ended the reflow with a line-break, causing an empty
-             * row to be inserted at the bottom. Undo this.
-             */
-            /* TODO: can we detect this in the reflow loop above instead? */
-            grid->offset--;
-            grid_row_free(new_grid[new_row_idx]);
-            new_grid[new_row_idx] = NULL;
-        }
-    }
-
     while (grid->offset < 0)
         grid->offset += new_rows;
     while (new_grid[grid->offset] == NULL)
@@ -1016,29 +1013,23 @@ grid_resize_and_reflow(
             new_grid[idx] = grid_row_alloc(new_cols, true);
     }
 
-    grid->view = view_follows ? grid->offset : viewport.row;
-
-    /* If enlarging the window, the old viewport may be too far down,
-     * with unallocated rows. Make sure this cannot happen */
-    while (true) {
-        int idx = (grid->view + new_screen_rows - 1) & (new_rows - 1);
-        if (new_grid[idx] != NULL)
-            break;
-        grid->view--;
-        if (grid->view < 0)
-            grid->view += new_rows;
-    }
-    for (size_t r = 0; r < new_screen_rows; r++) {
-        int UNUSED idx = (grid->view + r) & (new_rows - 1);
-        xassert(new_grid[idx] != NULL);
-    }
-
     /* Free old grid (rows already free:d) */
     free(grid->rows);
 
     grid->rows = new_grid;
     grid->num_rows = new_rows;
     grid->num_cols = new_cols;
+
+    /*
+     * Set new viewport, making sure it’s not too far down.
+     *
+     * This is done by using scrollback-start relative cooardinates,
+     * and bounding the new viewport to (grid_rows - screen_rows).
+     */
+    int sb_view = grid_row_abs_to_sb(
+        grid, new_screen_rows, view_follows ? grid->offset : viewport.row);
+    grid->view = grid_row_sb_to_abs(
+        grid, new_screen_rows, min(sb_view, new_rows - new_screen_rows));
 
     /* Convert absolute coordinates to screen relative */
     cursor.row -= grid->offset;
