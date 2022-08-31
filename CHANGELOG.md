@@ -1,6 +1,6 @@
 # Changelog
 
-* [Unreleased](#unreleased)
+* [1.13.1](#1-13-1)
 * [1.13.0](#1-13-0)
 * [1.12.1](#1-12-1)
 * [1.12.0](#1-12-0)
@@ -40,15 +40,13 @@
 * [1.2.0](#1-2-0)
 
 
-## Unreleased
-### Added
+## 1.13.1
+
 ### Changed
 
 * Window is now dimmed while in Unicode input mode.
 
 
-### Deprecated
-### Removed
 ### Fixed
 
 * Compiling against wayland-protocols < 1.25
@@ -63,10 +61,6 @@
   connected.
 
 [1074]: https://codeberg.org/dnkl/foot/pulls/1074
-
-
-### Security
-### Contributors
 
 
 ## 1.13.0
