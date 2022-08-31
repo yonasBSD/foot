@@ -1,6 +1,7 @@
 # Changelog
 
 * [Unreleased](#unreleased)
+* [1.13.1](#1-13-1)
 * [1.13.0](#1-13-0)
 * [1.12.1](#1-12-1)
 * [1.12.0](#1-12-0)
@@ -41,6 +42,7 @@
 
 
 ## Unreleased
+
 ### Added
 
 * Support for adjusting the thickness of regular underlines ([#1136][1136]).
@@ -50,13 +52,24 @@
 
 ### Changed
 
-* Window is now dimmed while in Unicode input mode.
 * Default color theme from a variant of the Zenburn theme, to a
   variant of the Solarized dark theme.
 
 
 ### Deprecated
 ### Removed
+### Fixed
+### Security
+### Contributors
+
+
+## 1.13.1
+
+### Changed
+
+* Window is now dimmed while in Unicode input mode.
+
+
 ### Fixed
 
 * Compiling against wayland-protocols < 1.25
@@ -71,10 +84,6 @@
   connected.
 
 [1074]: https://codeberg.org/dnkl/foot/pulls/1074
-
-
-### Security
-### Contributors
 
 
 ## 1.13.0
