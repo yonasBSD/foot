@@ -210,7 +210,7 @@ commented out will usually be installed to */etc/xdg/foot/foot.ini*.
 	To instead center the grid content, append *center* (e.g. *pad=5x5
 	center*).
 	
-	Default: _2x2_.
+	Default: _0x0_.
 
 *resize-delay-ms*
 	Time, in milliseconds, of "idle time" before foot sends the new

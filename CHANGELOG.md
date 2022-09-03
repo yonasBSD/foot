@@ -54,6 +54,7 @@
 
 * Default color theme from a variant of the Zenburn theme, to a
   variant of the Solarized dark theme.
+* Default `pad` from 2x2 to 0x0 (i.e. no padding at all).
 
 
 ### Deprecated
