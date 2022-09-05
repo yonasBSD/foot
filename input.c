@@ -1406,7 +1406,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
         seat->kbd.xkb_keymap, key, layout_idx, 0, &raw_syms);
 
     const struct key_binding_set *bindings = key_binding_for(
-        seat->wayl->key_binding_manager, term, seat);
+        seat->wayl->key_binding_manager, term->conf, seat);
     xassert(bindings != NULL);
 
     if (pressed) {
@@ -2335,7 +2335,7 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
                     /* Seat has keyboard - use mouse bindings *with* modifiers */
 
                     const struct key_binding_set *bindings = key_binding_for(
-                        wayl->key_binding_manager, term, seat);
+                        wayl->key_binding_manager, term->conf, seat);
                     xassert(bindings != NULL);
 
                     xkb_mod_mask_t mods;

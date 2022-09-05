@@ -80,17 +80,14 @@ key_binding_new_for_seat(struct key_binding_manager *mgr,
 }
 
 void
-key_binding_new_for_term(struct key_binding_manager *mgr,
-                         const struct terminal *term)
+key_binding_new_for_conf(struct key_binding_manager *mgr,
+                         const struct wayland *wayl, const struct config *conf)
 {
-    const struct config *conf = term->conf;
-    const struct wayland *wayl = term->wl;
-
     tll_foreach(wayl->seats, it) {
         struct seat *seat = &it->item;
 
         struct key_set *existing =
-            (struct key_set *)key_binding_for(mgr, term, seat);
+            (struct key_set *)key_binding_for(mgr, conf, seat);
 
         if (existing != NULL) {
             existing->conf_ref_count++;
@@ -116,21 +113,19 @@ key_binding_new_for_term(struct key_binding_manager *mgr,
         /* Chances are high this set will be requested next */
         mgr->last_used_set = &tll_back(mgr->binding_sets);
 
-        LOG_DBG("new (term): set=%p, seat=%p, conf=%p, ref-count=1",
+        LOG_DBG("new (conf): set=%p, seat=%p, conf=%p, ref-count=1",
                 (void *)&tll_back(mgr->binding_sets),
                 (void *)set.seat, (void *)set.conf);
     }
 
-    LOG_DBG("new (term): total number of sets: %zu",
+    LOG_DBG("new (conf): total number of sets: %zu",
             tll_length(mgr->binding_sets));
 }
 
 struct key_binding_set * NOINLINE
-key_binding_for(struct key_binding_manager *mgr, const struct terminal *term,
+key_binding_for(struct key_binding_manager *mgr, const struct config *conf,
                 const struct seat *seat)
 {
-    const struct config *conf = term->conf;
-
     struct key_set *last_used = mgr->last_used_set;
     if (last_used != NULL &&
         last_used->conf == conf &&
@@ -192,11 +187,8 @@ key_binding_remove_seat(struct key_binding_manager *mgr,
 }
 
 void
-key_binding_unref_term(struct key_binding_manager *mgr,
-                       const struct terminal *term)
+key_binding_unref(struct key_binding_manager *mgr, const struct config *conf)
 {
-    const struct config *conf = term->conf;
-
     tll_foreach(mgr->binding_sets, it) {
         struct key_set *set = &it->item;
 

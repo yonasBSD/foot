@@ -60,6 +60,12 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* Crash in `foot --server` on key press, after another `footclient`
+  has terminated very early (for example, by trying to launch a
+  non-existing shell/client).
+
+
 ### Security
 ### Contributors
 

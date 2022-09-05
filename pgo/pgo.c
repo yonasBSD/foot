@@ -178,15 +178,16 @@ static bool kbd_initialized = false;
 
 struct key_binding_set *
 key_binding_for(
-    struct key_binding_manager *mgr, const struct terminal *term,
+    struct key_binding_manager *mgr, const struct config *conf,
     const struct seat *seat)
 {
     return &kbd;
 }
 
 void
-key_binding_new_for_term(
-    struct key_binding_manager *mgr, const struct terminal *term)
+key_binding_new_for_conf(
+    struct key_binding_manager *mgr, const struct wayland *wayl,
+    const struct config *conf)
 {
     if (!kbd_initialized) {
         kbd_initialized = true;
@@ -201,7 +202,7 @@ key_binding_new_for_term(
 }
 
 void
-key_binding_unref_term(struct key_binding_manager *mgr, const struct terminal *term)
+key_binding_unref(struct key_binding_manager *mgr, const struct config *conf)
 {
 }
 

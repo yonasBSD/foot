@@ -110,6 +110,7 @@ typedef tll(struct key_binding) key_binding_list_t;
 
 struct terminal;
 struct seat;
+struct wayland;
 
 struct key_binding_set {
     key_binding_list_t key;
@@ -127,20 +128,21 @@ void key_binding_manager_destroy(struct key_binding_manager *mgr);
 void key_binding_new_for_seat(
     struct key_binding_manager *mgr, const struct seat *seat);
 
-void key_binding_new_for_term(
-    struct key_binding_manager *mgr, const struct terminal *term);
+void key_binding_new_for_conf(
+    struct key_binding_manager *mgr, const struct wayland *wayl,
+    const struct config *conf);
 
-/* Returns the set of key bindings associated with this seat/term pair */
+/* Returns the set of key bindings associated with this seat/conf pair */
 struct key_binding_set *key_binding_for(
-    struct key_binding_manager *mgr, const struct terminal *term,
+    struct key_binding_manager *mgr, const struct config *conf,
     const struct seat *seat);
 
 /* Remove all key bindings tied to the specified seat */
 void key_binding_remove_seat(
     struct key_binding_manager *mgr, const struct seat *seat);
 
-void key_binding_unref_term(
-    struct key_binding_manager *mgr, const struct terminal *term);
+void key_binding_unref(
+    struct key_binding_manager *mgr, const struct config *conf);
 
 void key_binding_load_keymap(
     struct key_binding_manager *mgr, const struct seat *seat);

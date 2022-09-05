@@ -1089,6 +1089,11 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
         goto close_fds;
     }
 
+    /* Need to register *very* early (before the first “goto err”), to
+     * ensure term_destroy() doesn’t unref a key-binding we haven’t
+     * yet ref:d */
+    key_binding_new_for_conf(wayl->key_binding_manager, wayl, conf);
+
     int ptmx_flags;
     if ((ptmx_flags = fcntl(ptmx, F_GETFL)) < 0 ||
         fcntl(ptmx, F_SETFL, ptmx_flags | O_NONBLOCK) < 0)
@@ -1265,8 +1270,6 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
     }
 
     memcpy(term->colors.table, term->conf->colors.table, sizeof(term->colors.table));
-
-    key_binding_new_for_term(wayl->key_binding_manager, term);
 
     /* Initialize the Wayland window backend */
     if ((term->window = wayl_win_init(term, token)) == NULL)
@@ -1583,7 +1586,7 @@ term_destroy(struct terminal *term)
     if (term == NULL)
         return 0;
 
-    key_binding_unref_term(term->wl->key_binding_manager, term);
+    key_binding_unref(term->wl->key_binding_manager, term->conf);
 
     tll_foreach(term->wl->terms, it) {
         if (it->item == term) {
@@ -2885,7 +2888,7 @@ term_mouse_grabbed(const struct terminal *term, const struct seat *seat)
     get_current_modifiers(seat, &mods, NULL, 0);
 
     const struct key_binding_set *bindings =
-        key_binding_for(term->wl->key_binding_manager, term, seat);
+        key_binding_for(term->wl->key_binding_manager, term->conf, seat);
     const xkb_mod_mask_t override_modmask = bindings->selection_overrides;
     bool override_mods_pressed = (mods & override_modmask) == override_modmask;
 
