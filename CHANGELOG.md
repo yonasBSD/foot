@@ -55,6 +55,10 @@
 * Default color theme from a variant of the Zenburn theme, to a
   variant of the Solarized dark theme.
 * Default `pad` from 2x2 to 0x0 (i.e. no padding at all).
+* Current working directory (as set by OSC-7) is now passed to the
+  program executed by the `pipe-*` key bindings ([#1166][166]).
+
+[1166]: https://codeberg.org/dnkl/foot/issues/1166
 
 
 ### Deprecated
