@@ -2008,6 +2008,9 @@ resolve_key_binding_collisions(struct config *conf, const char *section_name,
                 sym_equal = (binding1->m.button == binding2->m.button &&
                              binding1->m.count == binding2->m.count);
                 break;
+
+            default:
+                BUG("unhandled key binding type");
             }
 
             if (!mods_equal || !sym_equal)
