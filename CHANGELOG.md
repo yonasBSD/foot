@@ -56,7 +56,10 @@
   variant of the Solarized dark theme.
 * Default `pad` from 2x2 to 0x0 (i.e. no padding at all).
 * Current working directory (as set by OSC-7) is now passed to the
-  program executed by the `pipe-*` key bindings ([#1166][166]).
+  program executed by the `pipe-*` key bindings ([#1166][1166]).
+* `DECRPM` replies (to `DECRQM` queries) now report a value of `4`
+  ("permanently reset") instead of `2` ("reset") for DEC private
+  modes that are known but unsupported.
 
 [1166]: https://codeberg.org/dnkl/foot/issues/1166
 
@@ -72,6 +75,8 @@
 
 ### Security
 ### Contributors
+
+* Craig Barnes
 
 
 ## 1.13.1

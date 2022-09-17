@@ -535,47 +535,65 @@ decrst(struct terminal *term, unsigned param)
     decset_decrst(term, param, false);
 }
 
-static bool
-decrqm(const struct terminal *term, unsigned param, bool *enabled)
+/*
+ * These values represent the current state of a DEC private mode,
+ * as returned in the DECRPM reply to a DECRQM query.
+ */
+enum decrpm_status {
+    DECRPM_NOT_RECOGNIZED = 0,
+    DECRPM_SET = 1,
+    DECRPM_RESET = 2,
+    DECRPM_PERMANENTLY_SET = 3,
+    DECRPM_PERMANENTLY_RESET = 4,
+};
+
+static enum decrpm_status
+decrpm(bool enabled)
+{
+    return enabled ? DECRPM_SET : DECRPM_RESET;
+}
+
+static enum decrpm_status
+decrqm(const struct terminal *term, unsigned param)
 {
     switch (param) {
-    case 1: *enabled = term->cursor_keys_mode == CURSOR_KEYS_APPLICATION; return true;
-    case 3: *enabled = false; return true;
-    case 4: *enabled = false; return true;
-    case 5: *enabled = term->reverse; return true;
-    case 6: *enabled = term->origin; return true;
-    case 7: *enabled = term->auto_margin; return true;
-    case 9: *enabled = false; /*  term->mouse_tracking == MOUSE_X10; */ return true;
-    case 12: *enabled = term->cursor_blink.decset; return true;
-    case 25: *enabled = !term->hide_cursor; return true;
-    case 45: *enabled = term->reverse_wrap; return true;
-    case 66: *enabled = term->keypad_keys_mode == KEYPAD_APPLICATION; return true;
-    case 80: *enabled = !term->sixel.scrolling; return true;
-    case 1000: *enabled = term->mouse_tracking == MOUSE_CLICK; return true;
-    case 1001: *enabled = false; return true;
-    case 1002: *enabled = term->mouse_tracking == MOUSE_DRAG; return true;
-    case 1003: *enabled = term->mouse_tracking == MOUSE_MOTION; return true;
-    case 1004: *enabled = term->focus_events; return true;
-    case 1005: *enabled = false; /* term->mouse_reporting == MOUSE_UTF8; */ return true;
-    case 1006: *enabled = term->mouse_reporting == MOUSE_SGR; return true;
-    case 1007: *enabled = term->alt_scrolling; return true;
-    case 1015: *enabled = term->mouse_reporting == MOUSE_URXVT; return true;
-    case 1016: *enabled = term->mouse_reporting == MOUSE_SGR_PIXELS; return true;
-    case 1034: *enabled = term->meta.eight_bit; return true;
-    case 1035: *enabled = term->num_lock_modifier; return true;
-    case 1036: *enabled = term->meta.esc_prefix; return true;
-    case 1042: *enabled = term->bell_action_enabled; return true;
+    case 1: return decrpm(term->cursor_keys_mode == CURSOR_KEYS_APPLICATION);
+    case 3: return DECRPM_PERMANENTLY_RESET;
+    case 4: return DECRPM_PERMANENTLY_RESET;
+    case 5: return decrpm(term->reverse);
+    case 6: return decrpm(term->origin);
+    case 7: return decrpm(term->auto_margin);
+    case 9: return DECRPM_PERMANENTLY_RESET; /* term->mouse_tracking == MOUSE_X10; */
+    case 12: return decrpm(term->cursor_blink.decset);
+    case 25: return decrpm(!term->hide_cursor);
+    case 45: return decrpm(term->reverse_wrap);
+    case 66: return decrpm(term->keypad_keys_mode == KEYPAD_APPLICATION);
+    case 80: return decrpm(!term->sixel.scrolling);
+    case 1000: return decrpm(term->mouse_tracking == MOUSE_CLICK);
+    case 1001: return DECRPM_PERMANENTLY_RESET;
+    case 1002: return decrpm(term->mouse_tracking == MOUSE_DRAG);
+    case 1003: return decrpm(term->mouse_tracking == MOUSE_MOTION);
+    case 1004: return decrpm(term->focus_events);
+    case 1005: return DECRPM_PERMANENTLY_RESET; /* term->mouse_reporting == MOUSE_UTF8; */
+    case 1006: return decrpm(term->mouse_reporting == MOUSE_SGR);
+    case 1007: return decrpm(term->alt_scrolling);
+    case 1015: return decrpm(term->mouse_reporting == MOUSE_URXVT);
+    case 1016: return decrpm(term->mouse_reporting == MOUSE_SGR_PIXELS);
+    case 1034: return decrpm(term->meta.eight_bit);
+    case 1035: return decrpm(term->num_lock_modifier);
+    case 1036: return decrpm(term->meta.esc_prefix);
+    case 1042: return decrpm(term->bell_action_enabled);
     case 47:   /* FALLTHROUGH */
     case 1047: /* FALLTHROUGH */
-    case 1049: *enabled = term->grid == &term->alt; return true;
-    case 1070: *enabled = term->sixel.use_private_palette; return true;
-    case 2004: *enabled = term->bracketed_paste; return true;
-    case 2026: *enabled = term->render.app_sync_updates.enabled; return true;
-    case 8452: *enabled = term->sixel.cursor_right_of_graphics; return true;
-    case 737769: *enabled = term_ime_is_enabled(term); return true;
+    case 1049: return decrpm(term->grid == &term->alt);
+    case 1070: return decrpm(term->sixel.use_private_palette);
+    case 2004: return decrpm(term->bracketed_paste);
+    case 2026: return decrpm(term->render.app_sync_updates.enabled);
+    case 8452: return decrpm(term->sixel.cursor_right_of_graphics);
+    case 737769: return decrpm(term_ime_is_enabled(term));
     }
 
-    return false;
+    return DECRPM_NOT_RECOGNIZED;
 }
 
 static void
@@ -1721,15 +1739,9 @@ csi_dispatch(struct terminal *term, uint8_t final)
              *   3 - permanently set
              *   4 - permantently reset
              */
-            bool enabled;
-            unsigned value;
-            if (decrqm(term, param, &enabled))
-                value = enabled ? 1 : 2;
-            else
-                value = 0;
-
+            unsigned status = decrqm(term, param);
             char reply[32];
-            size_t n = xsnprintf(reply, sizeof(reply), "\033[?%u;%u$y", param, value);
+            size_t n = xsnprintf(reply, sizeof(reply), "\033[?%u;%u$y", param, status);
             term_to_slave(term, reply, n);
             break;
 
