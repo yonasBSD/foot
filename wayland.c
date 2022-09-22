@@ -367,7 +367,7 @@ update_terms_on_monitor(struct monitor *mon)
 static void
 output_update_ppi(struct monitor *mon)
 {
-    if (mon->dim.mm.width == 0 || mon->dim.mm.height == 0)
+    if (mon->dim.mm.width <= 0 || mon->dim.mm.height <= 0)
         return;
 
     int x_inches = mon->dim.mm.width * 0.03937008;
