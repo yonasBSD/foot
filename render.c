@@ -1014,6 +1014,13 @@ grid_render_scroll(struct terminal *term, struct buffer *buf,
     wl_surface_damage_buffer(
         term->window->surface, term->margins.left, dst_y,
         term->width - term->margins.left - term->margins.right, height);
+
+    /*
+     * TODO: remove this if re-enabling scroll damage when re-applying
+     * last frame’s damage (see reapply_old_damage()
+     */
+    pixman_region32_union_rect(
+        &buf->dirty, &buf->dirty, 0, dst_y, buf->width, height);
 }
 
 static void
@@ -1079,6 +1086,13 @@ grid_render_scroll_reverse(struct terminal *term, struct buffer *buf,
     wl_surface_damage_buffer(
         term->window->surface, term->margins.left, dst_y,
         term->width - term->margins.left - term->margins.right, height);
+
+    /*
+     * TODO: remove this if re-enabling scroll damage when re-applying
+     * last frame’s damage (see reapply_old_damage()
+     */
+    pixman_region32_union_rect(
+        &buf->dirty, &buf->dirty, 0, dst_y, buf->width, height);
 }
 
 static void
@@ -2538,22 +2552,27 @@ reapply_old_damage(struct terminal *term, struct buffer *new, struct buffer *old
         return;
     }
 
-    /*
-     * TODO: remove this frame’s damage from the region we copy from
-     * the old frame.
-     *
-     * - this frame’s dirty region is only valid *after* we’ve applied
-     *   its scroll damage.
-     * - last frame’s dirty region is only valid *before* we’ve
-     *   applied this frame’s scroll damage.
-     *
-     * Can we transform one of the regions? It’s not trivial, since
-     * scroll damage isn’t just about counting lines; there may be
-     * multiple damage records, each with different scrolling regions.
-     */
     pixman_region32_t dirty;
     pixman_region32_init(&dirty);
 
+    /*
+     * Figure out current frame’s damage region
+     *
+     * If current frame doesn’t have any scroll damage, we can simply
+     * subtract this frame’s damage from the last frame’s damage. That
+     * way, we don’t have to copy areas from the old frame that’ll
+     * just get overwritten by current frame.
+     *
+     * Note that this is row based. A “half damaged” row is not
+     * excluded. I.e. the entire row will be copied from the old frame
+     * to the new, and then when actually rendering the new frame, the
+     * updated cells will overwrite parts of the copied row.
+     *
+     * Since we’re scanning the entire viewport anyway, we also track
+     * whether *all* cells are to be updated. In this case, just force
+     * a full re-rendering, and don’t copy anything from the old
+     * frame.
+     */
     bool full_repaint_needed = true;
 
     for (int r = 0; r < term->rows; r++) {
@@ -2583,35 +2602,31 @@ reapply_old_damage(struct terminal *term, struct buffer *new, struct buffer *old
         return;
     }
 
-    for (size_t i = 0; i < old->scroll_damage_count; i++) {
-        const struct damage *dmg = &old->scroll_damage[i];
-
-        switch (dmg->type) {
-        case DAMAGE_SCROLL:
-            if (term->grid->view == term->grid->offset)
-                grid_render_scroll(term, new, dmg);
-            break;
-
-        case DAMAGE_SCROLL_REVERSE:
-            if (term->grid->view == term->grid->offset)
-                grid_render_scroll_reverse(term, new, dmg);
-            break;
-
-        case DAMAGE_SCROLL_IN_VIEW:
-            grid_render_scroll(term, new, dmg);
-            break;
-
-        case DAMAGE_SCROLL_REVERSE_IN_VIEW:
-            grid_render_scroll_reverse(term, new, dmg);
-            break;
-        }
-    }
+    /*
+     * TODO: re-apply last frame’s scroll damage
+     *
+     * We used to do this, but it turned out to be buggy. If we decide
+     * to re-add it, this is where to do it. Note that we’d also have
+     * to remove the updates to buf->dirty from grid_render_scroll()
+     * and grid_render_scroll_reverse().
+     */
 
     if (tll_length(term->grid->scroll_damage) == 0) {
+        /*
+         * We can only subtract current frame’s damage from the old
+         * frame’s if we don’t have any scroll damage.
+         *
+         * If we do have scroll damage, the damage region we
+         * calculated above is not (yet) valid - we need to apply the
+         * current frame’s scroll damage *first*. This is done later,
+         * when rendering the frame.
+         */
         pixman_region32_subtract(&dirty, &old->dirty, &dirty);
         pixman_image_set_clip_region32(new->pix[0], &dirty);
-    } else
+    } else {
+        /* Copy *all* of last frame’s damaged areas */
         pixman_image_set_clip_region32(new->pix[0], &old->dirty);
+    }
 
     pixman_image_composite32(
         PIXMAN_OP_SRC, old->pix[0], NULL, new->pix[0],
@@ -2702,38 +2717,29 @@ grid_render(struct terminal *term)
     shm_addref(buf);
     buf->age = 0;
 
-    free(term->render.last_buf->scroll_damage);
-    buf->scroll_damage_count = tll_length(term->grid->scroll_damage);
-    buf->scroll_damage = xmalloc(
-        buf->scroll_damage_count * sizeof(buf->scroll_damage[0]));
 
-    {
-        size_t i = 0;
-        tll_foreach(term->grid->scroll_damage, it) {
-            buf->scroll_damage[i++] = it->item;
-
-            switch (it->item.type) {
-            case DAMAGE_SCROLL:
-                if (term->grid->view == term->grid->offset)
-                    grid_render_scroll(term, buf, &it->item);
-                break;
-
-            case DAMAGE_SCROLL_REVERSE:
-                if (term->grid->view == term->grid->offset)
-                    grid_render_scroll_reverse(term, buf, &it->item);
-                break;
-
-            case DAMAGE_SCROLL_IN_VIEW:
+    tll_foreach(term->grid->scroll_damage, it) {
+        switch (it->item.type) {
+        case DAMAGE_SCROLL:
+            if (term->grid->view == term->grid->offset)
                 grid_render_scroll(term, buf, &it->item);
-                break;
+            break;
 
-            case DAMAGE_SCROLL_REVERSE_IN_VIEW:
+        case DAMAGE_SCROLL_REVERSE:
+            if (term->grid->view == term->grid->offset)
                 grid_render_scroll_reverse(term, buf, &it->item);
-                break;
-            }
+            break;
 
-            tll_remove(term->grid->scroll_damage, it);
+        case DAMAGE_SCROLL_IN_VIEW:
+            grid_render_scroll(term, buf, &it->item);
+            break;
+
+        case DAMAGE_SCROLL_REVERSE_IN_VIEW:
+            grid_render_scroll_reverse(term, buf, &it->item);
+            break;
         }
+
+        tll_remove(term->grid->scroll_damage, it);
     }
 
     /*

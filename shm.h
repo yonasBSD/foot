@@ -24,8 +24,6 @@ struct buffer {
 
     unsigned age;
 
-    struct damage *scroll_damage;
-    size_t scroll_damage_count;
     pixman_region32_t dirty;
 };
 

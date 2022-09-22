@@ -71,6 +71,11 @@
 * Crash in `foot --server` on key press, after another `footclient`
   has terminated very early (for example, by trying to launch a
   non-existing shell/client).
+* Glitchy rendering when scrolling in the scrollback, on compositors
+  that does not allow Wayland buffer re-use (e.g. KDE/plasma)
+  ([#1173][1173])
+
+[1173]: https://codeberg.org/dnkl/foot/issues/1173
 
 
 ### Security

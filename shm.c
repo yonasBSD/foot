@@ -151,7 +151,6 @@ buffer_destroy(struct buffer_private *buf)
     pool_unref(buf->pool);
     buf->pool = NULL;
 
-    free(buf->public.scroll_damage);
     pixman_region32_fini(&buf->public.dirty);
     free(buf);
 }
@@ -581,8 +580,6 @@ shm_get_buffer(struct buffer_chain *chain, int width, int height)
         LOG_DBG("re-using buffer %p from cache", (void *)cached);
         cached->busy = true;
         pixman_region32_clear(&cached->public.dirty);
-        free(cached->public.scroll_damage);
-        cached->public.scroll_damage = NULL;
         xassert(cached->public.pix_instances == chain->pix_instances);
         return &cached->public;
     }
