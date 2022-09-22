@@ -1563,11 +1563,12 @@ render_overlay(struct terminal *term)
          */
         pixman_region32_t *see_through = &term->render.last_overlay_clip;
         pixman_region32_t old_see_through;
+        const bool buffer_reuse =
+            buf == term->render.last_overlay_buf &&
+            style == term->render.last_overlay_style &&
+            buf->age == 0;
 
-        if (!(buf == term->render.last_overlay_buf &&
-              style == term->render.last_overlay_style &&
-              buf->age == 0))
-        {
+        if (!buffer_reuse) {
             /* Can’t re-use last frame’s damage - set to full window,
              * to ensure *everything* is updated */
             pixman_region32_init_rect(
@@ -1580,8 +1581,8 @@ render_overlay(struct terminal *term)
 
         pixman_region32_clear(see_through);
 
+        /* Build region consisting of all current search matches */
         struct search_match_iterator iter = search_matches_new_iter(term);
-
         for (struct range match = search_matches_next(&iter);
              match.start.row >= 0;
              match = search_matches_next(&iter))
@@ -1609,20 +1610,28 @@ render_overlay(struct terminal *term)
             }
         }
 
-        /* Current see-through, minus old see-through - aka cells that
-         * need to be cleared */
+        /* Areas that need to be cleared: cells that were dimmed in
+         * the last frame but is now see-through */
         pixman_region32_t new_see_through;
         pixman_region32_init(&new_see_through);
-        pixman_region32_subtract(&new_see_through, see_through, &old_see_through);
+
+        if (buffer_reuse)
+            pixman_region32_subtract(&new_see_through, see_through, &old_see_through);
+        else {
+            /* Buffer content is unknown - explicitly clear *all*
+             * current see-through areas */
+            pixman_region32_copy(&new_see_through, see_through);
+        }
         pixman_image_set_clip_region32(buf->pix[0], &new_see_through);
 
-        /* Old see-through, minus new see-through - aka cells that
-         * needs to be dimmed */
+        /* Areas that need to be dimmed: cells that were cleared in
+         * the last frame but is not anymore */
         pixman_region32_t new_dimmed;
         pixman_region32_init(&new_dimmed);
         pixman_region32_subtract(&new_dimmed, &old_see_through, see_through);
         pixman_region32_fini(&old_see_through);
 
+        /* Total affected area */
         pixman_region32_t damage;
         pixman_region32_init(&damage);
         pixman_region32_union(&damage, &new_see_through, &new_dimmed);
