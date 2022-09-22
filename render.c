@@ -2913,15 +2913,21 @@ grid_render(struct terminal *term)
         struct timespec double_buffering_time;
         timespec_sub(&stop_double_buffering, &start_double_buffering, &double_buffering_time);
 
+        struct timespec total_render_time;
+        timespec_add(&render_time, &double_buffering_time, &total_render_time);
+
         switch (term->conf->tweak.render_timer) {
         case RENDER_TIMER_LOG:
         case RENDER_TIMER_BOTH:
-            LOG_INFO("frame rendered in %lds %ldns "
-                     "(%lds %ldns double buffering)",
-                     (long)render_time.tv_sec,
-                     render_time.tv_nsec,
-                     (long)double_buffering_time.tv_sec,
-                     double_buffering_time.tv_nsec);
+            LOG_INFO(
+                "frame rendered in %lds %9ldns "
+                "(%lds %9ldns rendering, %lds %9ldns double buffering)",
+                (long)total_render_time.tv_sec,
+                total_render_time.tv_nsec,
+                (long)render_time.tv_sec,
+                render_time.tv_nsec,
+                (long)double_buffering_time.tv_sec,
+                double_buffering_time.tv_nsec);
             break;
 
         case RENDER_TIMER_OSD:
@@ -2932,7 +2938,7 @@ grid_render(struct terminal *term)
         switch (term->conf->tweak.render_timer) {
         case RENDER_TIMER_OSD:
         case RENDER_TIMER_BOTH:
-            render_render_timer(term, render_time);
+            render_render_timer(term, total_render_time);
             break;
 
         case RENDER_TIMER_LOG:
