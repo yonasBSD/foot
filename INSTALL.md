@@ -44,6 +44,7 @@ subprojects.
 * pixman
 * wayland (_client_ and _cursor_ libraries)
 * xkbcommon
+* utf8proc (_optional_, needed for grapheme clustering)
 * [fcft](https://codeberg.org/dnkl/fcft) [^1]
 
 [^1]: can also be built as subprojects, in which case they are
