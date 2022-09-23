@@ -317,6 +317,10 @@ commented out will usually be installed to */etc/xdg/foot/foot.ini*.
 	(including SMT). Note that this is not always the best value. In
 	some cases, the number of physical _cores_ is better.
 
+*utempter*
+	Path to utempter helper binary. Set to *none* to disable utmp
+	records. Default: _@utempter@_.
+
 # SECTION: environment
 
 This section is used to define environment variables that will be set

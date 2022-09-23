@@ -21,3 +21,6 @@ option('custom-terminfo-install-location', type: 'string', value: '',
 
 option('systemd-units-dir', type: 'string', value: '',
       description: 'Where to install the systemd service files (absolute path). Default: ${systemduserunitdir}')
+
+option('default-utempter-path', type: 'string', value: '',
+       description: 'Default path to utempter helper binary. Default: auto-detect')

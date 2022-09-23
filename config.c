@@ -944,6 +944,18 @@ parse_section_main(struct context *ctx)
     else if (strcmp(key, "box-drawings-uses-font-glyphs") == 0)
         return value_to_bool(ctx, &conf->box_drawings_uses_font_glyphs);
 
+    else if (strcmp(key, "utempter") == 0) {
+        if (!value_to_str(ctx, &conf->utempter_path))
+            return false;
+
+        if (strcmp(conf->utempter_path, "none") == 0) {
+            free(conf->utempter_path);
+            conf->utempter_path = NULL;
+        }
+
+        return true;
+    }
+
     else {
         LOG_CONTEXTUAL_ERR("not a valid option: %s", key);
         return false;
@@ -2937,6 +2949,9 @@ config_load(struct config *conf, const char *conf_path,
         },
 
         .env_vars = tll_init(),
+        .utempter_path = (strlen(FOOT_DEFAULT_UTEMPTER_PATH) > 0
+                          ? xstrdup(FOOT_DEFAULT_UTEMPTER_PATH)
+                          : NULL),
         .notifications = tll_init(),
     };
 
@@ -3225,6 +3240,9 @@ config_clone(const struct config *old)
         tll_push_back(conf->env_vars, copy);
     }
 
+    conf->utempter_path =
+        old->utempter_path != NULL ? xstrdup(old->utempter_path) : NULL;
+
     conf->notifications.length = 0;
     conf->notifications.head = conf->notifications.tail = 0;
     tll_foreach(old->notifications, it) {
@@ -3291,6 +3309,7 @@ config_free(struct config *conf)
         tll_remove(conf->env_vars, it);
     }
 
+    free(conf->utempter_path);
     user_notifications_free(&conf->notifications);
 }
 

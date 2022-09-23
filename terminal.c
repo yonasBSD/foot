@@ -203,6 +203,30 @@ fdm_ptmx_out(struct fdm *fdm, int fd, int events, void *data)
     return true;
 }
 
+static bool
+add_utmp_record(const struct config *conf, struct reaper *reaper, int ptmx)
+{
+    if (ptmx < 0)
+        return true;
+    if (conf->utempter_path == NULL)
+        return true;
+
+    char *const argv[] = {conf->utempter_path, "add", NULL};
+    return spawn(reaper, NULL, argv, ptmx, ptmx, -1, NULL);
+}
+
+static bool
+del_utmp_record(const struct config *conf, struct reaper *reaper, int ptmx)
+{
+    if (ptmx < 0)
+        return true;
+    if (conf->utempter_path == NULL)
+        return true;
+
+    char *const argv[] = {conf->utempter_path, "del", NULL};
+    return spawn(reaper, NULL, argv, ptmx, ptmx, -1, NULL);
+}
+
 #if PTMX_TIMING
 static struct timespec last = {0};
 #endif
@@ -326,6 +350,7 @@ fdm_ptmx(struct fdm *fdm, int fd, int events, void *data)
     }
 
     if (hup) {
+        del_utmp_record(term->conf, term->reaper, term->ptmx);
         fdm_del(fdm, fd);
         term->ptmx = -1;
     }
@@ -1251,6 +1276,8 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
     }
     term->font_line_height = conf->line_height;
 
+    add_utmp_record(conf, reaper, ptmx);
+
     /* Start the slave/client */
     if ((term->slave = slave_spawn(
              term->ptmx, argc, term->cwd, argv, envp, &conf->env_vars,
@@ -1514,6 +1541,8 @@ term_shutdown(struct terminal *term)
     fdm_del(term->fdm, term->blink.fd);
     fdm_del(term->fdm, term->flash.fd);
 
+    del_utmp_record(term->conf, term->reaper, term->ptmx);
+
     if (term->window != NULL && term->window->is_configured)
         fdm_del(term->fdm, term->ptmx);
     else
@@ -1594,6 +1623,8 @@ term_destroy(struct terminal *term)
             break;
         }
     }
+
+    del_utmp_record(term->conf, term->reaper, term->ptmx);
 
     fdm_del(term->fdm, term->selection.auto_scroll.fd);
     fdm_del(term->fdm, term->render.app_sync_updates.timer_fd);

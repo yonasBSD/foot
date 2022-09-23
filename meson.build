@@ -16,9 +16,30 @@ if cc.has_function('memfd_create')
   add_project_arguments('-DMEMFD_CREATE', language: 'c')
 endif
 
+utempter_path = get_option('default-utempter-path')
+if utempter_path == ''
+  utempter = find_program(
+    'utempter',
+    required: false,
+    dirs: [join_paths(get_option('prefix'), get_option('libdir'), 'utempter'),
+           join_paths(get_option('prefix'), get_option('libexecdir'), 'utempter'),
+           '/usr/lib/utempter',
+           '/usr/libexec/utempter',
+           '/lib/utempter']
+  )
+  if utempter.found()
+    utempter_path = utempter.full_path()
+  else
+    utempter_path = ''
+  endif
+elif utempter_path == 'none'
+  utempter_path = ''
+endif
+
 add_project_arguments(
   ['-D_GNU_SOURCE=200809L',
-   '-DFOOT_DEFAULT_TERM="@0@"'.format(get_option('default-terminfo'))] +
+   '-DFOOT_DEFAULT_TERM="@0@"'.format(get_option('default-terminfo')),
+   '-DFOOT_DEFAULT_UTEMPTER_PATH="@0@"'.format(utempter_path)] +
   (is_debug_build
     ? ['-D_DEBUG']
    : [cc.get_supported_arguments('-fno-asynchronous-unwind-tables')]) +
@@ -321,6 +342,7 @@ summary(
     'Themes': get_option('themes'),
     'IME': get_option('ime'),
     'Grapheme clustering': utf8proc.found(),
+    'Utempter path': utempter_path,
     'Build terminfo': tic.found(),
     'Terminfo install location': terminfo_install_location,
     'Default TERM': get_option('default-terminfo'),
