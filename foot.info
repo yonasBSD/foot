@@ -218,6 +218,8 @@
     knp=\E[6~,
     kpp=\E[5~,
     kri=\E[1;2A,
+    kxIN=\E[I,
+    kxOUT=\E[O,
     oc=\E]104\E\\,
     op=\E[39;49m,
     rc=\E8,
