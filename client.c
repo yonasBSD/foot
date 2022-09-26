@@ -408,6 +408,28 @@ main(int argc, char *const *argv)
         cwd = _cwd;
     }
 
+    const char *pwd = getenv("PWD");
+    if (pwd != NULL) {
+        char *resolved_path_cwd = realpath(cwd, NULL);
+        char *resolved_path_pwd = realpath(pwd, NULL);
+
+        if (resolved_path_cwd != NULL &&
+            resolved_path_pwd != NULL &&
+            strcmp(resolved_path_cwd, resolved_path_pwd) == 0)
+        {
+            /*
+             * The resolved path of $PWD matches the resolved path of
+             * the *actual* working directory - use $PWD.
+             *
+             * This makes a difference when $PWD refers to a symlink.
+             */
+            cwd = pwd;
+        }
+
+        free(resolved_path_cwd);
+        free(resolved_path_pwd);
+    }
+
     if (client_environment) {
         for (char **e = environ; *e != NULL; e++) {
             if (!push_string(&envp, *e, &total_len))
