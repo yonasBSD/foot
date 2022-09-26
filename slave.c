@@ -352,6 +352,7 @@ slave_spawn(int ptmx, int argc, const char *cwd, char *const *argv,
 
         setenv("TERM", term_env, 1);
         setenv("COLORTERM", "truecolor", 1);
+        setenv("PWD", cwd, 1);
 
 #if defined(FOOT_TERMINFO_PATH)
         setenv("TERMINFO", FOOT_TERMINFO_PATH, 1);

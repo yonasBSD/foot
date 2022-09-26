@@ -63,8 +63,10 @@
 * `DECRPM` replies (to `DECRQM` queries) now report a value of `4`
   ("permanently reset") instead of `2` ("reset") for DEC private
   modes that are known but unsupported.
+* Set `PWD` environment variable in the slave process ([#1179][1179]).
 
 [1166]: https://codeberg.org/dnkl/foot/issues/1166
+[1179]: https://codeberg.org/dnkl/foot/issues/1179
 
 
 ### Deprecated
