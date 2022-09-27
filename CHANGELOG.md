@@ -84,6 +84,8 @@
   (e.g. KDE/plasma).
 * Nanosecs "overflow" when calculating timeout value for
   `resize-delay-ms` option.
+* Missing backslash in ST terminator in escape sequences in the
+  built-in terminfo (accessed via XTGETTCAP).
 
 [1173]: https://codeberg.org/dnkl/foot/issues/1173
 

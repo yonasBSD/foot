@@ -55,6 +55,10 @@ class StringCapability(Capability):
             value = re.sub(r'\\E([0-7])', r'\\033" "\1', value)
             value = re.sub(r'\\E', r'\\033', value)
         else:
+            # Need to double-escape backslashes. These only occur in
+            # ‘\E\’ combos. Note that \E itself is updated below
+            value = value.replace('\\E\\\\', '\\E\\\\\\\\')
+
             # Need to double-escape \E in C string literals
             value = value.replace('\\E', '\\\\E')
 
