@@ -166,6 +166,7 @@ def main():
 
     entry.add_capability(IntCapability('Co', 256))
     entry.add_capability(StringCapability('TN', target_entry_name))
+    entry.add_capability(StringCapability('name', target_entry_name))
     entry.add_capability(IntCapability('RGB', 8))  # 8 bits per channel
 
     terminfo_parts = []

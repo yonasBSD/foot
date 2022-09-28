@@ -48,6 +48,7 @@
 * Support for adjusting the thickness of regular underlines ([#1136][1136]).
 * Support (optional) for utmp logging with libutempter.
 * `kxIN` and `kxOUT` (focus in/out events) to terminfo.
+* `name` capability to `XTGETTCAP`.
 
 [1136]: https://codeberg.org/dnkl/foot/issues/1136
 
