@@ -82,6 +82,8 @@
 * Scrollback search matches not being highlighted correctly, on
   compositors that does now allow Wayland buffer re-use
   (e.g. KDE/plasma).
+* Nanosecs "overflow" when calculating timeout value for
+  `resize-delay-ms` option.
 
 [1173]: https://codeberg.org/dnkl/foot/issues/1173
 
