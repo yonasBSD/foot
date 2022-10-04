@@ -52,18 +52,25 @@ class StringCapability(Capability):
     def __init__(self, name: str, value: str):
        # Expand \E to literal ESC in non-parameterized capabilities
         if '%' not in value:
+            # Ensure e.g. \E7 doesn’t get translated to “\0337”, which
+            # would be interpreted as octal 337 by the C compiler
             value = re.sub(r'\\E([0-7])', r'\\033" "\1', value)
+
+            # Replace \E with an actual escape
             value = re.sub(r'\\E', r'\\033', value)
+
+            # Don’t escape ‘:’
+            value = value.replace('\\:', ':')
+
         else:
-            # Need to double-escape backslashes. These only occur in
-            # ‘\E\’ combos. Note that \E itself is updated below
-            value = value.replace('\\E\\\\', '\\E\\\\\\\\')
+            value = value.replace("\\", "\\\\")
+            # # Need to double-escape backslashes. These only occur in
+            # # ‘\E\’ combos. Note that \E itself is updated below
+            # value = value.replace('\\E\\\\', '\\E\\\\\\\\')
 
-            # Need to double-escape \E in C string literals
-            value = value.replace('\\E', '\\\\E')
+            # # Need to double-escape \E in C string literals
+            # value = value.replace('\\E', '\\\\E')
 
-        # Don’t escape ‘:’
-        value = value.replace('\\:', ':')
 
         super().__init__(name, value)
 
