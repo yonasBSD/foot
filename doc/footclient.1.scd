@@ -89,7 +89,7 @@ terminal has terminated.
 
 # EXIT STATUS
 
-Footlient will exit with code 220 if there is a failure in footclient
+Footclient will exit with code 220 if there is a failure in footclient
 itself (for example, the server socket does not exist).
 
 If *-N*,*--no-wait* is used, footclient exits with code 0 as soon as
