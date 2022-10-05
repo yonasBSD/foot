@@ -3663,13 +3663,54 @@ tiocswinsz(struct terminal *term)
     }
 }
 
+static void
+delayed_reflow_of_normal_grid(struct terminal *term)
+{
+    if (term->render.resizing.grid == NULL)
+        return;
+
+    struct coord *const tracking_points[] = {
+        &term->selection.coords.start,
+        &term->selection.coords.end,
+    };
+
+    /* Reflow the original (since before the resize was started) grid,
+     * to the *current* dimensions */
+    grid_resize_and_reflow(
+        term->render.resizing.grid,
+        term->grid->num_rows, term->grid->num_cols,
+        term->render.resizing.screen_rows, term->rows,
+        term->selection.coords.end.row >= 0 ? ALEN(tracking_points) : 0,
+        tracking_points);
+
+    /* Replace the current, truncated, “normal” grid with the
+     * correctly reflowed one */
+    grid_free(&term->normal);
+    term->normal = *term->render.resizing.grid;
+    free(term->render.resizing.grid);
+
+    /* Reset */
+    term->render.resizing.grid = NULL;
+    term->render.resizing.screen_rows = 0;
+
+    /* Invalidate render pointers */
+    shm_unref(term->render.last_buf);
+    term->render.last_buf = NULL;
+    term->render.last_cursor.row = NULL;
+
+    if (term->grid == &term->normal)
+        term_damage_view(term);
+}
+
 static bool
 fdm_tiocswinsz(struct fdm *fdm, int fd, int events, void *data)
 {
     struct terminal *term = data;
 
-    if (events & EPOLLIN)
+    if (events & EPOLLIN) {
         tiocswinsz(term);
+        delayed_reflow_of_normal_grid(term);
+    }
 
     if (term->window->resize_timeout_fd >= 0) {
         fdm_del(fdm, term->window->resize_timeout_fd);
@@ -3686,6 +3727,7 @@ send_dimensions_to_client(struct terminal *term)
     if (!win->is_resizing || term->conf->resize_delay_ms == 0) {
         /* Send new dimensions to client immediately */
         tiocswinsz(term);
+        delayed_reflow_of_normal_grid(term);
 
         /* And make sure to reset and deallocate a lingering timer */
         if (win->resize_timeout_fd >= 0) {
@@ -3846,9 +3888,30 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
 
     const uint32_t scrollback_lines = term->render.scrollback_lines;
 
+    /*
+     * Snapshot the “normal” grid.
+     *
+     * Since text reflow is slow, don’t do it *while* resizing. Only
+     * do it when done, or after “pausing” the resize for sufficiently
+     * long. We re-use the TIOCSWINSZ timer to handle this. See
+     * send_dimensions_to_client() and fdm_tiocswinsz().
+     *
+     * To be able to do the final reflow correctly, we need a copy of
+     * the original grid, before the resize started.
+     */
+    if (term->window->is_resizing && term->render.resizing.grid == NULL) {
+        /*
+         * TODO: snapshotting a large grid is slow. To improve, move
+         * normal -> resizing.grid, and instantiate a small (screen
+         * sized) new “normal”
+         */
+        term->render.resizing.grid = grid_snapshot(&term->normal);
+        term->render.resizing.screen_rows = term->rows;
+    }
+
     /* Screen rows/cols before resize */
-    const int old_cols = term->cols;
-    const int old_rows = term->rows;
+    int old_cols = term->cols;
+    int old_rows = term->rows;
 
     /* Screen rows/cols after resize */
     const int new_cols = (term->width - 2 * pad_x) / term->cell_width;
@@ -3882,7 +3945,9 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
     xassert(term->margins.top >= pad_y);
     xassert(term->margins.bottom >= pad_y);
 
-    if (new_cols == old_cols && new_rows == old_rows) {
+    if (new_cols == old_cols && new_rows == old_rows &&
+        (term->render.resizing.grid == NULL || term->window->is_resizing))
+    {
         LOG_DBG("grid layout unaffected; skipping reflow");
         goto damage_view;
     }
@@ -3906,16 +3971,43 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
      * selection’s pivot point coordinates *must* be added to the
      * tracking points list.
      */
-    struct coord *const tracking_points[] = {
-        &term->selection.coords.start,
-        &term->selection.coords.end,
-    };
-
     /* Resize grids */
-    grid_resize_and_reflow(
-        &term->normal, new_normal_grid_rows, new_cols, old_rows, new_rows,
-        term->selection.coords.end.row >= 0 ? ALEN(tracking_points) : 0,
-        tracking_points);
+    if (term->window->is_resizing) {
+        /* Simple truncating resize, *while* an interactive resize is
+         * ongoing. */
+        xassert(term->render.resizing.grid != NULL);
+        grid_resize_without_reflow(
+            &term->normal,
+            new_normal_grid_rows, new_cols,
+            old_rows,
+            new_rows);
+    } else {
+        /* Full text reflow */
+
+        if (term->render.resizing.grid != NULL) {
+            /* Throw away the current, truncated, “normal” grid, and
+             * use the original grid instead (from before the resize
+             * started) */
+            grid_free(&term->normal);
+            term->normal = *term->render.resizing.grid;
+            free(term->render.resizing.grid);
+
+            old_rows = term->render.resizing.screen_rows;
+
+            term->render.resizing.grid = NULL;
+            term->render.resizing.screen_rows = 0;
+        }
+
+        struct coord *const tracking_points[] = {
+            &term->selection.coords.start,
+            &term->selection.coords.end,
+        };
+
+        grid_resize_and_reflow(
+            &term->normal, new_normal_grid_rows, new_cols, old_rows, new_rows,
+            term->selection.coords.end.row >= 0 ? ALEN(tracking_points) : 0,
+            tracking_points);
+    }
 
     grid_resize_without_reflow(
         &term->alt, new_alt_grid_rows, new_cols, old_rows, new_rows);

@@ -210,6 +210,8 @@ grid_snapshot(const struct grid *grid)
     clone->offset = grid->offset;
     clone->view = grid->view;
     clone->cursor = grid->cursor;
+    clone->saved_cursor = grid->saved_cursor;
+    clone->kitty_kbd = grid->kitty_kbd;
     clone->rows = xcalloc(grid->num_rows, sizeof(clone->rows[0]));
     memset(&clone->scroll_damage, 0, sizeof(clone->scroll_damage));
     memset(&clone->sixel_images, 0, sizeof(clone->sixel_images));

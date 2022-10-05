@@ -595,6 +595,11 @@ struct terminal {
 
         size_t search_glyph_offset;
 
+        struct {
+            struct grid *grid;
+            int screen_rows;
+        } resizing;
+
         struct timespec input_time;
     } render;
 
