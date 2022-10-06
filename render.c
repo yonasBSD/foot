@@ -3900,13 +3900,45 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
      * the original grid, before the resize started.
      */
     if (term->window->is_resizing && term->render.resizing.grid == NULL) {
-        /*
-         * TODO: snapshotting a large grid is slow. To improve, move
-         * normal -> resizing.grid, and instantiate a small (screen
-         * sized) new “normal”
-         */
-        term->render.resizing.grid = grid_snapshot(&term->normal);
+        /* Stash the current ‘normal’ grid, as-is, to be used when
+         * doing the final reflow */
         term->render.resizing.screen_rows = term->rows;
+        term->render.resizing.grid = xmalloc(sizeof(*term->render.resizing.grid));
+        *term->render.resizing.grid = term->normal;
+
+
+        /*
+         * Copy the current viewport to a new grid that will be used
+         * during the resize. For now, throw away sixels and OSC-8
+         * URLs. They’ll be "restored" when we do the final reflow.
+         *
+         * TODO:
+         *  - sixels?
+         *  - OSC-8?
+         */
+        struct grid g = {
+            .num_rows = 1 << (32 - __builtin_clz(term->rows - 1)),
+            .num_cols = term->cols,
+            .offset = 0,
+            .view = 0,
+            .cursor = term->normal.cursor,
+            .saved_cursor = term->normal.saved_cursor,
+            .rows = xcalloc(g.num_rows, sizeof(g.rows[0])),
+            .cur_row = NULL,
+            .scroll_damage = tll_init(),
+            .sixel_images = tll_init(),
+            .kitty_kbd = term->normal.kitty_kbd,
+        };
+
+        for (size_t i = 0, j = term->normal.view; i < term->rows;
+             i++, j = (j + 1) & (term->normal.num_rows - 1))
+        {
+            g.rows[i] = grid_row_alloc(term->cols, false);
+            memcpy(g.rows[i]->cells, term->normal.rows[j]->cells,
+                   term->cols * sizeof(g.rows[i]->cells[0]));
+        }
+
+        term->normal = g;
     }
 
     /* Screen rows/cols before resize */
