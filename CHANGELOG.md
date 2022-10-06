@@ -86,6 +86,8 @@
   `resize-delay-ms` option.
 * Missing backslash in ST terminator in escape sequences in the
   built-in terminfo (accessed via XTGETTCAP).
+* Crash when interactively resizing the window with a very large
+  scrollback.
 
 [1173]: https://codeberg.org/dnkl/foot/issues/1173
 
