@@ -3700,6 +3700,8 @@ delayed_reflow_of_normal_grid(struct terminal *term)
 
     if (term->grid == &term->normal)
         term_damage_view(term);
+
+    term_ptmx_resume(term);
 }
 
 static bool
@@ -3939,6 +3941,7 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
         }
 
         term->normal = g;
+        term_ptmx_pause(term);
     }
 
     /* Screen rows/cols before resize */
@@ -4028,6 +4031,7 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
 
             term->render.resizing.grid = NULL;
             term->render.resizing.screen_rows = 0;
+            term_ptmx_resume(term);
         }
 
         struct coord *const tracking_points[] = {

@@ -233,6 +233,18 @@ static struct timespec last = {0};
 
 static bool cursor_blink_rearm_timer(struct terminal *term);
 
+void
+term_ptmx_pause(struct terminal *term)
+{
+    fdm_event_del(term->fdm, term->ptmx, EPOLLIN);
+}
+
+void
+term_ptmx_resume(struct terminal *term)
+{
+    fdm_event_add(term->fdm, term->ptmx, EPOLLIN);
+}
+
 /* Externally visible, but not declared in terminal.h, to enable pgo
  * to call this function directly */
 bool
