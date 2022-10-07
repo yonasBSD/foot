@@ -331,6 +331,7 @@ endif
 
 subdir('completions')
 subdir('icons')
+subdir('utils')
 
 if (get_option('tests'))
   subdir('tests')
