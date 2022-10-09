@@ -810,8 +810,8 @@ void term_collect_urls(struct terminal *term);
 void term_osc8_open(struct terminal *term, uint64_t id, const char *uri);
 void term_osc8_close(struct terminal *term);
 
-void term_ptmx_pause(struct terminal *term);
-void term_ptmx_resume(struct terminal *term);
+bool term_ptmx_pause(struct terminal *term);
+bool term_ptmx_resume(struct terminal *term);
 
 static inline void term_reset_grapheme_state(struct terminal *term)
 {
