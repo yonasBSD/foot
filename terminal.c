@@ -268,6 +268,16 @@ fdm_ptmx(struct fdm *fdm, int fd, int events, void *data)
         cursor_blink_rearm_timer(term);
     }
 
+    if (unlikely(term->interactive_resizing.grid != NULL)) {
+        /*
+         * Don’t consume PTMX while we’re doing an interactive resize,
+         * since the ‘normal’ grid we’re currently using is a
+         * temporary one - all changes done to it will be lost when
+         * the interactive resize ends.
+         */
+        return 0;
+    }
+
     uint8_t buf[24 * 1024];
     const size_t max_iterations = !hup ? 10 : SIZE_MAX;
 
@@ -291,6 +301,7 @@ fdm_ptmx(struct fdm *fdm, int fd, int events, void *data)
             break;
         }
 
+        xassert(term->interactive_resizing.grid == NULL);
         vt_from_slave(term, buf, count);
     }
 
