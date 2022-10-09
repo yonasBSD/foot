@@ -3698,8 +3698,10 @@ delayed_reflow_of_normal_grid(struct terminal *term)
     term->render.last_buf = NULL;
     term->render.last_cursor.row = NULL;
 
-    if (term->grid == &term->normal)
+    if (term->grid == &term->normal) {
         term_damage_view(term);
+        render_refresh(term);
+    }
 
     term_ptmx_resume(term);
 }
