@@ -3776,8 +3776,10 @@ send_dimensions_to_client(struct terminal *term)
                 successfully_scheduled = true;
         }
 
-        if (!successfully_scheduled)
+        if (!successfully_scheduled) {
             tiocswinsz(term);
+            delayed_reflow_of_normal_grid(term);
+        }
     }
 }
 
