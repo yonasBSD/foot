@@ -7,6 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <limits.h>
 
 #include <sys/stat.h>
 #include <sys/wait.h>
@@ -268,7 +269,7 @@ fdm_ptmx(struct fdm *fdm, int fd, int events, void *data)
     }
 
     uint8_t buf[24 * 1024];
-    const size_t max_iterations = !hup ? 10 : (size_t)-1ll;
+    const size_t max_iterations = !hup ? 10 : SIZE_MAX;
 
     for (size_t i = 0; i < max_iterations && pollin; i++) {
         xassert(pollin);
