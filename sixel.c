@@ -838,85 +838,89 @@ sixel_cell_size_changed(struct terminal *term)
 }
 
 void
-sixel_reflow(struct terminal *term)
+sixel_reflow_grid(struct terminal *term, struct grid *grid)
 {
-    struct grid *g = term->grid;
+    /* Meh - the sixel functions we call use term->grid... */
+    struct grid *active_grid = term->grid;
+    term->grid = grid;
 
-    for (size_t i = 0; i < 2; i++) {
-        struct grid *grid = i == 0 ? &term->normal : &term->alt;
+    /* Need the “real” list to be empty from the beginning */
+    tll(struct sixel) copy = tll_init();
+    tll_foreach(grid->sixel_images, it)
+        tll_push_back(copy, it->item);
+    tll_free(grid->sixel_images);
 
-        term->grid = grid;
+    tll_rforeach(copy, it) {
+        struct sixel *six = &it->item;
+        int start = six->pos.row;
+        int end = (start + six->rows - 1) & (grid->num_rows - 1);
 
-        /* Need the “real” list to be empty from the beginning */
-        tll(struct sixel) copy = tll_init();
-        tll_foreach(grid->sixel_images, it)
-            tll_push_back(copy, it->item);
-        tll_free(grid->sixel_images);
-
-        tll_rforeach(copy, it) {
-            struct sixel *six = &it->item;
-            int start = six->pos.row;
-            int end = (start + six->rows - 1) & (grid->num_rows - 1);
-
-            if (end < start) {
-                /* Crosses scrollback wrap-around */
-                /* TODO: split image */
-                sixel_destroy(six);
-                continue;
-            }
-
-            if (six->rows > grid->num_rows) {
-                /* Image too large */
-                /* TODO: keep bottom part? */
-                sixel_destroy(six);
-                continue;
-            }
-
-            /* Drop sixels that now cross the current scrollback end
-             * border. This is similar to a sixel that have been
-             * scrolled out */
-            /* TODO: should be possible to optimize this */
-            bool sixel_destroyed = false;
-            int last_row = -1;
-
-            for (int j = 0; j < six->rows; j++) {
-                int row_no = grid_row_abs_to_sb(
-                    term->grid, term->rows, six->pos.row + j);
-                if (last_row != -1 && last_row >= row_no) {
-                    sixel_destroy(six);
-                    sixel_destroyed = true;
-                    break;
-                }
-
-                last_row = row_no;
-            }
-
-            if (sixel_destroyed) {
-                LOG_WARN("destroyed sixel that now crossed history");
-                continue;
-            }
-
-            /* Sixels that didn’t overlap may now do so, which isn’t
-             * allowed of course */
-            _sixel_overwrite_by_rectangle(
-                term, six->pos.row, six->pos.col, six->rows, six->cols,
-                &it->item.pix, &it->item.opaque);
-
-            if (it->item.data != pixman_image_get_data(it->item.pix)) {
-                it->item.data = pixman_image_get_data(it->item.pix);
-                it->item.width = pixman_image_get_width(it->item.pix);
-                it->item.height = pixman_image_get_height(it->item.pix);
-                it->item.cols = (it->item.width + term->cell_width - 1) / term->cell_width;
-                it->item.rows = (it->item.height + term->cell_height - 1) / term->cell_height;
-            }
-
-            sixel_insert(term, it->item);
+        if (end < start) {
+            /* Crosses scrollback wrap-around */
+            /* TODO: split image */
+            sixel_destroy(six);
+            continue;
         }
 
-        tll_free(copy);
+        if (six->rows > grid->num_rows) {
+            /* Image too large */
+            /* TODO: keep bottom part? */
+            sixel_destroy(six);
+            continue;
+        }
+
+        /* Drop sixels that now cross the current scrollback end
+         * border. This is similar to a sixel that have been
+         * scrolled out */
+        /* TODO: should be possible to optimize this */
+        bool sixel_destroyed = false;
+        int last_row = -1;
+
+        for (int j = 0; j < six->rows; j++) {
+            int row_no = grid_row_abs_to_sb(
+                term->grid, term->rows, six->pos.row + j);
+            if (last_row != -1 && last_row >= row_no) {
+                sixel_destroy(six);
+                sixel_destroyed = true;
+                break;
+            }
+
+            last_row = row_no;
+        }
+
+        if (sixel_destroyed) {
+            LOG_WARN("destroyed sixel that now crossed history");
+            continue;
+        }
+
+        /* Sixels that didn’t overlap may now do so, which isn’t
+         * allowed of course */
+        _sixel_overwrite_by_rectangle(
+            term, six->pos.row, six->pos.col, six->rows, six->cols,
+            &it->item.pix, &it->item.opaque);
+
+        if (it->item.data != pixman_image_get_data(it->item.pix)) {
+            it->item.data = pixman_image_get_data(it->item.pix);
+            it->item.width = pixman_image_get_width(it->item.pix);
+            it->item.height = pixman_image_get_height(it->item.pix);
+            it->item.cols = (it->item.width + term->cell_width - 1) / term->cell_width;
+            it->item.rows = (it->item.height + term->cell_height - 1) / term->cell_height;
+        }
+
+        sixel_insert(term, it->item);
     }
 
-    term->grid = g;
+    tll_free(copy);
+    term->grid = active_grid;
+}
+
+void
+sixel_reflow(struct terminal *term)
+{
+    for (size_t i = 0; i < 2; i++) {
+        struct grid *grid = i == 0 ? &term->normal : &term->alt;
+        sixel_reflow_grid(term, grid);
+    }
 }
 
 void
