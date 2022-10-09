@@ -595,13 +595,14 @@ struct terminal {
 
         size_t search_glyph_offset;
 
-        struct {
-            struct grid *grid;
-            int screen_rows;
-        } resizing;
-
         struct timespec input_time;
     } render;
+
+    struct {
+        struct grid *grid;    /* Original ‘normal’ grid, before resize started */
+        int old_screen_rows;  /* term->rows before resize started */
+        int new_rows;         /* New number of scrollback rows */
+    } interactive_resizing;
 
     struct {
         enum {
