@@ -373,6 +373,7 @@ This method requires a running Wayland session.
 We will use the script `scripts/generate-alt-random-writes.py`:
 
 ```sh
+./utils/xtgettcap name
 ./footclient --version
 foot_tmp_file=$(mktemp)
 ./foot \
@@ -386,9 +387,10 @@ rm ${foot_tmp_file}
 You should see a foot window open up, with random colored text. The
 window should close after ~1-2s.
 
-The first step, `./footclient --version` might seem unnecessary, but
-is needed to ensure we have _some_ profiling data for
-`footclient`. Without this, the final link phase will fail.
+The first step, `./utils/xtgettcap name && ./footclient --version`
+might seem unnecessary, but is needed to ensure we have _some_
+profiling data for **all** binaries we build. Without this, the final
+link phase will fail.
 
 
 ##### Use the generated PGO data
