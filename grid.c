@@ -485,6 +485,8 @@ grid_resize_without_reflow(
     grid->saved_cursor.point = saved_cursor;
 
     grid->cur_row = new_grid[(grid->offset + cursor.row) & (new_rows - 1)];
+    xassert(grid->cur_row != NULL);
+
     grid->cursor.lcf = false;
     grid->saved_cursor.lcf = false;
 
@@ -1047,6 +1049,8 @@ grid_resize_and_reflow(
     saved_cursor.col = min(saved_cursor.col, new_cols - 1);
 
     grid->cur_row = new_grid[(grid->offset + cursor.row) & (new_rows - 1)];
+    xassert(grid->cur_row != NULL);
+
     grid->cursor.point = cursor;
     grid->saved_cursor.point = saved_cursor;
 
