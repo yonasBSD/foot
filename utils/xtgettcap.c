@@ -67,9 +67,12 @@ unhexlify(char *dst, const char *src)
 int
 main(int argc, const char *const *argv)
 {
-    enable_raw_mode();
-
     const size_t query_count = argc - 1;
+
+    if (query_count == 0)
+        return 0;
+
+    enable_raw_mode();
 
     printf("\x1bP+q");
     for (int i = 1; i < argc; i++)
