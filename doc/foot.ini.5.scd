@@ -213,15 +213,19 @@ commented out will usually be installed to */etc/xdg/foot/foot.ini*.
 	Default: _0x0_.
 
 *resize-delay-ms*
-	Time, in milliseconds, of "idle time" before foot sends the new
-	window dimensions to the client application while doing an
-	interactive resize of a foot window. Idle time in this context is
-	a period of time where the window size is not changing.
+
+	Time, in milliseconds, of "idle time" before foot performs text
+	reflow, and sends the new window dimensions to the client
+	application while doing an interactive resize of a foot
+	window. Idle time in this context is a period of time where the
+	window size is not changing.
 	
 	In other words, while you are fiddling with the window size, foot
-	does not send the updated dimensions to the client. Only when you
-	pause the fiddling for *resize-delay-ms* milliseconds is the
-	client updated.
+	does not send the updated dimensions to the client. It also does a
+	fast "truncating" resize of the grid, instead of actually
+	reflowing the contents. Only when you pause the fiddling for
+	*resize-delay-ms* milliseconds is the client updated, and the
+	contents properly reflowed.
 	
 	Emphasis is on _while_ here; as soon as the interactive resize
 	ends (i.e. when you let go of the window border), the final

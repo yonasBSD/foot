@@ -599,6 +599,12 @@ struct terminal {
     } render;
 
     struct {
+        struct grid *grid;    /* Original ‘normal’ grid, before resize started */
+        int old_screen_rows;  /* term->rows before resize started */
+        int new_rows;         /* New number of scrollback rows */
+    } interactive_resizing;
+
+    struct {
         enum {
             SIXEL_DECSIXEL,  /* DECSIXEL body part ", $, -, ? ... ~ */
             SIXEL_DECGRA,    /* DECGRA Set Raster Attributes " Pan; Pad; Ph; Pv */
@@ -804,6 +810,9 @@ void term_collect_urls(struct terminal *term);
 
 void term_osc8_open(struct terminal *term, uint64_t id, const char *uri);
 void term_osc8_close(struct terminal *term);
+
+bool term_ptmx_pause(struct terminal *term);
+bool term_ptmx_resume(struct terminal *term);
 
 static inline void term_reset_grapheme_state(struct terminal *term)
 {

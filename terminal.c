@@ -7,6 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <limits.h>
 
 #include <sys/stat.h>
 #include <sys/wait.h>
@@ -255,8 +256,18 @@ fdm_ptmx(struct fdm *fdm, int fd, int events, void *data)
         cursor_blink_rearm_timer(term);
     }
 
+    if (unlikely(term->interactive_resizing.grid != NULL)) {
+        /*
+         * Don’t consume PTMX while we’re doing an interactive resize,
+         * since the ‘normal’ grid we’re currently using is a
+         * temporary one - all changes done to it will be lost when
+         * the interactive resize ends.
+         */
+        return 0;
+    }
+
     uint8_t buf[24 * 1024];
-    const size_t max_iterations = !hup ? 10 : (size_t)-1ll;
+    const size_t max_iterations = !hup ? 10 : SIZE_MAX;
 
     for (size_t i = 0; i < max_iterations && pollin; i++) {
         xassert(pollin);
@@ -278,6 +289,7 @@ fdm_ptmx(struct fdm *fdm, int fd, int events, void *data)
             break;
         }
 
+        xassert(term->interactive_resizing.grid == NULL);
         vt_from_slave(term, buf, count);
     }
 
@@ -356,6 +368,18 @@ fdm_ptmx(struct fdm *fdm, int fd, int events, void *data)
     }
 
     return true;
+}
+
+bool
+term_ptmx_pause(struct terminal *term)
+{
+    return fdm_event_del(term->fdm, term->ptmx, EPOLLIN);
+}
+
+bool
+term_ptmx_resume(struct terminal *term)
+{
+    return fdm_event_add(term->fdm, term->ptmx, EPOLLIN);
 }
 
 static bool

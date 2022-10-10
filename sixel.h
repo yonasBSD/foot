@@ -19,6 +19,10 @@ void sixel_scroll_up(struct terminal *term, int rows);
 void sixel_scroll_down(struct terminal *term, int rows);
 
 void sixel_cell_size_changed(struct terminal *term);
+
+void sixel_reflow_grid(struct terminal *term, struct grid *grid);
+
+/* Shortcut for sixel_reflow_grid(normal) + sixel_reflow_grid(alt) */
 void sixel_reflow(struct terminal *term);
 
 /*
