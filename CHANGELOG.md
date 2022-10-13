@@ -88,6 +88,7 @@
   built-in terminfo (accessed via XTGETTCAP).
 * Crash when interactively resizing the window with a very large
   scrollback.
+* Crash when a sixel image exceeds the current sixel max height.
 
 [1173]: https://codeberg.org/dnkl/foot/issues/1173
 

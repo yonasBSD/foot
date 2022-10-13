@@ -1295,7 +1295,7 @@ sixel_add_many(struct terminal *term, uint8_t c, unsigned count)
     if (unlikely(col + count - 1 >= width)) {
         resize_horizontally(term, col + count);
         width = term->sixel.image.width;
-        count = min(count, width - col);
+        count = min(count, max(width - col, 0));
     }
 
     uint32_t color = term->sixel.color;
