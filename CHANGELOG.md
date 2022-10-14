@@ -89,8 +89,11 @@
 * Crash when interactively resizing the window with a very large
   scrollback.
 * Crash when a sixel image exceeds the current sixel max height.
+* Crash after reverse-scrolling (`CSI Ps T`) in the ‘normal’
+  (non-alternate) screen ([#1190][1190]).
 
 [1173]: https://codeberg.org/dnkl/foot/issues/1173
+[1190]: https://codeberg.org/dnkl/foot/issues/1190
 
 
 ### Security
