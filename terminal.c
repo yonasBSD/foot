@@ -2676,6 +2676,18 @@ term_scroll_reverse_partial(struct terminal *term,
             selection_scroll_down(term, rows);
     }
 
+    /* Unallocate scrolled out lines */
+    for (int r = region.end - rows; r < region.end; r++) {
+        const int abs_r = grid_row_absolute(term->grid, r);
+        struct row *row = term->grid->rows[abs_r];
+
+        grid_row_free(row);
+        term->grid->rows[abs_r] = NULL;
+
+        if (term->render.last_cursor.row == row)
+            term->render.last_cursor.row = NULL;
+    }
+
     sixel_scroll_down(term, rows);
 
     bool view_follows = term->grid->view == term->grid->offset;
