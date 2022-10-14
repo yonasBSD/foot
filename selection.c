@@ -133,13 +133,18 @@ selection_scroll_down(struct terminal *term, int rows)
 {
     xassert(term->selection.coords.end.row >= 0);
 
+    const struct grid *grid = term->grid;
+    const struct range *sel = &term->selection.coords;
+
+    const int screen_end =
+        grid_row_abs_to_sb(grid, term->rows, grid->offset + term->rows - 1);
     const int rel_row_start =
-        grid_row_abs_to_sb(term->grid, term->rows, term->selection.coords.start.row);
+        grid_row_abs_to_sb(term->grid, term->rows, sel->start.row);
     const int rel_row_end =
-        grid_row_abs_to_sb(term->grid, term->rows, term->selection.coords.end.row);
+        grid_row_abs_to_sb(term->grid, term->rows, sel->end.row);
     const int actual_end = max(rel_row_start, rel_row_end);
 
-    if (actual_end + rows <= term->grid->num_rows) {
+    if (actual_end > screen_end - rows) {
         /* Part of the selection will be scrolled out, cancel it */
         selection_cancel(term);
     }
