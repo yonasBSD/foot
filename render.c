@@ -3691,10 +3691,13 @@ delayed_reflow_of_normal_grid(struct terminal *term)
     term->normal = *term->interactive_resizing.grid;
     free(term->interactive_resizing.grid);
 
+    term->hide_cursor = term->interactive_resizing.old_hide_cursor;
+
     /* Reset */
     term->interactive_resizing.grid = NULL;
     term->interactive_resizing.old_screen_rows = 0;
     term->interactive_resizing.new_rows = 0;
+    term->interactive_resizing.old_hide_cursor = false;
 
     /* Invalidate render pointers */
     shm_unref(term->render.last_buf);
@@ -3900,62 +3903,6 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
 
     const uint32_t scrollback_lines = term->render.scrollback_lines;
 
-    /*
-     * Since text reflow is slow, don’t do it *while* resizing. Only
-     * do it when done, or after “pausing” the resize for sufficiently
-     * long. We re-use the TIOCSWINSZ timer to handle this. See
-     * send_dimensions_to_client() and fdm_tiocswinsz().
-     *
-     * To be able to do the final reflow correctly, we need a copy of
-     * the original grid, before the resize started.
-     */
-    if (term->window->is_resizing && term->interactive_resizing.grid == NULL) {
-        term_ptmx_pause(term);
-
-        /* Stash the current ‘normal’ grid, as-is, to be used when
-         * doing the final reflow */
-        term->interactive_resizing.old_screen_rows = term->rows;
-        term->interactive_resizing.grid = xmalloc(sizeof(*term->interactive_resizing.grid));
-        *term->interactive_resizing.grid = term->normal;
-
-        /*
-         * Copy the current viewport to a new grid that will be used
-         * during the resize. For now, throw away sixels and OSC-8
-         * URLs. They’ll be "restored" when we do the final reflow.
-         *
-         * We use the ‘alt’ screen’s row count, since we don’t want to
-         * instantiate an unnecessarily large grid.
-         *
-         * TODO:
-         *  - sixels?
-         *  - OSC-8?
-         */
-        xassert(1 << (32 - __builtin_clz(term->rows)) == term->alt.num_rows);
-        struct grid g = {
-            .num_rows = term->alt.num_rows,
-            .num_cols = term->cols,
-            .offset = 0,
-            .view = 0,
-            .cursor = term->normal.cursor,
-            .saved_cursor = term->normal.saved_cursor,
-            .rows = xcalloc(g.num_rows, sizeof(g.rows[0])),
-            .cur_row = NULL,
-            .scroll_damage = tll_init(),
-            .sixel_images = tll_init(),
-            .kitty_kbd = term->normal.kitty_kbd,
-        };
-
-        for (size_t i = 0, j = term->normal.view; i < term->rows;
-             i++, j = (j + 1) & (term->normal.num_rows - 1))
-        {
-            g.rows[i] = grid_row_alloc(term->cols, false);
-            memcpy(g.rows[i]->cells, term->normal.rows[j]->cells,
-                   term->cols * sizeof(g.rows[i]->cells[0]));
-        }
-
-        term->normal = g;
-    }
-
     /* Screen rows/cols before resize */
     int old_cols = term->cols;
     int old_rows = term->rows;
@@ -3992,12 +3939,82 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
     xassert(term->margins.top >= pad_y);
     xassert(term->margins.bottom >= pad_y);
 
-    if (new_cols == old_cols && new_rows == old_rows &&
-        (term->interactive_resizing.grid == NULL || term->window->is_resizing))
-    {
+    if (new_cols == old_cols && new_rows == old_rows) {
         LOG_DBG("grid layout unaffected; skipping reflow");
         term->interactive_resizing.new_rows = new_normal_grid_rows;
         goto damage_view;
+    }
+
+
+    /*
+     * Since text reflow is slow, don’t do it *while* resizing. Only
+     * do it when done, or after “pausing” the resize for sufficiently
+     * long. We re-use the TIOCSWINSZ timer to handle this. See
+     * send_dimensions_to_client() and fdm_tiocswinsz().
+     *
+     * To be able to do the final reflow correctly, we need a copy of
+     * the original grid, before the resize started.
+     */
+    if (term->window->is_resizing) {
+        if (term->interactive_resizing.grid == NULL) {
+            term_ptmx_pause(term);
+
+            /* Stash the current ‘normal’ grid, as-is, to be used when
+             * doing the final reflow */
+            term->interactive_resizing.old_screen_rows = term->rows;
+            term->interactive_resizing.old_cols = term->cols;
+            term->interactive_resizing.old_hide_cursor = term->hide_cursor;
+            term->interactive_resizing.grid = xmalloc(sizeof(*term->interactive_resizing.grid));
+            *term->interactive_resizing.grid = term->normal;
+        } else {
+            /* We’ll replace the current temporary grid, with a new
+             * one (again based on the original grid) */
+            grid_free(&term->normal);
+        }
+
+        struct grid *orig = term->interactive_resizing.grid;
+
+        /*
+         * Copy the current viewport (of the original grid) to a new
+         * grid that will be used during the resize. For now, throw
+         * away sixels and OSC-8 URLs. They’ll be "restored" when we
+         * do the final reflow.
+         *
+         * Note that OSC-8 URLs are perfectly ok to throw away; they
+         * cannot be interacted with during the resize. And, even if
+         * url.osc8-underline=always, the “underline” attribute is
+         * part of the cell, not the URI struct (and thus our faked
+         * grid will still render OSC-8 links underlined).
+         *
+         * TODO:
+         *  - sixels?
+         */
+        struct grid g = {
+            .num_rows = 1 << (32 - __builtin_clz(term->interactive_resizing.old_screen_rows)),
+            .num_cols = term->interactive_resizing.old_cols,
+            .offset = 0,
+            .view = 0,
+            .cursor = orig->cursor,
+            .saved_cursor = orig->saved_cursor,
+            .rows = xcalloc(g.num_rows, sizeof(g.rows[0])),
+            .cur_row = NULL,
+            .scroll_damage = tll_init(),
+            .sixel_images = tll_init(),
+            .kitty_kbd = orig->kitty_kbd,
+        };
+
+        for (size_t i = 0, j = orig->view;
+             i < term->interactive_resizing.old_screen_rows;
+             i++, j = (j + 1) & (orig->num_rows - 1))
+        {
+            g.rows[i] = grid_row_alloc(g.num_cols, false);
+            memcpy(g.rows[i]->cells,
+                   orig->rows[j]->cells,
+                   g.num_cols * sizeof(g.rows[i]->cells[0]));
+        }
+
+        term->normal = g;
+        term->hide_cursor = true;
     }
 
     if (term->grid == &term->alt)
@@ -4028,7 +4045,8 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
         term->interactive_resizing.new_rows = new_normal_grid_rows;
 
         grid_resize_without_reflow(
-            &term->normal, new_alt_grid_rows, new_cols, old_rows, new_rows);
+            &term->normal, new_alt_grid_rows, new_cols,
+            term->interactive_resizing.old_screen_rows, new_rows);
     } else {
         /* Full text reflow */
 
@@ -4040,11 +4058,14 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
             term->normal = *term->interactive_resizing.grid;
             free(term->interactive_resizing.grid);
 
+            term->hide_cursor = term->interactive_resizing.old_hide_cursor;
+
             old_rows = term->interactive_resizing.old_screen_rows;
 
             term->interactive_resizing.grid = NULL;
             term->interactive_resizing.old_screen_rows = 0;
             term->interactive_resizing.new_rows = 0;
+            term->interactive_resizing.old_hide_cursor = false;
             term_ptmx_resume(term);
         }
 

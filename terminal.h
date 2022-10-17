@@ -601,6 +601,8 @@ struct terminal {
     struct {
         struct grid *grid;    /* Original ‘normal’ grid, before resize started */
         int old_screen_rows;  /* term->rows before resize started */
+        int old_cols;         /* term->cols before resize started */
+        int old_hide_cursor;  /* term->hide_cursor before resize started */
         int new_rows;         /* New number of scrollback rows */
     } interactive_resizing;
 
