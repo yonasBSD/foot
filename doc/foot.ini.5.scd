@@ -452,14 +452,13 @@ applications can change these at runtime.
 	by applications. Default: _no_.
 
 *color*
-	Two RRGGBB values (i.e. plain old 6-digit hex values, without
-	prefix) specifying the foreground (text) and background (cursor)
-	colors for the cursor.
+	Two space separated RRGGBB values (i.e. plain old 6-digit hex
+	values, without prefix) specifying the foreground (text) and
+	background (cursor) colors for the cursor.
 	
-	Default: _inverse foreground/background colors_.
-
-	Note that this value only applies to the block cursor. The other
-	cursor styles are always rendered with the foreground color.
+	Example: *ff0000 00ff00* (green cursor, red text)
+	
+	Default: the regular foreground and background colors, reversed.
 
 *beam-thickness*
 	Thickness (width) of the beam styled cursor. The value is in
