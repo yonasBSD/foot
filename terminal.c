@@ -263,7 +263,7 @@ fdm_ptmx(struct fdm *fdm, int fd, int events, void *data)
          * temporary one - all changes done to it will be lost when
          * the interactive resize ends.
          */
-        return 0;
+        return true;
     }
 
     uint8_t buf[24 * 1024];
