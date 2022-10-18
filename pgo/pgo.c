@@ -228,10 +228,14 @@ main(int argc, const char *const *argv)
         return EXIT_FAILURE;
     }
 
-    struct row **rows = calloc(grid_row_count, sizeof(rows[0]));
+    struct row **normal_rows = calloc(grid_row_count, sizeof(normal_rows[0]));
+    struct row **alt_rows = calloc(grid_row_count, sizeof(alt_rows[0]));
+
     for (int i = 0; i < grid_row_count; i++) {
-        rows[i] = calloc(1, sizeof(*rows[i]));
-        rows[i]->cells = calloc(col_count, sizeof(rows[i]->cells[0]));
+        normal_rows[i] = calloc(1, sizeof(*normal_rows[i]));
+        normal_rows[i]->cells = calloc(col_count, sizeof(normal_rows[i]->cells[0]));
+        alt_rows[i] = calloc(1, sizeof(*alt_rows[i]));
+        alt_rows[i]->cells = calloc(col_count, sizeof(alt_rows[i]->cells[0]));
     }
 
     struct config conf = {
@@ -254,14 +258,14 @@ main(int argc, const char *const *argv)
         .normal = {
             .num_rows = grid_row_count,
             .num_cols = col_count,
-            .rows = rows,
-            .cur_row = rows[0],
+            .rows = normal_rows,
+            .cur_row = normal_rows[0],
         },
         .alt = {
             .num_rows = grid_row_count,
             .num_cols = col_count,
-            .rows = rows,
-            .cur_row = rows[0],
+            .rows = alt_rows,
+            .cur_row = alt_rows[0],
         },
         .scale = 1,
         .width = col_count * 8,
@@ -371,11 +375,17 @@ out:
     tll_free(wayl.terms);
 
     for (int i = 0; i < grid_row_count; i++) {
-        free(rows[i]->cells);
-        free(rows[i]);
+        if (normal_rows[i] != NULL)
+            free(normal_rows[i]->cells);
+        free(normal_rows[i]);
+
+        if (alt_rows[i] != NULL)
+            free(alt_rows[i]->cells);
+        free(alt_rows[i]);
     }
 
-    free(rows);
+    free(normal_rows);
+    free(alt_rows);
     close(lower_fd);
     close(upper_fd);
     return ret;
