@@ -287,6 +287,9 @@ grid_snapshot(const struct grid *grid)
 void
 grid_free(struct grid *grid)
 {
+    if (grid == NULL)
+        return;
+
     for (int r = 0; r < grid->num_rows; r++)
         grid_row_free(grid->rows[r]);
 
