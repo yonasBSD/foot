@@ -1752,6 +1752,8 @@ term_destroy(struct terminal *term)
 
     grid_free(&term->normal);
     grid_free(&term->alt);
+    grid_free(term->interactive_resizing.grid);
+    free(term->interactive_resizing.grid);
 
     free(term->foot_exe);
     free(term->cwd);
