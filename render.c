@@ -3955,9 +3955,10 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
      * To be able to do the final reflow correctly, we need a copy of
      * the original grid, before the resize started.
      */
-    if (term->window->is_resizing) {
+    if (term->window->is_resizing && term->conf->resize_delay_ms > 0) {
         if (term->interactive_resizing.grid == NULL) {
             term_ptmx_pause(term);
+            xassert(false);
 
             /* Stash the current ‘normal’ grid, as-is, to be used when
              * doing the final reflow */
@@ -4037,7 +4038,7 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
      * tracking points list.
      */
     /* Resize grids */
-    if (term->window->is_resizing) {
+    if (term->window->is_resizing && term->conf->resize_delay_ms > 0) {
         /* Simple truncating resize, *while* an interactive resize is
          * ongoing. */
         xassert(term->interactive_resizing.grid != NULL);
