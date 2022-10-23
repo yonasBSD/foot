@@ -30,7 +30,7 @@ do_pgo=no
 CFLAGS="${CFLAGS-} -O3"
 
 case $(${CC-cc} --version) in
-    *GCC*)
+    *Free\ Software\ Foundation*)
         compiler=gcc
         do_pgo=yes
         ;;
