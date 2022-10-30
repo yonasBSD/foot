@@ -419,7 +419,14 @@ cursor_colors_for_cell(const struct terminal *term, const struct cell *cell,
         }
     } else {
         *cursor_color = *fg;
-        *text_color = *bg;
+
+        if (unlikely(text_color->alpha != 0xffff)) {
+            /* We *know* this only happens when bg is the default bg
+             * color */
+            *text_color = color_hex_to_pixman(
+                term->reverse ? term->colors.fg : term->colors.bg);
+        } else
+            *text_color = *bg;
     }
 }
 

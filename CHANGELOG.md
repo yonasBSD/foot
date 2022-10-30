@@ -91,9 +91,13 @@
 * Crash when a sixel image exceeds the current sixel max height.
 * Crash after reverse-scrolling (`CSI Ps T`) in the ‘normal’
   (non-alternate) screen ([#1190][1190]).
+* Background transparency being applied to the text "behind" the
+  cursor. Only applies to block cursor using inversed fg/bg
+  colors. ([#1205][1205]).
 
 [1173]: https://codeberg.org/dnkl/foot/issues/1173
 [1190]: https://codeberg.org/dnkl/foot/issues/1190
+[1205]: https://codeberg.org/dnkl/foot/issues/1205
 
 
 ### Security
