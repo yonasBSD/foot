@@ -3965,7 +3965,6 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
     if (term->window->is_resizing && term->conf->resize_delay_ms > 0) {
         if (term->interactive_resizing.grid == NULL) {
             term_ptmx_pause(term);
-            xassert(false);
 
             /* Stash the current ‘normal’ grid, as-is, to be used when
              * doing the final reflow */
