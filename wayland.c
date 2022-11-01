@@ -1915,7 +1915,7 @@ activation_token_done(void *data, struct xdg_activation_token_v1 *xdg_token,
         return;
     }
 
-    xassert(false);
+    BUG("activation token not found in list");
 }
 
 static const struct
