@@ -64,6 +64,7 @@
   ("permanently reset") instead of `2` ("reset") for DEC private
   modes that are known but unsupported.
 * Set `PWD` environment variable in the slave process ([#1179][1179]).
+* DPI is now forced to 96 when found to be unreasonably high.
 
 [1166]: https://codeberg.org/dnkl/foot/issues/1166
 [1179]: https://codeberg.org/dnkl/foot/issues/1179
