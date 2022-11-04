@@ -370,8 +370,8 @@ output_update_ppi(struct monitor *mon)
     if (mon->dim.mm.width <= 0 || mon->dim.mm.height <= 0)
         return;
 
-    int x_inches = mon->dim.mm.width * 0.03937008;
-    int y_inches = mon->dim.mm.height * 0.03937008;
+    double x_inches = mon->dim.mm.width * 0.03937008;
+    double y_inches = mon->dim.mm.height * 0.03937008;
 
     mon->ppi.real.x = mon->dim.px_real.width / x_inches;
     mon->ppi.real.y = mon->dim.px_real.height / y_inches;
@@ -407,7 +407,7 @@ output_update_ppi(struct monitor *mon)
     mon->ppi.scaled.x = scaled_width / x_inches;
     mon->ppi.scaled.y = scaled_height / y_inches;
 
-    float px_diag = sqrt(pow(scaled_width, 2) + pow(scaled_height, 2));
+    double px_diag = sqrt(pow(scaled_width, 2) + pow(scaled_height, 2));
     mon->dpi = px_diag / mon->inch * mon->scale;
 }
 
