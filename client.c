@@ -94,7 +94,7 @@ print_usage(const char *prog_name)
         "  -N,--no-wait                             detach the client process from the running terminal, exiting immediately\n"
         "  -o,--override=[section.]key=value        override configuration option\n"
         "  -E, --client-environment                 exec shell using footclient's environment, instead of the server's\n"
-        "  -d,--log-level={info|warning|error|none} log level (info)\n"
+        "  -d,--log-level={info|warning|error|none} log level (warning)\n"
         "  -l,--log-colorize=[{never|always|auto}]  enable/disable colorization of log output on stderr\n"
         "  -v,--version                             show the version number and quit\n"
         "  -e                                       ignored (for compatibility with xterm -e)\n";
@@ -178,7 +178,7 @@ main(int argc, char *const *argv)
 
     const char *custom_cwd = NULL;
     const char *server_socket_path = NULL;
-    enum log_class log_level = LOG_CLASS_INFO;
+    enum log_class log_level = LOG_CLASS_WARNING;
     enum log_colorize log_colorize = LOG_COLORIZE_AUTO;
     bool hold = false;
     bool client_environment = false;

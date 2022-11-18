@@ -65,9 +65,11 @@
   modes that are known but unsupported.
 * Set `PWD` environment variable in the slave process ([#1179][1179]).
 * DPI is now forced to 96 when found to be unreasonably high.
+* Set default log level to warning ([#1215][1215]).
 
 [1166]: https://codeberg.org/dnkl/foot/issues/1166
 [1179]: https://codeberg.org/dnkl/foot/issues/1179
+[1215]: https://codeberg.org/dnkl/foot/pulls/1215
 
 
 ### Deprecated

@@ -83,7 +83,7 @@ print_usage(const char *prog_name)
         "                                           Without PATH, $XDG_RUNTIME_DIR/foot-$WAYLAND_DISPLAY.sock will be used.\n"
         "  -H,--hold                                remain open after child process exits\n"
         "  -p,--print-pid=FILE|FD                   print PID to file or FD (only applicable in server mode)\n"
-        "  -d,--log-level={info|warning|error|none} log level (info)\n"
+        "  -d,--log-level={info|warning|error|none} log level (warning)\n"
         "  -l,--log-colorize=[{never|always|auto}]  enable/disable colorization of log output on stderr\n"
         "  -s,--log-no-syslog                       disable syslog logging (only applicable in server mode)\n"
         "  -v,--version                             show the version number and quit\n"
@@ -236,7 +236,7 @@ main(int argc, char *const *argv)
     bool fullscreen = false;
     bool unlink_pid_file = false;
     const char *pid_file = NULL;
-    enum log_class log_level = LOG_CLASS_INFO;
+    enum log_class log_level = LOG_CLASS_WARNING;
     enum log_colorize log_colorize = LOG_COLORIZE_AUTO;
     bool log_syslog = true;
     user_notifications_t user_notifications = tll_init();
