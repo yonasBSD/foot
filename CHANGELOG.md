@@ -98,11 +98,14 @@
   cursor. Only applies to block cursor using inversed fg/bg
   colors. ([#1205][1205]).
 * Crash when monitor’s physical size is "too small" ([#1209][1209]).
+* Line-height adjustment when incrementing/decrementing the font size
+  with a user-set line-height ([#1218][1218]).
 
 [1173]: https://codeberg.org/dnkl/foot/issues/1173
 [1190]: https://codeberg.org/dnkl/foot/issues/1190
 [1205]: https://codeberg.org/dnkl/foot/issues/1205
 [1209]: https://codeberg.org/dnkl/foot/issues/1209
+[1218]: https://codeberg.org/dnkl/foot/issues/1218
 
 
 ### Security
