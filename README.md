@@ -565,7 +565,7 @@ reported the same issue.
 The report should contain the following:
 
 - Foot version (`foot --version`).
-- Log output from foot (start foot from another terminal).
+- Log output from foot (run `foot -d info` from another terminal).
 - Which Wayland compositor (and version) you are running.
 - If reporting a crash, please try to provide a `bt full` backtrace
   with symbols.
