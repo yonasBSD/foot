@@ -2031,12 +2031,20 @@ term_font_size_adjust(struct terminal *term, double amount)
     }
 
     if (term->font_line_height.px >= 0) {
-        float old_pt_size = term->font_line_height.px > 0
-            ? term->font_line_height.px * 72. / dpi
-            : term->font_line_height.pt;
+        const struct config *conf = term->conf;
+
+        const float font_original_pt_size =
+            conf->fonts[0].arr[0].px_size > 0
+            ? conf->fonts[0].arr[0].px_size * 72. / dpi
+            : conf->fonts[0].arr[0].pt_size;
+
+        const float change = term->font_sizes[0][0].pt_size / font_original_pt_size;
+        const float line_original_pt_size = conf->line_height.px > 0
+            ? conf->line_height.px * 72. / dpi
+            : conf->line_height.pt;
 
         term->font_line_height.px = 0;
-        term->font_line_height.pt = fmaxf(old_pt_size + amount, 0.);
+        term->font_line_height.pt = fmaxf(line_original_pt_size * change, 0.);
     }
 
     return reload_fonts(term);
