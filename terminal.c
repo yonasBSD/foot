@@ -709,8 +709,11 @@ term_line_height_update(struct terminal *term)
 {
     const struct config *conf = term->conf;
 
-    if (term->conf->line_height.px < 0)
+    if (term->conf->line_height.px < 0) {
+        term->font_line_height.pt = 0;
+        term->font_line_height.px = -1;
         return;
+    }
 
     const float dpi = term->font_is_sized_by_dpi ? term->font_dpi : 96.;
 
