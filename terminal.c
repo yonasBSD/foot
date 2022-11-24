@@ -704,6 +704,34 @@ free_custom_glyphs(struct fcft_glyph ***glyphs, size_t count)
     *glyphs = NULL;
 }
 
+static void
+term_line_height_update(struct terminal *term)
+{
+    const struct config *conf = term->conf;
+
+    if (term->conf->line_height.px < 0)
+        return;
+
+    const float dpi = term->font_is_sized_by_dpi ? term->font_dpi : 96.;
+
+    const float font_original_pt_size =
+        conf->fonts[0].arr[0].px_size > 0
+        ? conf->fonts[0].arr[0].px_size * 72. / dpi
+        : conf->fonts[0].arr[0].pt_size;
+    const float font_current_pt_size =
+        term->font_sizes[0][0].px_size > 0
+        ? term->font_sizes[0][0].px_size * 72. / dpi
+        : term->font_sizes[0][0].pt_size;
+
+    const float change = font_current_pt_size / font_original_pt_size;
+    const float line_original_pt_size = conf->line_height.px > 0
+            ? conf->line_height.px * 72. / dpi
+            : conf->line_height.pt;
+
+    term->font_line_height.px = 0;
+    term->font_line_height.pt = fmaxf(line_original_pt_size * change, 0.);
+}
+
 static bool
 term_set_fonts(struct terminal *term, struct fcft_font *fonts[static 4])
 {
@@ -729,6 +757,8 @@ term_set_fonts(struct terminal *term, struct fcft_font *fonts[static 4])
     const struct fcft_glyph *M = fcft_rasterize_char_utf32(
         fonts[0], U'M', term->font_subpixel);
     int advance = M != NULL ? M->advance.x : term->fonts[0]->max_advance.x;
+
+    term_line_height_update(term);
 
     term->cell_width = advance +
         term_pt_or_px_as_pixels(term, &conf->letter_spacing);
@@ -1078,7 +1108,6 @@ load_fonts_from_conf(struct terminal *term)
         }
     }
 
-    term->font_line_height = term->conf->line_height;
     return reload_fonts(term);
 }
 
@@ -1298,7 +1327,6 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
                 .pt_size = font->pt_size, .px_size = font->px_size};
         }
     }
-    term->font_line_height = conf->line_height;
 
     add_utmp_record(conf, reaper, ptmx);
 
@@ -2028,23 +2056,6 @@ term_font_size_adjust(struct terminal *term, double amount)
             term->font_sizes[i][j].pt_size = fmaxf(old_pt_size + amount, 0.);
             term->font_sizes[i][j].px_size = -1;
         }
-    }
-
-    if (term->font_line_height.px >= 0) {
-        const struct config *conf = term->conf;
-
-        const float font_original_pt_size =
-            conf->fonts[0].arr[0].px_size > 0
-            ? conf->fonts[0].arr[0].px_size * 72. / dpi
-            : conf->fonts[0].arr[0].pt_size;
-
-        const float change = term->font_sizes[0][0].pt_size / font_original_pt_size;
-        const float line_original_pt_size = conf->line_height.px > 0
-            ? conf->line_height.px * 72. / dpi
-            : conf->line_height.pt;
-
-        term->font_line_height.px = 0;
-        term->font_line_height.pt = fmaxf(line_original_pt_size * change, 0.);
     }
 
     return reload_fonts(term);
