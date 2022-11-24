@@ -946,7 +946,7 @@ term_pt_or_px_as_pixels(const struct terminal *term,
 
     return pt_or_px->px == 0
         ? round(pt_or_px->pt * scale * dpi / 72)
-        : pt_or_px->px;
+        : pt_or_px->px * scale;
 }
 
 struct font_load_data {
