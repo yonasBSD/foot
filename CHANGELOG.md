@@ -100,6 +100,8 @@
 * Crash when monitor’s physical size is "too small" ([#1209][1209]).
 * Line-height adjustment when incrementing/decrementing the font size
   with a user-set line-height ([#1218][1218]).
+* Scaling factor not being correctly applied when converting pt-or-px
+  config values (e.g. letter offsets, line height etc).
 
 [1173]: https://codeberg.org/dnkl/foot/issues/1173
 [1190]: https://codeberg.org/dnkl/foot/issues/1190
