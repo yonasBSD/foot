@@ -703,7 +703,7 @@ and are terminated by *\\E\\* (ST).
 :  Begin (_C_=*1*) or end (_C_=*2*) application synchronized updates.
    This sequence is supported for compatibility reasons, but it's
    recommended to use private mode 2026 (see above) instead.
-|  \\EP + q <hex encoded capability name> \\E\\
+|  \\EP + q <hex encoded capability name> \\E\\ 
 :  Query builtin terminfo database (XTGETTCAP)
 
 
