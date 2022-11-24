@@ -933,7 +933,7 @@ csi_dispatch(struct terminal *term, uint8_t final)
             break;
         }
 
-        case 'L': {
+        case 'L': {  /* IL */
             if (term->grid->cursor.point.row < term->scroll_region.start ||
                 term->grid->cursor.point.row >= term->scroll_region.end)
                 break;
@@ -953,7 +953,7 @@ csi_dispatch(struct terminal *term, uint8_t final)
             break;
         }
 
-        case 'M': {
+        case 'M': {  /* DL */
             if (term->grid->cursor.point.row < term->scroll_region.start ||
                 term->grid->cursor.point.row >= term->scroll_region.end)
                 break;

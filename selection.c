@@ -86,7 +86,7 @@ selection_on_rows(const struct terminal *term, int row_start, int row_end)
     const int rel_row_start =
         grid_row_abs_to_sb_precalc_sb_start(grid, sb_start, row_start);
     const int rel_row_end =
-        grid_row_abs_to_sb_precalc_sb_start(grid, sb_start, row_start);
+        grid_row_abs_to_sb_precalc_sb_start(grid, sb_start, row_end);
     int rel_sel_start =
         grid_row_abs_to_sb_precalc_sb_start(grid, sb_start, start->row);
     int rel_sel_end =
