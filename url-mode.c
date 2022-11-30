@@ -746,15 +746,18 @@ tag_cells_for_url(struct terminal *term, const struct url *url, bool value)
     if (url->url_mode_dont_change_url_attr)
         return;
 
+    struct grid *grid = term->url_grid_snapshot;
+    xassert(grid != NULL);
+
     const struct coord *start = &url->range.start;
     const struct coord *end = &url->range.end;
 
-    size_t end_r = end->row & (term->grid->num_rows - 1);
+    size_t end_r = end->row & (grid->num_rows - 1);
 
-    size_t r = start->row & (term->grid->num_rows - 1);
+    size_t r = start->row & (grid->num_rows - 1);
     size_t c = start->col;
 
-    struct row *row = term->grid->rows[r];
+    struct row *row = grid->rows[r];
     row->dirty = true;
 
     while (true) {
@@ -766,10 +769,10 @@ tag_cells_for_url(struct terminal *term, const struct url *url, bool value)
             break;
 
         if (++c >= term->cols) {
-            r = (r + 1) & (term->grid->num_rows - 1);
+            r = (r + 1) & (grid->num_rows - 1);
             c = 0;
 
-            row = term->grid->rows[r];
+            row = grid->rows[r];
             if (row == NULL) {
                 /* Un-allocated scrollback. This most likely means a
                  * runaway OSC-8 URL. */
@@ -787,15 +790,6 @@ urls_render(struct terminal *term)
 
     if (tll_length(win->term->urls) == 0)
         return;
-
-    xassert(tll_length(win->urls) == 0);
-    tll_foreach(win->term->urls, it) {
-        struct wl_url url = {.url = &it->item};
-        wayl_win_subsurface_new(win, &url.surf, false);
-
-        tll_push_back(win->urls, url);
-        tag_cells_for_url(term, &it->item, true);
-    }
 
     /* Dirty the last cursor, to ensure it is erased */
     {
@@ -818,6 +812,15 @@ urls_render(struct terminal *term)
 
     /* Snapshot the current grid */
     term->url_grid_snapshot = grid_snapshot(term->grid);
+
+    xassert(tll_length(win->urls) == 0);
+    tll_foreach(win->term->urls, it) {
+        struct wl_url url = {.url = &it->item};
+        wayl_win_subsurface_new(win, &url.surf, false);
+
+        tll_push_back(win->urls, url);
+        tag_cells_for_url(term, &it->item, true);
+    }
 
     render_refresh_urls(term);
     render_refresh(term);
@@ -860,7 +863,6 @@ urls_reset(struct terminal *term)
     }
 
     tll_foreach(term->urls, it) {
-        tag_cells_for_url(term, &it->item, false);
         url_destroy(&it->item);
         tll_remove(term->urls, it);
     }
