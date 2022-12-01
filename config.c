@@ -2295,21 +2295,22 @@ parse_section_environment(struct context *ctx)
 {
     struct config *conf = ctx->conf;
     const char *key = ctx->key;
-    const char *value = ctx->value;
 
+    /* Check for pre-existing env variable */
     tll_foreach(conf->env_vars, it) {
-        if (strcmp(it->item.name, key) == 0) {
-            free(it->item.value);
-            it->item.value = xstrdup(value);
-            return true;
-        }
+        if (strcmp(it->item.name, key) == 0)
+            return value_to_str(ctx, &it->item.value);
     }
 
-    struct env_var var = {
-        .name = xstrdup(key),
-        .value = xstrdup(value),
-    };
-    tll_push_back(conf->env_vars, var);
+    /*
+     * No pre-existing variable - allocate a new one
+     */
+
+    char *value = NULL;
+    if (!value_to_str(ctx, &value))
+        return false;
+
+    tll_push_back(conf->env_vars, ((struct env_var){xstrdup(key), value}));
     return true;
 }
 

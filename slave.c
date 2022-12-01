@@ -359,8 +359,15 @@ slave_spawn(int ptmx, int argc, const char *cwd, char *const *argv,
 #endif
 
         if (extra_env_vars != NULL) {
-            tll_foreach(*extra_env_vars, it)
-                setenv(it->item.name, it->item.value, 1);
+            tll_foreach(*extra_env_vars, it) {
+                const char *name = it->item.name;
+                const char *value = it->item.value;
+
+                if (strlen(value) == 0)
+                    unsetenv(name);
+                else
+                    setenv(name, value, 1);
+            }
         }
 
         char **_shell_argv = NULL;
