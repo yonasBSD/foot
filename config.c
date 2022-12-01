@@ -502,8 +502,48 @@ value_to_double(struct context *ctx, float *res)
 static bool NOINLINE
 value_to_str(struct context *ctx, char **res)
 {
+    char *copy = xstrdup(ctx->value);
+    char *end = copy + strlen(copy) - 1;
+
+    /* Un-quote
+     *
+     * Note: this is very simple; we only support the *entire* value
+     * being quoted. That is, no mid-value quotes. Both double and
+     * single quotes are supported.
+     *
+     *  - key="value"              OK
+     *  - key=abc "quote" def  NOT OK
+     *  - key=’value’              OK
+     *
+     * Finally, we support escaping the quote character, and the
+     * escape character itself:
+     *
+     *  - key="value \"quotes\""
+     *  - key="backslash: \\"
+     *
+     * ONLY the "current" quote character can be escaped:
+     *
+     *  key="value \'"   NOt OK (both backslash and single quote is kept)
+     */
+
+    if ((copy[0] == '"' && *end == '"') ||
+        (copy[0] == '\'' && *end == '\''))
+    {
+        const char quote = copy[0];
+        *end = '\0';
+
+        memmove(copy, copy + 1, end - copy);
+
+        /* Un-escape */
+        for (char *p = copy; *p != '\0'; p++) {
+            if (p[0] == '\\' && (p[1] == '\\' || p[1] == quote)) {
+                memmove(p, p + 1, end - p);
+            }
+        }
+    }
+
     free(*res);
-    *res = xstrdup(ctx->value);
+    *res = copy;
     return true;
 }
 

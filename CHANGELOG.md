@@ -49,6 +49,8 @@
 * Support (optional) for utmp logging with libutempter.
 * `kxIN` and `kxOUT` (focus in/out events) to terminfo.
 * `name` capability to `XTGETTCAP`.
+* String values in `foot.ini` may now be quoted. This can be used to
+  set a value to the empty string, for example.
 
 [1136]: https://codeberg.org/dnkl/foot/issues/1136
 
