@@ -22,6 +22,15 @@ in this order:
 An example configuration file containing all options with their default value
 commented out will usually be installed to */etc/xdg/foot/foot.ini*.
 
+Options are set using KEY=VALUE pairs:
+
+	*\[colors\]*++
+*background=000000*++
+*foreground=ffffff*
+
+Empty values (*KEY=*) are not supported. String options do allow the
+empty string to be set, but it must be quoted: *KEY=""*)
+
 # SECTION: main
 
 *shell*
