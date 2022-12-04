@@ -539,6 +539,9 @@ In all other cases, the exit code is that of the client application
 	set according to either the *--term* command-line option or the
 	*term* config option in *foot.ini*(5).
 
+*PWD*
+	Current working directory (at the time of launching foot)
+
 *COLORTERM*
 	This variable is set to *truecolor*, to indicate to client
 	applications that 24-bit RGB colors are supported.
