@@ -3692,9 +3692,10 @@ term_command_output_to_text(const struct terminal *term, char **text, size_t *le
 
     const struct grid *grid = term->grid;
     const int sb_end = grid_row_absolute(grid, term->rows - 1);
-    int r = (sb_end - 1 + grid->num_rows) & (grid->num_rows - 1);
+    const int sb_start = (sb_end + 1) & (grid->num_rows - 1);
+    int r = sb_end;
 
-    while (start_row < 0 && r != sb_end) {
+    while (start_row < 0) {
         const struct row *row = grid->rows[r];
         if (row == NULL)
             break;
@@ -3708,6 +3709,9 @@ term_command_output_to_text(const struct terminal *term, char **text, size_t *le
             start_row = r;
             start_col = row->shell_integration.cmd_start;
         }
+
+        if (r == sb_start)
+            break;
 
         r = (r - 1 + grid->num_rows) & (grid->num_rows - 1);
     }
