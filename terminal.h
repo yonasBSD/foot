@@ -121,8 +121,9 @@ struct row {
     bool dirty;
     bool linebreak;
 
-    /* Shell integration */
-    bool prompt_marker;
+    struct {
+        bool prompt_marker;
+    } shell_integration;
 };
 
 struct sixel {

@@ -1825,7 +1825,7 @@ erase_line(struct terminal *term, struct row *row)
 {
     erase_cell_range(term, row, 0, term->cols - 1);
     row->linebreak = false;
-    row->prompt_marker = false;
+    row->shell_integration.prompt_marker = false;
 }
 
 void

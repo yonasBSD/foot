@@ -893,7 +893,7 @@ osc_dispatch(struct terminal *term)
                      term->grid->cursor.point.row,
                     term->grid->cursor.point.col);
 
-            term->grid->cur_row->prompt_marker = true;
+            term->grid->cur_row->shell_integration.prompt_marker = true;
             break;
 
         case 'B':

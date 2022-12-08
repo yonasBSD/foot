@@ -231,7 +231,7 @@ grid_snapshot(const struct grid *grid)
         clone_row->cells = xmalloc(grid->num_cols * sizeof(clone_row->cells[0]));
         clone_row->linebreak = row->linebreak;
         clone_row->dirty = row->dirty;
-        clone_row->prompt_marker = row->prompt_marker;
+        clone_row->shell_integration = row->shell_integration;
 
         for (int c = 0; c < grid->num_cols; c++)
             clone_row->cells[c] = row->cells[c];
@@ -366,7 +366,7 @@ grid_row_alloc(int cols, bool initialize)
     row->dirty = false;
     row->linebreak = false;
     row->extra = NULL;
-    row->prompt_marker = false;
+    row->shell_integration.prompt_marker = false;
 
     if (initialize) {
         row->cells = xcalloc(cols, sizeof(row->cells[0]));
@@ -425,7 +425,7 @@ grid_resize_without_reflow(
 
         new_row->dirty = old_row->dirty;
         new_row->linebreak = false;
-        new_row->prompt_marker = old_row->prompt_marker;
+        new_row->shell_integration = old_row->shell_integration;
 
         if (new_cols > old_cols) {
             /* Clear "new" columns */
@@ -587,7 +587,7 @@ _line_wrap(struct grid *old_grid, struct row **new_grid, struct row *row,
         /* Scrollback is full, need to reuse a row */
         grid_row_reset_extra(new_row);
         new_row->linebreak = false;
-        new_row->prompt_marker = false;
+        new_row->shell_integration.prompt_marker = false;
 
         tll_foreach(old_grid->sixel_images, it) {
             if (it->item.pos.row == *row_idx) {
@@ -920,7 +920,7 @@ grid_resize_and_reflow(
                 xassert(from + amount <= old_cols);
 
                 if (from == 0)
-                    new_row->prompt_marker = old_row->prompt_marker;
+                    new_row->shell_integration = old_row->shell_integration;
 
                 memcpy(
                     &new_row->cells[new_col_idx], &old_row->cells[from],
