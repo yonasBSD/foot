@@ -1,5 +1,6 @@
 #include "grid.h"
 
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -837,35 +838,26 @@ grid_resize_and_reflow(
             int end;
             bool tp_break = false;
             bool uri_break = false;
+            bool ftcs_break = false;
 
-            /*
-             * Set end-coordinate for this chunk, by finding the next
-             * point-of-interest on this row.
-             *
-             * If there are no more tracking points, or URI ranges,
-             * the end-coordinate will be at the end of the row,
-             */
-            if (range != range_terminator) {
-                int uri_col = (range->start >= start ? range->start : range->end) + 1;
+            /* Figure out where to end this chunk */
+            {
+                const int uri_col = range != range_terminator
+                    ? ((range->start >= start ? range->start : range->end) + 1)
+                    : INT_MAX;
+                const int tp_col = tp != NULL ? tp->col + 1 : INT_MAX;
+                const int ftcs_col = old_row->shell_integration.cmd_start >= start
+                    ? old_row->shell_integration.cmd_start + 1
+                    : old_row->shell_integration.cmd_end >= start
+                    ? old_row->shell_integration.cmd_end + 1
+                    : INT_MAX;
 
-                if (tp != NULL) {
-                    int tp_col = tp->col + 1;
-                    end = min(tp_col, uri_col);
+                end = min(col_count, min(min(tp_col, uri_col), ftcs_col));
 
-                    tp_break = end == tp_col;
-                    uri_break = end == uri_col;
-                    LOG_DBG("tp+uri break at %d (%d, %d)", end, tp_col, uri_col);
-                } else {
-                    end = uri_col;
-                    uri_break = true;
-                    LOG_DBG("uri break at %d", end);
-                }
-            } else if (tp != NULL) {
-                end = tp->col + 1;
-                tp_break = true;
-                LOG_DBG("TP break at %d", end);
-            } else
-                end = col_count;
+                uri_break = end == uri_col;
+                tp_break = end == tp_col;
+                ftcs_break = end == ftcs_col;
+            }
 
             int cols = end - start;
             xassert(cols > 0);
@@ -926,7 +918,7 @@ grid_resize_and_reflow(
                 xassert(from + amount <= old_cols);
 
                 if (from == 0)
-                    new_row->shell_integration = old_row->shell_integration;
+                    new_row->shell_integration.prompt_marker = old_row->shell_integration.prompt_marker;
 
                 memcpy(
                     &new_row->cells[new_col_idx], &old_row->cells[from],
@@ -983,6 +975,16 @@ grid_resize_and_reflow(
                     grid_row_uri_range_destroy(range);
                     range++;
                 }
+            }
+
+            if (ftcs_break) {
+                xassert(old_row->shell_integration.cmd_start == start + cols - 1 ||
+                        old_row->shell_integration.cmd_end == start + cols - 1);
+
+                if (old_row->shell_integration.cmd_start == start + cols - 1)
+                    new_row->shell_integration.cmd_start = new_col_idx - 1;
+                if (old_row->shell_integration.cmd_end == start + cols - 1)
+                    new_row->shell_integration.cmd_end = new_col_idx - 1;
             }
 
             left -= cols;
