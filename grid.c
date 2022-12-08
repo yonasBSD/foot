@@ -367,6 +367,8 @@ grid_row_alloc(int cols, bool initialize)
     row->linebreak = false;
     row->extra = NULL;
     row->shell_integration.prompt_marker = false;
+    row->shell_integration.cmd_start = -1;
+    row->shell_integration.cmd_end = -1;
 
     if (initialize) {
         row->cells = xcalloc(cols, sizeof(row->cells[0]));
@@ -588,6 +590,8 @@ _line_wrap(struct grid *old_grid, struct row **new_grid, struct row *row,
         grid_row_reset_extra(new_row);
         new_row->linebreak = false;
         new_row->shell_integration.prompt_marker = false;
+        new_row->shell_integration.cmd_start = -1;
+        new_row->shell_integration.cmd_end = -1;
 
         tll_foreach(old_grid->sixel_images, it) {
             if (it->item.pos.row == *row_idx) {

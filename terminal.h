@@ -123,6 +123,8 @@ struct row {
 
     struct {
         bool prompt_marker;
+        int cmd_start;  /* Column, -1 if unset */
+        int cmd_end;    /* Column, -1 if unset */
     } shell_integration;
 };
 

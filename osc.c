@@ -901,11 +901,17 @@ osc_dispatch(struct terminal *term)
             break;
 
         case 'C':
-            LOG_DBG("FTCS_COMMAND_EXECUTED");
+            LOG_DBG("FTCS_COMMAND_EXECUTED: %dx%d",
+                    term->grid->cursor.point.row,
+                    term->grid->cursor.point.col);
+            term->grid->cur_row->shell_integration.cmd_start = term->grid->cursor.point.col;
             break;
 
         case 'D':
-            LOG_DBG("FTCS_COMMAND_FINISHED");
+            LOG_DBG("FTCS_COMMAND_FINISHED: %dx%d",
+                    term->grid->cursor.point.row,
+                    term->grid->cursor.point.col);
+            term->grid->cur_row->shell_integration.cmd_end = term->grid->cursor.point.col;
             break;
         }
         break;
