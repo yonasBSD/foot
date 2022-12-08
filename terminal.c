@@ -3613,7 +3613,7 @@ term_surface_kind(const struct terminal *term, const struct wl_surface *surface)
 
 static bool
 rows_to_text(const struct terminal *term, int start, int end,
-             char **text, size_t *len)
+             int col_start, int col_end, char **text, size_t *len)
 {
     struct extraction_context *ctx = extract_begin(SELECTION_NONE, true);
     if (ctx == NULL)
@@ -3626,15 +3626,20 @@ rows_to_text(const struct terminal *term, int start, int end,
         const struct row *row = term->grid->rows[r];
         xassert(row != NULL);
 
-        for (int c = 0; c < term->cols; c++)
+        const int c_end = r == end ? col_end : term->cols;
+
+        for (int c = col_start; c < c_end; c++) {
             if (!extract_one(term, row, &row->cells[c], c, ctx))
                 goto out;
+        }
 
         if (r == end)
             break;
 
         r++;
         r &= grid_rows - 1;
+
+        col_start = 0;
     }
 
 out:
@@ -3666,7 +3671,7 @@ term_scrollback_to_text(const struct terminal *term, char **text, size_t *len)
             end += term->grid->num_rows;
     }
 
-    return rows_to_text(term, start, end, text, len);
+    return rows_to_text(term, start, end, 0, term->cols, text, len);
 }
 
 bool
@@ -3674,7 +3679,87 @@ term_view_to_text(const struct terminal *term, char **text, size_t *len)
 {
     int start = grid_row_absolute_in_view(term->grid, 0);
     int end = grid_row_absolute_in_view(term->grid, term->rows - 1);
-    return rows_to_text(term, start, end, text, len);
+    return rows_to_text(term, start, end, 0, term->cols, text, len);
+}
+
+bool
+term_command_output_to_text(const struct terminal *term, char **text, size_t *len)
+{
+    int start_row = -1;
+    int end_row = -1;
+    int start_col = -1;
+    int end_col = -1;
+
+    const struct grid *grid = term->grid;
+    const int sb_end = grid_row_absolute(grid, term->rows - 1);
+    int r = (sb_end - 1 + grid->num_rows) & (grid->num_rows - 1);
+
+    while (start_row < 0 && r != sb_end) {
+        const struct row *row = grid->rows[r];
+        if (row == NULL)
+            break;
+
+        if (row->shell_integration.cmd_end >= 0) {
+            end_row = r;
+            end_col = row->shell_integration.cmd_end;
+        }
+
+        if (end_row >= 0 && row->shell_integration.cmd_start >= 0) {
+            start_row = r;
+            start_col = row->shell_integration.cmd_start;
+        }
+
+        r = (r - 1 + grid->num_rows) & (grid->num_rows - 1);
+    }
+
+    if (start_row < 0)
+        return false;
+
+    bool ret = rows_to_text(term, start_row, end_row, start_col, end_col, text, len);
+    if (!ret)
+        return false;
+
+    /*
+     * If the FTCS_COMMAND_FINISHED marker was emitted at the *first*
+     * column, then the *entire* previous line is part of the command
+     * output. *Including* the newline, if any.
+     *
+     * Since rows_to_text() doesn’t extract the column
+     * FTCS_COMMAND_FINISHED was emitted at (that would be wrong -
+     * FTCS_COMMAND_FINISHED is emitted *after* the command output,
+     * not at its last character), the extraction logic will not see
+     * the last newline (this is true for all non-line-wise selection
+     * types), and the extracted text will *not* end with a newline.
+     *
+     * Here we try to compensate for that. Note that if ‘end_col’ is
+     * not 0, then the command output only covers a partial row, and
+     * thus we do *not* want to append a newline.
+     */
+
+    if (end_col > 0) {
+        /* Command output covers partial row - don’t append newline */
+        return true;
+    }
+
+    int next_to_last_row = (end_row - 1 + grid->num_rows) & (grid->num_rows - 1);
+    const struct row *row = grid->rows[next_to_last_row];
+
+    /* Add newline if last row has a hard linebreak */
+    if (row->linebreak) {
+        char *new_text = xrealloc(*text, *len + 1 + 1);
+
+        if (new_text == NULL) {
+            /* Ignore failure - use text as is (without inserting newline) */
+            return true;
+        }
+
+        *text = new_text;
+        (*len)++;
+        (*text)[*len - 1] = '\n';
+        (*text)[*len] = '\0';
+    }
+
+    return true;
 }
 
 bool

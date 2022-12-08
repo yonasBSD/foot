@@ -847,6 +847,8 @@ bool term_scrollback_to_text(
     const struct terminal *term, char **text, size_t *len);
 bool term_view_to_text(
     const struct terminal *term, char **text, size_t *len);
+bool term_command_output_to_text(
+    const struct terminal *term, char **text, size_t *len);
 
 bool term_ime_is_enabled(const struct terminal *term);
 void term_ime_enable(struct terminal *term);
