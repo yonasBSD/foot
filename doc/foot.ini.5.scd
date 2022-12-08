@@ -844,11 +844,12 @@ e.g. *search-start=none*.
 *fullscreen*
 	Toggles the fullscreen state. Default: _none_.
 
-*pipe-visible*, *pipe-scrollback*, *pipe-selected*
-	Pipes the currently visible text, the entire scrollback, or the
-	currently selected text to an external tool. The syntax for this
-	option is a bit special; the first part of the value is the
-	command to execute enclosed in "[]", followed by the binding(s).
+*pipe-visible*, *pipe-scrollback*, *pipe-selected*, *pipe-command-output*
+	Pipes the currently visible text, the entire scrollback, the
+	currently selected text, or the last command's output to an
+	external tool. The syntax for this option is a bit special; the
+	first part of the value is the command to execute enclosed in
+	"[]", followed by the binding(s).
 	
 	You can configure multiple pipes as long as the command strings
 	are different and the key bindings are unique.
@@ -856,10 +857,17 @@ e.g. *search-start=none*.
 	Note that the command is *not* automatically run inside a shell;
 	use *sh -c "command line"* if you need that.
 	
-	Example:
-		*pipe-visible=[sh -c "xurls | uniq | tac | fuzzel | xargs -r
+	Example #1:
+	
+		# Extract currently visible URLs, let user choose one (via
+		fuzzel), then launch firefox with the selected URL++
+*pipe-visible=[sh -c "xurls | uniq | tac | fuzzel | xargs -r
 		firefox"] Control+Print*
 	
+	Example #2:
+		# Write scrollback content to /tmp/foot-scrollback.txt++
+*pipe-scrollback=[sh -c "cat - > /tmp/foot-scrollback.txt"]
+		Control+Shift+Print*
 	Default: _none_
 
 *show-urls-launch*
