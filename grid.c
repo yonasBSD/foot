@@ -427,7 +427,9 @@ grid_resize_without_reflow(
 
         new_row->dirty = old_row->dirty;
         new_row->linebreak = false;
-        new_row->shell_integration = old_row->shell_integration;
+        new_row->shell_integration.prompt_marker = old_row->shell_integration.prompt_marker;
+        new_row->shell_integration.cmd_start = min(old_row->shell_integration.cmd_start, new_cols - 1);
+        new_row->shell_integration.cmd_end = min(old_row->shell_integration.cmd_end, new_cols - 1);
 
         if (new_cols > old_cols) {
             /* Clear "new" columns */
