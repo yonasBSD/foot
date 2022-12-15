@@ -22,6 +22,11 @@ struct pt_or_px {
     float pt;
 };
 
+struct font_size_adjustment {
+    struct pt_or_px pt_or_px;
+    float percent;
+};
+
 enum cursor_style { CURSOR_BLOCK, CURSOR_UNDERLINE, CURSOR_BEAM };
 
 enum conf_size_type {CONF_SIZE_PX, CONF_SIZE_CELLS};
@@ -139,6 +144,7 @@ struct config {
 
     enum {DPI_AWARE_AUTO, DPI_AWARE_YES, DPI_AWARE_NO} dpi_aware;
     struct config_font_list fonts[4];
+    struct font_size_adjustment font_size_adjustment;
 
     /* Custom font metrics (-1 = use real font metrics) */
     struct pt_or_px line_height;

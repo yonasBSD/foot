@@ -80,6 +80,19 @@ empty string to be set, but it must be quoted: *KEY=""*)
 	Default: _monospace:size=8_ (*font*), _not set_ (*font-bold*,
 	*font-italic*, *font-bold-italic*).
 
+*font-size-adjustment*
+	Amount, in _points_, _pixels_ or _percent_, to increment/decrement
+	the font size when zooming in our out.
+	
+	Examples:
+	```
+	font-size-adjustment=0.5   # Adjust by 0.5 points
+	font-size-adjustment=10xp  # Adjust by 10 pixels
+	font-size-adjustment=7.5%  # Adjust by 7.5 percent
+	```
+	
+	Default: _0.5_
+
 *include*
 	Absolute path to configuration file to import.
 	

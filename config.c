@@ -925,6 +925,31 @@ parse_section_main(struct context *ctx)
         return true;
     }
 
+    else if (strcmp(key, "font-size-adjustment") == 0) {
+        const size_t len = strlen(ctx->value);
+        if (len >= 1 && ctx->value[len - 1] == '%') {
+            errno = 0;
+            char *end = NULL;
+
+            float percent = strtof(ctx->value, &end);
+            if (!(errno == 0 && end == ctx->value + len - 1)) {
+                LOG_CONTEXTUAL_ERR(
+                    "invalid percent value (must be in the form 10.5%%)");
+                return false;
+            }
+
+            conf->font_size_adjustment.percent = percent / 100.;
+            conf->font_size_adjustment.pt_or_px.pt = 0;
+            conf->font_size_adjustment.pt_or_px.px = 0;
+            return true;
+        } else {
+            bool ret = value_to_pt_or_px(ctx, &conf->font_size_adjustment.pt_or_px);
+            if (ret)
+                conf->font_size_adjustment.percent = 0.;
+            return ret;
+        }
+    }
+
     else if (strcmp(key, "line-height") == 0)
         return value_to_pt_or_px(ctx, &conf->line_height);
 
@@ -2886,6 +2911,7 @@ config_load(struct config *conf, const char *conf_path,
         },
         .startup_mode = STARTUP_WINDOWED,
         .fonts = {{0}},
+        .font_size_adjustment = {.percent = 0., .pt_or_px = {.pt = 0.5, .px = 0}},
         .line_height = {.pt = 0, .px = -1},
         .letter_spacing = {.pt = 0, .px = 0},
         .horizontal_letter_offset = {.pt = 0, .px = 0},

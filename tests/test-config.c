@@ -467,6 +467,7 @@ test_section_main(void)
     test_boolean(&ctx, &parse_section_main, "locked-title", &conf.locked_title);
     test_boolean(&ctx, &parse_section_main, "notify-focus-inhibit", &conf.notify_focus_inhibit);
 
+    test_pt_or_px(&ctx, &parse_section_main, "font-size-adjustment", &conf.font_size_adjustment.pt_or_px);  /* TODO: test ‘N%’ values too */
     test_pt_or_px(&ctx, &parse_section_main, "line-height", &conf.line_height);
     test_pt_or_px(&ctx, &parse_section_main, "letter-spacing", &conf.letter_spacing);
     test_pt_or_px(&ctx, &parse_section_main, "horizontal-letter-offset", &conf.horizontal_letter_offset);

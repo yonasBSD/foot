@@ -2035,29 +2035,70 @@ term_reset(struct terminal *term, bool hard)
 }
 
 static bool
-term_font_size_adjust(struct terminal *term, double amount)
+term_font_size_adjust_by_points(struct terminal *term, float amount)
 {
     const struct config *conf = term->conf;
-
     const float dpi = term->font_is_sized_by_dpi ? term->font_dpi : 96.;
 
     for (size_t i = 0; i < 4; i++) {
         const struct config_font_list *font_list = &conf->fonts[i];
 
         for (size_t j = 0; j < font_list->count; j++) {
-            float old_pt_size = term->font_sizes[i][j].pt_size;
+            struct config_font *font = &term->font_sizes[i][j];
+            float old_pt_size = font->pt_size;
 
-            /*
-             * To ensure primary and user-configured fallback fonts are
-             * resizes by the same amount, convert pixel sizes to point
-             * sizes, and to the adjustment on point sizes only.
-             */
+            if (font->px_size > 0)
+                old_pt_size = font->px_size * 72. / dpi;
 
-            if (term->font_sizes[i][j].px_size > 0)
-                old_pt_size = term->font_sizes[i][j].px_size * 72. / dpi;
+            font->pt_size = fmaxf(old_pt_size + amount, 0.);
+            font->px_size = -1;
+        }
+    }
 
-            term->font_sizes[i][j].pt_size = fmaxf(old_pt_size + amount, 0.);
-            term->font_sizes[i][j].px_size = -1;
+    return reload_fonts(term);
+}
+
+static bool
+term_font_size_adjust_by_pixels(struct terminal *term, int amount)
+{
+    const struct config *conf = term->conf;
+    const float dpi = term->font_is_sized_by_dpi ? term->font_dpi : 96.;
+
+    for (size_t i = 0; i < 4; i++) {
+        const struct config_font_list *font_list = &conf->fonts[i];
+
+        for (size_t j = 0; j < font_list->count; j++) {
+            struct config_font *font = &term->font_sizes[i][j];
+            int old_px_size = font->px_size;
+
+            if (font->px_size <= 0)
+                old_px_size = font->pt_size * dpi / 72.;
+
+            font->px_size = max(old_px_size + amount, 1);
+        }
+    }
+
+    return reload_fonts(term);
+}
+
+static bool
+term_font_size_adjust_by_percent(struct terminal *term, bool increment, float percent)
+{
+    const struct config *conf = term->conf;
+    const float multiplier = increment
+        ? 1. + percent
+        : 1. / (1. + percent);
+
+    for (size_t i = 0; i < 4; i++) {
+        const struct config_font_list *font_list = &conf->fonts[i];
+
+        for (size_t j = 0; j < font_list->count; j++) {
+            struct config_font *font = &term->font_sizes[i][j];
+
+            if (font->px_size > 0)
+                font->px_size = max(font->px_size * multiplier, 1);
+            else
+                font->pt_size = fmax(font->pt_size * multiplier, 0);
         }
     }
 
@@ -2067,19 +2108,29 @@ term_font_size_adjust(struct terminal *term, double amount)
 bool
 term_font_size_increase(struct terminal *term)
 {
-    if (!term_font_size_adjust(term, 0.5))
-        return false;
+    const struct config *conf = term->conf;
+    const struct font_size_adjustment *inc_dec = &conf->font_size_adjustment;
 
-    return true;
+    if (inc_dec->percent > 0.)
+        return term_font_size_adjust_by_percent(term, true, inc_dec->percent);
+    else if (inc_dec->pt_or_px.px > 0)
+        return term_font_size_adjust_by_pixels(term, inc_dec->pt_or_px.px);
+    else
+        return term_font_size_adjust_by_points(term, inc_dec->pt_or_px.pt);
 }
 
 bool
 term_font_size_decrease(struct terminal *term)
 {
-    if (!term_font_size_adjust(term, -0.5))
-        return false;
+    const struct config *conf = term->conf;
+    const struct font_size_adjustment *inc_dec = &conf->font_size_adjustment;
 
-    return true;
+    if (inc_dec->percent > 0.)
+        return term_font_size_adjust_by_percent(term, false, inc_dec->percent);
+    else if (inc_dec->pt_or_px.px > 0)
+        return term_font_size_adjust_by_pixels(term, -inc_dec->pt_or_px.px);
+    else
+        return term_font_size_adjust_by_points(term, -inc_dec->pt_or_px.pt);
 }
 
 bool

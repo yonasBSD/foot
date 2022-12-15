@@ -52,10 +52,14 @@
 * String values in `foot.ini` may now be quoted. This can be used to
   set a value to the empty string, for example.
 * Environment variables can now be **unset**, by setting
-  `[environment].<variable>=""` (quotes are required) ([#1225][1225])
+  `[environment].<variable>=""` (quotes are required) ([#1225][1225]).
+* `font-size-adjustment=N[px]` option, letting you configure how much
+  to increment/decrement the font size when zooming in or out
+  ([#1188][1188]).
 
 [1136]: https://codeberg.org/dnkl/foot/issues/1136
 [1225]: https://codeberg.org/dnkl/foot/issues/1225
+[1188]: https://codeberg.org/dnkl/foot/issues/1188
 
 
 ### Changed
