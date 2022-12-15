@@ -834,7 +834,7 @@ e.g. *search-start=none*.
 *show-urls-launch*
 	Enter URL mode, where all currently visible URLs are tagged with a
 	jump label with a key sequence that will open the URL (and exit
-	URL mode). Default: _Control+Shift+u_.
+	URL mode). Default: _Control+Shift+o_.
 
 *show-urls-persistent*
 	Similar to *show-urls-launch*, but does not automatically exit URL
@@ -877,7 +877,7 @@ e.g. *search-start=none*.
 	fallback. The preferred way of entering Unicode characters, emojis
 	etc is by using an IME.
 	
-	Default: _none_.
+	Default: _Control+Shift+u_.
 
 # SECTION: search-bindings
 

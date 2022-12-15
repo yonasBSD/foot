@@ -310,7 +310,7 @@ Foot supports URL detection. But, unlike many other terminal
 emulators, where URLs are highlighted when they are hovered and opened
 by clicking on them, foot uses a keyboard driven approach.
 
-Pressing *ctrl*+*shift*+*u* enters _“URL mode”_, where all currently
+Pressing *ctrl*+*shift*+*o* enters _“Open URL mode”_, where all currently
 visible URLs are underlined, and is associated with a
 _“jump-label”_. The jump-label indicates the _key sequence_
 (e.g. *”AF”*) to use to activate the URL.

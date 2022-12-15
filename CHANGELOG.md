@@ -64,6 +64,9 @@
 ### Changed
 
 * Minimum required meson version is now 0.59 ([#1371][1371]).
+* `Control+Shift+u` now bound to `unicode-input` to follow the
+  convention established in GTK and Qt, `show-urls-launch` now bound
+  to `Control+Shift+o` ([#1183][1183])
 * Kitty keyboard protocol: F3 is now encoded as `CSI 13~` instead of
   `CSI R`. The kitty keyboard protocol originally allowed F3 to be
   encoded as `CSI R`, but this was removed from the specification
@@ -92,6 +95,7 @@
   removed.
 
 [1371]: https://codeberg.org/dnkl/foot/pulls/1371
+[1183]: https://codeberg.org/dnkl/foot/issues/1183
 [1360]: https://codeberg.org/dnkl/foot/issues/1360
 [1383]: https://codeberg.org/dnkl/foot/issues/1383
 
