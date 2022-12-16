@@ -433,8 +433,13 @@ main(int argc, char *const *argv)
 
     const char *locale = setlocale(LC_CTYPE, "");
     if (locale == NULL) {
-        LOG_ERR("setlocale() failed");
-        return ret;
+        /*
+         * If the user has configured an invalid locale, or a name of a locale
+         * that does not exist on this system, then the above call may return
+         * NULL. We should just continue with the fallback method below.
+         */
+        LOG_WARN("setlocale() failed");
+        locale = "C";
     }
 
     LOG_INFO("locale: %s", locale);
