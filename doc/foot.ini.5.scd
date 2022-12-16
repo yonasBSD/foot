@@ -1256,7 +1256,7 @@ any of these options.
 	
 	*max* uses the width of the largest codepoint in the cluster.
 	
-	Default: _wcswidth_
+	Default: _double-width_
 
 *font-monospace-warn*
 	Boolean. When enabled, foot will use heuristics to try to verify

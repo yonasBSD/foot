@@ -75,6 +75,7 @@
 * Set `PWD` environment variable in the slave process ([#1179][1179]).
 * DPI is now forced to 96 when found to be unreasonably high.
 * Set default log level to warning ([#1215][1215]).
+* Default `grapheme-width-method` from `wcswidth` to `double-width`.
 
 [1166]: https://codeberg.org/dnkl/foot/issues/1166
 [1179]: https://codeberg.org/dnkl/foot/issues/1179

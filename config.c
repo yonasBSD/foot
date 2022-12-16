@@ -3003,7 +3003,7 @@ config_load(struct config *conf, const char *conf_path,
 #if defined(FOOT_GRAPHEME_CLUSTERING) && FOOT_GRAPHEME_CLUSTERING
             .grapheme_shaping = fcft_caps & FCFT_CAPABILITY_GRAPHEME_SHAPING,
 #endif
-            .grapheme_width_method = GRAPHEME_WIDTH_WCSWIDTH,
+            .grapheme_width_method = GRAPHEME_WIDTH_DOUBLE,
             .delayed_render_lower_ns = 500000,         /* 0.5ms */
             .delayed_render_upper_ns = 16666666 / 2,   /* half a frame period (60Hz) */
             .max_shm_pool_size = 512 * 1024 * 1024,
