@@ -932,7 +932,7 @@ parse_section_main(struct context *ctx)
             char *end = NULL;
 
             float percent = strtof(ctx->value, &end);
-            if (!(errno == 0 && end == ctx->value + len - 1)) {
+            if (!(len > 1 && errno == 0 && end == ctx->value + len - 1)) {
                 LOG_CONTEXTUAL_ERR(
                     "invalid percent value (must be in the form 10.5%%)");
                 return false;
