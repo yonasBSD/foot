@@ -651,7 +651,7 @@ value_to_pt_or_px(struct context *ctx, struct pt_or_px *res)
         char *end = NULL;
 
         long value = strtol(s, &end, 10);
-        if (!(errno == 0 && end == s + len - 2)) {
+        if (!(len > 2 && errno == 0 && end == s + len - 2)) {
             LOG_CONTEXTUAL_ERR("invalid px value (must be in the form 12px)");
             return false;
         }
