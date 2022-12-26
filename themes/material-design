@@ -5,8 +5,6 @@
 [colors]
 foreground=ECEFF1
 background=263238
-selection-foreground=ECEFF1
-selection-background=607D8B
 regular0=546E7A  # black
 regular1=FF5252  # red
 regular2=5CF19E  # green
@@ -23,3 +21,5 @@ bright4=80D8FF   # bright blue
 bright5=FF80AB   # bright magenta
 bright6=A7FDEB   # bright cyan
 bright7=FFFFFF   # bright white
+# selection-foreground=ECEFF1
+# selection-background=607D8B

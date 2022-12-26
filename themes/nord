@@ -12,8 +12,9 @@ color = 2e3440 d8dee9
 [colors]
 foreground = d8dee9
 background = 2e3440
-#selection-foreground = d8dee9
-#selection-background = 4c566a
+
+# selection-foreground = d8dee9
+# selection-background = 4c566a
 
 regular0 = 3b4252
 regular1 = bf616a

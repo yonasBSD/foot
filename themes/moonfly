@@ -8,8 +8,9 @@ color = 080808 9e9e9e
 [colors]
 foreground = b2b2b2
 background = 080808
-selection-foreground = 080808
-selection-background = b2ceee
+
+# selection-foreground = 080808
+# selection-background = b2ceee
 
 regular0 = 323437
 regular1 = ff5454

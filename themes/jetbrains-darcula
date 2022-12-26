@@ -24,5 +24,5 @@ bright4=6d9df1   # bright blue
 bright5=fb82ff   # bright magenta
 bright6=60d3d1   # bright cyan
 bright7=eeeeee   # bright white
-selection-foreground=202020
-selection-background=1a3272
+# selection-foreground=202020
+# selection-background=1a3272
