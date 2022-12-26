@@ -4,7 +4,6 @@
 #
 
 [colors]
-alpha=1.0
 background=000000
 foreground=ffffff
 regular0=000000

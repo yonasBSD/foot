@@ -5,7 +5,6 @@
 color=2c323b eaeaea
 
 [colors]
-alpha=1.0
 background=2c323b
 foreground=eaeaea
 regular0=242a32
@@ -24,9 +23,8 @@ bright4=73ba9f
 bright5=c858e9
 bright6=2bcec2
 bright7=ffffff
- 
-## Enable if prefer Deus colors instead of inverterd fg/bg for
-## highlighting (mouse selection)
+
+# Enable if prefer Deus colors instead of inverterd fg/bg for
+# highlighting (mouse selection)
 # selection-foreground=2c323b
 # selection-background=eaeaea
-

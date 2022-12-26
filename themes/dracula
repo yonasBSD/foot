@@ -4,7 +4,6 @@
 color=282a36 f8f8f2
 
 [colors]
-alpha=1.0
 foreground=f8f8f2
 background=282a36
 regular0=000000  # black

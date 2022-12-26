@@ -3,7 +3,6 @@
 # See: https://protesilaos.com/emacs/modus-themes
 #
 [colors]
-alpha=1.0
 background=ffffff
 foreground=000000
 regular0=000000

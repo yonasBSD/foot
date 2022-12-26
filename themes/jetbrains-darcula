@@ -5,7 +5,6 @@
 color=202020 ffffff
 
 [colors]
-#alpha=0.80
 background=202020
 foreground=adadad
 regular0=000000  # black
