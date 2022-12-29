@@ -327,6 +327,7 @@ struct wl_window {
     tll(struct xdg_activation_token_context *) xdg_tokens;
     bool urgency_token_is_pending;
 #endif
+    bool unmapped;
 
     struct zxdg_toplevel_decoration_v1 *xdg_toplevel_decoration;
 

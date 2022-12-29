@@ -769,6 +769,16 @@ xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
     struct wl_window *win = data;
     struct terminal *term = win->term;
 
+    if (win->unmapped) {
+        /*
+         * https://codeberg.org/dnkl/foot/issues/1249
+         * https://gitlab.freedesktop.org/wlroots/wlroots/-/issues/3487
+         * https://gitlab.freedesktop.org/wlroots/wlroots/-/merge_requests/3719
+         * https://gitlab.freedesktop.org/wayland/wayland-protocols/-/issues/108
+         */
+        return;
+    }
+
     bool wasnt_configured = !win->is_configured;
     bool was_resizing = win->is_resizing;
     bool csd_was_enabled = win->csd_mode == CSD_YES && !win->is_fullscreen;
@@ -1619,6 +1629,7 @@ wayl_win_destroy(struct wl_window *win)
     wayl_roundtrip(win->term->wl);
 
         /* Main window */
+    win->unmapped = true;
     wl_surface_attach(win->surface, NULL, 0, 0);
     wl_surface_commit(win->surface);
     wayl_roundtrip(win->term->wl);

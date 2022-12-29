@@ -123,6 +123,8 @@
   causing a crash (double-free) on exit ([#1259][1259]).
 * Double-width glyphs glitching when surrounded by glyphs overflowing
   into the double-width glyph ([#1256][1256]).
+* Wayland protocol violation when ack:ing a configure event for an
+  unmapped surface ([#1249][1249]).
 
 [1173]: https://codeberg.org/dnkl/foot/issues/1173
 [1190]: https://codeberg.org/dnkl/foot/issues/1190
@@ -131,6 +133,7 @@
 [1218]: https://codeberg.org/dnkl/foot/issues/1218
 [1259]: https://codeberg.org/dnkl/foot/issues/1259
 [1256]: https://codeberg.org/dnkl/foot/issues/1256
+[1249]: https://codeberg.org/dnkl/foot/issues/1249
 
 
 ### Security
