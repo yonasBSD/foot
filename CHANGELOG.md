@@ -56,7 +56,7 @@
 * `font-size-adjustment=N[px]` option, letting you configure how much
   to increment/decrement the font size when zooming in or out
   ([#1188][1188]).
-* Bracketed paste terminfo entries (`BD`, `BE`, `PD` and `PE`, added
+* Bracketed paste terminfo entries (`BD`, `BE`, `PE` and `PS`, added
   to ncurses in 2022-12-24). Vim makes use of these.
 
 [1136]: https://codeberg.org/dnkl/foot/issues/1136
