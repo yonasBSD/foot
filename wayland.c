@@ -1704,7 +1704,8 @@ wayl_reload_xcursor_theme(struct seat *seat, int new_scale)
     const char *xcursor_theme = getenv("XCURSOR_THEME");
 
     LOG_INFO("cursor theme: %s, size: %d, scale: %d",
-             xcursor_theme, xcursor_size, new_scale);
+             xcursor_theme ? xcursor_theme : "(null)",
+             xcursor_size, new_scale);
 
     seat->pointer.theme = wl_cursor_theme_load(
         xcursor_theme, xcursor_size * new_scale, seat->wayl->shm);
