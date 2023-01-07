@@ -576,7 +576,7 @@ can configure the background transparency with the _alpha_ option.
 	options are unconfigured). 24-bit RGB colors will typically fall
 	into this category.
 	
-	Note that applications can change the *regularN* and *brighN*
+	Note that applications can change the *regularN* and *brightN*
 	colors at runtime. However, they have no way of changing the
 	*dimN* colors. If an application has changed the *regularN*
 	colors, foot will still use the corresponding *dimN* color, as
