@@ -57,7 +57,7 @@ _footclient()
         compopt -o dirnames
     elif [[ ${prev} == '--term' ]] ; then
         # check if toe is available
-        which toe > /dev/null || return 1
+        command -v toe > /dev/null || return 1
         COMPREPLY=( $(compgen -W "$(toe -a | awk '$1 ~ /[+]/ {next}; {print $1}')" -- ${cur}) )
     elif [[ ${prev} == '--log-level' ]] ; then
         COMPREPLY=( $(compgen -W "none error warning info" -- ${cur}) )
