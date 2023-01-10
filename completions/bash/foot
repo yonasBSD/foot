@@ -60,21 +60,21 @@ _foot()
     fi
 
     case "$prev" in
-    --config|--print-pid|--server)
+    --config|--print-pid|--server|-[cps])
         compopt -o default ;;
-    --working-directory)
+    --working-directory|-D)
         compopt -o dirnames ;;
-    --term)
+    --term|-t)
         command -v toe > /dev/null || return 1
         COMPREPLY=( $(compgen -W "$(toe -a | awk '$1 ~ /[+]/ {next}; {print $1}')" -- ${cur}) ) ;;
-    --font)
+    --font|-f)
         command -v fc-list > /dev/null || return 1
         COMPREPLY=( $(compgen -W "$(fc-list : family | sed 's/,/\n/g' | uniq | tr -d ' ')" -- ${cur}) ) ;;
-    --log-level)
+    --log-level|-d)
         COMPREPLY=( $(compgen -W "none error warning info" -- ${cur}) ) ;;
-    --log-colorize)
+    --log-colorize|-l)
         COMPREPLY=( $(compgen -W "never always auto" -- ${cur}) ) ;;
-    --app-id|--help|--override|--title|--version|--window-size-chars|--window-size-pixels|--check-config)
+    --app-id|--help|--override|--title|--version|--window-size-chars|--window-size-pixels|--check-config|-[ahoTvWwC])
         # Don't autocomplete for these flags
         : ;;
     *)

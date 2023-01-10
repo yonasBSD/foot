@@ -56,18 +56,18 @@ _footclient()
     fi
 
     case "$prev" in
-    --server-socket)
+    --server-socket|-s)
         compopt -o default ;;
-    --working-directory)
+    --working-directory|-D)
         compopt -o dirnames ;;
-    --term)
+    --term|-t)
         command -v toe > /dev/null || return 1
         COMPREPLY=( $(compgen -W "$(toe -a | awk '$1 ~ /[+]/ {next}; {print $1}')" -- ${cur}) )  ;;
-    --log-level)
+    --log-level|-d)
         COMPREPLY=( $(compgen -W "none error warning info" -- ${cur}) ) ;;
-    --log-colorize)
+    --log-colorize|-l)
         COMPREPLY=( $(compgen -W "never always auto" -- ${cur}) ) ;;
-    --app-id|--help|--override|--title|--version|--window-size-chars|--window-size-pixels)
+    --app-id|--help|--override|--title|--version|--window-size-chars|--window-size-pixels|-[ahoTvWw])
         # Don't autocomplete for these flags
         : ;;
     *)
