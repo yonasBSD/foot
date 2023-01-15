@@ -74,11 +74,6 @@ enum key_binding_type {
     MOUSE_BINDING,
 };
 
-struct config_key_binding_text {
-    char *text;
-    bool master_copy;
-};
-
 struct config_key_binding {
     int action;  /* One of the varios bind_action_* enums from wayland.h */
     struct config_key_modifiers modifiers;
