@@ -58,6 +58,9 @@
   ([#1188][1188]).
 * Bracketed paste terminfo entries (`BD`, `BE`, `PE` and `PS`, added
   to ncurses in 2022-12-24). Vim makes use of these.
+* “Report version” terminfo entries (`XR`/`xr`).
+* “Report DA2” terminfo entries (`RV`/`rv`).
+* `XF` terminfo capability (focus in/out events available).
 
 [1136]: https://codeberg.org/dnkl/foot/issues/1136
 [1225]: https://codeberg.org/dnkl/foot/issues/1225
