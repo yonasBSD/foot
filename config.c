@@ -1477,6 +1477,9 @@ parse_section_csd(struct context *ctx)
 static void
 free_binding_aux(struct binding_aux *aux)
 {
+    if (!aux->master_copy)
+        return;
+
     switch (aux->type) {
     case BINDING_AUX_NONE: break;
     case BINDING_AUX_PIPE: free_argv(&aux->pipe); break;
