@@ -646,17 +646,21 @@ render_cell(struct terminal *term, pixman_image_t *pix,
             }
         }
 
-
         if (single == NULL && grapheme == NULL) {
-            xassert(base != 0);
-            single = fcft_rasterize_char_utf32(font, base, term->font_subpixel);
-            if (single == NULL) {
+            if (unlikely(base >= CELL_SPACER)) {
                 glyph_count = 0;
                 cell_cols = 1;
             } else {
-                glyph_count = 1;
-                glyphs = &single;
+                xassert(base != 0);
+                single = fcft_rasterize_char_utf32(font, base, term->font_subpixel);
+                if (single == NULL) {
+                    glyph_count = 0;
+                    cell_cols = 1;
+                } else {
+                    glyph_count = 1;
+                    glyphs = &single;
                 cell_cols = single->cols;
+                }
             }
         }
     }

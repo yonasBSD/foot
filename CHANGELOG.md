@@ -121,6 +121,8 @@
 * URL underlines sometimes still being visible after exiting URL mode.
 * Text-bindings, and pipe-* bindings, with multiple key mappings
   causing a crash (double-free) on exit ([#1259][1259]).
+* Double-width glyphs glitching when surrounded by glyphs overflowing
+  into the double-width glyph ([#1256][1256]).
 
 [1173]: https://codeberg.org/dnkl/foot/issues/1173
 [1190]: https://codeberg.org/dnkl/foot/issues/1190
@@ -128,6 +130,7 @@
 [1209]: https://codeberg.org/dnkl/foot/issues/1209
 [1218]: https://codeberg.org/dnkl/foot/issues/1218
 [1259]: https://codeberg.org/dnkl/foot/issues/1259
+[1256]: https://codeberg.org/dnkl/foot/issues/1256
 
 
 ### Security
