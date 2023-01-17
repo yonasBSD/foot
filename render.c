@@ -659,7 +659,7 @@ render_cell(struct terminal *term, pixman_image_t *pix,
                 } else {
                     glyph_count = 1;
                     glyphs = &single;
-                cell_cols = single->cols;
+                    cell_cols = single->cols;
                 }
             }
         }
