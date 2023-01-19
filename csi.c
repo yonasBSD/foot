@@ -276,21 +276,6 @@ decset_decrst(struct terminal *term, unsigned param, bool enable)
             enable ? CURSOR_KEYS_APPLICATION : CURSOR_KEYS_NORMAL;
         break;
 
-    case 3:
-        /* DECCOLM */
-        if (enable)
-            LOG_WARN("unimplemented: 132 column mode (DECCOLM)");
-
-        term_erase(term, 0, 0, term->rows - 1, term->cols - 1);
-        term_cursor_home(term);
-        break;
-
-    case 4:
-        /* DECSCLM - Smooth scroll */
-        if (enable)
-            LOG_WARN("unimplemented: Smooth (Slow) Scroll (DECSCLM)");
-        break;
-
     case 5:
         /* DECSCNM */
         term->reverse = enable;
@@ -558,8 +543,6 @@ decrqm(const struct terminal *term, unsigned param)
 {
     switch (param) {
     case 1: return decrpm(term->cursor_keys_mode == CURSOR_KEYS_APPLICATION);
-    case 3: return DECRPM_PERMANENTLY_RESET;
-    case 4: return DECRPM_PERMANENTLY_RESET;
     case 5: return decrpm(term->reverse);
     case 6: return decrpm(term->origin);
     case 7: return decrpm(term->auto_margin);
@@ -601,8 +584,6 @@ xtsave(struct terminal *term, unsigned param)
 {
     switch (param) {
     case 1: term->xtsave.application_cursor_keys = term->cursor_keys_mode == CURSOR_KEYS_APPLICATION; break;
-    case 3: break;
-    case 4: break;
     case 5: term->xtsave.reverse = term->reverse; break;
     case 6: term->xtsave.origin = term->origin; break;
     case 7: term->xtsave.auto_margin = term->auto_margin; break;
@@ -644,8 +625,6 @@ xtrestore(struct terminal *term, unsigned param)
     bool enable;
     switch (param) {
     case 1: enable = term->xtsave.application_cursor_keys; break;
-    case 3: return;
-    case 4: return;
     case 5: enable = term->xtsave.reverse; break;
     case 6: enable = term->xtsave.origin; break;
     case 7: enable = term->xtsave.auto_margin; break;

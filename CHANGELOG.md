@@ -139,6 +139,7 @@
 * Crash when application output scrolls very fast, e.g. `yes`
   ([#1305][1305]).
 * Crash when application scrolls **many** lines (> ~2³¹).
+* DECCOLM erasing the screen ([#1265][1265]).
 
 [1173]: https://codeberg.org/dnkl/foot/issues/1173
 [1190]: https://codeberg.org/dnkl/foot/issues/1190
@@ -151,6 +152,7 @@
 [1280]: https://codeberg.org/dnkl/foot/issues/1280
 [1288]: https://codeberg.org/dnkl/foot/issues/1288
 [1305]: https://codeberg.org/dnkl/foot/issues/1305
+[1265]: https://codeberg.org/dnkl/foot/issues/1265
 
 
 ### Security
