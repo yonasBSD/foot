@@ -66,7 +66,7 @@ _foot()
         compopt -o dirnames ;;
     --term|-t)
         command -v toe > /dev/null || return 1
-        COMPREPLY=( $(compgen -W "$(toe -a | awk '$1 ~ /[+]/ {next}; {print $1}')" -- ${cur}) ) ;;
+        COMPREPLY=( $(compgen -W "$(toe -a | awk '$1 !~ /[+]/ {print $1}')" -- ${cur}) ) ;;
     --font|-f)
         command -v fc-list > /dev/null || return 1
         COMPREPLY=( $(compgen -W "$(fc-list : family | sed 's/,/\n/g' | uniq | tr -d ' ')" -- ${cur}) ) ;;
