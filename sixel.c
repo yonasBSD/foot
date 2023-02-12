@@ -154,7 +154,7 @@ verify_list_order(const struct terminal *term)
     int prev_col_count = 0;
 
     /* To aid debugging */
-    size_t idx = 0;
+    size_t UNUSED idx = 0;
 
     tll_foreach(term->grid->sixel_images, it) {
         int row = grid_row_abs_to_sb(
