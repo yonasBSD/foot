@@ -53,9 +53,16 @@
 * Starlight theme (the default theme) updated to [V4][starlight-v4]
 * Background transparency (alpha) is now disabled in fullscreened
   windows ([#1416][1416]).
+* Foot server systemd units now use the standard
+  graphical-session.target ([#1281][1281]).
+* If `$XDG_RUNTIME_DIR/foot-$WAYLAND_DISPLAY.sock` does not exist,
+  `footclient` now tries `$XDG_RUNTIME_DIR/foot.sock`, then
+  `/tmp/foot.sock`, even if `$WAYLAND_DISPLAY` and/or
+  `$XDG_RUNTIME_DIR` are defined ([#1281][1281]).
 
 [starlight-v4]: https://github.com/CosmicToast/starlight/blob/v4/CHANGELOG.md#v4
 [1416]: https://codeberg.org/dnkl/foot/issues/1416
+[1281]: https://codeberg.org/dnkl/foot/pulls/1281
 
 
 ### Deprecated
