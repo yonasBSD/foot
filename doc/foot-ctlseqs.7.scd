@@ -504,7 +504,7 @@ manipulation sequences. The generic format is:
 |  \\E[ = _Ps_ c
 :  DA3
 :  VT510
-:  send tertiary device attributes. Foot responds with "FOOT", in
+:  Send tertiary device attributes. Foot responds with "FOOT", in
    hexadecimal.
 |  \\E[ _Pm_ d
 :  VPA
