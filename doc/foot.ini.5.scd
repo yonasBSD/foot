@@ -365,7 +365,7 @@ Note: do not set *TERM* here; use the *term* option in the main
 *urgent*
 	When set to _yes_, foot will signal urgency to the compositor
 	through the XDG activation protocol whenever *BEL* is received,
-	and the window does NOT have keyboard foccus.
+	and the window does NOT have keyboard focus.
 	
 	If the compositor does not implement this protocol, the margins
 	will be painted in red instead.
