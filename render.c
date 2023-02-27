@@ -424,7 +424,7 @@ cursor_colors_for_cell(const struct terminal *term, const struct cell *cell,
             /* We *know* this only happens when bg is the default bg
              * color */
             *text_color = color_hex_to_pixman(
-                term->reverse ? term->colors.fg : term->colors.bg);
+                term->reverse ^ is_selected ? term->colors.fg : term->colors.bg);
         } else
             *text_color = *bg;
     }
