@@ -126,6 +126,8 @@
 * Wayland protocol violation when ack:ing a configure event for an
   unmapped surface ([#1249][1249]).
 * `xdg\_toplevel::set_min_size()` not being called.
+* Key bindings with consumed modifiers masking other key bindings
+  ([#1280][1280]).
 
 [1173]: https://codeberg.org/dnkl/foot/issues/1173
 [1190]: https://codeberg.org/dnkl/foot/issues/1190
@@ -135,6 +137,7 @@
 [1259]: https://codeberg.org/dnkl/foot/issues/1259
 [1256]: https://codeberg.org/dnkl/foot/issues/1256
 [1249]: https://codeberg.org/dnkl/foot/issues/1249
+[1280]: https://codeberg.org/dnkl/foot/issues/1280
 
 
 ### Security

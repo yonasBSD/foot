@@ -350,6 +350,60 @@ maybe_repair_key_combo(const struct seat *seat,
     return sym;
 }
 
+static int
+key_cmp(struct key_binding a, struct key_binding b)
+{
+    xassert(a.type == b.type);
+
+    /*
+     * Sort bindings such that bindings with the same symbol are
+     * sorted with the binding having the most modifiers comes first.
+     *
+     * This fixes an issue where the “wrong” key binding are triggered
+     * when used with “consumed” modifiers.
+     *
+     * For example: if Control+BackSpace is bound before
+     * Control+Shift+BackSpace, then the latter binding is never
+     * triggered.
+     *
+     * Why? Because Shift is a consumed modifier. This means
+     * Control+BackSpace is “the same” as Control+Shift+BackSpace.
+     *
+     * By sorting bindings with more modifiers first, we work around
+     * the problem. But note that it is *just* a workaround, and I’m
+     * not confident there aren’t cases where it doesn’t work.
+     *
+     * See https://codeberg.org/dnkl/foot/issues/1280
+     */
+
+    const int a_mod_count = __builtin_popcount(a.mods);
+    const int b_mod_count = __builtin_popcount(b.mods);
+
+    switch (a.type) {
+    case KEY_BINDING:
+        if (a.k.sym != b.k.sym)
+            return b.k.sym - a.k.sym;
+        return b_mod_count - a_mod_count;
+
+    case MOUSE_BINDING: {
+        if (a.m.button != b.m.button)
+            return b.m.button - a.m.button;
+        if (a_mod_count != b_mod_count)
+            return b_mod_count - a_mod_count;
+        return b.m.count - a.m.count;
+    }
+    }
+
+    BUG("invalid key binding type");
+    return 0;
+}
+
+static void NOINLINE
+sort_binding_list(key_binding_list_t *list)
+{
+    tll_sort(*list, key_cmp);
+}
+
 static void NOINLINE
 convert_key_binding(struct key_set *set,
                     const struct config_key_binding *conf_binding,
@@ -371,6 +425,7 @@ convert_key_binding(struct key_set *set,
         },
     };
     tll_push_back(*bindings, binding);
+    sort_binding_list(bindings);
 }
 
 static void
@@ -421,6 +476,7 @@ convert_mouse_binding(struct key_set *set,
         },
     };
     tll_push_back(set->public.mouse, binding);
+    sort_binding_list(&set->public.mouse);
 }
 
 static void
