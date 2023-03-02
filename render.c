@@ -3885,9 +3885,9 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
     const int min_cols = 2;
     const int min_rows = 1;
 
-    /* Minimum window size */
-    const int min_width = min_cols * term->cell_width;
-    const int min_height = min_rows * term->cell_height;
+    /* Minimum window size (must be divisible by the scaling factor)*/
+    const int min_width = (min_cols * term->cell_width + scale - 1) / scale * scale;
+    const int min_height = (min_rows * term->cell_height + scale - 1) / scale * scale;
 
     width = max(width, min_width);
     height = max(height, min_height);
@@ -4132,12 +4132,6 @@ damage_view:
         term->stashed_height = term->height;
     }
 
-#if 0
-    /* TODO: doesn't include CSD title bar */
-    xdg_toplevel_set_min_size(
-        term->window->xdg_toplevel, min_width / scale, min_height / scale);
-#endif
-
     {
         const bool title_shown = wayl_win_csd_titlebar_visible(term->window);
         const bool border_shown = wayl_win_csd_borders_visible(term->window);
@@ -4146,6 +4140,11 @@ damage_view:
             title_shown ? term->conf->csd.title_height : 0;
         const int border_width =
             border_shown ? term->conf->csd.border_width_visible : 0;
+
+        xdg_toplevel_set_min_size(
+            term->window->xdg_toplevel,
+            min_width / scale + 2 * border_width,
+            min_height / scale + title_height + 2 * border_width);
 
         xdg_surface_set_window_geometry(
             term->window->xdg_surface,

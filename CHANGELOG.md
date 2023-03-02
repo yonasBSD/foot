@@ -125,6 +125,7 @@
   into the double-width glyph ([#1256][1256]).
 * Wayland protocol violation when ack:ing a configure event for an
   unmapped surface ([#1249][1249]).
+* `xdg\_toplevel::set_min_size()` not being called.
 
 [1173]: https://codeberg.org/dnkl/foot/issues/1173
 [1190]: https://codeberg.org/dnkl/foot/issues/1190
