@@ -3390,19 +3390,47 @@ config_font_parse(const char *pattern, struct config_font *font)
     if (pat == NULL)
         return false;
 
+    /*
+     * First look for user specified {pixel}size option
+     * e.g. “font-name:size=12”
+     */
+
     double pt_size = -1.0;
-    FcPatternGetDouble(pat, FC_SIZE, 0, &pt_size);
-    FcPatternRemove(pat, FC_SIZE, 0);
+    FcResult have_pt_size = FcPatternGetDouble(pat, FC_SIZE, 0, &pt_size);
 
     int px_size = -1;
-    FcPatternGetInteger(pat, FC_PIXEL_SIZE, 0, &px_size);
-    FcPatternRemove(pat, FC_PIXEL_SIZE, 0);
+    FcResult have_px_size = FcPatternGetInteger(pat, FC_PIXEL_SIZE, 0, &px_size);
 
-    if (pt_size == -1. && px_size == -1)
-        pt_size = 8.0;
+    if (have_pt_size != FcResultMatch && have_px_size != FcResultMatch) {
+        /*
+         * Apply fontconfig config. Can’t do that until we’ve first
+         * checked for a user provided size, since we may end up with
+         * both “size” and “pixelsize” being set, and we don’t know
+         * which one takes priority.
+         */
+        FcPattern *pat_copy = FcPatternDuplicate(pat);
+        if (pat_copy == NULL ||
+            !FcConfigSubstitute(NULL, pat_copy, FcMatchPattern))
+        {
+            LOG_WARN("%s: failed to do config substitution", pattern);
+        } else {
+            have_pt_size = FcPatternGetDouble(pat_copy, FC_SIZE, 0, &pt_size);
+            have_px_size = FcPatternGetInteger(pat_copy, FC_PIXEL_SIZE, 0, &px_size);
+        }
+
+        FcPatternDestroy(pat_copy);
+
+        if (have_pt_size != FcResultMatch && have_px_size != FcResultMatch)
+            pt_size = 8.0;
+    }
+
+    FcPatternRemove(pat, FC_SIZE, 0);
+    FcPatternRemove(pat, FC_PIXEL_SIZE, 0);
 
     char *stripped_pattern = (char *)FcNameUnparse(pat);
     FcPatternDestroy(pat);
+
+    LOG_DBG("%s: pt-size=%.2f, px-size=%d", stripped_pattern, pt_size, px_size);
 
     *font = (struct config_font){
         .pattern = stripped_pattern,

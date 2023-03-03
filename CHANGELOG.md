@@ -81,10 +81,14 @@
 * DPI is now forced to 96 when found to be unreasonably high.
 * Set default log level to warning ([#1215][1215]).
 * Default `grapheme-width-method` from `wcswidth` to `double-width`.
+* When determining initial font size, do FontConfig config
+  substitution if the user-provided font pattern has no {pixel}size
+  option ([#1287][1287]).
 
 [1166]: https://codeberg.org/dnkl/foot/issues/1166
 [1179]: https://codeberg.org/dnkl/foot/issues/1179
 [1215]: https://codeberg.org/dnkl/foot/pulls/1215
+[1287]: https://codeberg.org/dnkl/foot/issues/1287
 
 
 ### Deprecated
