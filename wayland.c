@@ -1121,6 +1121,27 @@ handle_global(void *data, struct wl_registry *registry,
     }
 #endif
 
+#if defined(HAVE_FRACTIONAL_SCALE)
+    else if (strcmp(interface, wp_viewporter_interface.name) == 0) {
+        const uint32_t required = 1;
+        if (!verify_iface_version(interface, version, required))
+            return;
+
+        wayl->viewporter = wl_registry_bind(
+            wayl->registry, name, &wp_viewporter_interface, required);
+    }
+
+    else if (strcmp(interface, wp_fractional_scale_manager_v1_interface.name) == 0) {
+        const uint32_t required = 1;
+        if (!verify_iface_version(interface, version, required))
+            return;
+
+        wayl->fractional_scale_manager = wl_registry_bind(
+            wayl->registry, name,
+            &wp_fractional_scale_manager_v1_interface, required);
+    }
+#endif
+
 #if defined(FOOT_IME_ENABLED) && FOOT_IME_ENABLED
     else if (strcmp(interface, zwp_text_input_manager_v3_interface.name) == 0) {
         const uint32_t required = 1;
@@ -1435,6 +1456,12 @@ wayl_destroy(struct wayland *wayl)
         zwp_text_input_manager_v3_destroy(wayl->text_input_manager);
 #endif
 
+#if defined(HAVE_FRACTIONAL_SCALE)
+    if (wayl->fractional_scale_manager != NULL)
+        wp_fractional_scale_manager_v1_destroy(wayl->fractional_scale_manager);
+    if (wayl->viewporter != NULL)
+        wp_viewporter_destroy(wayl->viewporter);
+#endif
 #if defined(HAVE_XDG_ACTIVATION)
     if (wayl->xdg_activation != NULL)
         xdg_activation_v1_destroy(wayl->xdg_activation);
@@ -1469,6 +1496,21 @@ wayl_destroy(struct wayland *wayl)
     free(wayl);
 }
 
+#if defined(HAVE_FRACTIONAL_SCALE)
+static void fractional_scale_preferred_scale(
+    void *data, struct wp_fractional_scale_v1 *wp_fractional_scale_v1,
+    uint32_t scale)
+{
+    struct wl_window *win = data;
+    win->scale = (float)scale / 120.;
+    LOG_DBG("fractional scale: %.3f", win->scale);
+}
+
+static const struct wp_fractional_scale_v1_listener fractional_scale_listener = {
+    .preferred_scale = &fractional_scale_preferred_scale,
+};
+#endif
+
 struct wl_window *
 wayl_win_init(struct terminal *term, const char *token)
 {
@@ -1498,6 +1540,19 @@ wayl_win_init(struct terminal *term, const char *token)
     wayl_win_alpha_changed(win);
 
     wl_surface_add_listener(win->surface, &surface_listener, win);
+
+#if defined(HAVE_FRACTIONAL_SCALE)
+    if (wayl->fractional_scale_manager != NULL && wayl->viewporter != NULL) {
+        LOG_ERR("LDKJFLDF");
+        win->viewport = wp_viewporter_get_viewport(wayl->viewporter, win->surface);
+
+        win->fractional_scale =
+            wp_fractional_scale_manager_v1_get_fractional_scale(
+                wayl->fractional_scale_manager, win->surface);
+        wp_fractional_scale_v1_add_listener(
+            win->fractional_scale, &fractional_scale_listener, win);
+    }
+#endif
 
     win->xdg_surface = xdg_wm_base_get_xdg_surface(wayl->shell, win->surface);
     xdg_surface_add_listener(win->xdg_surface, &xdg_surface_listener, win);
@@ -1652,6 +1707,12 @@ wayl_win_destroy(struct wl_window *win)
 
         tll_remove(win->xdg_tokens, it);
     }
+#endif
+#if defined(HAVE_FRACTIONAL_SCALE)
+    if (win->fractional_scale != NULL)
+        wp_fractional_scale_v1_destroy(win->fractional_scale);
+    if (win->viewport != NULL)
+        wp_viewport_destroy(win->viewport);
 #endif
     if (win->frame_callback != NULL)
         wl_callback_destroy(win->frame_callback);

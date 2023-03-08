@@ -20,6 +20,11 @@
  #include <xdg-activation-v1.h>
 #endif
 
+#if defined(HAVE_FRACTIONAL_SCALE)
+ #include <viewporter.h>
+ #include <fractional-scale-v1.h>
+#endif
+
 #include <fcft/fcft.h>
 #include <tllist.h>
 
@@ -327,7 +332,13 @@ struct wl_window {
     tll(struct xdg_activation_token_context *) xdg_tokens;
     bool urgency_token_is_pending;
 #endif
+#if defined(HAVE_FRACTIONAL_SCALE)
+    struct wp_viewport *viewport;
+    struct wp_fractional_scale_v1 *fractional_scale;
+#endif
     bool unmapped;
+
+    float scale;
 
     struct zxdg_toplevel_decoration_v1 *xdg_toplevel_decoration;
 
@@ -412,6 +423,11 @@ struct wayland {
 
 #if defined(FOOT_IME_ENABLED) && FOOT_IME_ENABLED
     struct zwp_text_input_manager_v3 *text_input_manager;
+#endif
+
+#if defined(HAVE_FRACTIONAL_SCALE)
+    struct wp_viewporter *viewporter;
+    struct wp_fractional_scale_manager_v1 *fractional_scale_manager;
 #endif
 
     bool have_argb8888;
