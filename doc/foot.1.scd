@@ -546,6 +546,17 @@ In all other cases, the exit code is that of the client application
 	This variable is set to *truecolor*, to indicate to client
 	applications that 24-bit RGB colors are supported.
 
+*TERM_PROGRAM*
+	Always set to *foot*. This can be used by client applications to
+	check which terminal is in use, but with the caveat that it may
+	have been inherited from a parent process in other terminals that
+	aren't known to set the variable.
+
+*TERM_PROGRAM_VERSION*
+	Set to the foot version string, in the format _major_*.*_minor_*.*_patch_
+	or _major_*.*_minor_*.*_patch_*-*_revision_*-\g*_commit_ for inter-release
+	builds. The same caveat as for *TERM_PROGRAM* applies.
+
 In addition to the variables listed above, custom environment
 variables may be defined in *foot.ini*(5).
 

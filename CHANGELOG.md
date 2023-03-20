@@ -61,6 +61,8 @@
 * “Report version” terminfo entries (`XR`/`xr`).
 * “Report DA2” terminfo entries (`RV`/`rv`).
 * `XF` terminfo capability (focus in/out events available).
+* `$TERM_PROGRAM` and `$TERM_PROGRAM_VERSION` environment variables
+  set in the slave process.
 
 [1136]: https://codeberg.org/dnkl/foot/issues/1136
 [1225]: https://codeberg.org/dnkl/foot/issues/1225
