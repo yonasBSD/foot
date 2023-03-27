@@ -134,6 +134,8 @@
 * `xdg\_toplevel::set_min_size()` not being called.
 * Key bindings with consumed modifiers masking other key bindings
   ([#1280][1280]).
+* Multi-character compose sequences with the kitty keyboard protocol
+  ([#1288][1288]).
 
 [1173]: https://codeberg.org/dnkl/foot/issues/1173
 [1190]: https://codeberg.org/dnkl/foot/issues/1190
@@ -144,6 +146,7 @@
 [1256]: https://codeberg.org/dnkl/foot/issues/1256
 [1249]: https://codeberg.org/dnkl/foot/issues/1249
 [1280]: https://codeberg.org/dnkl/foot/issues/1280
+[1288]: https://codeberg.org/dnkl/foot/issues/1288
 
 
 ### Security

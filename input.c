@@ -898,7 +898,7 @@ struct kbd_ctx {
         const uint8_t *buf;
         size_t count;
     } utf8;
-    uint32_t utf32;
+    uint32_t *utf32;
 
     enum xkb_compose_status compose_status;
     enum wl_keyboard_key_state key_state;
@@ -1121,11 +1121,17 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
         (seat->kbd.mod_num != XKB_MOD_INVALID ? 1 << seat->kbd.mod_num : 0);
 
     const xkb_keysym_t sym = ctx->sym;
-    const uint32_t utf32 = ctx->utf32;
+    const uint32_t *utf32 = ctx->utf32;
     const uint8_t *const utf8 = ctx->utf8.buf;
-
-    const bool is_text = iswprint(utf32) && (effective & ~caps_num) == 0;
     const size_t count = ctx->utf8.count;
+
+    bool is_text = utf32 != NULL && (effective & ~caps_num) == 0;
+    for (size_t i = 0; utf32[i] != U'\0'; i++) {
+        if (!iswprint(utf32[i])) {
+            is_text = false;
+            break;
+        }
+    }
 
     const bool report_associated_text =
         (flags & KITTY_KBD_REPORT_ASSOCIATED) && is_text && !released;
@@ -1245,7 +1251,7 @@ emit_escapes:
             : sym;
 
         if (composed)
-            key = utf32;
+            key = utf32[0];  /* TODO: what if there are multiple codepoints? */
         else {
             key = xkb_keysym_to_utf32(sym_to_use);
             if (key == 0)
@@ -1284,7 +1290,7 @@ emit_escapes:
     } else
         event[0] = '\0';
 
-    char buf[64], *p = buf;
+    char buf[128], *p = buf;
     size_t left = sizeof(buf);
     size_t bytes;
 
@@ -1316,8 +1322,16 @@ emit_escapes:
         }
 
         if (report_associated_text) {
-            bytes = snprintf(p, left, "%s;%u", !emit_mods ? ";" : "", utf32);
+            bytes = snprintf(p, left, "%s;%u", !emit_mods ? ";" : "", utf32[0]);
             p += bytes; left -= bytes;
+
+            /* Additional text codepoints */
+            if (utf32[0] != U'\0') {
+                for (size_t i = 1; utf32[i] != U'\0'; i++) {
+                    bytes = snprintf(p, left, ":%u", utf32[i]);
+                    p += bytes; left -= bytes;
+                }
+            }
         }
 
         bytes = snprintf(p, left, "%c", final);
@@ -1514,19 +1528,20 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
      * and use a malloc:ed buffer when necessary */
     uint8_t buf[32];
     uint8_t *utf8 = count < sizeof(buf) ? buf : xmalloc(count + 1);
-    uint32_t utf32 = (uint32_t)-1;
+    uint32_t *utf32 = NULL;
 
     if (composed) {
         xkb_compose_state_get_utf8(
             seat->kbd.xkb_compose_state, (char *)utf8, count + 1);
 
-        char32_t wc;
-        if (mbrtoc32(&wc, (const char *)utf8, count, &(mbstate_t){0}) == count)
-            utf32 = wc;
+        if (count > 0)
+            utf32 = ambstoc32((const char *)utf8);
     } else {
         xkb_state_key_get_utf8(
             seat->kbd.xkb_state, key, (char *)utf8, count + 1);
-        utf32 = xkb_state_key_get_utf32(seat->kbd.xkb_state, key);
+
+        utf32 = xcalloc(2, sizeof(utf32[0]));
+        utf32[0] = xkb_state_key_get_utf32(seat->kbd.xkb_state, key);
     }
 
     struct kbd_ctx ctx = {
@@ -1562,6 +1577,8 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
         term_reset_view(term);
         selection_cancel(term);
     }
+
+    free(utf32);
 
 maybe_repeat:
     clock_gettime(
