@@ -3976,6 +3976,7 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
             term->interactive_resizing.old_hide_cursor = term->hide_cursor;
             term->interactive_resizing.grid = xmalloc(sizeof(*term->interactive_resizing.grid));
             *term->interactive_resizing.grid = term->normal;
+            term->interactive_resizing.selection_coords = term->selection.coords;
         } else {
             /* We’ll replace the current temporary grid, with a new
              * one (again based on the original grid) */
@@ -4012,6 +4013,9 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
             .sixel_images = tll_init(),
             .kitty_kbd = orig->kitty_kbd,
         };
+
+        term->selection.coords.start.row -= orig->view;
+        term->selection.coords.end.row -= orig->view;
 
         for (size_t i = 0, j = orig->view;
              i < term->interactive_resizing.old_screen_rows;
@@ -4069,6 +4073,7 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
             free(term->interactive_resizing.grid);
 
             term->hide_cursor = term->interactive_resizing.old_hide_cursor;
+            term->selection.coords = term->interactive_resizing.selection_coords;
 
             old_rows = term->interactive_resizing.old_screen_rows;
 
@@ -4076,6 +4081,7 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
             term->interactive_resizing.old_screen_rows = 0;
             term->interactive_resizing.new_rows = 0;
             term->interactive_resizing.old_hide_cursor = false;
+            term->interactive_resizing.selection_coords = (struct range){{-1, -1}, {-1, -1}};
             term_ptmx_resume(term);
         }
 

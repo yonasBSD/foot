@@ -604,6 +604,7 @@ struct terminal {
         int old_cols;         /* term->cols before resize started */
         int old_hide_cursor;  /* term->hide_cursor before resize started */
         int new_rows;         /* New number of scrollback rows */
+        struct range selection_coords;
     } interactive_resizing;
 
     struct {
