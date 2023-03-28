@@ -929,14 +929,19 @@ static void
 grid_render_scroll(struct terminal *term, struct buffer *buf,
                    const struct damage *dmg)
 {
-    int height = (dmg->region.end - dmg->region.start - dmg->lines) * term->cell_height;
-
     LOG_DBG(
         "damage: SCROLL: %d-%d by %d lines",
         dmg->region.start, dmg->region.end, dmg->lines);
 
-    if (height <= 0)
+    const int region_size = dmg->region.end - dmg->region.start;
+
+    if (dmg->lines >= region_size) {
+        /* The entire scroll region will be scrolled out (i.e. replaced) */
         return;
+    }
+
+    const int height = (region_size - dmg->lines) * term->cell_height;
+    xassert(height > 0);
 
 #if TIME_SCROLL_DAMAGE
     struct timespec start_time;
@@ -1037,14 +1042,19 @@ static void
 grid_render_scroll_reverse(struct terminal *term, struct buffer *buf,
                            const struct damage *dmg)
 {
-    int height = (dmg->region.end - dmg->region.start - dmg->lines) * term->cell_height;
-
     LOG_DBG(
         "damage: SCROLL REVERSE: %d-%d by %d lines",
         dmg->region.start, dmg->region.end, dmg->lines);
 
-    if (height <= 0)
+    const int region_size = dmg->region.end - dmg->region.start;
+
+    if (dmg->lines >= region_size) {
+        /* The entire scroll region will be scrolled out (i.e. replaced) */
         return;
+    }
+
+    const int height = (region_size - dmg->lines) * term->cell_height;
+    xassert(height > 0);
 
 #if TIME_SCROLL_DAMAGE
     struct timespec start_time;

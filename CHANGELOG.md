@@ -136,6 +136,8 @@
   ([#1280][1280]).
 * Multi-character compose sequences with the kitty keyboard protocol
   ([#1288][1288]).
+* Crash when application output scrolls very fast, e.g. `yes`
+  ([#1305][1305]).
 
 [1173]: https://codeberg.org/dnkl/foot/issues/1173
 [1190]: https://codeberg.org/dnkl/foot/issues/1190
@@ -147,6 +149,7 @@
 [1249]: https://codeberg.org/dnkl/foot/issues/1249
 [1280]: https://codeberg.org/dnkl/foot/issues/1280
 [1288]: https://codeberg.org/dnkl/foot/issues/1288
+[1305]: https://codeberg.org/dnkl/foot/issues/1305
 
 
 ### Security
