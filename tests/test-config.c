@@ -895,7 +895,7 @@ enum collision_test_mode {
     FAIL_DIFFERENT_ACTION,
     FAIL_DIFFERENT_ARGV,
     FAIL_MOUSE_OVERRIDE,
-    SUCCED_SAME_ACTION_AND_ARGV,
+    SUCCEED_SAME_ACTION_AND_ARGV,
 };
 
 static void
@@ -949,7 +949,7 @@ _test_binding_collisions(struct context *ctx,
         break;
 
     case FAIL_DIFFERENT_ARGV:
-    case SUCCED_SAME_ACTION_AND_ARGV:
+    case SUCCEED_SAME_ACTION_AND_ARGV:
         bindings.arr[0].aux.type = BINDING_AUX_PIPE;
         bindings.arr[0].aux.master_copy = true;
         bindings.arr[0].aux.pipe.args = xcalloc(
@@ -965,13 +965,13 @@ _test_binding_collisions(struct context *ctx,
         bindings.arr[1].aux.pipe.args[0] = xstrdup("/usr/bin/foobar");
         bindings.arr[1].aux.pipe.args[1] = xstrdup("hello");
 
-        if (test_mode == SUCCED_SAME_ACTION_AND_ARGV)
+        if (test_mode == SUCCEED_SAME_ACTION_AND_ARGV)
             bindings.arr[1].aux.pipe.args[2] = xstrdup("world");
         break;
     }
 
     bool expected_result =
-        test_mode == SUCCED_SAME_ACTION_AND_ARGV ? true : false;
+        test_mode == SUCCEED_SAME_ACTION_AND_ARGV ? true : false;
 
     if (resolve_key_binding_collisions(
             ctx->conf, ctx->section, map, &bindings, type) != expected_result)
@@ -1004,7 +1004,7 @@ test_binding_collisions(struct context *ctx,
 {
     _test_binding_collisions(ctx, max_action, map, type, FAIL_DIFFERENT_ACTION);
     _test_binding_collisions(ctx, max_action, map, type, FAIL_DIFFERENT_ARGV);
-    _test_binding_collisions(ctx, max_action, map, type, SUCCED_SAME_ACTION_AND_ARGV);
+    _test_binding_collisions(ctx, max_action, map, type, SUCCEED_SAME_ACTION_AND_ARGV);
 
     if (type == MOUSE_BINDING) {
         _test_binding_collisions(

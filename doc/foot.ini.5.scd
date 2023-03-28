@@ -960,7 +960,7 @@ Be careful; do not use single-letter keys that are also used in
 	original text.
 	
 	But with e.g. OSC-8 URLs (the terminal version of HTML anchors,
-	i.e. "links"), the text on the screen can be something completey
+	i.e. "links"), the text on the screen can be something completely
 	different than the URL.
 	
 	This action toggles between showing and hiding the URL on the jump

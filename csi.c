@@ -1518,7 +1518,7 @@ csi_dispatch(struct terminal *term, uint8_t final)
             break; /* final == 'm' */
 
         case 'n': {
-            int resource = vt_param_get(term, 0, 2);  /* Default is modifyFuncionKeys */
+            int resource = vt_param_get(term, 0, 2);  /* Default is modifyFunctionKeys */
             switch (resource) {
             case 0:  /* modifyKeyboard */
             case 1:  /* modifyCursorKeys */

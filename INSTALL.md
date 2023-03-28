@@ -440,7 +440,7 @@ sed 's/@default_terminfo@/foot/g' foot.info | \
 Where _”output-directory”_ **must** match the value passed to
 `-Dcustom-terminfo-install-location` in the foot build. If
 `-Dcustom-terminfo-install-location` has not been set, `-o
-<output-directoty>` can simply be omitted.
+<output-directory>` can simply be omitted.
 
 Or, if packaging:
 

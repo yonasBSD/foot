@@ -793,7 +793,7 @@ grid_resize_and_reflow(
 
             /*
              * Set end-coordinate for this chunk, by finding the next
-             * point-of-interrest on this row.
+             * point-of-interest on this row.
              *
              * If there are no more tracking points, or URI ranges,
              * the end-coordinate will be at the end of the row,
