@@ -138,6 +138,7 @@
   ([#1288][1288]).
 * Crash when application output scrolls very fast, e.g. `yes`
   ([#1305][1305]).
+* Crash when application scrolls **many** lines (> ~2³¹).
 
 [1173]: https://codeberg.org/dnkl/foot/issues/1173
 [1190]: https://codeberg.org/dnkl/foot/issues/1190

@@ -2252,15 +2252,20 @@ void
 term_damage_scroll(struct terminal *term, enum damage_type damage_type,
                    struct scroll_region region, int lines)
 {
-    if (tll_length(term->grid->scroll_damage) > 0) {
+    if (likely(tll_length(term->grid->scroll_damage) > 0)) {
         struct damage *dmg = &tll_back(term->grid->scroll_damage);
 
-        if (dmg->type == damage_type &&
-            dmg->region.start == region.start &&
-            dmg->region.end == region.end)
+        if (likely(
+                dmg->type == damage_type &&
+                dmg->region.start == region.start &&
+                dmg->region.end == region.end))
         {
-            dmg->lines += lines;
-            return;
+            /* Make sure we don’t overflow... */
+            int new_line_count = (int)dmg->lines + lines;
+            if (likely(new_line_count <= UINT16_MAX)) {
+                dmg->lines = new_line_count;
+                return;
+            }
         }
     }
     struct damage dmg = {
