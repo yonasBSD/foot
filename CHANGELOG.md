@@ -123,7 +123,7 @@
   with a user-set line-height ([#1218][1218]).
 * Scaling factor not being correctly applied when converting pt-or-px
   config values (e.g. letter offsets, line height etc).
-* Selection being stuck visually when `IL` and `DL`.`
+* Selection being stuck visually when `IL` and `DL`.
 * URL underlines sometimes still being visible after exiting URL mode.
 * Text-bindings, and pipe-* bindings, with multiple key mappings
   causing a crash (double-free) on exit ([#1259][1259]).
