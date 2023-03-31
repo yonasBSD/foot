@@ -131,7 +131,7 @@
   into the double-width glyph ([#1256][1256]).
 * Wayland protocol violation when ack:ing a configure event for an
   unmapped surface ([#1249][1249]).
-* `xdg\_toplevel::set_min_size()` not being called.
+* `xdg_toplevel::set_min_size()` not being called.
 * Key bindings with consumed modifiers masking other key bindings
   ([#1280][1280]).
 * Multi-character compose sequences with the kitty keyboard protocol
