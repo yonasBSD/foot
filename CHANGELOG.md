@@ -86,6 +86,7 @@
 * When determining initial font size, do FontConfig config
   substitution if the user-provided font pattern has no {pixel}size
   option ([#1287][1287]).
+* DECRST of DECCOLM and DECSCLM removed from terminfo.
 
 [1166]: https://codeberg.org/dnkl/foot/issues/1166
 [1179]: https://codeberg.org/dnkl/foot/issues/1179
