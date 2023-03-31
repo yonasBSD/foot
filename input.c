@@ -1125,7 +1125,7 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
     const uint8_t *const utf8 = ctx->utf8.buf;
     const size_t count = ctx->utf8.count;
 
-    bool is_text = utf32 != NULL && (effective & ~caps_num) == 0;
+    bool is_text = count > 0 && utf32 != NULL && (effective & ~caps_num) == 0;
     for (size_t i = 0; utf32[i] != U'\0'; i++) {
         if (!iswprint(utf32[i])) {
             is_text = false;
