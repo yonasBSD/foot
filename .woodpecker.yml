@@ -33,7 +33,7 @@ pipeline:
     image: alpine:latest
     commands:
       - apk update
-      - apk add musl-dev linux-headers meson ninja gcc scdoc ncurses
+      - apk add musl-dev linux-headers meson ninja gcc clang scdoc ncurses
       - apk add libxkbcommon-dev pixman-dev freetype-dev fontconfig-dev harfbuzz-dev utf8proc-dev
       - apk add wayland-dev wayland-protocols
       - apk add git
@@ -50,10 +50,20 @@ pipeline:
       - ./footclient --version
       - cd ../..
 
-      # Release
+      # Release (gcc)
       - mkdir -p bld/release-x64
       - cd bld/release-x64
       - meson --buildtype=release -Db_pgo=generate -Dgrapheme-clustering=enabled -Dfcft:grapheme-shaping=enabled -Dfcft:run-shaping=enabled  -Dfcft:test-text-shaping=true ../..
+      - ninja -v -k0
+      - ninja -v test
+      - ./foot --version
+      - ./footclient --version
+      - cd ../..
+
+      # Release (clang)
+      - mkdir -p bld/release-x64-clang
+      - cd bld/release-x64-clang
+      - CC=clang meson --buildtype=release -Dgrapheme-clustering=enabled -Dfcft:grapheme-shaping=enabled -Dfcft:run-shaping=enabled  -Dfcft:test-text-shaping=true ../..
       - ninja -v -k0
       - ninja -v test
       - ./foot --version
@@ -80,7 +90,7 @@ pipeline:
     image: i386/alpine:latest
     commands:
       - apk update
-      - apk add musl-dev linux-headers meson ninja gcc scdoc ncurses
+      - apk add musl-dev linux-headers meson ninja gcc clang scdoc ncurses
       - apk add libxkbcommon-dev pixman-dev freetype-dev fontconfig-dev harfbuzz-dev utf8proc-dev
       - apk add wayland-dev wayland-protocols
       - apk add git
@@ -97,10 +107,20 @@ pipeline:
       - ./footclient --version
       - cd ../..
 
-      # Release
+      # Release (gcc)
       - mkdir -p bld/release-x86
       - cd bld/release-x86
       - meson --buildtype=release -Db_pgo=generate -Dgrapheme-clustering=enabled -Dfcft:grapheme-shaping=enabled -Dfcft:run-shaping=enabled -Dfcft:test-text-shaping=true ../..
+      - ninja -v -k0
+      - ninja -v test
+      - ./foot --version
+      - ./footclient --version
+      - cd ../..
+
+      # Release (clang)
+      - mkdir -p bld/release-x86-clang
+      - cd bld/release-x86-clang
+      - CC=clang meson --buildtype=release -Dgrapheme-clustering=enabled -Dfcft:grapheme-shaping=enabled -Dfcft:run-shaping=enabled -Dfcft:test-text-shaping=true ../..
       - ninja -v -k0
       - ninja -v test
       - ./foot --version
