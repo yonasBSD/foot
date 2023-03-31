@@ -1304,6 +1304,7 @@ test_section_tweak(void)
 int
 main(int argc, const char *const *argv)
 {
+    FcInit();
     log_init(LOG_COLORIZE_AUTO, false, 0, LOG_CLASS_ERROR);
     test_section_main();
     test_section_bell();
@@ -1325,5 +1326,6 @@ main(int argc, const char *const *argv)
     test_section_environment();
     test_section_tweak();
     log_deinit();
+    FcFini();
     return 0;
 }
