@@ -1,6 +1,6 @@
 # Changelog
 
-* [Unreleased](#unreleased)
+* [1.14.0](#1-14-0)
 * [1.13.1](#1-13-1)
 * [1.13.0](#1-13-0)
 * [1.12.1](#1-12-1)
@@ -41,7 +41,7 @@
 * [1.2.0](#1-2-0)
 
 
-## Unreleased
+## 1.14.0
 
 ### Added
 
@@ -94,8 +94,6 @@
 [1287]: https://codeberg.org/dnkl/foot/issues/1287
 
 
-### Deprecated
-### Removed
 ### Fixed
 
 * Crash in `foot --server` on key press, after another `footclient`
@@ -156,10 +154,25 @@
 [1265]: https://codeberg.org/dnkl/foot/issues/1265
 
 
-### Security
 ### Contributors
 
+* Alexey Sakovets
+* Andrea Pappacoda
+* Antoine Beaupré
+* argosatcore
 * Craig Barnes
+* EuCaue
+* Grigory Kirillov
+* Harri Nieminen
+* Hugo Osvaldo Barrera
+* jaroeichler
+* Joakim Nohlgård
+* Nick Hastings
+* Soren A D
+* Torsten Trautwein
+* Vladimír Magyar
+* woojiq
+* Yorick Peterse
 
 
 ## 1.13.1
