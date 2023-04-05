@@ -48,6 +48,12 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* Incorrect icon in dock and window switcher on Gnome ([#1317][1317])
+
+[1317]: https://codeberg.org/dnkl/foot/issues/1317
+
+
 ### Security
 ### Contributors
 
