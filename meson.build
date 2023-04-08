@@ -110,7 +110,7 @@ if utf8proc.found()
   add_project_arguments('-DFOOT_GRAPHEME_CLUSTERING=1', language: 'c')
 endif
 
-tllist = dependency('tllist', version: '>=1.0.4', fallback: 'tllist')
+tllist = dependency('tllist', version: '>=1.1.0', fallback: 'tllist')
 fcft = dependency('fcft', version: ['>=3.0.1', '<4.0.0'], fallback: 'fcft')
 
 wayland_protocols_datadir = wayland_protocols.get_variable('pkgdatadir')
