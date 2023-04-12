@@ -4128,8 +4128,7 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
 
     if (term->scroll_region.start >= term->rows)
         term->scroll_region.start = 0;
-
-    if (term->scroll_region.end >= old_rows)
+    if (term->scroll_region.end > term->rows)
         term->scroll_region.end = term->rows;
 
     term->render.last_cursor.row = NULL;
