@@ -15,6 +15,7 @@
 #include "input.h"
 #include "key-binding.h"
 #include "misc.h"
+#include "quirks.h"
 #include "render.h"
 #include "selection.h"
 #include "shm.h"
@@ -117,11 +118,6 @@ search_cancel_keep_selection(struct terminal *term)
 
     term_xcursor_update(term);
     render_refresh(term);
-
-    /* Work around Sway bug - unmapping a sub-surface does not damage
-     * the underlying surface */
-    term_damage_margins(term);
-    term_damage_view(term);
 }
 
 void

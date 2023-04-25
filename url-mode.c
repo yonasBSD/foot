@@ -14,6 +14,7 @@
 #include "char32.h"
 #include "grid.h"
 #include "key-binding.h"
+#include "quirks.h"
 #include "render.h"
 #include "selection.h"
 #include "spawn.h"
@@ -859,6 +860,10 @@ urls_reset(struct terminal *term)
         tll_foreach(term->window->urls, it) {
             wayl_win_subsurface_destroy(&it->item.surf);
             tll_remove(term->window->urls, it);
+
+            /* Work around Sway bug - unmapping a sub-surface does not
+             * damage the underlying surface */
+            quirk_sway_subsurface_unmap(term);
         }
     }
 

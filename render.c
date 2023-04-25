@@ -1527,6 +1527,10 @@ render_overlay(struct terminal *term)
             wl_surface_commit(overlay->surf);
             term->render.last_overlay_style = OVERLAY_NONE;
             term->render.last_overlay_buf = NULL;
+
+            /* Work around Sway bug - unmapping a sub-surface does not
+             * damage the underlying surface */
+            quirk_sway_subsurface_unmap(term);
         }
         return;
     }
@@ -2374,8 +2378,13 @@ render_scrollback_position(struct terminal *term)
     struct wl_window *win = term->window;
 
     if (term->grid->view == term->grid->offset) {
-        if (win->scrollback_indicator.surf != NULL)
+        if (win->scrollback_indicator.surf != NULL) {
             wayl_win_subsurface_destroy(&win->scrollback_indicator);
+
+            /* Work around Sway bug - unmapping a sub-surface does not damage
+             * the underlying surface */
+            quirk_sway_subsurface_unmap(term);
+        }
         return;
     }
 

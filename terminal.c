@@ -406,11 +406,6 @@ fdm_flash(struct fdm *fdm, int fd, int events, void *data)
 
     term->flash.active = false;
     render_refresh(term);
-
-    /* Work around Sway bug - unmapping a sub-surface does not damage
-     * the underlying surface */
-    term_damage_margins(term);
-    term_damage_view(term);
     return true;
 }
 
