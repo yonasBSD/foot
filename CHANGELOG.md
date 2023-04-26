@@ -49,6 +49,13 @@
 
 
 ### Changed
+
+* Kitty keyboard protocol: F3 is now encoded as `CSI 13~` instead of
+  `CSI R`. The kitty keyboard protocol originally allowed F3 to be
+  encoded as `CSI R`, but this was removed from the specification
+  since `CSI R` conflicts with the _”Cursor Position Report”_.
+
+
 ### Deprecated
 ### Removed
 ### Fixed
