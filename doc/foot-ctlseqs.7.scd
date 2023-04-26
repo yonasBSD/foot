@@ -565,6 +565,10 @@ manipulation sequences. The generic format is:
 :  xterm
 :  Set level of the _modifyOtherKeys_ property to _Pv_. Note that foot
    only supports level 1 and 2, where level 1 is the default setting.
+|  \\E[ ? _Pp_ m
+:  XTQMODKEYS
+:  xterm
+:  Query key modifier options
 |  \\E[ > 4 n
 :  <unnamed>
 :  xterm

@@ -1398,6 +1398,39 @@ csi_dispatch(struct terminal *term, uint8_t final)
             break;
         }
 
+        case 'm': {
+            int resource = vt_param_get(term, 0, 0);
+            int value = -1;
+
+            switch (resource) {
+            case 0:  /* modifyKeyboard */
+                value = 0;
+                break;
+
+            case 1:  /* modifyCursorKeys */
+            case 2:  /* modifyFunctionKeys */
+                value = 1;
+                break;
+
+            case 4:  /* modifyOtherKeys */
+                value = term->modify_other_keys_2 ? 2 : 1;
+                break;
+
+            default:
+                LOG_WARN("XTQMODKEYS: invalid resource '%d' in '%s'",
+                         resource, csi_as_string(term, final, -1));
+                break;
+            }
+
+            if (value >= 0) {
+                char reply[16] = {0};
+                int chars = snprintf(reply, sizeof(reply),
+                                     "\033[>%d;%dm", resource, value);
+                term_to_slave(term, reply, chars);
+            }
+            break;
+        }
+
         case 'u': {
             enum kitty_kbd_flags flags =
                 term->grid->kitty_kbd.flags[term->grid->kitty_kbd.idx];
@@ -1489,7 +1522,7 @@ csi_dispatch(struct terminal *term, uint8_t final)
                     break;
 
                 default:
-                    LOG_WARN("invalid resource %d in %s",
+                    LOG_WARN("XTMODKEYS: invalid resource '%d' in '%s'",
                              resource, csi_as_string(term, final, -1));
                     break;
                 }

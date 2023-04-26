@@ -44,6 +44,10 @@
 
 ## Unreleased
 ### Added
+
+* VT: implemented `XTQMODKEYS` query (`CSI ? Pp m`).
+
+
 ### Changed
 ### Deprecated
 ### Removed
