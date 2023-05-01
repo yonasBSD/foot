@@ -289,7 +289,8 @@ empty string to be set, but it must be quoted: *KEY=""*)
 *app-id*
 	Value to set the *app-id* property on the Wayland window to. The
 	compositor can use this value to e.g. group multiple windows, or
-	apply window management rules. Default: _foot_.
+	apply window management rules. Default: _foot_ (normal mode), or
+	_footclient_ (server mode).
 
 *bold-text-in-bright*
 	Semi-boolean. When enabled, bold text is rendered in a brighter
@@ -314,7 +315,8 @@ empty string to be set, but it must be quoted: *KEY=""*)
 	and _body_ (message content).
 	
 	_${app-id}_ is replaced with the value of the command line option
-	_--app-id_, and defaults to *foot*.
+	_--app-id_, and defaults to *foot* (normal mode), or
+	*footclient* (server mode).
 	
 	_${window-title}_ is replaced with the current window title.
 	

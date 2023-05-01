@@ -31,7 +31,7 @@ terminal has terminated.
 
 *-a*,*--app-id*=_ID_
 	Value to set the *app-id* property on the Wayland window
-	to. Default: _foot_.
+	to. Default: _foot_ (normal mode), or _footclient_ (server mode).
 
 *-w*,*--window-size-pixels*=_WIDTHxHEIGHT_
 	Set initial window width and height, in pixels. Default: _700x500_.

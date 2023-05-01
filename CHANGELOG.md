@@ -62,7 +62,6 @@
 * Meson option `default-utempter-path` renamed to
   `utmp-default-helper-path`.
 
-
 ### Deprecated
 
 * `[main].utempter` option.
@@ -75,8 +74,12 @@
 * Crash when scrolling after resizing the window with non-zero
   scrolling regions.
 * `XTMODKEYS` state not being reset on a terminal reset.
+* In Gnome dock foot always groups under "foot client".  Change
+  instances of footclient and foot to appear as "foot client" and
+  "foot" respectively. ([#1355][1355])
 
 [1317]: https://codeberg.org/dnkl/foot/issues/1317
+[1355]: https://codeberg.org/dnkl/foot/issues/1355
 
 
 ### Security

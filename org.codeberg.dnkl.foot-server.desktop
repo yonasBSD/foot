@@ -9,4 +9,3 @@ Keywords=shell;prompt;command;commandline;
 Name=Foot Server
 GenericName=Terminal
 Comment=A wayland native terminal emulator (server)
-StartupWMClass=foot
