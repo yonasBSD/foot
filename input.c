@@ -579,21 +579,32 @@ keyboard_keymap(void *data, struct wl_keyboard *wl_keyboard,
         seat->kbd.mod_caps = xkb_keymap_mod_get_index(seat->kbd.xkb_keymap, XKB_MOD_NAME_CAPS);
         seat->kbd.mod_num = xkb_keymap_mod_get_index(seat->kbd.xkb_keymap, XKB_MOD_NAME_NUM);
 
-        seat->kbd.bind_significant = 0;
+        /* Significant modifiers in the legacy keyboard protocol */
+        seat->kbd.legacy_significant = 0;
         if (seat->kbd.mod_shift != XKB_MOD_INVALID)
-            seat->kbd.bind_significant |= 1 << seat->kbd.mod_shift;
+            seat->kbd.legacy_significant |= 1 << seat->kbd.mod_shift;
         if (seat->kbd.mod_alt != XKB_MOD_INVALID)
-            seat->kbd.bind_significant |= 1 << seat->kbd.mod_alt;
+            seat->kbd.legacy_significant |= 1 << seat->kbd.mod_alt;
         if (seat->kbd.mod_ctrl != XKB_MOD_INVALID)
-            seat->kbd.bind_significant |= 1 << seat->kbd.mod_ctrl;
+            seat->kbd.legacy_significant |= 1 << seat->kbd.mod_ctrl;
         if (seat->kbd.mod_super != XKB_MOD_INVALID)
-            seat->kbd.bind_significant |= 1 << seat->kbd.mod_super;
+            seat->kbd.legacy_significant |= 1 << seat->kbd.mod_super;
 
-        seat->kbd.kitty_significant = seat->kbd.bind_significant;
+        /* Significant modifiers in the kitty keyboard protocol */
+        seat->kbd.kitty_significant = seat->kbd.legacy_significant;
         if (seat->kbd.mod_caps != XKB_MOD_INVALID)
             seat->kbd.kitty_significant |= 1 << seat->kbd.mod_caps;
         if (seat->kbd.mod_num != XKB_MOD_INVALID)
             seat->kbd.kitty_significant |= 1 << seat->kbd.mod_num;
+
+        /* Significant modifiers when handling shortcuts - use all available */
+        seat->kbd.bind_significant = 0;
+        const xkb_mod_index_t mod_count = xkb_keymap_num_mods(seat->kbd.xkb_keymap);
+        for (xkb_mod_index_t i = 0; i < mod_count; i++) {
+            LOG_DBG("significant modifier: %s",
+                    xkb_keymap_mod_get_name(seat->kbd.xkb_keymap, i));
+            seat->kbd.bind_significant |= 1 << i;
+        }
 
         seat->kbd.key_arrow_up = xkb_keymap_key_by_name(seat->kbd.xkb_keymap, "UP");
         seat->kbd.key_arrow_down = xkb_keymap_key_by_name(seat->kbd.xkb_keymap, "DOWN");
@@ -985,7 +996,7 @@ legacy_kbd_protocol(struct seat *seat, struct terminal *term,
 
         /* Any modifiers, besides shift active? */
         const xkb_mod_mask_t shift_mask = 1 << seat->kbd.mod_shift;
-        if ((ctx->mods & ~shift_mask & seat->kbd.bind_significant) != 0)
+        if ((ctx->mods & ~shift_mask & seat->kbd.legacy_significant) != 0)
             modify_other_keys2_in_effect = true;
 
         else {
@@ -1527,7 +1538,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
 
 #if 0
     for (size_t i = 0; i < 32; i++) {
-        if (mods & (1 << i)) {
+        if (mods & (1u << i)) {
             LOG_INFO("%s", xkb_keymap_mod_get_name(seat->kbd.xkb_keymap, i));
         }
     }
@@ -1555,6 +1566,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
                 bind->mods == (bind_mods & ~bind_consumed) &&
                 execute_binding(seat, term, bind, serial, 1))
             {
+                LOG_WARN("matched translated symbol");
                 goto maybe_repeat;
             }
 
@@ -1566,6 +1578,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
                 if (bind->k.sym == raw_syms[i] &&
                     execute_binding(seat, term, bind, serial, 1))
                 {
+                    LOG_WARN("matched untranslated symbol");
                     goto maybe_repeat;
                 }
             }
@@ -1575,6 +1588,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
                 if (code->item == key &&
                     execute_binding(seat, term, bind, serial, 1))
                 {
+                    LOG_WARN("matched raw key code");
                     goto maybe_repeat;
                 }
             }
@@ -2293,8 +2307,7 @@ static const struct key_binding *
                 continue;
             }
 
-            const struct config_key_modifiers no_mods = {0};
-            if (memcmp(&binding->modifiers, &no_mods, sizeof(no_mods)) != 0) {
+            if (tll_length(binding->modifiers) > 0) {
                 /* Binding has modifiers */
                 continue;
             }

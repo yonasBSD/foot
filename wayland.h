@@ -128,8 +128,9 @@ struct seat {
         xkb_mod_index_t mod_caps;
         xkb_mod_index_t mod_num;
 
-        xkb_mod_mask_t bind_significant;
-        xkb_mod_mask_t kitty_significant;
+        xkb_mod_mask_t bind_significant;    /* Significant modifiers for shortcut handling */
+        xkb_mod_mask_t legacy_significant;  /* Significant modifiers for the legacy keyboard protocol */
+        xkb_mod_mask_t kitty_significant;   /* Significant modifiers for the kitty keyboard protocol */
 
         xkb_keycode_t key_arrow_up;
         xkb_keycode_t key_arrow_down;
