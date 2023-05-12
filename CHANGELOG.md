@@ -63,6 +63,7 @@
 * Incorrect icon in dock and window switcher on Gnome ([#1317][1317])
 * Crash when scrolling after resizing the window with non-zero
   scrolling regions.
+* `XTMODKEYS` state not being reset on a terminal reset.
 
 [1317]: https://codeberg.org/dnkl/foot/issues/1317
 

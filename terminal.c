@@ -1933,6 +1933,7 @@ term_reset(struct terminal *term, bool hard)
 
     term_set_user_mouse_cursor(term, NULL);
 
+    term->modify_other_keys_2 = false;
     memset(term->normal.kitty_kbd.flags, 0, sizeof(term->normal.kitty_kbd.flags));
     memset(term->alt.kitty_kbd.flags, 0, sizeof(term->alt.kitty_kbd.flags));
     term->normal.kitty_kbd.idx = term->alt.kitty_kbd.idx = 0;
