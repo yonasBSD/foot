@@ -21,7 +21,6 @@
 #include "macros.h"
 #include "terminal.h"
 #include "tokenize.h"
-#include "version.h"
 #include "xmalloc.h"
 
 extern char **environ;
@@ -352,10 +351,11 @@ slave_spawn(int ptmx, int argc, const char *cwd, char *const *argv,
         }
 
         setenv("TERM", term_env, 1);
-        setenv("TERM_PROGRAM", "foot", 1);
-        setenv("TERM_PROGRAM_VERSION", FOOT_VERSION_SHORT, 1);
         setenv("COLORTERM", "truecolor", 1);
         setenv("PWD", cwd, 1);
+
+        unsetenv("TERM_PROGRAM");
+        unsetenv("TERM_PROGRAM_VERSION");
 
 #if defined(FOOT_TERMINFO_PATH)
         setenv("TERMINFO", FOOT_TERMINFO_PATH, 1);

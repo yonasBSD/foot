@@ -41,7 +41,6 @@ patch=$(echo "${new_version}" | sed -r 's/([0-9]+)\.([0-9]+)\.([0-9]+).*/\3/')
 extra=$(echo "${new_version}" | sed -r 's/([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9]+-g[a-z0-9]+) .*)?.*/\5/')
 
 new_version="#define FOOT_VERSION \"${new_version}\"
-#define FOOT_VERSION_SHORT \"${git_version:-${default_version}}\"
 #define FOOT_MAJOR ${major}
 #define FOOT_MINOR ${minor}
 #define FOOT_PATCH ${patch}
