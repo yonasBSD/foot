@@ -829,6 +829,7 @@ execute_binding(struct seat *seat, struct terminal *term,
             grid->view = ensure_view_is_allocated(
                 term, term->search.original_view);
         }
+        term_damage_view(term);
         search_cancel(term);
         return true;
 
