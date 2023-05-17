@@ -46,6 +46,9 @@
 ### Added
 
 * VT: implemented `XTQMODKEYS` query (`CSI ? Pp m`).
+* Meson option `utmp-backend=none|libutempter|ulog|auto`. The default
+  is `auto`, which will select `libutempter` on Linux, `ulog` on
+  FreeBSD, and `none` for all others.
 
 
 ### Changed
@@ -54,9 +57,17 @@
   `CSI R`. The kitty keyboard protocol originally allowed F3 to be
   encoded as `CSI R`, but this was removed from the specification
   since `CSI R` conflicts with the _”Cursor Position Report”_.
+* `[main].utempter` renamed to `[main].utmp-helper`. The old option
+  name is still recognized, but will log a deprecation warning.
+* Meson option `default-utempter-path` renamed to
+  `utmp-default-helper-path`.
 
 
 ### Deprecated
+
+* `[main].utempter` option.
+
+
 ### Removed
 ### Fixed
 

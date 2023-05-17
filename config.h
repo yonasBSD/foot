@@ -320,7 +320,7 @@ struct config {
 
     env_var_list_t env_vars;
 
-    char *utempter_path;
+    char *utmp_helper_path;
 
     struct {
         enum fcft_scaling_filter fcft_filter;

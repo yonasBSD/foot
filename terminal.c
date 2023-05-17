@@ -207,25 +207,41 @@ fdm_ptmx_out(struct fdm *fdm, int fd, int events, void *data)
 static bool
 add_utmp_record(const struct config *conf, struct reaper *reaper, int ptmx)
 {
+#if defined(UTMP_ADD)
     if (ptmx < 0)
         return true;
-    if (conf->utempter_path == NULL)
+    if (conf->utmp_helper_path == NULL)
         return true;
 
-    char *const argv[] = {conf->utempter_path, "add", getenv("WAYLAND_DISPLAY"), NULL};
+    char *const argv[] = {conf->utmp_helper_path, UTMP_ADD, getenv("WAYLAND_DISPLAY"), NULL};
     return spawn(reaper, NULL, argv, ptmx, ptmx, -1, NULL);
+#else
+    return true;
+#endif
 }
 
 static bool
 del_utmp_record(const struct config *conf, struct reaper *reaper, int ptmx)
 {
+#if defined(UTMP_DEL)
     if (ptmx < 0)
         return true;
-    if (conf->utempter_path == NULL)
+    if (conf->utmp_helper_path == NULL)
         return true;
 
-    char *const argv[] = {conf->utempter_path, "del", getenv("WAYLAND_DISPLAY"), NULL};
+    char *del_argument =
+#if defined(UTMP_DEL_HAVE_ARGUMENT)
+        getenv("WAYLAND_DISPLAY")
+#else
+        NULL
+#endif
+        ;
+
+    char *const argv[] = {conf->utmp_helper_path, UTMP_DEL, del_argument, NULL};
     return spawn(reaper, NULL, argv, ptmx, ptmx, -1, NULL);
+#else
+    return true;
+#endif
 }
 
 #if PTMX_TIMING

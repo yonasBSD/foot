@@ -16,30 +16,54 @@ if cc.has_function('memfd_create')
   add_project_arguments('-DMEMFD_CREATE', language: 'c')
 endif
 
-utempter_path = get_option('default-utempter-path')
-if utempter_path == ''
-  utempter = find_program(
-    'utempter',
-    required: false,
-    dirs: [join_paths(get_option('prefix'), get_option('libdir'), 'utempter'),
-           join_paths(get_option('prefix'), get_option('libexecdir'), 'utempter'),
-           '/usr/lib/utempter',
-           '/usr/libexec/utempter',
-           '/lib/utempter']
-  )
-  if utempter.found()
-    utempter_path = utempter.full_path()
+utmp_backend = get_option('utmp-backend')
+if utmp_backend == 'auto'
+  host_os = host_machine.system()
+  if host_os == 'linux'
+    utmp_backend = 'libutempter'
+  elif host_os == 'freebsd'
+    utmp_backend = 'ulog'
   else
-    utempter_path = ''
+    utmp_backend = 'none'
   endif
-elif utempter_path == 'none'
-  utempter_path = ''
+endif
+
+utmp_default_helper_path = get_option('utmp-default-helper-path')
+
+if utmp_backend == 'none'
+  utmp_add = ''
+  utmp_del = ''
+  utmp_del_have_argument = false
+  utmp_default_helper_path = ''
+elif utmp_backend == 'libutempter'
+  utmp_add = 'add'
+  utmp_del = 'del'
+  utmp_del_have_argument = true
+  if utmp_default_helper_path == 'auto'
+    utmp_default_helper_path = join_paths('/usr', get_option('libdir'), 'utempter', 'utempter')
+  endif
+elif utmp_backend == 'ulog'
+  utmp_add = 'login'
+  utmp_del = 'logout'
+  utmp_del_have_argument = false
+  if utmp_default_helper_path == 'auto'
+    utmp_default_helper_path = join_paths('/usr', get_option('libexecdir'), 'ulog-helper')
+  endif
+else
+    error('invalid utmp backend')
 endif
 
 add_project_arguments(
   ['-D_GNU_SOURCE=200809L',
-   '-DFOOT_DEFAULT_TERM="@0@"'.format(get_option('default-terminfo')),
-   '-DFOOT_DEFAULT_UTEMPTER_PATH="@0@"'.format(utempter_path)] +
+   '-DFOOT_DEFAULT_TERM="@0@"'.format(get_option('default-terminfo'))] +
+  (utmp_backend != 'none'
+  ? ['-DUTMP_ADD="@0@"'.format(utmp_add),
+     '-DUTMP_DEL="@0@"'.format(utmp_del),
+     '-DUTMP_DEFAULT_HELPER_PATH="@0@"'.format(utmp_default_helper_path)]
+  : []) +
+  (utmp_del_have_argument
+   ? ['-DUTMP_DEL_HAVE_ARGUMENT=1']
+   : []) +
   (is_debug_build
     ? ['-D_DEBUG']
    : [cc.get_supported_arguments('-fno-asynchronous-unwind-tables')]) +
@@ -343,7 +367,8 @@ summary(
     'Themes': get_option('themes'),
     'IME': get_option('ime'),
     'Grapheme clustering': utf8proc.found(),
-    'Utempter path': utempter_path,
+    'utmp backend': utmp_backend,
+    'utmp helper default path': utmp_default_helper_path,
     'Build terminfo': tic.found(),
     'Terminfo install location': terminfo_install_location,
     'Default TERM': get_option('default-terminfo'),

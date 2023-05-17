@@ -343,9 +343,24 @@ empty string to be set, but it must be quoted: *KEY=""*)
 	(including SMT). Note that this is not always the best value. In
 	some cases, the number of physical _cores_ is better.
 
-*utempter*
-	Path to utempter helper binary. Set to *none* to disable utmp
-	records. Default: _@utempter@_.
+*utmp-helper*
+	Path to utmp logging helper binary.
+	
+	When starting foot, an utmp record is created by launching the
+	helper binary with the following arguments:
+	
+	```
+	@utmp_add_args@
+	```
+	
+	When foot is closed, the utmp record is removed by launching the
+	helper binary with the following arguments:
+	
+	```
+	@utmp_del_args@
+	```
+	
+	Set to *none* to disable utmp records. Default: _@utmp_helper_path@_.
 
 # SECTION: environment
 

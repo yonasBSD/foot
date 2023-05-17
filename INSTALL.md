@@ -45,7 +45,8 @@ subprojects.
 * wayland (_client_ and _cursor_ libraries)
 * xkbcommon
 * utf8proc (_optional_, needed for grapheme clustering)
-* libutempter (_optional_, needed for utmp logging)
+* libutempter (_optional_, needed for utmp logging on Linux)
+* ulog (_optional_, needed for utmp logging on FreeBSD)
 * [fcft](https://codeberg.org/dnkl/fcft) [^1]
 
 [^1]: can also be built as subprojects, in which case they are
@@ -142,17 +143,18 @@ mkdir -p bld/release && cd bld/release
 
 Available compile-time options:
 
-| Option                               | Type    | Default                 | Description                                               | Extra dependencies |
-|--------------------------------------|---------|-------------------------|-----------------------------------------------------------|--------------------|
-| `-Ddocs`                             | feature | `auto`                  | Builds and install documentation                          | scdoc              |
-| `-Dtests`                            | bool    | `true`                  | Build tests (adds a `ninja test` build target)            | none               |
-| `-Dime`                              | bool    | `true`                  | Enables IME support                                       | None               |
-| `-Dgrapheme-clustering`              | feature | `auto`                  | Enables grapheme clustering                               | libutf8proc        |
-| `-Dterminfo`                         | feature | `enabled`               | Build and install terminfo files                          | tic (ncurses)      |
-| `-Ddefault-terminfo`                 | string  | `foot`                  | Default value of `TERM`                                   | none               |
-| `-Dcustom-terminfo-install-location` | string  | `${datadir}/terminfo`   | Value to set `TERMINFO` to                                | None               |
-| `-Dsystemd-units-dir`                | string  | `${systemduserunitdir}` | Where to install the systemd service files (absolute)     | None               |
-| `-Ddefault-utempter-path`            | feature | `auto`                  | Default path to utempter binary (‘none’ disables default) | libutempter        |
+| Option                               | Type    | Default                 | Description                                                                     | Extra dependencies  |
+|--------------------------------------|---------|-------------------------|---------------------------------------------------------------------------------|---------------------|
+| `-Ddocs`                             | feature | `auto`                  | Builds and install documentation                                                | scdoc               |
+| `-Dtests`                            | bool    | `true`                  | Build tests (adds a `ninja test` build target)                                  | None                |
+| `-Dime`                              | bool    | `true`                  | Enables IME support                                                             | None                |
+| `-Dgrapheme-clustering`              | feature | `auto`                  | Enables grapheme clustering                                                     | libutf8proc         |
+| `-Dterminfo`                         | feature | `enabled`               | Build and install terminfo files                                                | tic (ncurses)       |
+| `-Ddefault-terminfo`                 | string  | `foot`                  | Default value of `TERM`                                                         | None                |
+| `-Dcustom-terminfo-install-location` | string  | `${datadir}/terminfo`   | Value to set `TERMINFO` to                                                      | None                |
+| `-Dsystemd-units-dir`                | string  | `${systemduserunitdir}` | Where to install the systemd service files (absolute)                           | None                |
+| `-Dutmp-backend`                     | combo   | `auto`                  | Which utmp backend to use (`none`, `libutempter`, `ulog` or `auto`)             | libutempter or ulog |
+| `-Dutmp-default-helper-path`         | string  | `auto`                  | Default path to utmp helper binary. `auto` selects path based on `utmp-backend` | None                |
 
 Documentation includes the man pages, readme, changelog and license
 files.

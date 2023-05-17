@@ -1009,13 +1009,29 @@ parse_section_main(struct context *ctx)
     else if (strcmp(key, "box-drawings-uses-font-glyphs") == 0)
         return value_to_bool(ctx, &conf->box_drawings_uses_font_glyphs);
 
-    else if (strcmp(key, "utempter") == 0) {
-        if (!value_to_str(ctx, &conf->utempter_path))
+    else if (strcmp(key, "utmp-helper") == 0 || strcmp(key, "utempter") == 0) {
+        if (strcmp(key, "utempter") == 0) {
+            struct user_notification deprecation = {
+                .kind = USER_NOTIFICATION_DEPRECATED,
+                .text = xasprintf(
+                    "%s:%d: \033[1m[main].utempter\033[22m, "
+                    "use \033[1m[main].utmp-helper\033[22m instead",
+                    ctx->path, ctx->lineno),
+            };
+            tll_push_back(conf->notifications, deprecation);
+
+            LOG_WARN(
+                "%s:%d: [main].utempter is deprecated, "
+                "use [main].utmp-helper instead",
+                ctx->path, ctx->lineno);
+        }
+
+        if (!value_to_str(ctx, &conf->utmp_helper_path))
             return false;
 
-        if (strcmp(conf->utempter_path, "none") == 0) {
-            free(conf->utempter_path);
-            conf->utempter_path = NULL;
+        if (strcmp(conf->utmp_helper_path, "none") == 0) {
+            free(conf->utmp_helper_path);
+            conf->utmp_helper_path = NULL;
         }
 
         return true;
@@ -3019,9 +3035,12 @@ config_load(struct config *conf, const char *conf_path,
         },
 
         .env_vars = tll_init(),
-        .utempter_path = (strlen(FOOT_DEFAULT_UTEMPTER_PATH) > 0
-                          ? xstrdup(FOOT_DEFAULT_UTEMPTER_PATH)
-                          : NULL),
+#if defined(UTMP_DEFAULT_HELPER_PATH)
+        .utmp_helper_path = ((strlen(UTMP_DEFAULT_HELPER_PATH) > 0 &&
+                              access(UTMP_DEFAULT_HELPER_PATH, X_OK) == 0)
+                             ? xstrdup(UTMP_DEFAULT_HELPER_PATH)
+                             : NULL),
+#endif
         .notifications = tll_init(),
     };
 
@@ -3310,8 +3329,8 @@ config_clone(const struct config *old)
         tll_push_back(conf->env_vars, copy);
     }
 
-    conf->utempter_path =
-        old->utempter_path != NULL ? xstrdup(old->utempter_path) : NULL;
+    conf->utmp_helper_path =
+        old->utmp_helper_path != NULL ? xstrdup(old->utmp_helper_path) : NULL;
 
     conf->notifications.length = 0;
     conf->notifications.head = conf->notifications.tail = 0;
@@ -3379,7 +3398,7 @@ config_free(struct config *conf)
         tll_remove(conf->env_vars, it);
     }
 
-    free(conf->utempter_path);
+    free(conf->utmp_helper_path);
     user_notifications_free(&conf->notifications);
 }
 
