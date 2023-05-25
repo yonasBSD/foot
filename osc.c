@@ -729,8 +729,15 @@ osc_dispatch(struct terminal *term)
 
         case 11:
             term->colors.bg = color;
-            if (have_alpha)
+            if (have_alpha) {
+                const bool changed = term->colors.alpha != alpha;
                 term->colors.alpha = alpha;
+
+                if (changed) {
+                    wayl_win_alpha_changed(term->window);
+                    term_font_subpixel_changed(term);
+                }
+            }
             break;
 
         case 17:

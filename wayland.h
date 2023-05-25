@@ -434,6 +434,7 @@ void wayl_roundtrip(struct wayland *wayl);
 struct wl_window *wayl_win_init(struct terminal *term, const char *token);
 void wayl_win_destroy(struct wl_window *win);
 
+void wayl_win_alpha_changed(struct wl_window *win);
 bool wayl_win_set_urgent(struct wl_window *win);
 
 bool wayl_win_csd_titlebar_visible(const struct wl_window *win);

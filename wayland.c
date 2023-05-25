@@ -1495,16 +1495,7 @@ wayl_win_init(struct terminal *term, const char *token)
         goto out;
     }
 
-    if (term->colors.alpha == 0xffff) {
-        struct wl_region *region = wl_compositor_create_region(
-            term->wl->compositor);
-
-        if (region != NULL) {
-            wl_region_add(region, 0, 0, INT32_MAX, INT32_MAX);
-            wl_surface_set_opaque_region(win->surface, region);
-            wl_region_destroy(region);
-        }
-    }
+    wayl_win_alpha_changed(win);
 
     wl_surface_add_listener(win->surface, &surface_listener, win);
 
@@ -1796,6 +1787,24 @@ wayl_roundtrip(struct wayland *wayl)
         }
     }
     wayl_flush(wayl);
+}
+
+void
+wayl_win_alpha_changed(struct wl_window *win)
+{
+    struct terminal *term = win->term;
+
+    if (term->colors.alpha == 0xffff) {
+        struct wl_region *region = wl_compositor_create_region(
+            term->wl->compositor);
+
+        if (region != NULL) {
+            wl_region_add(region, 0, 0, INT32_MAX, INT32_MAX);
+            wl_surface_set_opaque_region(win->surface, region);
+            wl_region_destroy(region);
+        }
+    } else
+        wl_surface_set_opaque_region(win->surface, NULL);
 }
 
 #if defined(HAVE_XDG_ACTIVATION)
