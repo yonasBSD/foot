@@ -4,7 +4,7 @@ pipeline:
       branch:
         - master
         - releases/*
-    image: alpine:latest
+    image: alpine:edge
     commands:
       - apk add python3
       - apk add py3-pip
@@ -16,7 +16,7 @@ pipeline:
       branch:
         - master
         - releases/*
-    image: alpine:latest
+    image: alpine:edge
     commands:
       - apk add git
       - mkdir -p subprojects && cd subprojects
@@ -30,7 +30,7 @@ pipeline:
         - master
         - releases/*
     group: build
-    image: alpine:latest
+    image: alpine:edge
     commands:
       - apk update
       - apk add musl-dev linux-headers meson ninja gcc clang scdoc ncurses
@@ -87,7 +87,7 @@ pipeline:
         - master
         - releases/*
     group: build
-    image: i386/alpine:latest
+    image: i386/alpine:edge
     commands:
       - apk update
       - apk add musl-dev linux-headers meson ninja gcc clang scdoc ncurses
