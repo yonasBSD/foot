@@ -450,6 +450,7 @@ main(int argc, char *const *argv)
             "C.UTF-8",
             "en_US.UTF-8",
         };
+        char *saved_locale = xstrdup(locale);
 
         /*
          * Try to force an UTF-8 locale. If we succeed, launch the
@@ -461,12 +462,12 @@ main(int argc, char *const *argv)
 
             if (setlocale(LC_CTYPE, fallback_locale) != NULL) {
                 LOG_WARN("'%s' is not a UTF-8 locale, using '%s' instead",
-                         locale, fallback_locale);
+                         saved_locale, fallback_locale);
 
                 user_notification_add_fmt(
                     &user_notifications, USER_NOTIFICATION_WARNING,
                     "'%s' is not a UTF-8 locale, using '%s' instead",
-                    locale, fallback_locale);
+                    saved_locale, fallback_locale);
 
                 bad_locale = false;
                 break;
@@ -476,13 +477,14 @@ main(int argc, char *const *argv)
         if (bad_locale) {
             LOG_ERR(
                 "'%s' is not a UTF-8 locale, and failed to find a fallback",
-                locale);
+                saved_locale);
 
             user_notification_add_fmt(
                 &user_notifications, USER_NOTIFICATION_ERROR,
                 "'%s' is not a UTF-8 locale, and failed to find a fallback",
-                locale);
+                saved_locale);
         }
+        free(saved_locale);
     }
 
     struct config conf = {NULL};
