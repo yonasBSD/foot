@@ -61,6 +61,12 @@
   name is still recognized, but will log a deprecation warning.
 * Meson option `default-utempter-path` renamed to
   `utmp-default-helper-path`.
+* Opaque sixels now retain the background opacity (when current
+  background color is the **default** background color)
+  ([#1360][1360]).
+
+[1360]: https://codeberg.org/dnkl/foot/issues/1360
+
 
 ### Deprecated
 
