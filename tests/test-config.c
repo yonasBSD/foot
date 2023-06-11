@@ -107,6 +107,50 @@ test_c32string(struct context *ctx, bool (*parse_fun)(struct context *ctx),
 }
 
 static void
+test_protocols(struct context *ctx, bool (*parse_fun)(struct context *ctx),
+               const char *key, char32_t **const *ptr)
+{
+    ctx->key = key;
+
+    static const struct {
+        const char *option_string;
+        int count;
+        const char32_t *value[2];
+        bool invalid;
+    } input[] = {
+        {""},
+        {"http", 1, {U"http://"}},
+        {" http", 1, {U"http://"}},
+        {"http, https", 2, {U"http://", U"https://"}},
+        {"longprotocolislong", 1, {U"longprotocolislong://"}},
+    };
+
+    for (size_t i = 0; i < ALEN(input); i++) {
+        ctx->value = input[i].option_string;
+
+        if (input[i].invalid) {
+            if (parse_fun(ctx)) {
+                BUG("[%s].%s=%s: did not fail to parse as expected",
+                    ctx->section, ctx->key, &ctx->value[0]);
+            }
+        } else {
+            if (!parse_fun(ctx)) {
+                BUG("[%s].%s=%s: failed to parse",
+                    ctx->section, ctx->key, &ctx->value[0]);
+            }
+            for (int c = 0; c < input[i].count; c++) {
+                if (c32cmp((*ptr)[c], input[i].value[c]) != 0) {
+                    BUG("[%s].%s=%s: set value[%d] (%ls) not the expected one (%ls)",
+                        ctx->section, ctx->key, &ctx->value[c], c,
+                        (const wchar_t *)(*ptr)[c],
+                        (const wchar_t *)input[i].value[c]);
+                }
+            }
+        }
+    }
+}
+
+static void
 test_boolean(struct context *ctx, bool (*parse_fun)(struct context *ctx),
              const char *key, const bool *ptr)
 {
@@ -578,8 +622,8 @@ test_section_url(void)
               (int []){OSC8_UNDERLINE_URL_MODE, OSC8_UNDERLINE_ALWAYS},
               (int *)&conf.url.osc8_underline);
     test_c32string(&ctx, &parse_section_url, "label-letters", &conf.url.label_letters);
+    test_protocols(&ctx, &parse_section_url, "protocols", &conf.url.protocols);
 
-    /* TODO: protocols (list of wchars) */
     /* TODO: uri-characters (wchar string, but sorted) */
 
     config_free(&conf);
