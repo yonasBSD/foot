@@ -2558,6 +2558,15 @@ term_cursor_home(struct terminal *term)
 }
 
 void
+term_cursor_col(struct terminal *term, int col)
+{
+    xassert(col < term->cols);
+
+    term->grid->cursor.lcf = false;
+    term->grid->cursor.point.col = col;
+}
+
+void
 term_cursor_left(struct terminal *term, int count)
 {
     int move_amount = min(term->grid->cursor.point.col, count);

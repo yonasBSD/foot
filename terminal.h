@@ -743,6 +743,7 @@ void term_erase_scrollback(struct terminal *term);
 int term_row_rel_to_abs(const struct terminal *term, int row);
 void term_cursor_home(struct terminal *term);
 void term_cursor_to(struct terminal *term, int row, int col);
+void term_cursor_col(struct terminal *term, int col);
 void term_cursor_left(struct terminal *term, int count);
 void term_cursor_right(struct terminal *term, int count);
 void term_cursor_up(struct terminal *term, int count);
