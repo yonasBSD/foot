@@ -1043,6 +1043,23 @@ sixel_unhook(struct terminal *term)
         pixel_rows_left -= height;
         rows_avail -= image.rows;
 
+        if (do_scroll) {
+             /* Yes, truncate last row. This matches XTerm’s, and VT382’s behavior */
+            const int linefeed_count = image.height / term->cell_height;
+            for (size_t i = 0; i < linefeed_count; i++)
+                term_linefeed(term);
+
+            /* Position text cursor if this is the last image chunk */
+            if (rows_avail == 0) {
+                term_cursor_to(
+                    term,
+                    term->grid->cursor.point.row,
+                    (term->sixel.cursor_right_of_graphics
+                     ? min(image.pos.col + image.cols, term->cols - 1)
+                     : image.pos.col));
+            }
+        }
+
         /* Dirty touched cells, and scroll terminal content if necessary */
         for (size_t i = 0; i < image.rows; i++) {
             struct row *row = term->grid->rows[cur_row + i];
@@ -1055,26 +1072,6 @@ sixel_unhook(struct terminal *term)
                 row->cells[col].attrs.clean = 0;
             }
 
-            if (do_scroll) {
-                /*
-                 * Linefeed, *unless* we're on the very last row of
-                 * the final image (not just this chunk) and private
-                 * mode 8452 (leave cursor at the right of graphics)
-                 * is enabled.
-                 */
-                if (term->sixel.cursor_right_of_graphics &&
-                    rows_avail == 0 &&
-                    i >= image.rows - 1)
-                {
-                    term_cursor_to(
-                        term,
-                        term->grid->cursor.point.row,
-                        min(image.pos.col + image.cols, term->cols - 1));
-                } else {
-                    term_linefeed(term);
-                    term_carriage_return(term);
-                }
-            }
         }
 
         _sixel_overwrite_by_rectangle(

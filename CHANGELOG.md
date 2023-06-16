@@ -65,6 +65,15 @@
 * Opaque sixels now retain the background opacity (when current
   background color is the **default** background color)
   ([#1360][1360]).
+* Text cursor’s vertical position after emitting a sixel, when sixel
+  scrolling is **enabled** (the default) has been updated to match
+  XTerm’s, and the VT382’s behavior: the cursor is positioned **on**
+  the last sixel row, rather than _after_ it. This allows printing
+  sixels on the last row without scrolling up, but also means
+  applications may have to explicitly emit a newline to ensure the
+  sixel is visible. For example, `cat`:ing a sixel in the shell will
+  typically result in the last row not being visible, unless a newline
+  is explicitly added.
 
 [1371]: https://codeberg.org/dnkl/foot/pulls/1371
 [1360]: https://codeberg.org/dnkl/foot/issues/1360
