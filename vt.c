@@ -294,74 +294,31 @@ action_print(struct terminal *term, uint8_t c)
 }
 
 static void
-action_param(struct terminal *term, uint8_t c)
+action_param_lazy_init(struct terminal *term)
 {
     if (term->vt.params.idx == 0) {
         struct vt_param *param = &term->vt.params.v[0];
+
+        term->vt.params.cur = param;
         param->value = 0;
         param->sub.idx = 0;
+        param->sub.cur = NULL;
         term->vt.params.idx = 1;
     }
+}
 
-    xassert(term->vt.params.idx > 0);
+static void
+action_param_new(struct terminal *term, uint8_t c)
+{
+    xassert(c == ';');
+    action_param_lazy_init(term);
 
     const size_t max_params
         = sizeof(term->vt.params.v) / sizeof(term->vt.params.v[0]);
-    const size_t max_sub_params
-        = sizeof(term->vt.params.v[0].sub.value) / sizeof(term->vt.params.v[0].sub.value[0]);
 
-    /* New parameter */
-    if (c == ';') {
-        if (unlikely(term->vt.params.idx >= max_params))
-            goto excess_params;
+    struct vt_param *param;
 
-        struct vt_param *param = &term->vt.params.v[term->vt.params.idx++];
-        param->value = 0;
-        param->sub.idx = 0;
-    }
-
-    /* New sub-parameter */
-    else if (c == ':') {
-        if (unlikely(term->vt.params.idx - 1 >= max_params))
-            goto excess_params;
-
-        struct vt_param *param = &term->vt.params.v[term->vt.params.idx - 1];
-        if (unlikely(param->sub.idx >= max_sub_params))
-            goto excess_sub_params;
-
-        param->sub.value[param->sub.idx++] = 0;
-    }
-
-    /* New digit for current parameter/sub-parameter */
-    else {
-        if (unlikely(term->vt.params.idx - 1 >= max_params))
-            goto excess_params;
-
-        struct vt_param *param = &term->vt.params.v[term->vt.params.idx - 1];
-        unsigned *value;
-
-        if (param->sub.idx > 0) {
-            if (unlikely(param->sub.idx - 1 >= max_sub_params))
-                goto excess_sub_params;
-            value = &param->sub.value[param->sub.idx - 1];
-        } else
-            value = &param->value;
-
-        *value *= 10;
-        *value += c - '0';
-    }
-
-#if defined(_DEBUG)
-    /* The rest of the code assumes 'idx' *never* points outside the array */
-    xassert(term->vt.params.idx <= max_params);
-    for (size_t i = 0; i < term->vt.params.idx; i++)
-        xassert(term->vt.params.v[i].sub.idx <= max_sub_params);
-#endif
-
-    return;
-
-excess_params:
-    {
+    if (unlikely(term->vt.params.idx >= max_params)) {
         static bool have_warned = false;
         if (!have_warned) {
             have_warned = true;
@@ -370,11 +327,29 @@ excess_params:
                 "(will not warn again)",
                 sizeof(term->vt.params.v) / sizeof(term->vt.params.v[0]));
         }
-    }
-    return;
+        param = &term->vt.params.dummy;
+    } else
+        param = &term->vt.params.v[term->vt.params.idx++];
 
-excess_sub_params:
-    {
+    term->vt.params.cur = param;
+    param->value = 0;
+    param->sub.idx = 0;
+    param->sub.cur = NULL;
+}
+
+static void
+action_param_new_subparam(struct terminal *term, uint8_t c)
+{
+    xassert(c == ':');
+    action_param_lazy_init(term);
+
+    const size_t max_sub_params
+        = sizeof(term->vt.params.v[0].sub.value) / sizeof(term->vt.params.v[0].sub.value[0]);
+
+    struct vt_param *param = term->vt.params.cur;
+    unsigned *sub_param_value;
+
+    if (unlikely(param->sub.idx >= max_sub_params)) {
         static bool have_warned = false;
         if (!have_warned) {
             have_warned = true;
@@ -383,8 +358,33 @@ excess_sub_params:
                 "(will not warn again)",
                 sizeof(term->vt.params.v[0].sub.value) / sizeof(term->vt.params.v[0].sub.value[0]));
         }
-    }
-    return;
+
+        sub_param_value = &param->sub.dummy;
+    } else
+        sub_param_value = &param->sub.value[param->sub.idx++];
+
+    param->sub.cur = sub_param_value;
+    *sub_param_value = 0;
+}
+
+static void
+action_param(struct terminal *term, uint8_t c)
+{
+    action_param_lazy_init(term);
+    xassert(term->vt.params.cur != NULL);
+
+    struct vt_param *param = term->vt.params.cur;
+    unsigned *value;
+
+    if (unlikely(param->sub.cur != NULL))
+        value = param->sub.cur;
+    else
+        value = &param->value;
+
+    unsigned v = *value;
+    v *= 10;
+    v += c - '0';
+    *value = v;
 }
 
 static void
@@ -1024,7 +1024,9 @@ state_csi_entry_switch(struct terminal *term, uint8_t data)
 
     case 0x20 ... 0x2f:                                  action_collect(term, data);                                       return STATE_CSI_INTERMEDIATE;
     case 0x30 ... 0x39:                                  action_param(term, data);                                         return STATE_CSI_PARAM;
-    case 0x3a ... 0x3b:                                  action_param(term, data);                                         return STATE_CSI_PARAM;
+    case 0x3a:                                           action_param_new_subparam(term, data);                            return STATE_CSI_PARAM;
+    case 0x3b:                                           action_param_new(term, data);                                     return STATE_CSI_PARAM;
+
     case 0x3c ... 0x3f:                                  action_collect(term, data);                                       return STATE_CSI_PARAM;
     case 0x40 ... 0x7e:                                  action_csi_dispatch(term, data);                                  return STATE_GROUND;
     case 0x7f:                                           action_ignore(term);                                              return STATE_CSI_ENTRY;
@@ -1044,8 +1046,9 @@ state_csi_param_switch(struct terminal *term, uint8_t data)
 
     case 0x20 ... 0x2f:                                  action_collect(term, data);                                       return STATE_CSI_INTERMEDIATE;
 
-    case 0x30 ... 0x39:
-    case 0x3a ... 0x3b:                                  action_param(term, data);                                         return STATE_CSI_PARAM;
+    case 0x30 ... 0x39:                                  action_param(term, data);                                         return STATE_CSI_PARAM;
+    case 0x3a:                                           action_param_new_subparam(term, data);                            return STATE_CSI_PARAM;
+    case 0x3b:                                           action_param_new(term, data);                                     return STATE_CSI_PARAM;
 
     case 0x3c ... 0x3f:                                                                                                    return STATE_CSI_IGNORE;
     case 0x40 ... 0x7e:                                  action_csi_dispatch(term, data);                                  return STATE_GROUND;
@@ -1126,7 +1129,7 @@ state_dcs_entry_switch(struct terminal *term, uint8_t data)
     case 0x20 ... 0x2f:                                  action_collect(term, data);                                       return STATE_DCS_INTERMEDIATE;
     case 0x30 ... 0x39:                                  action_param(term, data);                                         return STATE_DCS_PARAM;
     case 0x3a:                                                                                                             return STATE_DCS_IGNORE;
-    case 0x3b:                                           action_param(term, data);                                         return STATE_DCS_PARAM;
+    case 0x3b:                                           action_param_new(term, data);                                     return STATE_DCS_PARAM;
     case 0x3c ... 0x3f:                                  action_collect(term, data);                                       return STATE_DCS_PARAM;
     case 0x40 ... 0x7e:                                                                   action_hook(term, data);         return STATE_DCS_PASSTHROUGH;
     case 0x7f:                                           action_ignore(term);                                              return STATE_DCS_ENTRY;
@@ -1147,7 +1150,7 @@ state_dcs_param_switch(struct terminal *term, uint8_t data)
     case 0x20 ... 0x2f:                                  action_collect(term, data);                                       return STATE_DCS_INTERMEDIATE;
     case 0x30 ... 0x39:                                  action_param(term, data);                                         return STATE_DCS_PARAM;
     case 0x3a:                                                                                                             return STATE_DCS_IGNORE;
-    case 0x3b:                                           action_param(term, data);                                         return STATE_DCS_PARAM;
+    case 0x3b:                                           action_param_new(term, data);                                     return STATE_DCS_PARAM;
     case 0x3c ... 0x3f:                                                                                                    return STATE_DCS_IGNORE;
     case 0x40 ... 0x7e:                                                                   action_hook(term, data);         return STATE_DCS_PASSTHROUGH;
     case 0x7f:                                           action_ignore(term);                                              return STATE_DCS_PARAM;

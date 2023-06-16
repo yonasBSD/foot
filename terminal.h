@@ -180,8 +180,10 @@ struct grid {
 };
 
 struct vt_subparams {
-    unsigned value[16];
     uint8_t idx;
+    unsigned *cur;
+    unsigned value[16];
+    unsigned dummy;
 };
 
 struct vt_param {
@@ -197,8 +199,10 @@ struct vt {
 #endif
     char32_t utf8;
     struct {
-        struct vt_param v[16];
         uint8_t idx;
+        struct vt_param *cur;
+        struct vt_param v[16];
+        struct vt_param dummy;
     } params;
 
     uint32_t private; /* LSB=priv0, MSB=priv3 */
