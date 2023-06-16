@@ -815,7 +815,7 @@ csi_dispatch(struct terminal *term, uint8_t final)
         case 'G': {
             /* Cursor horizontal absolute */
             int col = min(vt_param_get(term, 0, 1), term->cols) - 1;
-            term_cursor_to(term, term->grid->cursor.point.row, col);
+            term_cursor_col(term, col);
             break;
         }
 
