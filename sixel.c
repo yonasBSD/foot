@@ -38,18 +38,33 @@ sixel_init(struct terminal *term, int p1, int p2, int p3)
     xassert(term->sixel.image.data == NULL);
     xassert(term->sixel.palette_size <= SIXEL_MAX_COLORS);
 
+    /* Default aspect ratio is 2:1 */
+    const int pad = 1;
+    const int pan =
+        (p1 == 2) ? 5 :
+        (p1 == 3 || p1 == 4) ? 3 :
+        (p1 == 7 || p1 == 8 || p1 == 9) ? 1 : 2;
+
+    LOG_DBG("initializing sixel with "
+            "p1=%d (pan=%d, pad=%d, AR=%d:%d), "
+            "p2=%d (transparent=%d), "
+            "p3=%d (ignored)",
+            p1, pan, pad, pan, pad, p2, p2 == 1, p3);
+
     term->sixel.state = SIXEL_DECSIXEL;
     term->sixel.pos = (struct coord){0, 0};
     term->sixel.max_non_empty_row_no = -1;
     term->sixel.row_byte_ofs = 0;
     term->sixel.color_idx = 0;
+    term->sixel.pan = pan;
+    term->sixel.pad = pad;
     term->sixel.param = 0;
     term->sixel.param_idx = 0;
     memset(term->sixel.params, 0, sizeof(term->sixel.params));
     term->sixel.transparent_bg = p2 == 1;
-    term->sixel.image.data = xmalloc(1 * 6 * sizeof(term->sixel.image.data[0]));
-    term->sixel.image.width = 1;
-    term->sixel.image.height = 6;
+    term->sixel.image.data = NULL;
+    term->sixel.image.width = 0;
+    term->sixel.image.height = 6 * pan;
 
     /* TODO: default palette */
 
@@ -103,9 +118,6 @@ sixel_init(struct terminal *term, int p1, int p2, int p3)
     term->sixel.default_bg = term->sixel.transparent_bg
         ? 0x00000000u
         : bg;
-
-    for (size_t i = 0; i < 1 * 6; i++)
-        term->sixel.image.data[i] = term->sixel.default_bg;
 
     count = 0;
 }
@@ -1045,7 +1057,7 @@ sixel_unhook(struct terminal *term)
 
         if (do_scroll) {
              /* Yes, truncate last row. This matches XTerm’s, and VT382’s behavior */
-            const int linefeed_count = image.height / term->cell_height;
+            const int linefeed_count = (image.height - 6 * term->sixel.pan + 1) / term->cell_height;
             for (size_t i = 0; i < linefeed_count; i++)
                 term_linefeed(term);
 
@@ -1131,7 +1143,8 @@ resize_horizontally(struct terminal *term, int new_width)
     const int old_width = term->sixel.image.width;
     const int height = term->sixel.image.height;
 
-    int alloc_height = (height + 6 - 1) / 6 * 6;
+    const int sixel_row_height = 6 * term->sixel.pan;
+    int alloc_height = (height + sixel_row_height - 1) / sixel_row_height * sixel_row_height;
 
     xassert(new_width > 0);
     xassert(alloc_height > 0);
@@ -1176,8 +1189,13 @@ resize_vertically(struct terminal *term, int new_height)
 
     int alloc_height = (new_height + 6 - 1) / 6 * 6;
 
-    xassert(width > 0);
     xassert(new_height > 0);
+
+    if (unlikely(width == 0)) {
+        xassert(term->sixel.image.data == NULL);
+        term->sixel.image.height = new_height;
+        return true;
+    }
 
     uint32_t *new_data = realloc(
         old_data, width * alloc_height * sizeof(uint32_t));
@@ -1283,7 +1301,7 @@ sixel_add(struct terminal *term, int col, int width, uint32_t color, uint8_t six
     int max_non_empty_row = -1;
     int row = term->sixel.pos.row;
 
-    for (int i = 0; i < 6; i++, sixel >>= 1, data += width) {
+    for (int i = 0; i < 6 * term->sixel.pan; i++, sixel >>= 1, data += width) {
         if (sixel & 1) {
             *data = color;
             max_non_empty_row = row + i;
@@ -1302,6 +1320,8 @@ sixel_add_many(struct terminal *term, uint8_t c, unsigned count)
 {
     int col = term->sixel.pos.col;
     int width = term->sixel.image.width;
+
+    count *= term->sixel.pad;
 
     if (unlikely(col + count - 1 >= width)) {
         resize_horizontally(term, col + count);
@@ -1352,13 +1372,13 @@ decsixel(struct terminal *term, uint8_t c)
         break;
 
     case '-':
-        term->sixel.pos.row += 6;
+        term->sixel.pos.row += 6 * term->sixel.pan;
         term->sixel.pos.col = 0;
-        term->sixel.row_byte_ofs += term->sixel.image.width * 6;
+        term->sixel.row_byte_ofs += term->sixel.image.width * 6 * term->sixel.pan;
 
         if (term->sixel.pos.row >= term->sixel.image.height) {
-            if (!resize_vertically(term, term->sixel.pos.row + 6))
-                term->sixel.pos.col = term->sixel.max_width + 1;
+            if (!resize_vertically(term, term->sixel.pos.row + 6 * term->sixel.pan))
+                term->sixel.pos.col = term->sixel.max_width + 1 * term->sixel.pad;
         }
         break;
 
@@ -1414,6 +1434,12 @@ decgra(struct terminal *term, uint8_t c)
 
         pan = pan > 0 ? pan : 1;
         pad = pad > 0 ? pad : 1;
+
+        pv *= pan;
+        ph *= pad;
+
+        term->sixel.pan = pan;
+        term->sixel.pad = pad;
 
         LOG_DBG("pan=%u, pad=%u (aspect ratio = %u), size=%ux%u",
                 pan, pad, pan / pad, ph, pv);

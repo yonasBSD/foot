@@ -49,6 +49,7 @@
 * Meson option `utmp-backend=none|libutempter|ulog|auto`. The default
   is `auto`, which will select `libutempter` on Linux, `ulog` on
   FreeBSD, and `none` for all others.
+* Sixel aspect ratio.
 
 
 ### Changed
@@ -74,6 +75,8 @@
   sixel is visible. For example, `cat`:ing a sixel in the shell will
   typically result in the last row not being visible, unless a newline
   is explicitly added.
+* Default sixel aspect ratio is now 2:1 instead of 1:1.
+
 
 [1371]: https://codeberg.org/dnkl/foot/pulls/1371
 [1360]: https://codeberg.org/dnkl/foot/issues/1360

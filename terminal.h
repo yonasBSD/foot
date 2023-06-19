@@ -634,6 +634,15 @@ struct terminal {
             int height;      /* Image height, in pixels */
         } image;
 
+        /*
+         * Pan is the vertical shape of a pixel
+         * Pad is the horizontal shape of a pixel
+         *
+         * pan/pad is the sixel’s aspect ratio
+         */
+        int pan;
+        int pad;
+
         bool scrolling:1;                 /* Private mode 80 */
         bool use_private_palette:1;       /* Private mode 1070 */
         bool cursor_right_of_graphics:1;  /* Private mode 8452 */
