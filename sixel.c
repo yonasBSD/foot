@@ -53,7 +53,6 @@ sixel_init(struct terminal *term, int p1, int p2, int p3)
 
     term->sixel.state = SIXEL_DECSIXEL;
     term->sixel.pos = (struct coord){0, 0};
-    term->sixel.max_non_empty_row_no = -1;
     term->sixel.row_byte_ofs = 0;
     term->sixel.color_idx = 0;
     term->sixel.pan = pan;
@@ -952,13 +951,6 @@ sixel_reflow(struct terminal *term)
 void
 sixel_unhook(struct terminal *term)
 {
-    if (term->sixel.image.height > term->sixel.max_non_empty_row_no + 1) {
-        LOG_DBG(
-            "last row only partially filled, reducing image height: %d -> %d",
-            term->sixel.image.height, term->sixel.max_non_empty_row_no + 1);
-        term->sixel.image.height = term->sixel.max_non_empty_row_no + 1;
-    }
-
     int pixel_row_idx = 0;
     int pixel_rows_left = term->sixel.image.height;
     const int stride = term->sixel.image.width * sizeof(uint32_t);
@@ -1298,21 +1290,13 @@ sixel_add(struct terminal *term, int col, int width, uint32_t color, uint8_t six
     size_t ofs = term->sixel.row_byte_ofs + col;
     uint32_t *data = &term->sixel.image.data[ofs];
 
-    int max_non_empty_row = -1;
-    int row = term->sixel.pos.row;
-
     for (int i = 0; i < 6 * term->sixel.pan; i++, sixel >>= 1, data += width) {
         if (sixel & 1) {
             *data = color;
-            max_non_empty_row = row + i;
         }
     }
 
     xassert(sixel == 0);
-
-    term->sixel.max_non_empty_row_no = max(
-        term->sixel.max_non_empty_row_no,
-        max_non_empty_row);
 }
 
 static void
@@ -1448,11 +1432,6 @@ decgra(struct terminal *term, uint8_t c)
             ph <= term->sixel.max_height && pv <= term->sixel.max_width)
         {
             resize(term, ph, pv);
-
-            /* This ensures the sixel’s final image size is *at least*
-             * this large */
-            term->sixel.max_non_empty_row_no =
-                min(pv, term->sixel.image.height) - 1;
         }
 
         term->sixel.state = SIXEL_DECSIXEL;

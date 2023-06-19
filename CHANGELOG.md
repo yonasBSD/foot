@@ -76,6 +76,7 @@
   typically result in the last row not being visible, unless a newline
   is explicitly added.
 * Default sixel aspect ratio is now 2:1 instead of 1:1.
+* Sixel images are no longer cropped to the last non-transparent row.
 
 
 [1371]: https://codeberg.org/dnkl/foot/pulls/1371
