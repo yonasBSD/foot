@@ -46,10 +46,10 @@ sixel_init(struct terminal *term, int p1, int p2, int p3)
         (p1 == 7 || p1 == 8 || p1 == 9) ? 1 : 2;
 
     LOG_DBG("initializing sixel with "
-            "p1=%d (pan=%d, pad=%d, AR=%d:%d), "
-            "p2=%d (transparent=%d), "
+            "p1=%d (pan=%d, pad=%d, aspect-ratio=%d:%d), "
+            "p2=%d (transparent=%s), "
             "p3=%d (ignored)",
-            p1, pan, pad, pan, pad, p2, p2 == 1, p3);
+            p1, pan, pad, pan, pad, p2, p2 == 1 ? "yes" : "no", p3);
 
     term->sixel.state = SIXEL_DECSIXEL;
     term->sixel.pos = (struct coord){0, 0};
@@ -63,7 +63,7 @@ sixel_init(struct terminal *term, int p1, int p2, int p3)
     term->sixel.transparent_bg = p2 == 1;
     term->sixel.image.data = NULL;
     term->sixel.image.width = 0;
-    term->sixel.image.height = 6 * pan;
+    term->sixel.image.height = 0;
 
     /* TODO: default palette */
 
@@ -1119,10 +1119,6 @@ sixel_unhook(struct terminal *term)
 static void
 resize_horizontally(struct terminal *term, int new_width)
 {
-    LOG_DBG("resizing image horizontally: %dx(%d) -> %dx(%d)",
-            term->sixel.image.width, term->sixel.image.height,
-            new_width, term->sixel.image.height);
-
     if (unlikely(new_width > term->sixel.max_width)) {
         LOG_WARN("maximum image dimensions exceeded, truncating");
         new_width = term->sixel.max_width;
@@ -1131,11 +1127,23 @@ resize_horizontally(struct terminal *term, int new_width)
     if (unlikely(term->sixel.image.width == new_width))
         return;
 
+    const int sixel_row_height = 6 * term->sixel.pan;
+
     uint32_t *old_data = term->sixel.image.data;
     const int old_width = term->sixel.image.width;
-    const int height = term->sixel.image.height;
 
-    const int sixel_row_height = 6 * term->sixel.pan;
+    int height;
+    if (unlikely(term->sixel.image.height == 0)) {
+        /* Lazy initialize height on first printed sixel */
+        xassert(old_width == 0);
+        term->sixel.image.height = height = sixel_row_height;
+    } else
+        height = term->sixel.image.height;
+
+    LOG_DBG("resizing image horizontally: %dx(%d) -> %dx(%d)",
+            term->sixel.image.width, term->sixel.image.height,
+            new_width, height);
+
     int alloc_height = (height + sixel_row_height - 1) / sixel_row_height * sixel_row_height;
 
     xassert(new_width > 0);
@@ -1231,10 +1239,11 @@ resize(struct terminal *term, int new_width, int new_height)
     const int old_width = term->sixel.image.width;
     const int old_height = term->sixel.image.height;
 
+    const int sixel_row_height = 6 * term->sixel.pan;
     int alloc_new_width = new_width;
-    int alloc_new_height = (new_height + 6 - 1) / 6 * 6;
+    int alloc_new_height = (new_height + sixel_row_height - 1) / sixel_row_height * sixel_row_height;
     xassert(alloc_new_height >= new_height);
-    xassert(alloc_new_height - new_height < 6);
+    xassert(alloc_new_height - new_height < sixel_row_height);
 
     uint32_t *new_data = NULL;
     uint32_t bg = term->sixel.default_bg;
@@ -1287,13 +1296,16 @@ sixel_add(struct terminal *term, int col, int width, uint32_t color, uint8_t six
     xassert(term->sixel.pos.col < term->sixel.image.width);
     xassert(term->sixel.pos.row < term->sixel.image.height);
 
+    const int pan = term->sixel.pan;
     size_t ofs = term->sixel.row_byte_ofs + col;
     uint32_t *data = &term->sixel.image.data[ofs];
 
-    for (int i = 0; i < 6 * term->sixel.pan; i++, sixel >>= 1, data += width) {
+    for (int i = 0; i < 6; i++, sixel >>= 1) {
         if (sixel & 1) {
-            *data = color;
-        }
+            for (int r = 0; r < pan; r++, data += width)
+                *data = color;
+        } else
+            data += width * pan;
     }
 
     xassert(sixel == 0);
@@ -1425,8 +1437,8 @@ decgra(struct terminal *term, uint8_t c)
         term->sixel.pan = pan;
         term->sixel.pad = pad;
 
-        LOG_DBG("pan=%u, pad=%u (aspect ratio = %u), size=%ux%u",
-                pan, pad, pan / pad, ph, pv);
+        LOG_DBG("pan=%u, pad=%u (aspect ratio = %d:%d), size=%ux%u",
+                pan, pad, pan, pad, ph, pv);
 
         if (ph >= term->sixel.image.height && pv >= term->sixel.image.width &&
             ph <= term->sixel.max_height && pv <= term->sixel.max_width)
