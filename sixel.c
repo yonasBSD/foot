@@ -1049,7 +1049,12 @@ sixel_unhook(struct terminal *term)
 
         if (do_scroll) {
              /* Yes, truncate last row. This matches XTerm’s, and VT382’s behavior */
-            const int linefeed_count = (image.height - 6 * term->sixel.pan + 1) / term->cell_height;
+            const int linefeed_count = rows_avail == 0
+                ? (image.height - 6 * term->sixel.pan + 1) / term->cell_height
+                : image.height / term->cell_height;
+
+            xassert(rows_avail == 0 || image.height % term->cell_height == 0);
+
             for (size_t i = 0; i < linefeed_count; i++)
                 term_linefeed(term);
 
