@@ -4030,7 +4030,9 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
             term->interactive_resizing.old_hide_cursor = term->hide_cursor;
             term->interactive_resizing.grid = xmalloc(sizeof(*term->interactive_resizing.grid));
             *term->interactive_resizing.grid = term->normal;
-            term->interactive_resizing.selection_coords = term->selection.coords;
+
+            if (term->grid == &term->normal)
+                term->interactive_resizing.selection_coords = term->selection.coords;
         } else {
             /* We’ll replace the current temporary grid, with a new
              * one (again based on the original grid) */
@@ -4118,6 +4120,8 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
     } else {
         /* Full text reflow */
 
+        int old_normal_rows = old_rows;
+
         if (term->interactive_resizing.grid != NULL) {
             /* Throw away the current, truncated, “normal” grid, and
              * use the original grid instead (from before the resize
@@ -4129,7 +4133,7 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
             term->hide_cursor = term->interactive_resizing.old_hide_cursor;
             term->selection.coords = term->interactive_resizing.selection_coords;
 
-            old_rows = term->interactive_resizing.old_screen_rows;
+            old_normal_rows = term->interactive_resizing.old_screen_rows;
 
             term->interactive_resizing.grid = NULL;
             term->interactive_resizing.old_screen_rows = 0;
@@ -4145,7 +4149,7 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
         };
 
         grid_resize_and_reflow(
-            &term->normal, new_normal_grid_rows, new_cols, old_rows, new_rows,
+            &term->normal, new_normal_grid_rows, new_cols, old_normal_rows, new_rows,
             term->selection.coords.end.row >= 0 ? ALEN(tracking_points) : 0,
             tracking_points);
     }
