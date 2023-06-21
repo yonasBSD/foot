@@ -1244,6 +1244,9 @@ resize(struct terminal *term, int new_width, int new_height)
     const int old_width = term->sixel.image.width;
     const int old_height = term->sixel.image.height;
 
+    if (unlikely(old_width == new_width && old_height == new_height))
+        return true;
+
     const int sixel_row_height = 6 * term->sixel.pan;
     int alloc_new_width = new_width;
     int alloc_new_height = (new_height + sixel_row_height - 1) / sixel_row_height * sixel_row_height;
