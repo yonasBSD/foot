@@ -135,7 +135,7 @@ struct seat {
         struct wl_surface *surface;
         struct wl_cursor_theme *theme;
         struct wl_cursor *cursor;
-        int scale;
+        float scale;
         bool hidden;
 
         const char *xcursor;
@@ -442,7 +442,7 @@ struct wayland *wayl_init(
     bool presentation_timings);
 void wayl_destroy(struct wayland *wayl);
 
-bool wayl_reload_xcursor_theme(struct seat *seat, int new_scale);
+bool wayl_reload_xcursor_theme(struct seat *seat, float new_scale);
 
 void wayl_flush(struct wayland *wayl);
 void wayl_roundtrip(struct wayland *wayl);
