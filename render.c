@@ -3132,7 +3132,7 @@ render_search_box(struct terminal *term)
     const size_t wanted_visible_cells = max(20, total_cells);
 
     xassert(term->scale >= 1);
-    const int scale = term->scale;
+    const int scale = round(term->scale);
 
     const size_t margin = 3 * scale;
 
