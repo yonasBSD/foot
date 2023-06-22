@@ -2048,3 +2048,13 @@ wayl_get_activation_token(
     return true;
 }
 #endif
+
+bool
+wayl_fractional_scaling(const struct wayland *wayl)
+{
+#if defined(HAVE_FRACTIONAL_SCALE)
+    return wayl->fractional_scale_manager != NULL;
+#else
+    return false;
+#endif
+}
