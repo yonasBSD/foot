@@ -1830,8 +1830,8 @@ get_csd_data(const struct terminal *term, enum csd_surface surf_idx)
 static void
 csd_commit(struct terminal *term, struct wl_surface *surf, struct buffer *buf)
 {
-    xassert(buf->width % term->scale == 0);
-    xassert(buf->height % term->scale == 0);
+    xassert(buf->width % (int)term->scale == 0);
+    xassert(buf->height % (int)term->scale == 0);
 
     wl_surface_attach(surf, buf->wl_buf, 0, 0);
     wl_surface_damage_buffer(surf, 0, 0, buf->width, buf->height);
@@ -1926,8 +1926,8 @@ render_osd(struct terminal *term,
     pixman_image_unref(src);
     pixman_image_set_clip_region32(buf->pix[0], NULL);
 
-    xassert(buf->width % term->scale == 0);
-    xassert(buf->height % term->scale == 0);
+    xassert(buf->width % (int)term->scale == 0);
+    xassert(buf->height % (int)term->scale == 0);
 
     quirk_weston_subsurface_desync_on(sub_surf);
     wl_surface_attach(surf, buf->wl_buf, 0, 0);
@@ -1955,8 +1955,8 @@ render_csd_title(struct terminal *term, const struct csd_data *info,
     if (info->width == 0 || info->height == 0)
         return;
 
-    xassert(info->width % term->scale == 0);
-    xassert(info->height % term->scale == 0);
+    xassert(info->width % (int)term->scale == 0);
+    xassert(info->height % (int)term->scale == 0);
 
     uint32_t bg = term->conf->csd.color.title_set
         ? term->conf->csd.color.title
@@ -2000,8 +2000,8 @@ render_csd_border(struct terminal *term, enum csd_surface surf_idx,
     if (info->width == 0 || info->height == 0)
         return;
 
-    xassert(info->width % term->scale == 0);
-    xassert(info->height % term->scale == 0);
+    xassert(info->width % (int)term->scale == 0);
+    xassert(info->height % (int)term->scale == 0);
 
     {
         pixman_color_t color = color_hex_to_pixman_with_alpha(0, 0);
@@ -2289,8 +2289,8 @@ render_csd_button(struct terminal *term, enum csd_surface surf_idx,
     if (info->width == 0 || info->height == 0)
         return;
 
-    xassert(info->width % term->scale == 0);
-    xassert(info->height % term->scale == 0);
+    xassert(info->width % (int)term->scale == 0);
+    xassert(info->height % (int)term->scale == 0);
 
     uint32_t _color;
     uint16_t alpha = 0xffff;
@@ -3067,8 +3067,8 @@ grid_render(struct terminal *term)
             term->window->surface, 0, 0, INT32_MAX, INT32_MAX);
     }
 
-    xassert(buf->width % term->scale == 0);
-    xassert(buf->height % term->scale == 0);
+    xassert(buf->width % (int)term->scale == 0);
+    xassert(buf->height % (int)term->scale == 0);
 
     wl_surface_attach(term->window->surface, buf->wl_buf, 0, 0);
     wl_surface_commit(term->window->surface);

@@ -454,7 +454,7 @@ struct terminal {
         int fd;
     } blink;
 
-    int scale;
+    float scale;
     int width;  /* pixels */
     int height; /* pixels */
     int stashed_width;
