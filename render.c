@@ -3422,7 +3422,7 @@ render_urls(struct terminal *term)
     struct wl_window *win = term->window;
     xassert(tll_length(win->urls) > 0);
 
-    const int scale = term->scale;
+    const int scale = round(term->scale);
     const int x_margin = 2 * scale;
     const int y_margin = 1 * scale;
 
