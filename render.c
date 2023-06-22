@@ -2568,7 +2568,7 @@ render_render_timer(struct terminal *term, struct timespec render_time)
     char32_t text[256];
     mbstoc32(text, usecs_str, ALEN(text));
 
-    const int scale = term->scale;
+    const int scale = round(term->scale);
     const int cell_count = c32len(text);
     const int margin = 3 * scale;
     const int width =
