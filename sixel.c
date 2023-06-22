@@ -1048,10 +1048,17 @@ sixel_unhook(struct terminal *term)
         rows_avail -= image.rows;
 
         if (do_scroll) {
-             /* Yes, truncate last row. This matches XTerm’s, and VT382’s behavior */
+            /*
+             * Linefeeds - always one less than the number of rows
+             * occupied by the image.
+             *
+             * Unless this is *not* the last chunk. In that case,
+             * linefeed past the chunk, so that the next chunk
+             * "starts" at a "new" row.
+             */
             const int linefeed_count = rows_avail == 0
-                ? (image.height - 6 * term->sixel.pan + 1) / term->cell_height
-                : image.height / term->cell_height;
+                ? max(0, image.rows - 1)
+                : image.rows;
 
             xassert(rows_avail == 0 || image.height % term->cell_height == 0);
 
@@ -1060,9 +1067,28 @@ sixel_unhook(struct terminal *term)
 
             /* Position text cursor if this is the last image chunk */
             if (rows_avail == 0) {
+                int row = term->grid->cursor.point.row;
+
+                /*
+                 * Position the text cursor based on the **upper**
+                 * pixel, of the last sixel.
+                 *
+                 * In most cases, that’ll end up being the very last
+                 * row of the sixel (which we’re already at, thanks to
+                 * the linefeeds). But for some combinations of font
+                 * and image sizes, the final cursor position is
+                 * higher up.
+                 */
+                const int sixel_row_height = 6 * term->sixel.pan;
+                const int sixel_rows = (image.height + sixel_row_height - 1) / sixel_row_height;
+                const int upper_pixel_last_sixel = (sixel_rows - 1) * sixel_row_height;
+                const int term_rows = (upper_pixel_last_sixel + term->cell_height - 1) / term->cell_height;
+
+                row -= (image.rows - term_rows);
+
                 term_cursor_to(
                     term,
-                    term->grid->cursor.point.row,
+                    max(0, row),
                     (term->sixel.cursor_right_of_graphics
                      ? min(image.pos.col + image.cols, term->cols - 1)
                      : image.pos.col));
