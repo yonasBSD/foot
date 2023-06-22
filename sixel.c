@@ -1084,6 +1084,8 @@ sixel_unhook(struct terminal *term)
                 const int upper_pixel_last_sixel = (sixel_rows - 1) * sixel_row_height;
                 const int term_rows = (upper_pixel_last_sixel + term->cell_height - 1) / term->cell_height;
 
+                xassert(term_rows <= image.rows);
+
                 row -= (image.rows - term_rows);
 
                 term_cursor_to(
