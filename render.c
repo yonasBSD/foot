@@ -3868,13 +3868,13 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
     if (term->cell_width == 0 && term->cell_height == 0)
         return false;
 
-    int scale = -1;
+    float scale = -1;
     tll_foreach(term->window->on_outputs, it) {
         if (it->item->scale > scale)
             scale = it->item->scale;
     }
 
-    if (scale < 0) {
+    if (scale < 0.) {
         /* Haven't 'entered' an output yet? */
         scale = term->scale;
     }
@@ -3922,13 +3922,18 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
                  * Ensure we can scale to logical size, and back to
                  * pixels without truncating.
                  */
-                if (width % scale)
-                    width += scale - width % scale;
-                if (height % scale)
-                    height += scale - height % scale;
+                if (wayl_fractional_scaling(term->wl)) {
+                    xassert((int)round(scale) == (int)scale);
 
-                xassert(width % scale == 0);
-                xassert(height % scale == 0);
+                    int iscale = scale;
+                    if (width % iscale)
+                        width += iscale - width % iscale;
+                    if (height % iscale)
+                        height += iscale - height % iscale;
+
+                    xassert(width % iscale == 0);
+                    xassert(height % iscale == 0);
+                }
                 break;
             }
         }
