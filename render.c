@@ -2012,9 +2012,9 @@ render_csd_border(struct terminal *term, enum csd_surface surf_idx,
      * The “visible” border.
      */
 
-    int scale = term->scale;
-    int bwidth = term->conf->csd.border_width * scale;
-    int vwidth = term->conf->csd.border_width_visible * scale; /* Visible size */
+    float scale = term->scale;
+    int bwidth = round(term->conf->csd.border_width * scale);
+    int vwidth = round(term->conf->csd.border_width_visible * scale); /* Visible size */
 
     xassert(bwidth >= vwidth);
 
@@ -2066,7 +2066,6 @@ render_csd_border(struct terminal *term, enum csd_surface surf_idx,
 
         uint16_t alpha = _color >> 24 | (_color >> 24 << 8);
         pixman_color_t color = color_hex_to_pixman_with_alpha(_color, alpha);
-
 
         pixman_image_fill_rectangles(
             PIXMAN_OP_SRC, buf->pix[0], &color, 1,
