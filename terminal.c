@@ -1000,14 +1000,14 @@ reload_fonts(struct terminal *term)
             bool use_px_size = term->font_sizes[i][j].px_size > 0;
             char size[64];
 
-            const int scale = term->font_is_sized_by_dpi ? 1 : term->scale;
+            const float scale = term->font_is_sized_by_dpi ? 1. : term->scale;
 
             if (use_px_size)
                 snprintf(size, sizeof(size), ":pixelsize=%d",
-                         term->font_sizes[i][j].px_size * scale);
+                         (int)round(term->font_sizes[i][j].px_size * scale));
             else
                 snprintf(size, sizeof(size), ":size=%.2f",
-                         term->font_sizes[i][j].pt_size * (double)scale);
+                         term->font_sizes[i][j].pt_size * scale);
 
             size_t len = strlen(font->pattern) + strlen(size) + 1;
             names[i][j] = xmalloc(len);
@@ -1232,7 +1232,7 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
         .reverse_wrap = true,
         .auto_margin = true,
         .window_title_stack = tll_init(),
-        .scale = 1,
+        .scale = 1.,
         .flash = {.fd = flash_fd},
         .blink = {.fd = -1},
         .vt = {
