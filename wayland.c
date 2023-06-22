@@ -32,12 +32,12 @@
 #include "xmalloc.h"
 
 static void
-csd_reload_font(struct wl_window *win, int old_scale)
+csd_reload_font(struct wl_window *win, float old_scale)
 {
     struct terminal *term = win->term;
     const struct config *conf = term->conf;
 
-    const int scale = term->scale;
+    const float scale = term->scale;
 
     bool enable_csd = win->csd_mode == CSD_YES && !win->is_fullscreen;
     if (!enable_csd)
@@ -52,10 +52,10 @@ csd_reload_font(struct wl_window *win, int old_scale)
         patterns[i] = conf->csd.font.arr[i].pattern;
 
     char pixelsize[32];
-    snprintf(pixelsize, sizeof(pixelsize),
-             "pixelsize=%u", conf->csd.title_height * scale * 1 / 2);
+    snprintf(pixelsize, sizeof(pixelsize), "pixelsize=%u",
+             (int)round(conf->csd.title_height * scale * 1 / 2));
 
-    LOG_DBG("loading CSD font \"%s:%s\" (old-scale=%d, scale=%d)",
+    LOG_DBG("loading CSD font \"%s:%s\" (old-scale=%.2f, scale=%.2f)",
             patterns[0], pixelsize, old_scale, scale);
 
     win->csd.font = fcft_from_name(conf->csd.font.count, patterns, pixelsize);
@@ -79,7 +79,7 @@ csd_instantiate(struct wl_window *win)
         xassert(ret);
     }
 
-    csd_reload_font(win, -1);
+    csd_reload_font(win, -1.);
 }
 
 static void
@@ -334,7 +334,7 @@ update_term_for_output_change(struct terminal *term)
     if (tll_length(term->window->on_outputs) == 0)
         return;
 
-    int old_scale = term->scale;
+    float old_scale = term->scale;
 
     render_resize(term, term->width / term->scale, term->height / term->scale);
     term_font_dpi_changed(term, old_scale);
