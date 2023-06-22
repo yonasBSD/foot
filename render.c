@@ -311,7 +311,7 @@ static void
 draw_unfocused_block(const struct terminal *term, pixman_image_t *pix,
                      const pixman_color_t *color, int x, int y, int cell_cols)
 {
-    const int scale = term->scale;
+    const int scale = round(term->scale);
     const int width = min(min(scale, term->cell_width), term->cell_height);
 
     pixman_image_fill_rectangles(
