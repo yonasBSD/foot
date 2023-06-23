@@ -87,7 +87,7 @@ empty string to be set, but it must be quoted: *KEY=""*)
 	Examples:
 	```
 	font-size-adjustment=0.5   # Adjust by 0.5 points
-	font-size-adjustment=10xp  # Adjust by 10 pixels
+	font-size-adjustment=10px  # Adjust by 10 pixels
 	font-size-adjustment=7.5%  # Adjust by 7.5 percent
 	```
 	
