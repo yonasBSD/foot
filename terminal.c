@@ -2714,6 +2714,7 @@ term_scroll_partial(struct terminal *term, struct scroll_region region, int rows
     term->grid->offset &= term->grid->num_rows - 1;
 
     if (likely(view_follows)) {
+        term_damage_scroll(term, DAMAGE_SCROLL, region, rows);
         selection_view_down(term, term->grid->offset);
         term->grid->view = term->grid->offset;
     } else if (unlikely(rows > view_sb_start_distance)) {
@@ -2737,13 +2738,12 @@ term_scroll_partial(struct terminal *term, struct scroll_region region, int rows
         erase_line(term, row);
     }
 
+    term->grid->cur_row = grid_row(term->grid, term->grid->cursor.point.row);
+
 #if defined(_DEBUG)
     for (int r = 0; r < term->rows; r++)
         xassert(grid_row(term->grid, r) != NULL);
 #endif
-
-    term_damage_scroll(term, DAMAGE_SCROLL, region, rows);
-    term->grid->cur_row = grid_row(term->grid, term->grid->cursor.point.row);
 }
 
 void
@@ -2800,6 +2800,7 @@ term_scroll_reverse_partial(struct terminal *term,
     xassert(term->grid->offset < term->grid->num_rows);
 
     if (view_follows) {
+        term_damage_scroll(term, DAMAGE_SCROLL_REVERSE, region, rows);
         selection_view_up(term, term->grid->offset);
         term->grid->view = term->grid->offset;
     }
@@ -2818,7 +2819,6 @@ term_scroll_reverse_partial(struct terminal *term,
         erase_line(term, row);
     }
 
-    term_damage_scroll(term, DAMAGE_SCROLL_REVERSE, region, rows);
     term->grid->cur_row = grid_row(term->grid, term->grid->cursor.point.row);
 
 #if defined(_DEBUG)

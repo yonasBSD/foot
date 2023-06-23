@@ -89,10 +89,13 @@
   opaque and non-opaque at runtime (using OSC-11).
 * Regression: crash when resizing the window when `resize-delay-ms >
   0` ([#1377][1377]).
+* Crash when scrolling up while running something that generates a lot
+  of output (for example, `yes`) ([#1380][1380]).
 
 [1317]: https://codeberg.org/dnkl/foot/issues/1317
 [1355]: https://codeberg.org/dnkl/foot/issues/1355
 [1377]: https://codeberg.org/dnkl/foot/issues/1377
+[1380]: https://codeberg.org/dnkl/foot/issues/1380
 
 
 ### Security
