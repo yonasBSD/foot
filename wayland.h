@@ -455,7 +455,7 @@ void wayl_roundtrip(struct wayland *wayl);
 
 bool wayl_fractional_scaling(const struct wayland *wayl);
 void wayl_surface_scale(
-    const struct wayland *wayl, struct wl_surface *surf, float scale);
+    const struct wayland *wayl, const struct wayl_surface *surf, float scale);
 
 struct wl_window *wayl_win_init(struct terminal *term, const char *token);
 void wayl_win_destroy(struct wl_window *win);

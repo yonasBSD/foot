@@ -1691,7 +1691,7 @@ render_overlay(struct terminal *term)
         &(pixman_rectangle16_t){0, 0, term->width, term->height});
 
     quirk_weston_subsurface_desync_on(overlay->sub);
-    wayl_surface_scale(term->wl, overlay->surface.surf, term->scale);
+    wayl_surface_scale(term->wl, &overlay->surface, term->scale);
     wl_subsurface_set_position(overlay->sub, 0, 0);
     wl_surface_attach(overlay->surface.surf, buf->wl_buf, 0, 0);
 
@@ -1828,12 +1828,12 @@ get_csd_data(const struct terminal *term, enum csd_surface surf_idx)
 }
 
 static void
-csd_commit(struct terminal *term, struct wl_surface *surf, struct buffer *buf)
+csd_commit(struct terminal *term, struct wayl_surface *surf, struct buffer *buf)
 {
     wayl_surface_scale(term->wl, surf, term->scale);
-    wl_surface_attach(surf, buf->wl_buf, 0, 0);
-    wl_surface_damage_buffer(surf, 0, 0, buf->width, buf->height);
-    wl_surface_commit(surf);
+    wl_surface_attach(surf->surf, buf->wl_buf, 0, 0);
+    wl_surface_damage_buffer(surf->surf, 0, 0, buf->width, buf->height);
+    wl_surface_commit(surf->surf);
 }
 
 static void
@@ -1849,8 +1849,7 @@ render_csd_part(struct terminal *term,
 }
 
 static void
-render_osd(struct terminal *term,
-           struct wl_surface *surf, struct wl_subsurface *sub_surf,
+render_osd(struct terminal *term, const struct wayl_sub_surface *sub_surf,
            struct fcft_font *font, struct buffer *buf,
            const char32_t *text, uint32_t _fg, uint32_t _bg,
            unsigned x, unsigned y)
@@ -1923,20 +1922,20 @@ render_osd(struct terminal *term,
     pixman_image_unref(src);
     pixman_image_set_clip_region32(buf->pix[0], NULL);
 
-    quirk_weston_subsurface_desync_on(sub_surf);
-    wayl_surface_scale(term->wl, surf, term->scale);
-    wl_surface_attach(surf, buf->wl_buf, 0, 0);
-    wl_surface_damage_buffer(surf, 0, 0, buf->width, buf->height);
+    quirk_weston_subsurface_desync_on(sub_surf->sub);
+    wayl_surface_scale(term->wl, &sub_surf->surface, term->scale);
+    wl_surface_attach(sub_surf->surface.surf, buf->wl_buf, 0, 0);
+    wl_surface_damage_buffer(sub_surf->surface.surf, 0, 0, buf->width, buf->height);
 
     struct wl_region *region = wl_compositor_create_region(term->wl->compositor);
     if (region != NULL) {
         wl_region_add(region, 0, 0, buf->width, buf->height);
-        wl_surface_set_opaque_region(surf, region);
+        wl_surface_set_opaque_region(sub_surf->surface.surf, region);
         wl_region_destroy(region);
     }
 
-    wl_surface_commit(surf);
-    quirk_weston_subsurface_desync_off(sub_surf);
+    wl_surface_commit(sub_surf->surface.surf);
+    quirk_weston_subsurface_desync_off(sub_surf->sub);
 }
 
 static void
@@ -1971,11 +1970,10 @@ render_csd_title(struct terminal *term, const struct csd_data *info,
 
     const int margin = M != NULL ? M->advance.x : win->csd.font->max_advance.x;
 
-    render_osd(term, surf->surface.surf, surf->sub, win->csd.font,
-               buf, title_text, fg, bg, margin,
+    render_osd(term, surf, win->csd.font, buf, title_text, fg, bg, margin,
                (buf->height - win->csd.font->height) / 2);
 
-    csd_commit(term, surf->surface.surf, buf);
+    csd_commit(term, &surf->surface, buf);
     free(_title_text);
 }
 
@@ -1986,14 +1984,14 @@ render_csd_border(struct terminal *term, enum csd_surface surf_idx,
     xassert(term->window->csd_mode == CSD_YES);
     xassert(surf_idx >= CSD_SURF_LEFT && surf_idx <= CSD_SURF_BOTTOM);
 
-    struct wl_surface *surf = term->window->csd.surface[surf_idx].surface.surf;
+    struct wayl_surface *surf = &term->window->csd.surface[surf_idx].surface;
 
     if (info->width == 0 || info->height == 0)
         return;
 
     {
         pixman_color_t color = color_hex_to_pixman_with_alpha(0, 0);
-        render_csd_part(term, surf, buf, info->width, info->height, &color);
+        render_csd_part(term, surf->surf, buf, info->width, info->height, &color);
     }
 
     /*
@@ -2271,7 +2269,7 @@ render_csd_button(struct terminal *term, enum csd_surface surf_idx,
     xassert(term->window->csd_mode == CSD_YES);
     xassert(surf_idx >= CSD_SURF_MINIMIZE && surf_idx <= CSD_SURF_CLOSE);
 
-    struct wl_surface *surf = term->window->csd.surface[surf_idx].surface.surf;
+    struct wayl_surface *surf = &term->window->csd.surface[surf_idx].surface;
 
     if (info->width == 0 || info->height == 0)
         return;
@@ -2323,7 +2321,7 @@ render_csd_button(struct terminal *term, enum csd_surface surf_idx,
         _color = color_dim(term, _color);
 
     pixman_color_t color = color_hex_to_pixman_with_alpha(_color, alpha);
-    render_csd_part(term, surf, buf, info->width, info->height, &color);
+    render_csd_part(term, surf->surf, buf, info->width, info->height, &color);
 
     switch (surf_idx) {
     case CSD_SURF_MINIMIZE: render_csd_button_minimize(term, buf); break;
@@ -2534,8 +2532,7 @@ render_scrollback_position(struct terminal *term)
 
     render_osd(
         term,
-        win->scrollback_indicator.surface.surf,
-        win->scrollback_indicator.sub,
+        &win->scrollback_indicator,
         term->fonts[0], buf, text,
         fg, 0xffu << 24 | bg,
         width - margin - c32len(text) * term->cell_width, margin);
@@ -2571,8 +2568,7 @@ render_render_timer(struct terminal *term, struct timespec render_time)
 
     render_osd(
         term,
-        win->render_timer.surface.surf,
-        win->render_timer.sub,
+        &win->render_timer,
         term->fonts[0], buf, text,
         term->colors.table[0], 0xffu << 24 | term->colors.table[8 + 1],
         margin, margin);
@@ -3374,7 +3370,7 @@ render_search_box(struct terminal *term)
         margin / term->scale,
         max(0, (int32_t)term->height - height - margin) / term->scale);
 
-    wayl_surface_scale(term->wl, term->window->search.surface.surf, term->scale);
+    wayl_surface_scale(term->wl, &term->window->search.surface, term->scale);
     wl_surface_attach(term->window->search.surface.surf, buf->wl_buf, 0, 0);
     wl_surface_damage_buffer(term->window->search.surface.surf, 0, 0, width, height);
 
@@ -3601,23 +3597,22 @@ render_urls(struct terminal *term)
         : term->colors.table[3];
 
     for (size_t i = 0; i < render_count; i++) {
-        struct wl_surface *surf = info[i].url->surf.surface.surf;
-        struct wl_subsurface *sub_surf = info[i].url->surf.sub;
+        const struct wayl_sub_surface *sub_surf = &info[i].url->surf;
 
         const char32_t *label = info[i].text;
         const int x = info[i].x;
         const int y = info[i].y;
 
-        xassert(surf != NULL);
-        xassert(sub_surf != NULL);
+        xassert(sub_surf->surface.surf != NULL);
+        xassert(sub_surf->sub != NULL);
 
         wl_subsurface_set_position(
-            sub_surf,
+            sub_surf->sub,
             (term->margins.left + x) / term->scale,
             (term->margins.top + y) / term->scale);
 
         render_osd(
-            term, surf, sub_surf, term->fonts[0], bufs[i], label,
+            term, sub_surf, term->fonts[0], bufs[i], label,
             fg, 0xffu << 24 | bg, x_margin, y_margin);
 
         free(info[i].text);
@@ -4263,7 +4258,7 @@ render_xcursor_update(struct seat *seat)
     const float scale = seat->pointer.scale;
     struct wl_cursor_image *image = seat->pointer.cursor->images[0];
 
-    wayl_surface_scale(seat->wayl, seat->pointer.surface.surf, scale);
+    wayl_surface_scale(seat->wayl, &seat->pointer.surface, scale);
 
     wl_surface_attach(
         seat->pointer.surface.surf, wl_cursor_image_get_buffer(image), 0, 0);
