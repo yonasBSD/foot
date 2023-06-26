@@ -297,6 +297,9 @@ struct monitor {
 struct wl_surf_subsurf {
     struct wl_surface *surf;
     struct wl_subsurface *sub;
+#if defined(HAVE_FRACTIONAL_SCALE)
+    struct wp_viewport *viewport;
+#endif
 };
 
 struct wl_url {

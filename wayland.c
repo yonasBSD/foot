@@ -1543,7 +1543,6 @@ wayl_win_init(struct terminal *term, const char *token)
 
 #if defined(HAVE_FRACTIONAL_SCALE)
     if (wayl->fractional_scale_manager != NULL && wayl->viewporter != NULL) {
-        LOG_ERR("LDKJFLDF");
         win->viewport = wp_viewporter_get_viewport(wayl->viewporter, win->surface);
 
         win->fractional_scale =
@@ -1965,16 +1964,32 @@ wayl_win_subsurface_new_with_custom_parent(
     struct wl_surface *main_surface
         = wl_compositor_create_surface(wayl->compositor);
 
-    if (main_surface == NULL)
+    if (main_surface == NULL) {
+        LOG_ERR("failed to instantiate surface for sub-surface");
         return false;
+    }
 
     struct wl_subsurface *sub = wl_subcompositor_get_subsurface(
         wayl->sub_compositor, main_surface, parent);
 
     if (sub == NULL) {
+        LOG_ERR("failed to instantiate sub-surface");
         wl_surface_destroy(main_surface);
         return false;
     }
+
+#if defined(HAVE_FRACTIONAL_SCALE)
+    struct wp_viewport *viewport = NULL;
+    if (wayl->fractional_scale_manager != NULL &&  wayl->viewporter != NULL) {
+        viewport = wp_viewporter_get_viewport(wayl->viewporter, main_surface);
+        if (viewport == NULL) {
+            LOG_ERR("failed to instantiate viewport for sub-surface");
+            wl_subsurface_destroy(sub);
+            wl_surface_destroy(main_surface);
+            return false;
+        }
+    }
+#endif
 
     wl_surface_set_user_data(main_surface, win);
     wl_subsurface_set_sync(sub);
@@ -1989,6 +2004,9 @@ wayl_win_subsurface_new_with_custom_parent(
 
     surf->surf = main_surface;
     surf->sub = sub;
+#if defined(HAVE_FRACTIONAL_SCALE)
+    surf->viewport = viewport;
+#endif
     return true;
 }
 
@@ -2005,6 +2023,11 @@ wayl_win_subsurface_destroy(struct wl_surf_subsurf *surf)
 {
     if (surf == NULL)
         return;
+
+#if defined(HAVE_FRACTIONAL_SCALE)
+    if (surf->viewport != NULL)
+        wp_viewport_destroy(surf->viewport);
+#endif
     if (surf->sub != NULL)
         wl_subsurface_destroy(surf->sub);
     if (surf->surf != NULL)
