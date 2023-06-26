@@ -37,3 +37,12 @@ static inline bool feature_graphemes(void)
     return false;
 #endif
 }
+
+static inline bool feature_fractional_scaling(void)
+{
+#if defined(HAVE_FRACTIONAL_SCALE)
+    return true;
+#else
+    return false;
+#endif
+}
