@@ -1691,7 +1691,8 @@ render_overlay(struct terminal *term)
         &(pixman_rectangle16_t){0, 0, term->width, term->height});
 
     quirk_weston_subsurface_desync_on(overlay->sub);
-    wayl_surface_scale(term->wl, &overlay->surface, term->scale);
+    wayl_surface_scale(
+        term->wl, &overlay->surface, buf, term->scale);
     wl_subsurface_set_position(overlay->sub, 0, 0);
     wl_surface_attach(overlay->surface.surf, buf->wl_buf, 0, 0);
 
@@ -1830,7 +1831,7 @@ get_csd_data(const struct terminal *term, enum csd_surface surf_idx)
 static void
 csd_commit(struct terminal *term, struct wayl_surface *surf, struct buffer *buf)
 {
-    wayl_surface_scale(term->wl, surf, term->scale);
+    wayl_surface_scale(term->wl, surf, buf, term->scale);
     wl_surface_attach(surf->surf, buf->wl_buf, 0, 0);
     wl_surface_damage_buffer(surf->surf, 0, 0, buf->width, buf->height);
     wl_surface_commit(surf->surf);
@@ -1923,7 +1924,7 @@ render_osd(struct terminal *term, const struct wayl_sub_surface *sub_surf,
     pixman_image_set_clip_region32(buf->pix[0], NULL);
 
     quirk_weston_subsurface_desync_on(sub_surf->sub);
-    wayl_surface_scale(term->wl, &sub_surf->surface, term->scale);
+    wayl_surface_scale(term->wl, &sub_surf->surface, buf, term->scale);
     wl_surface_attach(sub_surf->surface.surf, buf->wl_buf, 0, 0);
     wl_surface_damage_buffer(sub_surf->surface.surf, 0, 0, buf->width, buf->height);
 
@@ -3013,7 +3014,7 @@ grid_render(struct terminal *term)
     term->window->frame_callback = wl_surface_frame(term->window->surface.surf);
     wl_callback_add_listener(term->window->frame_callback, &frame_listener, term);
 
-    wayl_win_scale(term->window);
+    wayl_win_scale(term->window, buf);
 
     if (term->wl->presentation != NULL && term->conf->presentation_timings) {
         struct timespec commit_time;
@@ -3370,7 +3371,7 @@ render_search_box(struct terminal *term)
         margin / term->scale,
         max(0, (int32_t)term->height - height - margin) / term->scale);
 
-    wayl_surface_scale(term->wl, &term->window->search.surface, term->scale);
+    wayl_surface_scale(term->wl, &term->window->search.surface, buf, term->scale);
     wl_surface_attach(term->window->search.surface.surf, buf->wl_buf, 0, 0);
     wl_surface_damage_buffer(term->window->search.surface.surf, 0, 0, width, height);
 
@@ -3843,9 +3844,13 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
         return false;
 
     float scale = -1;
-    tll_foreach(term->window->on_outputs, it) {
-        if (it->item->scale > scale)
-            scale = it->item->scale;
+    if (wayl_fractional_scaling(term->wl)) {
+        scale = term->window->scale;
+    } else {
+        tll_foreach(term->window->on_outputs, it) {
+            if (it->item->scale > scale)
+                scale = it->item->scale;
+        }
     }
 
     if (scale < 0.) {
@@ -4257,11 +4262,12 @@ render_xcursor_update(struct seat *seat)
 
     const float scale = seat->pointer.scale;
     struct wl_cursor_image *image = seat->pointer.cursor->images[0];
+    struct wl_buffer *buf = wl_cursor_image_get_buffer(image);
 
-    wayl_surface_scale(seat->wayl, &seat->pointer.surface, scale);
+    wayl_surface_scale_explicit_width_height(
+        seat->wayl, &seat->pointer.surface, image->width, image->height, scale);
 
-    wl_surface_attach(
-        seat->pointer.surface.surf, wl_cursor_image_get_buffer(image), 0, 0);
+    wl_surface_attach(seat->pointer.surface.surf, buf, 0, 0);
 
     wl_pointer_set_cursor(
         seat->wl_pointer, seat->pointer.serial,

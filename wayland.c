@@ -1865,8 +1865,9 @@ wayl_fractional_scaling(const struct wayland *wayl)
 }
 
 void
-wayl_surface_scale(const struct wayland *wayl, const struct wayl_surface *surf,
-                   float scale)
+wayl_surface_scale_explicit_width_height(
+    const struct wayland *wayl, const struct wayl_surface *surf,
+    int width, int height, float scale)
 {
     LOG_WARN("scaling by a factor of %.2f (legacy)", scale);
 
@@ -1878,13 +1879,21 @@ wayl_surface_scale(const struct wayland *wayl, const struct wayl_surface *surf,
 }
 
 void
-wayl_win_scale(struct wl_window *win)
+wayl_surface_scale(const struct wayland *wayl, const struct wayl_surface *surf,
+                   const struct buffer *buf, float scale)
+{
+    wayl_surface_scale_explicit_width_height(
+        wayl, surf, buf->width, buf->height, scale);
+}
+
+void
+wayl_win_scale(struct wl_window *win, const struct buffer *buf)
 {
     const struct terminal *term = win->term;
     const struct wayland *wayl = term->wl;
     const float scale = term->scale;
 
-    wayl_surface_scale(wayl, &win->surface, scale);
+    wayl_surface_scale(wayl, &win->surface, buf, scale);
 }
 
 void
