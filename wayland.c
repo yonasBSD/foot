@@ -1386,6 +1386,14 @@ wayl_init(struct fdm *fdm, struct key_binding_manager *key_binding_manager,
             "bell.urgent will fall back to coloring the window margins red");
     }
 
+#if defined(HAVE_FRACTIONAL_SCALE)
+    if (wayl->fractional_scale_manager == NULL || wayl->viewporter == NULL) {
+#else
+    if (true) {
+#endif
+        LOG_WARN("fractional scaling not available");
+    }
+
     if (presentation_timings && wayl->presentation == NULL) {
         LOG_ERR("presentation time interface not implemented by compositor");
         goto out;
