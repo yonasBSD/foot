@@ -373,11 +373,6 @@ update_terms_on_monitor(struct monitor *mon)
     tll_foreach(wayl->terms, it) {
         struct terminal *term = it->item;
 
-        if (term->conf->dpi_aware == DPI_AWARE_AUTO) {
-            update_term_for_output_change(term);
-            continue;
-        }
-
         tll_foreach(term->window->on_outputs, it2) {
             if (it2->item == mon) {
                 update_term_for_output_change(term);

@@ -972,17 +972,8 @@ parse_section_main(struct context *ctx)
     else if (strcmp(key, "underline-thickness") == 0)
         return value_to_pt_or_px(ctx, &conf->underline_thickness);
 
-    else if (strcmp(key, "dpi-aware") == 0) {
-        if (strcmp(value, "auto") == 0)
-            conf->dpi_aware = DPI_AWARE_AUTO;
-        else {
-            bool value;
-            if (!value_to_bool(ctx, &value))
-                return false;
-            conf->dpi_aware = value ? DPI_AWARE_YES : DPI_AWARE_NO;
-        }
-        return true;
-    }
+    else if (strcmp(key, "dpi-aware") == 0)
+        return value_to_bool(ctx, &conf->dpi_aware);
 
     else if (strcmp(key, "workers") == 0)
         return value_to_uint16(ctx, 10, &conf->render_worker_count);
@@ -2939,7 +2930,7 @@ config_load(struct config *conf, const char *conf_path,
         .use_custom_underline_offset = false,
         .box_drawings_uses_font_glyphs = false,
         .underline_thickness = {.pt = 0., .px = -1},
-        .dpi_aware = DPI_AWARE_AUTO, /* DPI-aware when scaling-factor == 1 */
+        .dpi_aware = false,
         .bell = {
             .urgent = false,
             .notify = false,

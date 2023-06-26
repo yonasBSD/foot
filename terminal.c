@@ -912,42 +912,6 @@ get_font_subpixel(const struct terminal *term)
     return FCFT_SUBPIXEL_DEFAULT;
 }
 
-static bool
-term_font_size_by_dpi(const struct terminal *term)
-{
-    switch (term->conf->dpi_aware) {
-    case DPI_AWARE_YES:  return true;
-    case DPI_AWARE_NO:   return false;
-
-    case DPI_AWARE_AUTO:
-        /*
-         * Scale using DPI if all monitors have a scaling factor or 1.
-         *
-         * The idea is this: if a user, with multiple monitors, have
-         * enabled scaling on at least one monitor, then he/she has
-         * most likely done so to match the size of his/hers other
-         * monitors.
-         *
-         * I.e. if the user has one monitor with a scaling factor of
-         * one, and another with a scaling factor of two, he/she
-         * expects things to be twice as large on the second
-         * monitor.
-         *
-         * If we (foot) scale using DPI on the first monitor, and
-         * using the scaling factor on the second monitor, foot will
-         * *not* look twice as big on the second monitor.
-         */
-        tll_foreach(term->wl->monitors, it) {
-            const struct monitor *mon = &it->item;
-            if (mon->scale > 1)
-                return false;
-        }
-        return true;
-    }
-
-    BUG("unhandled DPI awareness value");
-}
-
 int
 term_pt_or_px_as_pixels(const struct terminal *term,
                         const struct pt_or_px *pt_or_px)
@@ -2158,7 +2122,7 @@ term_font_dpi_changed(struct terminal *term, int old_scale)
     xassert(term->scale > 0);
 
     bool was_scaled_using_dpi = term->font_is_sized_by_dpi;
-    bool will_scale_using_dpi = term_font_size_by_dpi(term);
+    bool will_scale_using_dpi = term->conf->dpi_aware;
 
     bool need_font_reload =
         was_scaled_using_dpi != will_scale_using_dpi ||
