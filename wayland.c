@@ -1889,11 +1889,20 @@ wayl_surface_scale_explicit_width_height(
     const struct wayland *wayl, const struct wayl_surface *surf,
     int width, int height, float scale)
 {
-    LOG_WARN("scaling by a factor of %.2f (legacy)", scale);
 
     if (wayl_fractional_scaling(wayl)) {
-        BUG("not yet implemented");
+#if defined(HAVE_FRACTIONAL_SCALE)
+        LOG_DBG("scaling by a factor of %.2f (fractional scaling)", scale);
+        wp_viewport_set_destination(
+            surf->viewport,
+            round((float)width / scale),
+            round((float)height / scale));
+#else
+        BUG("wayl_fraction_scaling() returned true, "
+            "but fractional scaling was not available at compile time").
+#endif
     } else {
+        LOG_DBG("scaling by a factor of %.2f (legacy)", scale);
         wl_surface_set_buffer_scale(surf->surf, (int)scale);
     }
 }
