@@ -346,6 +346,7 @@ struct wl_window {
     bool unmapped;
 
     float scale;
+    bool have_preferred_scale;
 
     struct zxdg_toplevel_decoration_v1 *xdg_toplevel_decoration;
 

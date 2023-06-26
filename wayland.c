@@ -1529,6 +1529,7 @@ static void fractional_scale_preferred_scale(
 {
     struct wl_window *win = data;
     win->scale = (float)scale / 120.;
+    win->have_preferred_scale = true;
 
     LOG_DBG("fractional scale: %.3f", win->scale);
     update_term_for_output_change(win->term);
@@ -1895,7 +1896,7 @@ wayl_surface_scale_explicit_width_height(
     int width, int height, float scale)
 {
 
-    if (wayl_fractional_scaling(wayl)) {
+    if (wayl_fractional_scaling(win->term->wl) && win->have_preferred_scale) {
 #if defined(HAVE_FRACTIONAL_SCALE)
         LOG_DBG("scaling by a factor of %.2f (fractional scaling)", scale);
         wp_viewport_set_destination(
