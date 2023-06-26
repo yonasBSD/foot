@@ -293,12 +293,26 @@ seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
     if (caps & WL_SEAT_CAPABILITY_POINTER) {
         if (seat->wl_pointer == NULL) {
             xassert(seat->pointer.surface.surf == NULL);
-            seat->pointer.surface.surf = wl_compositor_create_surface(seat->wayl->compositor);
+            seat->pointer.surface.surf =
+                wl_compositor_create_surface(seat->wayl->compositor);
 
             if (seat->pointer.surface.surf == NULL) {
                 LOG_ERR("%s: failed to create pointer surface", seat->name);
                 return;
             }
+
+#if defined(HAVE_FRACTIONAL_SCALE)
+            xassert(seat->pointer.surface.viewport == NULL);
+            seat->pointer.surface.viewport = wp_viewporter_get_viewport(
+                seat->wayl->viewporter, seat->pointer.surface.surf);
+
+            if (seat->pointer.surface.viewport == NULL) {
+                LOG_ERR("%s: failed to create pointer viewport", seat->name);
+                wl_surface_destroy(seat->pointer.surface.surf);
+                seat->pointer.surface.surf = NULL;
+                return;
+            }
+#endif
 
             seat->wl_pointer = wl_seat_get_pointer(wl_seat);
             wl_pointer_add_listener(seat->wl_pointer, &pointer_listener, seat);
@@ -307,6 +321,11 @@ seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
         if (seat->wl_pointer != NULL) {
             wl_pointer_release(seat->wl_pointer);
             wl_surface_destroy(seat->pointer.surface.surf);
+
+#if defined(HAVE_FRACTIONAL_SCALE)
+            wp_viewport_destroy(seat->pointer.surface.viewport);
+            seat->pointer.surface.viewport = NULL;
+#endif
 
             if (seat->pointer.theme != NULL)
                 wl_cursor_theme_destroy(seat->pointer.theme);
