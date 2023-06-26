@@ -1526,7 +1526,9 @@ static void fractional_scale_preferred_scale(
 {
     struct wl_window *win = data;
     win->scale = (float)scale / 120.;
+
     LOG_DBG("fractional scale: %.3f", win->scale);
+    update_term_for_output_change(win->term);
 }
 
 static const struct wp_fractional_scale_v1_listener fractional_scale_listener = {
