@@ -3349,6 +3349,8 @@ UNITTEST
     user_notifications_t nots = tll_init();
     config_override_t overrides = tll_init();
 
+    fcft_init(FCFT_LOG_COLORIZE_NEVER, false, FCFT_LOG_CLASS_NONE);
+
     bool ret = config_load(&original, "/dev/null", &nots, &overrides, false, false);
     xassert(ret);
 
@@ -3359,6 +3361,8 @@ UNITTEST
     config_free(&original);
     config_free(clone);
     free(clone);
+
+    fcft_fini();
 
     tll_free(overrides);
     tll_free(nots);
