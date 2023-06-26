@@ -1692,7 +1692,7 @@ render_overlay(struct terminal *term)
 
     quirk_weston_subsurface_desync_on(overlay->sub);
     wayl_surface_scale(
-        term->wl, &overlay->surface, buf, term->scale);
+        term->window, &overlay->surface, buf, term->scale);
     wl_subsurface_set_position(overlay->sub, 0, 0);
     wl_surface_attach(overlay->surface.surf, buf->wl_buf, 0, 0);
 
@@ -1831,7 +1831,7 @@ get_csd_data(const struct terminal *term, enum csd_surface surf_idx)
 static void
 csd_commit(struct terminal *term, struct wayl_surface *surf, struct buffer *buf)
 {
-    wayl_surface_scale(term->wl, surf, buf, term->scale);
+    wayl_surface_scale(term->window, surf, buf, term->scale);
     wl_surface_attach(surf->surf, buf->wl_buf, 0, 0);
     wl_surface_damage_buffer(surf->surf, 0, 0, buf->width, buf->height);
     wl_surface_commit(surf->surf);
@@ -1924,7 +1924,7 @@ render_osd(struct terminal *term, const struct wayl_sub_surface *sub_surf,
     pixman_image_set_clip_region32(buf->pix[0], NULL);
 
     quirk_weston_subsurface_desync_on(sub_surf->sub);
-    wayl_surface_scale(term->wl, &sub_surf->surface, buf, term->scale);
+    wayl_surface_scale(term->window, &sub_surf->surface, buf, term->scale);
     wl_surface_attach(sub_surf->surface.surf, buf->wl_buf, 0, 0);
     wl_surface_damage_buffer(sub_surf->surface.surf, 0, 0, buf->width, buf->height);
 
@@ -3371,7 +3371,7 @@ render_search_box(struct terminal *term)
         margin / term->scale,
         max(0, (int32_t)term->height - height - margin) / term->scale);
 
-    wayl_surface_scale(term->wl, &term->window->search.surface, buf, term->scale);
+    wayl_surface_scale(term->window, &term->window->search.surface, buf, term->scale);
     wl_surface_attach(term->window->search.surface.surf, buf->wl_buf, 0, 0);
     wl_surface_damage_buffer(term->window->search.surface.surf, 0, 0, width, height);
 
@@ -4265,7 +4265,8 @@ render_xcursor_update(struct seat *seat)
     struct wl_buffer *buf = wl_cursor_image_get_buffer(image);
 
     wayl_surface_scale_explicit_width_height(
-        seat->wayl, &seat->pointer.surface, image->width, image->height, scale);
+        seat->mouse_focus->window,
+        &seat->pointer.surface, image->width, image->height, scale);
 
     wl_surface_attach(seat->pointer.surface.surf, buf, 0, 0);
 

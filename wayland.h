@@ -456,10 +456,10 @@ void wayl_roundtrip(struct wayland *wayl);
 
 bool wayl_fractional_scaling(const struct wayland *wayl);
 void wayl_surface_scale(
-    const struct wayland *wayl, const struct wayl_surface *surf,
+    const struct wl_window *win, const struct wayl_surface *surf,
     const struct buffer *buf, float scale);
 void wayl_surface_scale_explicit_width_height(
-    const struct wayland *wayl, const struct wayl_surface *surf,
+    const struct wl_window *win, const struct wayl_surface *surf,
     int width, int height, float scale);
 
 struct wl_window *wayl_win_init(struct terminal *term, const char *token);
