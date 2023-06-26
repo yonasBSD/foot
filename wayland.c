@@ -1550,6 +1550,7 @@ wayl_win_init(struct terminal *term, const char *token)
     win->csd_mode = CSD_UNKNOWN;
     win->csd.move_timeout_fd = -1;
     win->resize_timeout_fd = -1;
+    win->scale = -1.;
 
     win->wm_capabilities.maximize = true;
     win->wm_capabilities.minimize = true;
