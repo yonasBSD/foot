@@ -1898,7 +1898,9 @@ wayl_surface_scale_explicit_width_height(
 
     if (wayl_fractional_scaling(win->term->wl) && win->have_preferred_scale) {
 #if defined(HAVE_FRACTIONAL_SCALE)
-        LOG_DBG("scaling by a factor of %.2f (fractional scaling)", scale);
+        LOG_DBG("scaling by a factor of %.2f using fractional scaling "
+                "(width=%d, height=%d) ", scale, width, height);
+
         wp_viewport_set_destination(
             surf->viewport,
             round((float)width / scale),
@@ -1908,7 +1910,8 @@ wayl_surface_scale_explicit_width_height(
             "but fractional scaling was not available at compile time").
 #endif
     } else {
-        LOG_DBG("scaling by a factor of %.2f (legacy)", scale);
+        LOG_DBG("scaling by a factor of %.2f using legacy mode "
+                "(width=%d, height=%d)", scale, width, height);
 
         xassert(scale == floor(scale));
 
