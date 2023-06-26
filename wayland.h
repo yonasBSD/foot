@@ -45,6 +45,18 @@ enum data_offer_mime_type {
     DATA_OFFER_MIME_TEXT_UTF8_STRING,
 };
 
+struct wayl_surface {
+    struct wl_surface *surf;
+#if defined(HAVE_FRACTIONAL_SCALE)
+    struct wp_viewport *viewport;
+#endif
+};
+
+struct wayl_sub_surface {
+    struct wayl_surface surface;
+    struct wl_subsurface *sub;
+};
+
 struct wl_window;
 struct wl_clipboard {
     struct wl_window *window;  /* For DnD */
@@ -132,7 +144,7 @@ struct seat {
     struct {
         uint32_t serial;
 
-        struct wl_surface *surface;
+        struct wayl_surface surface;
         struct wl_cursor_theme *theme;
         struct wl_cursor *cursor;
         float scale;
@@ -294,17 +306,9 @@ struct monitor {
     bool use_output_release;
 };
 
-struct wl_surf_subsurf {
-    struct wl_surface *surf;
-    struct wl_subsurface *sub;
-#if defined(HAVE_FRACTIONAL_SCALE)
-    struct wp_viewport *viewport;
-#endif
-};
-
 struct wl_url {
     const struct url *url;
-    struct wl_surf_subsurf surf;
+    struct wayl_sub_surface surf;
 };
 
 enum csd_mode {CSD_UNKNOWN, CSD_NO, CSD_YES};
@@ -328,7 +332,7 @@ struct xdg_activation_token_context {
 struct wayland;
 struct wl_window {
     struct terminal *term;
-    struct wl_surface *surface;
+    struct wayl_surface surface;
     struct xdg_surface *xdg_surface;
     struct xdg_toplevel *xdg_toplevel;
 #if defined(HAVE_XDG_ACTIVATION)
@@ -336,7 +340,6 @@ struct wl_window {
     bool urgency_token_is_pending;
 #endif
 #if defined(HAVE_FRACTIONAL_SCALE)
-    struct wp_viewport *viewport;
     struct wp_fractional_scale_v1 *fractional_scale;
 #endif
     bool unmapped;
@@ -348,7 +351,7 @@ struct wl_window {
     enum csd_mode csd_mode;
 
     struct {
-        struct wl_surf_subsurf surface[CSD_SURF_COUNT];
+        struct wayl_sub_surface surface[CSD_SURF_COUNT];
         struct fcft_font *font;
         int move_timeout_fd;
         uint32_t serial;
@@ -359,10 +362,10 @@ struct wl_window {
         bool minimize:1;
     } wm_capabilities;
 
-    struct wl_surf_subsurf search;
-    struct wl_surf_subsurf scrollback_indicator;
-    struct wl_surf_subsurf render_timer;
-    struct wl_surf_subsurf overlay;
+    struct wayl_sub_surface search;
+    struct wayl_sub_surface scrollback_indicator;
+    struct wayl_sub_surface render_timer;
+    struct wayl_sub_surface overlay;
 
     struct wl_callback *frame_callback;
 
@@ -465,12 +468,12 @@ bool wayl_win_csd_titlebar_visible(const struct wl_window *win);
 bool wayl_win_csd_borders_visible(const struct wl_window *win);
 
 bool wayl_win_subsurface_new(
-    struct wl_window *win, struct wl_surf_subsurf *surf,
+    struct wl_window *win, struct wayl_sub_surface *surf,
     bool allow_pointer_input);
 bool wayl_win_subsurface_new_with_custom_parent(
     struct wl_window *win, struct wl_surface *parent,
-    struct wl_surf_subsurf *surf, bool allow_pointer_input);
-void wayl_win_subsurface_destroy(struct wl_surf_subsurf *surf);
+    struct wayl_sub_surface *surf, bool allow_pointer_input);
+void wayl_win_subsurface_destroy(struct wayl_sub_surface *surf);
 
 #if defined(HAVE_XDG_ACTIVATION)
 bool wayl_get_activation_token(

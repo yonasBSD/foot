@@ -905,21 +905,21 @@ render_margin(struct terminal *term, struct buffer *buf,
     if (apply_damage) {
         /* Top */
         wl_surface_damage_buffer(
-            term->window->surface, 0, 0, term->width, term->margins.top);
+            term->window->surface.surf, 0, 0, term->width, term->margins.top);
 
         /* Bottom */
         wl_surface_damage_buffer(
-            term->window->surface, 0, bmargin, term->width, term->margins.bottom);
+            term->window->surface.surf, 0, bmargin, term->width, term->margins.bottom);
 
         /* Left */
         wl_surface_damage_buffer(
-            term->window->surface,
+            term->window->surface.surf,
             0, term->margins.top + start_line * term->cell_height,
             term->margins.left, line_count * term->cell_height);
 
         /* Right */
         wl_surface_damage_buffer(
-            term->window->surface,
+            term->window->surface.surf,
             rmargin, term->margins.top + start_line * term->cell_height,
             term->margins.right, line_count * term->cell_height);
     }
@@ -1027,7 +1027,7 @@ grid_render_scroll(struct terminal *term, struct buffer *buf,
 #endif
 
     wl_surface_damage_buffer(
-        term->window->surface, term->margins.left, dst_y,
+        term->window->surface.surf, term->margins.left, dst_y,
         term->width - term->margins.left - term->margins.right, height);
 
     /*
@@ -1104,7 +1104,7 @@ grid_render_scroll_reverse(struct terminal *term, struct buffer *buf,
 #endif
 
     wl_surface_damage_buffer(
-        term->window->surface, term->margins.left, dst_y,
+        term->window->surface.surf, term->margins.left, dst_y,
         term->width - term->margins.left - term->margins.right, height);
 
     /*
@@ -1153,7 +1153,7 @@ render_sixel_chunk(struct terminal *term, pixman_image_t *pix, const struct sixe
         x, y,
         width, height);
 
-    wl_surface_damage_buffer(term->window->surface, x, y, width, height);
+    wl_surface_damage_buffer(term->window->surface.surf, x, y, width, height);
 }
 
 static void
@@ -1480,7 +1480,7 @@ render_ime_preedit_for_seat(struct terminal *term, struct seat *seat,
     free(real_cells);
 
     wl_surface_damage_buffer(
-        term->window->surface,
+        term->window->surface.surf,
         term->margins.left,
         term->margins.top + row_idx * term->cell_height,
         term->width - term->margins.left - term->margins.right,
@@ -1502,7 +1502,7 @@ render_ime_preedit(struct terminal *term, struct buffer *buf)
 static void
 render_overlay(struct terminal *term)
 {
-    struct wl_surf_subsurf *overlay = &term->window->overlay;
+    struct wayl_sub_surface *overlay = &term->window->overlay;
     bool unicode_mode_active = false;
 
     /* Check if unicode mode is active on at least one seat focusing
@@ -1523,8 +1523,8 @@ render_overlay(struct terminal *term)
     if (likely(style == OVERLAY_NONE)) {
         if (term->render.last_overlay_style != OVERLAY_NONE) {
             /* Unmap overlay sub-surface */
-            wl_surface_attach(overlay->surf, NULL, 0, 0);
-            wl_surface_commit(overlay->surf);
+            wl_surface_attach(overlay->surface.surf, NULL, 0, 0);
+            wl_surface_commit(overlay->surface.surf);
             term->render.last_overlay_style = OVERLAY_NONE;
             term->render.last_overlay_buf = NULL;
 
@@ -1691,17 +1691,17 @@ render_overlay(struct terminal *term)
         &(pixman_rectangle16_t){0, 0, term->width, term->height});
 
     quirk_weston_subsurface_desync_on(overlay->sub);
-    wayl_surface_scale(term->wl, overlay->surf, term->scale);
+    wayl_surface_scale(term->wl, overlay->surface.surf, term->scale);
     wl_subsurface_set_position(overlay->sub, 0, 0);
-    wl_surface_attach(overlay->surf, buf->wl_buf, 0, 0);
+    wl_surface_attach(overlay->surface.surf, buf->wl_buf, 0, 0);
 
     wl_surface_damage_buffer(
-        overlay->surf,
+        overlay->surface.surf,
         damage_bounds.x1, damage_bounds.y1,
         damage_bounds.x2 - damage_bounds.x1,
         damage_bounds.y2 - damage_bounds.y1);
 
-    wl_surface_commit(overlay->surf);
+    wl_surface_commit(overlay->surface.surf);
     quirk_weston_subsurface_desync_off(overlay->sub);
 
     buf->age = 0;
@@ -1945,7 +1945,7 @@ render_csd_title(struct terminal *term, const struct csd_data *info,
 {
     xassert(term->window->csd_mode == CSD_YES);
 
-    struct wl_surf_subsurf *surf = &term->window->csd.surface[CSD_SURF_TITLE];
+    struct wayl_sub_surface *surf = &term->window->csd.surface[CSD_SURF_TITLE];
     if (info->width == 0 || info->height == 0)
         return;
 
@@ -1971,11 +1971,11 @@ render_csd_title(struct terminal *term, const struct csd_data *info,
 
     const int margin = M != NULL ? M->advance.x : win->csd.font->max_advance.x;
 
-    render_osd(term, surf->surf, surf->sub, win->csd.font,
+    render_osd(term, surf->surface.surf, surf->sub, win->csd.font,
                buf, title_text, fg, bg, margin,
                (buf->height - win->csd.font->height) / 2);
 
-    csd_commit(term, surf->surf, buf);
+    csd_commit(term, surf->surface.surf, buf);
     free(_title_text);
 }
 
@@ -1986,7 +1986,7 @@ render_csd_border(struct terminal *term, enum csd_surface surf_idx,
     xassert(term->window->csd_mode == CSD_YES);
     xassert(surf_idx >= CSD_SURF_LEFT && surf_idx <= CSD_SURF_BOTTOM);
 
-    struct wl_surface *surf = term->window->csd.surface[surf_idx].surf;
+    struct wl_surface *surf = term->window->csd.surface[surf_idx].surface.surf;
 
     if (info->width == 0 || info->height == 0)
         return;
@@ -2271,7 +2271,7 @@ render_csd_button(struct terminal *term, enum csd_surface surf_idx,
     xassert(term->window->csd_mode == CSD_YES);
     xassert(surf_idx >= CSD_SURF_MINIMIZE && surf_idx <= CSD_SURF_CLOSE);
 
-    struct wl_surface *surf = term->window->csd.surface[surf_idx].surf;
+    struct wl_surface *surf = term->window->csd.surface[surf_idx].surface.surf;
 
     if (info->width == 0 || info->height == 0)
         return;
@@ -2358,7 +2358,7 @@ render_csd(struct terminal *term)
         const int width = infos[i].width;
         const int height = infos[i].height;
 
-        struct wl_surface *surf = term->window->csd.surface[i].surf;
+        struct wl_surface *surf = term->window->csd.surface[i].surface.surf;
         struct wl_subsurface *sub = term->window->csd.surface[i].sub;
 
         xassert(surf != NULL);
@@ -2397,7 +2397,7 @@ render_scrollback_position(struct terminal *term)
     struct wl_window *win = term->window;
 
     if (term->grid->view == term->grid->offset) {
-        if (win->scrollback_indicator.surf != NULL) {
+        if (win->scrollback_indicator.surface.surf != NULL) {
             wayl_win_subsurface_destroy(&win->scrollback_indicator);
 
             /* Work around Sway bug - unmapping a sub-surface does not damage
@@ -2407,7 +2407,7 @@ render_scrollback_position(struct terminal *term)
         return;
     }
 
-    if (win->scrollback_indicator.surf == NULL) {
+    if (win->scrollback_indicator.surface.surf == NULL) {
         if (!wayl_win_subsurface_new(
                 win, &win->scrollback_indicator, false))
         {
@@ -2416,7 +2416,7 @@ render_scrollback_position(struct terminal *term)
         }
     }
 
-    xassert(win->scrollback_indicator.surf != NULL);
+    xassert(win->scrollback_indicator.surface.surf != NULL);
     xassert(win->scrollback_indicator.sub != NULL);
 
     /* Find absolute row number of the scrollback start */
@@ -2514,8 +2514,8 @@ render_scrollback_position(struct terminal *term)
     const int y = (term->margins.top + surf_top) / scale * scale;
 
     if (y + height > term->height) {
-        wl_surface_attach(win->scrollback_indicator.surf, NULL, 0, 0);
-        wl_surface_commit(win->scrollback_indicator.surf);
+        wl_surface_attach(win->scrollback_indicator.surface.surf, NULL, 0, 0);
+        wl_surface_commit(win->scrollback_indicator.surface.surf);
         return;
     }
 
@@ -2534,7 +2534,7 @@ render_scrollback_position(struct terminal *term)
 
     render_osd(
         term,
-        win->scrollback_indicator.surf,
+        win->scrollback_indicator.surface.surf,
         win->scrollback_indicator.sub,
         term->fonts[0], buf, text,
         fg, 0xffu << 24 | bg,
@@ -2571,7 +2571,7 @@ render_render_timer(struct terminal *term, struct timespec render_time)
 
     render_osd(
         term,
-        win->render_timer.surf,
+        win->render_timer.surface.surf,
         win->render_timer.sub,
         term->fonts[0], buf, text,
         term->colors.table[0], 0xffu << 24 | term->colors.table[8 + 1],
@@ -2919,7 +2919,7 @@ grid_render(struct terminal *term)
                 int height = (r - first_dirty_row) * term->cell_height;
 
                 wl_surface_damage_buffer(
-                    term->window->surface, x, y, width, height);
+                    term->window->surface.surf, x, y, width, height);
                 pixman_region32_union_rect(
                     &buf->dirty, &buf->dirty, 0, y, buf->width, height);
             }
@@ -2947,7 +2947,7 @@ grid_render(struct terminal *term)
         int width = term->width - term->margins.left - term->margins.right;
         int height = (term->rows - first_dirty_row) * term->cell_height;
 
-        wl_surface_damage_buffer(term->window->surface, x, y, width, height);
+        wl_surface_damage_buffer(term->window->surface.surf, x, y, width, height);
         pixman_region32_union_rect(&buf->dirty, &buf->dirty, 0, y, buf->width, height);
     }
 
@@ -3014,7 +3014,7 @@ grid_render(struct terminal *term)
     xassert(term->grid->view >= 0 && term->grid->view < term->grid->num_rows);
 
     xassert(term->window->frame_callback == NULL);
-    term->window->frame_callback = wl_surface_frame(term->window->surface);
+    term->window->frame_callback = wl_surface_frame(term->window->surface.surf);
     wl_callback_add_listener(term->window->frame_callback, &frame_listener, term);
 
     wayl_win_scale(term->window);
@@ -3024,7 +3024,7 @@ grid_render(struct terminal *term)
         clock_gettime(term->wl->presentation_clock_id, &commit_time);
 
         struct wp_presentation_feedback *feedback = wp_presentation_feedback(
-            term->wl->presentation, term->window->surface);
+            term->wl->presentation, term->window->surface.surf);
 
         if (feedback == NULL) {
             LOG_WARN("failed to create presentation feedback");
@@ -3048,11 +3048,11 @@ grid_render(struct terminal *term)
 
     if (term->conf->tweak.damage_whole_window) {
         wl_surface_damage_buffer(
-            term->window->surface, 0, 0, INT32_MAX, INT32_MAX);
+            term->window->surface.surf, 0, 0, INT32_MAX, INT32_MAX);
     }
 
-    wl_surface_attach(term->window->surface, buf->wl_buf, 0, 0);
-    wl_surface_commit(term->window->surface);
+    wl_surface_attach(term->window->surface.surf, buf->wl_buf, 0, 0);
+    wl_surface_commit(term->window->surface.surf);
 }
 
 static void
@@ -3374,18 +3374,18 @@ render_search_box(struct terminal *term)
         margin / term->scale,
         max(0, (int32_t)term->height - height - margin) / term->scale);
 
-    wayl_surface_scale(term->wl, term->window->search.surf, term->scale);
-    wl_surface_attach(term->window->search.surf, buf->wl_buf, 0, 0);
-    wl_surface_damage_buffer(term->window->search.surf, 0, 0, width, height);
+    wayl_surface_scale(term->wl, term->window->search.surface.surf, term->scale);
+    wl_surface_attach(term->window->search.surface.surf, buf->wl_buf, 0, 0);
+    wl_surface_damage_buffer(term->window->search.surface.surf, 0, 0, width, height);
 
     struct wl_region *region = wl_compositor_create_region(term->wl->compositor);
     if (region != NULL) {
         wl_region_add(region, width - visible_width, 0, visible_width, height);
-        wl_surface_set_opaque_region(term->window->search.surf, region);
+        wl_surface_set_opaque_region(term->window->search.surface.surf, region);
         wl_region_destroy(region);
     }
 
-    wl_surface_commit(term->window->search.surf);
+    wl_surface_commit(term->window->search.surface.surf);
     quirk_weston_subsurface_desync_off(term->window->search.sub);
 
 #if defined(FOOT_IME_ENABLED) && FOOT_IME_ENABLED
@@ -3466,7 +3466,7 @@ render_urls(struct terminal *term)
             continue;
         }
 
-        struct wl_surface *surf = it->item.surf.surf;
+        struct wl_surface *surf = it->item.surf.surface.surf;
         struct wl_subsurface *sub_surf = it->item.surf.sub;
 
         if (surf == NULL || sub_surf == NULL)
@@ -3601,7 +3601,7 @@ render_urls(struct terminal *term)
         : term->colors.table[3];
 
     for (size_t i = 0; i < render_count; i++) {
-        struct wl_surface *surf = info[i].url->surf.surf;
+        struct wl_surface *surf = info[i].url->surf.surface.surf;
         struct wl_subsurface *sub_surf = info[i].url->surf.sub;
 
         const char32_t *label = info[i].text;
@@ -4253,8 +4253,8 @@ render_xcursor_update(struct seat *seat)
 
     if (seat->pointer.xcursor == XCURSOR_HIDDEN) {
         /* Hide cursor */
-        wl_surface_attach(seat->pointer.surface, NULL, 0, 0);
-        wl_surface_commit(seat->pointer.surface);
+        wl_surface_attach(seat->pointer.surface.surf, NULL, 0, 0);
+        wl_surface_commit(seat->pointer.surface.surf);
         return;
     }
 
@@ -4263,24 +4263,24 @@ render_xcursor_update(struct seat *seat)
     const float scale = seat->pointer.scale;
     struct wl_cursor_image *image = seat->pointer.cursor->images[0];
 
-    wayl_surface_scale(seat->wayl, seat->pointer.surface, scale);
+    wayl_surface_scale(seat->wayl, seat->pointer.surface.surf, scale);
 
     wl_surface_attach(
-        seat->pointer.surface, wl_cursor_image_get_buffer(image), 0, 0);
+        seat->pointer.surface.surf, wl_cursor_image_get_buffer(image), 0, 0);
 
     wl_pointer_set_cursor(
         seat->wl_pointer, seat->pointer.serial,
-        seat->pointer.surface,
+        seat->pointer.surface.surf,
         image->hotspot_x / scale, image->hotspot_y / scale);
 
     wl_surface_damage_buffer(
-        seat->pointer.surface, 0, 0, INT32_MAX, INT32_MAX);
+        seat->pointer.surface.surf, 0, 0, INT32_MAX, INT32_MAX);
 
     xassert(seat->pointer.xcursor_callback == NULL);
-    seat->pointer.xcursor_callback = wl_surface_frame(seat->pointer.surface);
+    seat->pointer.xcursor_callback = wl_surface_frame(seat->pointer.surface.surf);
     wl_callback_add_listener(seat->pointer.xcursor_callback, &xcursor_listener, seat);
 
-    wl_surface_commit(seat->pointer.surface);
+    wl_surface_commit(seat->pointer.surface.surf);
 }
 
 static void

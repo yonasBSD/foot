@@ -74,7 +74,7 @@ csd_instantiate(struct wl_window *win)
 
     for (size_t i = CSD_SURF_MINIMIZE; i < CSD_SURF_COUNT; i++) {
         bool ret = wayl_win_subsurface_new_with_custom_parent(
-            win, win->csd.surface[CSD_SURF_TITLE].surf, &win->csd.surface[i],
+            win, win->csd.surface[CSD_SURF_TITLE].surface.surf, &win->csd.surface[i],
             true);
         xassert(ret);
     }
@@ -187,8 +187,12 @@ seat_destroy(struct seat *seat)
 
     if (seat->pointer.theme != NULL)
         wl_cursor_theme_destroy(seat->pointer.theme);
-    if (seat->pointer.surface != NULL)
-        wl_surface_destroy(seat->pointer.surface);
+    if (seat->pointer.surface.surf != NULL)
+        wl_surface_destroy(seat->pointer.surface.surf);
+#if defined(HAVE_FRACTIONAL_SCALE)
+    if (seat->pointer.surface.viewport != NULL)
+        wp_viewport_destroy(seat->pointer.surface.viewport);
+#endif
     if (seat->pointer.xcursor_callback != NULL)
         wl_callback_destroy(seat->pointer.xcursor_callback);
 
@@ -288,10 +292,10 @@ seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
 
     if (caps & WL_SEAT_CAPABILITY_POINTER) {
         if (seat->wl_pointer == NULL) {
-            xassert(seat->pointer.surface == NULL);
-            seat->pointer.surface = wl_compositor_create_surface(seat->wayl->compositor);
+            xassert(seat->pointer.surface.surf == NULL);
+            seat->pointer.surface.surf = wl_compositor_create_surface(seat->wayl->compositor);
 
-            if (seat->pointer.surface == NULL) {
+            if (seat->pointer.surface.surf == NULL) {
                 LOG_ERR("%s: failed to create pointer surface", seat->name);
                 return;
             }
@@ -302,13 +306,13 @@ seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
     } else {
         if (seat->wl_pointer != NULL) {
             wl_pointer_release(seat->wl_pointer);
-            wl_surface_destroy(seat->pointer.surface);
+            wl_surface_destroy(seat->pointer.surface.surf);
 
             if (seat->pointer.theme != NULL)
                 wl_cursor_theme_destroy(seat->pointer.theme);
 
             seat->wl_pointer = NULL;
-            seat->pointer.surface = NULL;
+            seat->pointer.surface.surf = NULL;
             seat->pointer.theme = NULL;
             seat->pointer.cursor = NULL;
         }
@@ -848,7 +852,7 @@ xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
          * anytime soon. Some compositors require a commit in
          * combination with an ack - make them happy.
          */
-        wl_surface_commit(win->surface);
+        wl_surface_commit(win->surface.surf);
     }
 
     if (wasnt_configured)
@@ -1225,7 +1229,7 @@ handle_global_remove(void *data, struct wl_registry *registry, uint32_t name)
 
             if (seat->wl_keyboard != NULL)
                 keyboard_listener.leave(
-                    seat, seat->wl_keyboard, -1, seat->kbd_focus->window->surface);
+                    seat, seat->wl_keyboard, -1, seat->kbd_focus->window->surface.surf);
         }
 
         if (seat->mouse_focus != NULL) {
@@ -1235,7 +1239,7 @@ handle_global_remove(void *data, struct wl_registry *registry, uint32_t name)
 
             if (seat->wl_pointer != NULL)
                 pointer_listener.leave(
-                    seat, seat->wl_pointer, -1, seat->mouse_focus->window->surface);
+                    seat, seat->wl_pointer, -1, seat->mouse_focus->window->surface.surf);
         }
 
         seat_destroy(seat);
@@ -1531,29 +1535,29 @@ wayl_win_init(struct terminal *term, const char *token)
     win->wm_capabilities.maximize = true;
     win->wm_capabilities.minimize = true;
 
-    win->surface = wl_compositor_create_surface(wayl->compositor);
-    if (win->surface == NULL) {
+    win->surface.surf = wl_compositor_create_surface(wayl->compositor);
+    if (win->surface.surf == NULL) {
         LOG_ERR("failed to create wayland surface");
         goto out;
     }
 
     wayl_win_alpha_changed(win);
 
-    wl_surface_add_listener(win->surface, &surface_listener, win);
+    wl_surface_add_listener(win->surface.surf, &surface_listener, win);
 
 #if defined(HAVE_FRACTIONAL_SCALE)
     if (wayl->fractional_scale_manager != NULL && wayl->viewporter != NULL) {
-        win->viewport = wp_viewporter_get_viewport(wayl->viewporter, win->surface);
+        win->surface.viewport = wp_viewporter_get_viewport(wayl->viewporter, win->surface.surf);
 
         win->fractional_scale =
             wp_fractional_scale_manager_v1_get_fractional_scale(
-                wayl->fractional_scale_manager, win->surface);
+                wayl->fractional_scale_manager, win->surface.surf);
         wp_fractional_scale_v1_add_listener(
             win->fractional_scale, &fractional_scale_listener, win);
     }
 #endif
 
-    win->xdg_surface = xdg_wm_base_get_xdg_surface(wayl->shell, win->surface);
+    win->xdg_surface = xdg_wm_base_get_xdg_surface(wayl->shell, win->surface.surf);
     xdg_surface_add_listener(win->xdg_surface, &xdg_surface_listener, win);
 
     win->xdg_toplevel = xdg_surface_get_toplevel(win->xdg_surface);
@@ -1586,12 +1590,12 @@ wayl_win_init(struct terminal *term, const char *token)
         LOG_WARN("no decoration manager available - using CSDs unconditionally");
     }
 
-    wl_surface_commit(win->surface);
+    wl_surface_commit(win->surface.surf);
 
 #if defined(HAVE_XDG_ACTIVATION)
     /* Complete XDG startup notification */
     if (token)
-        xdg_activation_v1_activate(wayl->xdg_activation, token, win->surface);
+        xdg_activation_v1_activate(wayl->xdg_activation, token, win->surface.surf);
 #endif
 
     if (!wayl_win_subsurface_new(win, &win->overlay, false)) {
@@ -1641,33 +1645,33 @@ wayl_win_destroy(struct wl_window *win)
      * nor mouse focus).
      */
 
-    if (win->render_timer.surf != NULL) {
-        wl_surface_attach(win->render_timer.surf, NULL, 0, 0);
-        wl_surface_commit(win->render_timer.surf);
+    if (win->render_timer.surface.surf != NULL) {
+        wl_surface_attach(win->render_timer.surface.surf, NULL, 0, 0);
+        wl_surface_commit(win->render_timer.surface.surf);
     }
 
-    if (win->scrollback_indicator.surf != NULL) {
-        wl_surface_attach(win->scrollback_indicator.surf, NULL, 0, 0);
-        wl_surface_commit(win->scrollback_indicator.surf);
+    if (win->scrollback_indicator.surface.surf != NULL) {
+        wl_surface_attach(win->scrollback_indicator.surface.surf, NULL, 0, 0);
+        wl_surface_commit(win->scrollback_indicator.surface.surf);
     }
 
     /* Scrollback search */
-    if (win->search.surf != NULL) {
-        wl_surface_attach(win->search.surf, NULL, 0, 0);
-        wl_surface_commit(win->search.surf);
+    if (win->search.surface.surf != NULL) {
+        wl_surface_attach(win->search.surface.surf, NULL, 0, 0);
+        wl_surface_commit(win->search.surface.surf);
     }
 
     /* URLs */
     tll_foreach(win->urls, it) {
-        wl_surface_attach(it->item.surf.surf, NULL, 0, 0);
-        wl_surface_commit(it->item.surf.surf);
+        wl_surface_attach(it->item.surf.surface.surf, NULL, 0, 0);
+        wl_surface_commit(it->item.surf.surface.surf);
     }
 
     /* CSD */
     for (size_t i = 0; i < ALEN(win->csd.surface); i++) {
-        if (win->csd.surface[i].surf != NULL) {
-            wl_surface_attach(win->csd.surface[i].surf, NULL, 0, 0);
-            wl_surface_commit(win->csd.surface[i].surf);
+        if (win->csd.surface[i].surface.surf != NULL) {
+            wl_surface_attach(win->csd.surface[i].surface.surf, NULL, 0, 0);
+            wl_surface_commit(win->csd.surface[i].surface.surf);
         }
     }
 
@@ -1675,8 +1679,8 @@ wayl_win_destroy(struct wl_window *win)
 
         /* Main window */
     win->unmapped = true;
-    wl_surface_attach(win->surface, NULL, 0, 0);
-    wl_surface_commit(win->surface);
+    wl_surface_attach(win->surface.surf, NULL, 0, 0);
+    wl_surface_commit(win->surface.surf);
     wayl_roundtrip(win->term->wl);
 
     tll_free(win->on_outputs);
@@ -1710,8 +1714,8 @@ wayl_win_destroy(struct wl_window *win)
 #if defined(HAVE_FRACTIONAL_SCALE)
     if (win->fractional_scale != NULL)
         wp_fractional_scale_v1_destroy(win->fractional_scale);
-    if (win->viewport != NULL)
-        wp_viewport_destroy(win->viewport);
+    if (win->surface.viewport != NULL)
+        wp_viewport_destroy(win->surface.viewport);
 #endif
     if (win->frame_callback != NULL)
         wl_callback_destroy(win->frame_callback);
@@ -1721,8 +1725,8 @@ wayl_win_destroy(struct wl_window *win)
         xdg_toplevel_destroy(win->xdg_toplevel);
     if (win->xdg_surface != NULL)
         xdg_surface_destroy(win->xdg_surface);
-    if (win->surface != NULL)
-        wl_surface_destroy(win->surface);
+    if (win->surface.surf != NULL)
+        wl_surface_destroy(win->surface.surf);
 
     wayl_roundtrip(win->term->wl);
 
@@ -1880,7 +1884,7 @@ wayl_win_scale(struct wl_window *win)
     const struct wayland *wayl = term->wl;
     const float scale = term->scale;
 
-    wayl_surface_scale(wayl, win->surface, scale);
+    wayl_surface_scale(wayl, win->surface.surf, scale);
 }
 
 void
@@ -1894,11 +1898,11 @@ wayl_win_alpha_changed(struct wl_window *win)
 
         if (region != NULL) {
             wl_region_add(region, 0, 0, INT32_MAX, INT32_MAX);
-            wl_surface_set_opaque_region(win->surface, region);
+            wl_surface_set_opaque_region(win->surface.surf, region);
             wl_region_destroy(region);
         }
     } else
-        wl_surface_set_opaque_region(win->surface, NULL);
+        wl_surface_set_opaque_region(win->surface.surf, NULL);
 }
 
 #if defined(HAVE_XDG_ACTIVATION)
@@ -1909,7 +1913,7 @@ activation_token_for_urgency_done(const char *token, void *data)
     struct wayland *wayl = win->term->wl;
 
     win->urgency_token_is_pending = false;
-    xdg_activation_v1_activate(wayl->xdg_activation, token, win->surface);
+    xdg_activation_v1_activate(wayl->xdg_activation, token, win->surface.surf);
 }
 #endif /* HAVE_XDG_ACTIVATION */
 
@@ -1954,11 +1958,11 @@ wayl_win_csd_borders_visible(const struct wl_window *win)
 bool
 wayl_win_subsurface_new_with_custom_parent(
     struct wl_window *win, struct wl_surface *parent,
-    struct wl_surf_subsurf *surf, bool allow_pointer_input)
+    struct wayl_sub_surface *surf, bool allow_pointer_input)
 {
     struct wayland *wayl = win->term->wl;
 
-    surf->surf = NULL;
+    surf->surface.surf = NULL;
     surf->sub = NULL;
 
     struct wl_surface *main_surface
@@ -2002,39 +2006,42 @@ wayl_win_subsurface_new_with_custom_parent(
         wl_region_destroy(empty);
     }
 
-    surf->surf = main_surface;
+    surf->surface.surf = main_surface;
     surf->sub = sub;
 #if defined(HAVE_FRACTIONAL_SCALE)
-    surf->viewport = viewport;
+    surf->surface.viewport = viewport;
 #endif
     return true;
 }
 
 bool
-wayl_win_subsurface_new(struct wl_window *win, struct wl_surf_subsurf *surf,
+wayl_win_subsurface_new(struct wl_window *win, struct wayl_sub_surface *surf,
                         bool allow_pointer_input)
 {
     return wayl_win_subsurface_new_with_custom_parent(
-        win, win->surface, surf, allow_pointer_input);
+        win, win->surface.surf, surf, allow_pointer_input);
 }
 
 void
-wayl_win_subsurface_destroy(struct wl_surf_subsurf *surf)
+wayl_win_subsurface_destroy(struct wayl_sub_surface *surf)
 {
     if (surf == NULL)
         return;
 
 #if defined(HAVE_FRACTIONAL_SCALE)
-    if (surf->viewport != NULL)
-        wp_viewport_destroy(surf->viewport);
+    if (surf->surface.viewport != NULL) {
+        wp_viewport_destroy(surf->surface.viewport);
+        surf->surface.viewport = NULL;
+    }
 #endif
-    if (surf->sub != NULL)
+    if (surf->sub != NULL) {
         wl_subsurface_destroy(surf->sub);
-    if (surf->surf != NULL)
-        wl_surface_destroy(surf->surf);
-
-    surf->surf = NULL;
-    surf->sub = NULL;
+        surf->sub = NULL;
+    }
+    if (surf->surface.surf != NULL) {
+        wl_surface_destroy(surf->surface.surf);
+        surf->surface.surf = NULL;
+    }
 }
 
 #if defined(HAVE_XDG_ACTIVATION)
@@ -2099,7 +2106,7 @@ wayl_get_activation_token(
     if (seat != NULL && serial != 0)
         xdg_activation_token_v1_set_serial(token, serial, seat->wl_seat);
 
-    xdg_activation_token_v1_set_surface(token, win->surface);
+    xdg_activation_token_v1_set_surface(token, win->surface.surf);
     xdg_activation_token_v1_add_listener(token, &activation_token_listener, ctx);
     xdg_activation_token_v1_commit(token);
     return true;

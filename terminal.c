@@ -3589,23 +3589,23 @@ term_single_shift(struct terminal *term, enum charset_designator idx)
 enum term_surface
 term_surface_kind(const struct terminal *term, const struct wl_surface *surface)
 {
-    if (likely(surface == term->window->surface))
+    if (likely(surface == term->window->surface.surf))
         return TERM_SURF_GRID;
-    else if (surface == term->window->csd.surface[CSD_SURF_TITLE].surf)
+    else if (surface == term->window->csd.surface[CSD_SURF_TITLE].surface.surf)
         return TERM_SURF_TITLE;
-    else if (surface == term->window->csd.surface[CSD_SURF_LEFT].surf)
+    else if (surface == term->window->csd.surface[CSD_SURF_LEFT].surface.surf)
         return TERM_SURF_BORDER_LEFT;
-    else if (surface == term->window->csd.surface[CSD_SURF_RIGHT].surf)
+    else if (surface == term->window->csd.surface[CSD_SURF_RIGHT].surface.surf)
         return TERM_SURF_BORDER_RIGHT;
-    else if (surface == term->window->csd.surface[CSD_SURF_TOP].surf)
+    else if (surface == term->window->csd.surface[CSD_SURF_TOP].surface.surf)
         return TERM_SURF_BORDER_TOP;
-    else if (surface == term->window->csd.surface[CSD_SURF_BOTTOM].surf)
+    else if (surface == term->window->csd.surface[CSD_SURF_BOTTOM].surface.surf)
         return TERM_SURF_BORDER_BOTTOM;
-    else if (surface == term->window->csd.surface[CSD_SURF_MINIMIZE].surf)
+    else if (surface == term->window->csd.surface[CSD_SURF_MINIMIZE].surface.surf)
         return TERM_SURF_BUTTON_MINIMIZE;
-    else if (surface == term->window->csd.surface[CSD_SURF_MAXIMIZE].surf)
+    else if (surface == term->window->csd.surface[CSD_SURF_MAXIMIZE].surface.surf)
         return TERM_SURF_BUTTON_MAXIMIZE;
-    else if (surface == term->window->csd.surface[CSD_SURF_CLOSE].surf)
+    else if (surface == term->window->csd.surface[CSD_SURF_CLOSE].surface.surf)
         return TERM_SURF_BUTTON_CLOSE;
     else
         return TERM_SURF_NONE;
