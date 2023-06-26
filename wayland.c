@@ -1850,6 +1850,40 @@ wayl_roundtrip(struct wayland *wayl)
     wayl_flush(wayl);
 }
 
+
+bool
+wayl_fractional_scaling(const struct wayland *wayl)
+{
+#if defined(HAVE_FRACTIONAL_SCALE)
+    return wayl->fractional_scale_manager != NULL;
+#else
+    return false;
+#endif
+}
+
+void
+wayl_surface_scale(const struct wayland *wayl, struct wl_surface *surf,
+                   float scale)
+{
+    LOG_WARN("scaling by a factor of %.2f (legacy)", scale);
+
+    if (wayl_fractional_scaling(wayl)) {
+        BUG("not yet implemented");
+    } else {
+        wl_surface_set_buffer_scale(surf, (int)scale);
+    }
+}
+
+void
+wayl_win_scale(struct wl_window *win)
+{
+    const struct terminal *term = win->term;
+    const struct wayland *wayl = term->wl;
+    const float scale = term->scale;
+
+    wayl_surface_scale(wayl, win->surface, scale);
+}
+
 void
 wayl_win_alpha_changed(struct wl_window *win)
 {
@@ -2048,13 +2082,3 @@ wayl_get_activation_token(
     return true;
 }
 #endif
-
-bool
-wayl_fractional_scaling(const struct wayland *wayl)
-{
-#if defined(HAVE_FRACTIONAL_SCALE)
-    return wayl->fractional_scale_manager != NULL;
-#else
-    return false;
-#endif
-}

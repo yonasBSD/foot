@@ -1691,8 +1691,8 @@ render_overlay(struct terminal *term)
         &(pixman_rectangle16_t){0, 0, term->width, term->height});
 
     quirk_weston_subsurface_desync_on(overlay->sub);
+    wayl_surface_scale(term->wl, overlay->surf, term->scale);
     wl_subsurface_set_position(overlay->sub, 0, 0);
-    wl_surface_set_buffer_scale(overlay->surf, term->scale);
     wl_surface_attach(overlay->surf, buf->wl_buf, 0, 0);
 
     wl_surface_damage_buffer(
@@ -1830,12 +1830,9 @@ get_csd_data(const struct terminal *term, enum csd_surface surf_idx)
 static void
 csd_commit(struct terminal *term, struct wl_surface *surf, struct buffer *buf)
 {
-    xassert(buf->width % (int)term->scale == 0);
-    xassert(buf->height % (int)term->scale == 0);
-
+    wayl_surface_scale(term->wl, surf, term->scale);
     wl_surface_attach(surf, buf->wl_buf, 0, 0);
     wl_surface_damage_buffer(surf, 0, 0, buf->width, buf->height);
-    wl_surface_set_buffer_scale(surf, term->scale);
     wl_surface_commit(surf);
 }
 
@@ -1926,13 +1923,10 @@ render_osd(struct terminal *term,
     pixman_image_unref(src);
     pixman_image_set_clip_region32(buf->pix[0], NULL);
 
-    xassert(buf->width % (int)term->scale == 0);
-    xassert(buf->height % (int)term->scale == 0);
-
     quirk_weston_subsurface_desync_on(sub_surf);
+    wayl_surface_scale(term->wl, surf, term->scale);
     wl_surface_attach(surf, buf->wl_buf, 0, 0);
     wl_surface_damage_buffer(surf, 0, 0, buf->width, buf->height);
-    wl_surface_set_buffer_scale(surf, term->scale);
 
     struct wl_region *region = wl_compositor_create_region(term->wl->compositor);
     if (region != NULL) {
@@ -1954,9 +1948,6 @@ render_csd_title(struct terminal *term, const struct csd_data *info,
     struct wl_surf_subsurf *surf = &term->window->csd.surface[CSD_SURF_TITLE];
     if (info->width == 0 || info->height == 0)
         return;
-
-    xassert(info->width % (int)term->scale == 0);
-    xassert(info->height % (int)term->scale == 0);
 
     uint32_t bg = term->conf->csd.color.title_set
         ? term->conf->csd.color.title
@@ -1999,9 +1990,6 @@ render_csd_border(struct terminal *term, enum csd_surface surf_idx,
 
     if (info->width == 0 || info->height == 0)
         return;
-
-    xassert(info->width % (int)term->scale == 0);
-    xassert(info->height % (int)term->scale == 0);
 
     {
         pixman_color_t color = color_hex_to_pixman_with_alpha(0, 0);
@@ -2287,9 +2275,6 @@ render_csd_button(struct terminal *term, enum csd_surface surf_idx,
 
     if (info->width == 0 || info->height == 0)
         return;
-
-    xassert(info->width % (int)term->scale == 0);
-    xassert(info->height % (int)term->scale == 0);
 
     uint32_t _color;
     uint16_t alpha = 0xffff;
@@ -3032,7 +3017,7 @@ grid_render(struct terminal *term)
     term->window->frame_callback = wl_surface_frame(term->window->surface);
     wl_callback_add_listener(term->window->frame_callback, &frame_listener, term);
 
-    wl_surface_set_buffer_scale(term->window->surface, term->scale);
+    wayl_win_scale(term->window);
 
     if (term->wl->presentation != NULL && term->conf->presentation_timings) {
         struct timespec commit_time;
@@ -3065,9 +3050,6 @@ grid_render(struct terminal *term)
         wl_surface_damage_buffer(
             term->window->surface, 0, 0, INT32_MAX, INT32_MAX);
     }
-
-    xassert(buf->width % (int)term->scale == 0);
-    xassert(buf->height % (int)term->scale == 0);
 
     wl_surface_attach(term->window->surface, buf->wl_buf, 0, 0);
     wl_surface_commit(term->window->surface);
@@ -3132,17 +3114,17 @@ render_search_box(struct terminal *term)
     const size_t wanted_visible_cells = max(20, total_cells);
 
     xassert(term->scale >= 1);
-    const int scale = round(term->scale);
+    const int rounded_scale = round(term->scale);
 
-    const size_t margin = 3 * scale;
+    const size_t margin = 3 * rounded_scale;
 
     const size_t width = term->width - 2 * margin;
     const size_t visible_width = min(
         term->width - 2 * margin,
-        (2 * margin + wanted_visible_cells * term->cell_width + scale - 1) / scale * scale);
+        (2 * margin + wanted_visible_cells * term->cell_width + rounded_scale - 1) / rounded_scale * rounded_scale);
     const size_t height = min(
         term->height - 2 * margin,
-        (2 * margin + 1 * term->cell_height + scale - 1) / scale * scale);
+        (2 * margin + 1 * term->cell_height + rounded_scale - 1) / rounded_scale * rounded_scale);
 
     const size_t visible_cells = (visible_width - 2 * margin) / term->cell_width;
     size_t glyph_offset = term->render.search_glyph_offset;
@@ -3389,15 +3371,12 @@ render_search_box(struct terminal *term)
     /* TODO: this is only necessary on a window resize */
     wl_subsurface_set_position(
         term->window->search.sub,
-        margin / scale,
-        max(0, (int32_t)term->height - height - margin) / scale);
+        margin / term->scale,
+        max(0, (int32_t)term->height - height - margin) / term->scale);
 
-    xassert(buf->width % scale == 0);
-    xassert(buf->height % scale == 0);
-
+    wayl_surface_scale(term->wl, term->window->search.surf, term->scale);
     wl_surface_attach(term->window->search.surf, buf->wl_buf, 0, 0);
     wl_surface_damage_buffer(term->window->search.surf, 0, 0, width, height);
-    wl_surface_set_buffer_scale(term->window->search.surf, scale);
 
     struct wl_region *region = wl_compositor_create_region(term->wl->compositor);
     if (region != NULL) {
@@ -4284,6 +4263,8 @@ render_xcursor_update(struct seat *seat)
     const float scale = seat->pointer.scale;
     struct wl_cursor_image *image = seat->pointer.cursor->images[0];
 
+    wayl_surface_scale(seat->wayl, seat->pointer.surface, scale);
+
     wl_surface_attach(
         seat->pointer.surface, wl_cursor_image_get_buffer(image), 0, 0);
 
@@ -4294,8 +4275,6 @@ render_xcursor_update(struct seat *seat)
 
     wl_surface_damage_buffer(
         seat->pointer.surface, 0, 0, INT32_MAX, INT32_MAX);
-
-    wl_surface_set_buffer_scale(seat->pointer.surface, scale);
 
     xassert(seat->pointer.xcursor_callback == NULL);
     seat->pointer.xcursor_callback = wl_surface_frame(seat->pointer.surface);

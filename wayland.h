@@ -447,9 +447,14 @@ bool wayl_reload_xcursor_theme(struct seat *seat, float new_scale);
 void wayl_flush(struct wayland *wayl);
 void wayl_roundtrip(struct wayland *wayl);
 
+bool wayl_fractional_scaling(const struct wayland *wayl);
+void wayl_surface_scale(
+    const struct wayland *wayl, struct wl_surface *surf, float scale);
+
 struct wl_window *wayl_win_init(struct terminal *term, const char *token);
 void wayl_win_destroy(struct wl_window *win);
 
+void wayl_win_scale(struct wl_window *win);
 void wayl_win_alpha_changed(struct wl_window *win);
 bool wayl_win_set_urgent(struct wl_window *win);
 
@@ -469,5 +474,3 @@ bool wayl_get_activation_token(
     struct wayland *wayl, struct seat *seat, uint32_t serial,
     struct wl_window *win, activation_token_cb_t cb, void *cb_data);
 #endif
-
-bool wayl_fractional_scaling(const struct wayland *wayl);
