@@ -1901,6 +1901,7 @@ wayl_surface_scale_explicit_width_height(
         LOG_DBG("scaling by a factor of %.2f using fractional scaling "
                 "(width=%d, height=%d) ", scale, width, height);
 
+        wl_surface_set_buffer_scale(surf->surf, 1);
         wp_viewport_set_destination(
             surf->viewport,
             round((float)width / scale),
