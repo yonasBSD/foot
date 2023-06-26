@@ -1908,6 +1908,13 @@ wayl_surface_scale_explicit_width_height(
 #endif
     } else {
         LOG_DBG("scaling by a factor of %.2f (legacy)", scale);
+
+        xassert(scale == floor(scale));
+
+        const int iscale = (int)scale;
+        xassert(width % iscale == 0);
+        xassert(height % iscale == 0);
+
         wl_surface_set_buffer_scale(surf->surf, (int)scale);
     }
 }
