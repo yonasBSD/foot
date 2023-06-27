@@ -25,6 +25,7 @@ cursor_shape_to_string(enum cursor_shape shape)
     };
 
     xassert(shape <= ALEN(table));
+    xassert(table[shape] != NULL);
     return table[shape];
 }
 
@@ -47,6 +48,7 @@ cursor_shape_to_server_shape(enum cursor_shape shape)
     };
 
     xassert(shape <= ALEN(table));
+    xassert(table[shape] != 0);
     return table[shape];
 }
 #endif
