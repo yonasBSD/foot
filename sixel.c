@@ -1416,6 +1416,8 @@ sixel_add_many_ar_11(struct terminal *term, uint8_t c, unsigned count)
     term->sixel.pos.col = col;
 }
 
+IGNORE_WARNING("-Wpedantic")
+
 static void
 decsixel_generic(struct terminal *term, uint8_t c)
 {
@@ -1463,16 +1465,7 @@ decsixel_generic(struct terminal *term, uint8_t c)
         }
         break;
 
-    case '?': case '@': case 'A': case 'B': case 'C': case 'D': case 'E':
-    case 'F': case 'G': case 'H': case 'I': case 'J': case 'K': case 'L':
-    case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': case 'S':
-    case 'T': case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
-    case '[': case '\\': case ']': case '^': case '_': case '`': case 'a':
-    case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h':
-    case 'i': case 'j': case 'k': case 'l': case 'm': case 'n': case 'o':
-    case 'p': case 'q': case 'r': case 's': case 't': case 'u': case 'v':
-    case 'w': case 'x': case 'y': case 'z': case '{': case '|': case '}':
-    case '~':
+    case '?' ... '~':
         sixel_add_many_generic(term, c - 63, 1);
         break;
 
@@ -1487,27 +1480,15 @@ decsixel_generic(struct terminal *term, uint8_t c)
     }
 }
 
+UNIGNORE_WARNINGS
+
 static void
 decsixel_ar_11(struct terminal *term, uint8_t c)
 {
-    switch (c) {
-    case '?': case '@': case 'A': case 'B': case 'C': case 'D': case 'E':
-    case 'F': case 'G': case 'H': case 'I': case 'J': case 'K': case 'L':
-    case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': case 'S':
-    case 'T': case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
-    case '[': case '\\': case ']': case '^': case '_': case '`': case 'a':
-    case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h':
-    case 'i': case 'j': case 'k': case 'l': case 'm': case 'n': case 'o':
-    case 'p': case 'q': case 'r': case 's': case 't': case 'u': case 'v':
-    case 'w': case 'x': case 'y': case 'z': case '{': case '|': case '}':
-    case '~':
+    if (likely(c >= '?' && c <= '~'))
         sixel_add_many_ar_11(term, c - 63, 1);
-        break;
-
-    default:
+    else
         decsixel_generic(term, c);
-        break;
-    }
 }
 
 static void
@@ -1571,6 +1552,8 @@ decgra(struct terminal *term, uint8_t c)
     }
 }
 
+IGNORE_WARNING("-Wpedantic")
+
 static void
 decgri_generic(struct terminal *term, uint8_t c)
 {
@@ -1584,16 +1567,7 @@ decgri_generic(struct terminal *term, uint8_t c)
         break;
     }
 
-    case '?': case '@': case 'A': case 'B': case 'C': case 'D': case 'E':
-    case 'F': case 'G': case 'H': case 'I': case 'J': case 'K': case 'L':
-    case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': case 'S':
-    case 'T': case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
-    case '[': case '\\': case ']': case '^': case '_': case '`': case 'a':
-    case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h':
-    case 'i': case 'j': case 'k': case 'l': case 'm': case 'n': case 'o':
-    case 'p': case 'q': case 'r': case 's': case 't': case 'u': case 'v':
-    case 'w': case 'x': case 'y': case 'z': case '{': case '|': case '}':
-    case '~': {
+    case '?' ... '~': {
         const unsigned count = term->sixel.repeat_count;
         sixel_add_many_generic(term, c - 63, count);
         term->sixel.state = SIXEL_DECSIXEL;
@@ -1607,30 +1581,17 @@ decgri_generic(struct terminal *term, uint8_t c)
     }
 }
 
+UNIGNORE_WARNINGS
+
 static void
 decgri_ar_11(struct terminal *term, uint8_t c)
 {
-    switch (c) {
-    case '?': case '@': case 'A': case 'B': case 'C': case 'D': case 'E':
-    case 'F': case 'G': case 'H': case 'I': case 'J': case 'K': case 'L':
-    case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': case 'S':
-    case 'T': case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
-    case '[': case '\\': case ']': case '^': case '_': case '`': case 'a':
-    case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h':
-    case 'i': case 'j': case 'k': case 'l': case 'm': case 'n': case 'o':
-    case 'p': case 'q': case 'r': case 's': case 't': case 'u': case 'v':
-    case 'w': case 'x': case 'y': case 'z': case '{': case '|': case '}':
-    case '~': {
+    if (likely(c >= '?' && c <= '~')) {
         const unsigned count = term->sixel.repeat_count;
         sixel_add_many_ar_11(term, c - 63, count);
         term->sixel.state = SIXEL_DECSIXEL;
-        break;
-    }
-
-    default:
+    } else
         decgri_generic(term, c);
-        break;
-    }
 }
 
 static void
