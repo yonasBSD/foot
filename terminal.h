@@ -649,6 +649,7 @@ struct terminal {
         unsigned params[5];  /* Collected parameters, for RASTER, COLOR_SPEC */
         unsigned param;      /* Currently collecting parameter, for RASTER, COLOR_SPEC and REPEAT */
         unsigned param_idx;  /* Parameters seen */
+        unsigned repeat_count;
 
         bool transparent_bg;
         uint32_t default_bg;
