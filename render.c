@@ -4259,6 +4259,7 @@ render_xcursor_update(struct seat *seat)
 
     if (seat->pointer.shape == CURSOR_SHAPE_HIDDEN) {
         /* Hide cursor */
+        LOG_DBG("hiding cursor using client-side NULL-surface");
         wl_surface_attach(seat->pointer.surface.surf, NULL, 0, 0);
         wl_pointer_set_cursor(
             seat->wl_pointer, seat->pointer.serial, seat->pointer.surface.surf,
@@ -4271,6 +4272,7 @@ render_xcursor_update(struct seat *seat)
 
 #if defined(HAVE_CURSOR_SHAPE)
     if (seat->pointer.shape_device != NULL) {
+        LOG_DBG("setting cursor shape using cursor-shape-v1");
         wp_cursor_shape_device_v1_set_shape(
             seat->pointer.shape_device,
             seat->pointer.serial,
@@ -4278,6 +4280,7 @@ render_xcursor_update(struct seat *seat)
     } else
 #endif
     {
+        LOG_DBG("setting cursor shape using a client-side cursor surface");
         const int scale = seat->pointer.scale;
         struct wl_cursor_image *image = seat->pointer.cursor->images[0];
 
