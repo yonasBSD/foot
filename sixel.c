@@ -1360,15 +1360,26 @@ sixel_add_ar_11(struct terminal *term, int col, int width, uint32_t color,
     xassert(term->sixel.pos.row < term->sixel.image.height);
     xassert(term->sixel.pan == 1);
 
-    size_t ofs = term->sixel.row_byte_ofs + col;
+    const size_t ofs = term->sixel.row_byte_ofs + col;
     uint32_t *data = &term->sixel.image.data[ofs];
 
-    for (int i = 0; i < 6; i++, sixel >>= 1, data += width) {
-        if (sixel & 1)
-            *data = color;
-    }
-
-    xassert(sixel == 0);
+    if (sixel & 0x01)
+        *data = color;
+    data += width;
+    if (sixel & 0x02)
+        *data = color;
+    data += width;
+    if (sixel & 0x04)
+        *data = color;
+    data += width;
+    if (sixel & 0x08)
+        *data = color;
+    data += width;
+    if (sixel & 0x10)
+        *data = color;
+    data += width;
+    if (sixel & 0x20)
+        *data = color;
 }
 
 static void
