@@ -31,6 +31,7 @@
 #include "box-drawing.h"
 #include "char32.h"
 #include "config.h"
+#include "cursor-shape.h"
 #include "grid.h"
 #include "hsl.h"
 #include "ime.h"
@@ -4259,35 +4260,46 @@ render_xcursor_update(struct seat *seat)
     if (seat->pointer.shape == CURSOR_SHAPE_HIDDEN) {
         /* Hide cursor */
         wl_surface_attach(seat->pointer.surface.surf, NULL, 0, 0);
+        wl_pointer_set_cursor(
+            seat->wl_pointer, seat->pointer.serial, seat->pointer.surface.surf,
+            0, 0);
         wl_surface_commit(seat->pointer.surface.surf);
         return;
     }
 
     xassert(seat->pointer.cursor != NULL);
 
-    const float scale = seat->pointer.scale;
-    struct wl_cursor_image *image = seat->pointer.cursor->images[0];
-    struct wl_buffer *buf = wl_cursor_image_get_buffer(image);
+#if defined(HAVE_CURSOR_SHAPE)
+    if (seat->pointer.shape_device != NULL) {
+        wp_cursor_shape_device_v1_set_shape(
+            seat->pointer.shape_device,
+            seat->pointer.serial,
+            cursor_shape_to_server_shape(seat->pointer.shape));
+    } else
+#endif
+    {
+        const int scale = seat->pointer.scale;
+        struct wl_cursor_image *image = seat->pointer.cursor->images[0];
 
-    wayl_surface_scale_explicit_width_height(
-        seat->mouse_focus->window,
-        &seat->pointer.surface, image->width, image->height, scale);
+        wl_surface_attach(
+            seat->pointer.surface.surf, wl_cursor_image_get_buffer(image), 0, 0);
 
-    wl_surface_attach(seat->pointer.surface.surf, buf, 0, 0);
+        wl_pointer_set_cursor(
+            seat->wl_pointer, seat->pointer.serial,
+            seat->pointer.surface.surf,
+            image->hotspot_x / scale, image->hotspot_y / scale);
 
-    wl_pointer_set_cursor(
-        seat->wl_pointer, seat->pointer.serial,
-        seat->pointer.surface.surf,
-        image->hotspot_x / scale, image->hotspot_y / scale);
+        wl_surface_damage_buffer(
+            seat->pointer.surface.surf, 0, 0, INT32_MAX, INT32_MAX);
 
-    wl_surface_damage_buffer(
-        seat->pointer.surface.surf, 0, 0, INT32_MAX, INT32_MAX);
+        wl_surface_set_buffer_scale(seat->pointer.surface.surf, scale);
 
-    xassert(seat->pointer.xcursor_callback == NULL);
-    seat->pointer.xcursor_callback = wl_surface_frame(seat->pointer.surface.surf);
-    wl_callback_add_listener(seat->pointer.xcursor_callback, &xcursor_listener, seat);
+        xassert(seat->pointer.xcursor_callback == NULL);
+        seat->pointer.xcursor_callback = wl_surface_frame(seat->pointer.surface.surf);
+        wl_callback_add_listener(seat->pointer.xcursor_callback, &xcursor_listener, seat);
 
-    wl_surface_commit(seat->pointer.surface.surf);
+        wl_surface_commit(seat->pointer.surface.surf);
+    }
 }
 
 static void
@@ -4452,6 +4464,7 @@ render_xcursor_set(struct seat *seat, struct terminal *term, enum cursor_shape s
     if (seat->pointer.shape == shape)
         return true;
 
+    /* TODO: skip this when using server-side cursors */
     if (shape != CURSOR_SHAPE_HIDDEN) {
         const char *const xcursor = cursor_shape_to_string(shape);
         const char *const fallback =

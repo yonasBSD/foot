@@ -7,7 +7,7 @@
 const char *
 cursor_shape_to_string(enum cursor_shape shape)
 {
-    static const char *const table[] = {
+    static const char *const table[CURSOR_SHAPE_COUNT] = {
         [CURSOR_SHAPE_NONE] = NULL,
         [CURSOR_SHAPE_HIDDEN] = "hidden",
         [CURSOR_SHAPE_LEFT_PTR] = "left_ptr",
@@ -27,3 +27,26 @@ cursor_shape_to_string(enum cursor_shape shape)
     xassert(shape <= ALEN(table));
     return table[shape];
 }
+
+#if defined(HAVE_CURSOR_SHAPE)
+enum wp_cursor_shape_device_v1_shape
+cursor_shape_to_server_shape(enum cursor_shape shape)
+{
+    static const enum wp_cursor_shape_device_v1_shape table[CURSOR_SHAPE_COUNT] = {
+        [CURSOR_SHAPE_LEFT_PTR] = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT,
+        [CURSOR_SHAPE_TEXT] = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_TEXT,
+        [CURSOR_SHAPE_TEXT_FALLBACK] = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_TEXT,
+        [CURSOR_SHAPE_TOP_LEFT_CORNER] = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NW_RESIZE,
+        [CURSOR_SHAPE_TOP_RIGHT_CORNER] = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NE_RESIZE,
+        [CURSOR_SHAPE_BOTTOM_LEFT_CORNER] = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_SW_RESIZE,
+        [CURSOR_SHAPE_BOTTOM_RIGHT_CORNER] = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_SE_RESIZE,
+        [CURSOR_SHAPE_LEFT_SIDE] = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_W_RESIZE,
+        [CURSOR_SHAPE_RIGHT_SIDE] = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_E_RESIZE,
+        [CURSOR_SHAPE_TOP_SIDE] = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_N_RESIZE,
+        [CURSOR_SHAPE_BOTTOM_SIDE] = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_S_RESIZE,
+    };
+
+    xassert(shape <= ALEN(table));
+    return table[shape];
+}
+#endif

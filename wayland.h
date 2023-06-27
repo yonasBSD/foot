@@ -146,12 +146,18 @@ struct seat {
     struct {
         uint32_t serial;
 
+        /* Client-side cursor */
         struct wayl_surface surface;
         struct wl_cursor_theme *theme;
         struct wl_cursor *cursor;
+
+        /* Server-side cursor */
+#if defined(HAVE_CURSOR_SHAPE)
+        struct wp_cursor_shape_device_v1 *shape_device;
+#endif
+
         float scale;
         bool hidden;
-
         enum cursor_shape shape;
         struct wl_callback *xcursor_callback;
         bool xcursor_pending;
@@ -424,6 +430,10 @@ struct wayland {
 
 #if defined(HAVE_XDG_ACTIVATION)
     struct xdg_activation_v1 *xdg_activation;
+#endif
+
+#if defined(HAVE_CURSOR_SHAPE)
+    struct wp_cursor_shape_manager_v1 *cursor_shape_manager;
 #endif
 
     bool presentation_timings;
