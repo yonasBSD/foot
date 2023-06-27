@@ -718,20 +718,6 @@ struct terminal {
     char *cwd;
 };
 
-extern const char *const XCURSOR_HIDDEN;
-extern const char *const XCURSOR_LEFT_PTR;
-extern const char *const XCURSOR_TEXT;
-extern const char *const XCURSOR_TEXT_FALLBACK;
-//extern const char *const XCURSOR_HAND2;
-extern const char *const XCURSOR_TOP_LEFT_CORNER;
-extern const char *const XCURSOR_TOP_RIGHT_CORNER;
-extern const char *const XCURSOR_BOTTOM_LEFT_CORNER;
-extern const char *const XCURSOR_BOTTOM_RIGHT_CORNER;
-extern const char *const XCURSOR_LEFT_SIDE;
-extern const char *const XCURSOR_RIGHT_SIDE;
-extern const char *const XCURSOR_TOP_SIDE;
-extern const char *const XCURSOR_BOTTOM_SIDE;
-
 struct config;
 struct terminal *term_init(
     const struct config *conf, struct fdm *fdm, struct reaper *reaper,

@@ -4254,9 +4254,9 @@ render_xcursor_update(struct seat *seat)
     if (!seat->mouse_focus)
         return;
 
-    xassert(seat->pointer.xcursor != NULL);
+    xassert(seat->pointer.shape != CURSOR_SHAPE_NONE);
 
-    if (seat->pointer.xcursor == XCURSOR_HIDDEN) {
+    if (seat->pointer.shape == CURSOR_SHAPE_HIDDEN) {
         /* Hide cursor */
         wl_surface_attach(seat->pointer.surface.surf, NULL, 0, 0);
         wl_surface_commit(seat->pointer.surface.surf);
@@ -4434,13 +4434,13 @@ render_refresh_urls(struct terminal *term)
 }
 
 bool
-render_xcursor_set(struct seat *seat, struct terminal *term, const char *xcursor)
+render_xcursor_set(struct seat *seat, struct terminal *term, enum cursor_shape shape)
 {
     if (seat->pointer.theme == NULL)
         return false;
 
     if (seat->mouse_focus == NULL) {
-        seat->pointer.xcursor = NULL;
+        seat->pointer.shape = CURSOR_SHAPE_NONE;
         return true;
     }
 
@@ -4449,18 +4449,24 @@ render_xcursor_set(struct seat *seat, struct terminal *term, const char *xcursor
         return true;
     }
 
-    if (seat->pointer.xcursor == xcursor)
+    if (seat->pointer.shape == shape)
         return true;
 
-    if (xcursor != XCURSOR_HIDDEN) {
+    if (shape != CURSOR_SHAPE_HIDDEN) {
+        const char *const xcursor = cursor_shape_to_string(shape);
+        const char *const fallback =
+            cursor_shape_to_string(CURSOR_SHAPE_TEXT_FALLBACK);
+
         seat->pointer.cursor = wl_cursor_theme_get_cursor(
             seat->pointer.theme, xcursor);
 
         if (seat->pointer.cursor == NULL) {
             seat->pointer.cursor = wl_cursor_theme_get_cursor(
-                seat->pointer.theme, XCURSOR_TEXT_FALLBACK );
+                seat->pointer.theme, fallback);
+
             if (seat->pointer.cursor == NULL) {
-                LOG_ERR("failed to load xcursor pointer '%s', and fallback '%s'", xcursor, XCURSOR_TEXT_FALLBACK);
+                LOG_ERR("failed to load xcursor pointer "
+                        "'%s', and fallback '%s'", xcursor, fallback);
                 return false;
             }
         }
@@ -4468,7 +4474,7 @@ render_xcursor_set(struct seat *seat, struct terminal *term, const char *xcursor
         seat->pointer.cursor = NULL;
 
     /* FDM hook takes care of actual rendering */
-    seat->pointer.xcursor = xcursor;
+    seat->pointer.shape = shape;
     seat->pointer.xcursor_pending = true;
     return true;
 }

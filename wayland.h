@@ -28,6 +28,7 @@
 #include <fcft/fcft.h>
 #include <tllist.h>
 
+#include "cursor-shape.h"
 #include "fdm.h"
 
 /* Forward declarations */
@@ -151,7 +152,7 @@ struct seat {
         float scale;
         bool hidden;
 
-        const char *xcursor;
+        enum cursor_shape shape;
         struct wl_callback *xcursor_callback;
         bool xcursor_pending;
     } pointer;

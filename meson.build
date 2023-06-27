@@ -261,6 +261,7 @@ executable(
   'box-drawing.c', 'box-drawing.h',
   'config.c', 'config.h',
   'commands.c', 'commands.h',
+  'cursor-shape.c', 'cursor-shape.h',
   'extract.c', 'extract.h',
   'fdm.c', 'fdm.h',
   'foot-features.h',
