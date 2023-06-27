@@ -3126,19 +3126,24 @@ term_xcursor_update_for_seat(struct terminal *term, struct seat *seat)
     enum cursor_shape shape = CURSOR_SHAPE_NONE;
 
     switch (term->active_surface) {
-    case TERM_SURF_GRID: {
-        bool have_custom_cursor =
-            render_xcursor_is_valid(seat, term->mouse_user_cursor);
+    case TERM_SURF_GRID:
+        if (seat->pointer.hidden)
+            shape = CURSOR_SHAPE_HIDDEN;
 
-        shape = seat->pointer.hidden ? CURSOR_SHAPE_HIDDEN
-            : have_custom_cursor ? CURSOR_SHAPE_CUSTOM //term->mouse_user_cursor
-            : term->is_searching ? CURSOR_SHAPE_LEFT_PTR
-            : (seat->mouse.col >= 0 &&
-               seat->mouse.row >= 0 &&
-               term_mouse_grabbed(term, seat)) ? CURSOR_SHAPE_TEXT
-            : CURSOR_SHAPE_LEFT_PTR;
+        else if (render_xcursor_is_valid(seat, term->mouse_user_cursor))
+            shape = CURSOR_SHAPE_CUSTOM;
+
+        else if (seat->mouse.col >= 0 &&
+                 seat->mouse.row >= 0 &&
+                 term_mouse_grabbed(term, seat))
+        {
+            shape = CURSOR_SHAPE_TEXT;
+        }
+
+        else
+            shape = CURSOR_SHAPE_LEFT_PTR;
         break;
-    }
+
     case TERM_SURF_TITLE:
     case TERM_SURF_BUTTON_MINIMIZE:
     case TERM_SURF_BUTTON_MAXIMIZE:

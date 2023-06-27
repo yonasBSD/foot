@@ -4271,7 +4271,9 @@ render_xcursor_update(struct seat *seat)
     xassert(seat->pointer.cursor != NULL);
 
 #if defined(HAVE_CURSOR_SHAPE)
-    if (seat->pointer.shape_device != NULL) {
+    if (seat->pointer.shape_device != NULL &&
+        seat->pointer.shape != CURSOR_SHAPE_CUSTOM)
+    {
         LOG_DBG("setting cursor shape using cursor-shape-v1");
         wp_cursor_shape_device_v1_set_shape(
             seat->pointer.shape_device,
@@ -4449,7 +4451,8 @@ render_refresh_urls(struct terminal *term)
 }
 
 bool
-render_xcursor_set(struct seat *seat, struct terminal *term, enum cursor_shape shape)
+render_xcursor_set(struct seat *seat, struct terminal *term,
+                   enum cursor_shape shape)
 {
     if (seat->pointer.theme == NULL)
         return false;
@@ -4469,7 +4472,9 @@ render_xcursor_set(struct seat *seat, struct terminal *term, enum cursor_shape s
 
     /* TODO: skip this when using server-side cursors */
     if (shape != CURSOR_SHAPE_HIDDEN) {
-        const char *const xcursor = cursor_shape_to_string(shape);
+        const char *const xcursor = shape == CURSOR_SHAPE_CUSTOM
+            ? term->mouse_user_cursor
+            : cursor_shape_to_string(shape);
         const char *const fallback =
             cursor_shape_to_string(CURSOR_SHAPE_TEXT_FALLBACK);
 
