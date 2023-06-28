@@ -170,11 +170,13 @@ else
   fractional_scale = false
 endif
 
-# TODO: check wayland-protocols version
-wl_proto_xml += [wayland_protocols_datadir + '/unstable/tablet/tablet-unstable-v2.xml',  # required by cursor-shape-v1
-                 'cursor-shape-v1.xml',  # TODO: use wayland-protocols
-                ]
-add_project_arguments('-DHAVE_CURSOR_SHAPE', language: 'c')
+if wayland_protocols.version().version_compare('>=1.31')  # TODO: 1.32
+  wl_proto_xml += [
+      wayland_protocols_datadir + '/unstable/tablet/tablet-unstable-v2.xml',  # required by cursor-shape-v1
+      wayland_protocols_datadir + '/staging/cursor-shape/cursor-shape-v1.xml',
+  ]
+  add_project_arguments('-DHAVE_CURSOR_SHAPE', language: 'c')
+endif
 
 foreach prot : wl_proto_xml
   wl_proto_headers += custom_target(
