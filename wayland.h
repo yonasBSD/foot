@@ -159,6 +159,8 @@ struct seat {
         float scale;
         bool hidden;
         enum cursor_shape shape;
+        char *last_custom_xcursor;
+
         struct wl_callback *xcursor_callback;
         bool xcursor_pending;
     } pointer;

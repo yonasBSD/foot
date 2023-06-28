@@ -3130,8 +3130,15 @@ term_xcursor_update_for_seat(struct terminal *term, struct seat *seat)
         if (seat->pointer.hidden)
             shape = CURSOR_SHAPE_HIDDEN;
 
-        else if (render_xcursor_is_valid(seat, term->mouse_user_cursor))
+#if defined(HAVE_CURSOR_SHAPE)
+        else if (cursor_string_to_server_shape(term->mouse_user_cursor) != 0
+#elif
+        else if (true
+#endif
+                 || render_xcursor_is_valid(seat, term->mouse_user_cursor))
+        {
             shape = CURSOR_SHAPE_CUSTOM;
+        }
 
         else if (seat->mouse.col >= 0 &&
                  seat->mouse.row >= 0 &&
@@ -3716,6 +3723,8 @@ void
 term_set_user_mouse_cursor(struct terminal *term, const char *cursor)
 {
     free(term->mouse_user_cursor);
-    term->mouse_user_cursor = cursor != NULL ? xstrdup(cursor) : NULL;
+    term->mouse_user_cursor = cursor != NULL && strlen(cursor) > 0
+        ? xstrdup(cursor)
+        : NULL;
     term_xcursor_update(term);
 }

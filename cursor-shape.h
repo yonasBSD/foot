@@ -29,4 +29,6 @@ const char *cursor_shape_to_string(enum cursor_shape shape);
 #if defined(HAVE_CURSOR_SHAPE)
 enum wp_cursor_shape_device_v1_shape cursor_shape_to_server_shape(
     enum cursor_shape shape);
+enum wp_cursor_shape_device_v1_shape cursor_string_to_server_shape(
+    const char *xcursor);
 #endif

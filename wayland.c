@@ -234,6 +234,7 @@ seat_destroy(struct seat *seat)
     ime_reset_pending(seat);
     free(seat->clipboard.text);
     free(seat->primary.text);
+    free(seat->pointer.last_custom_xcursor);
     free(seat->name);
 }
 
