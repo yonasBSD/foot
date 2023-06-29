@@ -255,27 +255,68 @@ grid_snapshot(const struct grid *grid)
     }
 
     tll_foreach(grid->sixel_images, it) {
-        int width = it->item.width;
-        int height = it->item.height;
-        pixman_image_t *pix = it->item.pix;
-        pixman_format_code_t pix_fmt = pixman_image_get_format(pix);
-        int stride = stride_for_format_and_width(pix_fmt, width);
+        int original_width = it->item.original.width;
+        int original_height = it->item.original.height;
+        pixman_image_t *original_pix = it->item.original.pix;
+        pixman_format_code_t original_pix_fmt = pixman_image_get_format(original_pix);
+        int original_stride = stride_for_format_and_width(original_pix_fmt, original_width);
 
-        size_t size = stride * height;
-        void *new_data = xmalloc(size);
-        memcpy(new_data, it->item.data, size);
+        size_t original_size = original_stride * original_height;
+        void *new_original_data = xmalloc(original_size);
+        memcpy(new_original_data, it->item.original.data, original_size);
 
-        pixman_image_t *new_pix = pixman_image_create_bits_no_clear(
-            pix_fmt, width, height, new_data, stride);
+        pixman_image_t *new_original_pix = pixman_image_create_bits_no_clear(
+            original_pix_fmt, original_width, original_height,
+            new_original_data, original_stride);
+
+        void *new_scaled_data = NULL;
+        pixman_image_t *new_scaled_pix = NULL;
+        int scaled_width = -1;
+        int scaled_height = -1;
+
+        if (it->item.scaled.data != NULL) {
+            scaled_width = it->item.scaled.width;
+            scaled_height = it->item.scaled.height;
+
+            pixman_image_t *scaled_pix = it->item.scaled.pix;
+            pixman_format_code_t scaled_pix_fmt = pixman_image_get_format(scaled_pix);
+            int scaled_stride = stride_for_format_and_width(scaled_pix_fmt, scaled_width);
+
+            size_t scaled_size = scaled_stride * scaled_height;
+            new_scaled_data = xmalloc(scaled_size);
+            memcpy(new_scaled_data, it->item.scaled.data, scaled_size);
+
+            new_scaled_pix = pixman_image_create_bits_no_clear(
+                scaled_pix_fmt, scaled_width, scaled_height, new_scaled_data,
+                scaled_stride);
+        }
 
         struct sixel six = {
-            .data = new_data,
-            .pix = new_pix,
-            .width = width,
-            .height = height,
+            .pix = (it->item.pix == it->item.original.pix
+                    ? new_original_pix
+                    : (it->item.pix == it->item.scaled.pix
+                       ? new_scaled_pix
+                       : NULL)),
+            .width = it->item.width,
+            .height = it->item.height,
             .rows = it->item.rows,
             .cols = it->item.cols,
             .pos = it->item.pos,
+            .opaque = it->item.opaque,
+            .cell_width = it->item.cell_width,
+            .cell_height = it->item.cell_height,
+            .original = {
+                .data = new_original_data,
+                .pix = new_original_pix,
+                .width = original_width,
+                .height = original_height,
+            },
+            .scaled = {
+                .data = new_scaled_data,
+                .pix = new_scaled_pix,
+                .width = scaled_width,
+                .height = scaled_height,
+            },
         };
 
         tll_push_back(clone->sixel_images, six);

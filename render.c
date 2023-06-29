@@ -1160,6 +1160,10 @@ static void
 render_sixel(struct terminal *term, pixman_image_t *pix,
              const struct coord *cursor, const struct sixel *sixel)
 {
+    xassert(sixel->pix != NULL);
+    xassert(sixel->width >= 0);
+    xassert(sixel->height >= 0);
+
     const int view_end = (term->grid->view + term->rows - 1) & (term->grid->num_rows - 1);
     const bool last_row_needs_erase = sixel->height % term->cell_height != 0;
     const bool last_col_needs_erase = sixel->width % term->cell_width != 0;
@@ -1324,6 +1328,7 @@ render_sixel_images(struct terminal *term, pixman_image_t *pix,
             break;
         }
 
+        sixel_sync_cache(term, &it->item);
         render_sixel(term, pix, cursor, &it->item);
     }
 }

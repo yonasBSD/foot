@@ -125,15 +125,34 @@ sixel_init(struct terminal *term, int p1, int p2, int p3)
     return pan == 1 && pad == 1 ? &sixel_put_ar_11 : &sixel_put_generic;
 }
 
+static void
+sixel_invalidate_cache(struct sixel *sixel)
+{
+    if (sixel->scaled.pix != NULL)
+        pixman_image_unref(sixel->scaled.pix);
+
+    free(sixel->scaled.data);
+    sixel->scaled.pix = NULL;
+    sixel->scaled.data = NULL;
+    sixel->scaled.width = -1;
+    sixel->scaled.height = -1;
+
+    sixel->pix = NULL;
+    sixel->width = -1;
+    sixel->height = -1;
+}
+
 void
 sixel_destroy(struct sixel *sixel)
 {
-    if (sixel->pix != NULL)
-        pixman_image_unref(sixel->pix);
+    sixel_invalidate_cache(sixel);
 
-    free(sixel->data);
-    sixel->pix = NULL;
-    sixel->data = NULL;
+    if (sixel->original.pix != NULL)
+        pixman_image_unref(sixel->original.pix);
+
+    free(sixel->original.data);
+    sixel->original.pix = NULL;
+    sixel->original.data = NULL;
 }
 
 void
@@ -396,10 +415,14 @@ blend_new_image_over_old(const struct terminal *term,
     xassert(pix != NULL);
     xassert(opaque != NULL);
 
-    const int six_ofs_x = six->pos.col * term->cell_width;
-    const int six_ofs_y = six->pos.row * term->cell_height;
-    const int img_ofs_x = col * term->cell_width;
-    const int img_ofs_y = row * term->cell_height;
+    /*
+     * TODO: handle images being emitted with different cell dimensions
+     */
+
+    const int six_ofs_x = six->pos.col * six->cell_width;
+    const int six_ofs_y = six->pos.row * six->cell_height;
+    const int img_ofs_x = col * six->cell_width;
+    const int img_ofs_y = row * six->cell_height;
     const int img_width = pixman_image_get_width(*pix);
     const int img_height = pixman_image_get_height(*pix);
 
@@ -429,7 +452,7 @@ blend_new_image_over_old(const struct terminal *term,
          */
         pixman_image_composite32(
             PIXMAN_OP_OVER_REVERSE,
-            six->pix, NULL, *pix,
+            six->original.pix, NULL, *pix,
             box->x1 - six_ofs_x, box->y1 - six_ofs_y,
             0, 0,
             box->x1 - img_ofs_x, box->y1 - img_ofs_y,
@@ -446,15 +469,15 @@ blend_new_image_over_old(const struct terminal *term,
      * old image, or the next cell boundary, whichever comes
      * first.
      */
-    int bounding_x = six_ofs_x + six->width > img_ofs_x + img_width
+    int bounding_x = six_ofs_x + six->original.width > img_ofs_x + img_width
         ? min(
-            six_ofs_x + six->width,
-            (box->x2 + term->cell_width - 1) / term->cell_width * term->cell_width)
+            six_ofs_x + six->original.width,
+            (box->x2 + six->cell_width - 1) / six->cell_width * six->cell_width)
         : box->x2;
-    int bounding_y = six_ofs_y + six->height > img_ofs_y + img_height
+    int bounding_y = six_ofs_y + six->original.height > img_ofs_y + img_height
         ? min(
-            six_ofs_y + six->height,
-            (box->y2 + term->cell_height - 1) / term->cell_height * term->cell_height)
+            six_ofs_y + six->original.height,
+            (box->y2 + six->cell_height - 1) / six->cell_height * six->cell_height)
         : box->y2;
 
     /* The required size of the new image */
@@ -494,7 +517,7 @@ blend_new_image_over_old(const struct terminal *term,
     /* Copy the bottom tile of the old sixel image into the new pixmap */
     pixman_image_composite32(
         PIXMAN_OP_SRC,
-        six->pix, NULL, pix2,
+        six->original.pix, NULL, pix2,
         box->x1 - six_ofs_x, box->y2 - six_ofs_y,
         0, 0,
         box->x1 - img_ofs_x, box->y2 - img_ofs_y,
@@ -503,7 +526,7 @@ blend_new_image_over_old(const struct terminal *term,
     /* Copy the right tile of the old sixel image into the new pixmap */
     pixman_image_composite32(
         PIXMAN_OP_SRC,
-        six->pix, NULL, pix2,
+        six->original.pix, NULL, pix2,
         box->x2 - six_ofs_x, box->y1 - six_ofs_y,
         0, 0,
         box->x2 - img_ofs_x, box->y1 - img_ofs_y,
@@ -577,14 +600,14 @@ sixel_overwrite(struct terminal *term, struct sixel *six,
     pixman_region32_t six_rect;
     pixman_region32_init_rect(
         &six_rect,
-        six->pos.col * term->cell_width, six->pos.row * term->cell_height,
-        six->width, six->height);
+        six->pos.col * six->cell_width, six->pos.row * six->cell_height,
+        six->original.width, six->original.height);
 
     pixman_region32_t overwrite_rect;
     pixman_region32_init_rect(
         &overwrite_rect,
-        col * term->cell_width, row * term->cell_height,
-        width * term->cell_width, height * term->cell_height);
+        col * six->cell_width, row * six->cell_height,
+        width * six->cell_width, height * six->cell_height);
 
 #if defined(_DEBUG)
     pixman_region32_t cell_intersection;
@@ -596,7 +619,6 @@ sixel_overwrite(struct terminal *term, struct sixel *six,
 
     if (pix != NULL)
         blend_new_image_over_old(term, six, &six_rect, row, col, pix, opaque);
-
 
     pixman_region32_t diff;
     pixman_region32_init(&diff);
@@ -612,12 +634,12 @@ sixel_overwrite(struct terminal *term, struct sixel *six,
         LOG_DBG("box #%d: x1=%d, y1=%d, x2=%d, y2=%d", i,
                 boxes[i].x1, boxes[i].y1, boxes[i].x2, boxes[i].y2);
 
-        xassert(boxes[i].x1 % term->cell_width == 0);
-        xassert(boxes[i].y1 % term->cell_height == 0);
+        xassert(boxes[i].x1 % six->cell_width == 0);
+        xassert(boxes[i].y1 % six->cell_height == 0);
 
         /* New image's position, in cells */
-        const int new_col = boxes[i].x1 / term->cell_width;
-        const int new_row = boxes[i].y1 / term->cell_height;
+        const int new_col = boxes[i].x1 / six->cell_width;
+        const int new_row = boxes[i].y1 / six->cell_height;
 
         xassert(new_row < term->grid->num_rows);
 
@@ -626,17 +648,17 @@ sixel_overwrite(struct terminal *term, struct sixel *six,
         const int new_height = boxes[i].y2 - boxes[i].y1;
 
         uint32_t *new_data = xmalloc(new_width * new_height * sizeof(uint32_t));
-        const uint32_t *old_data = six->data;
+        const uint32_t *old_data = six->original.data;
 
         /* Pixel offsets into old image backing memory */
-        const int x_ofs = boxes[i].x1 - six->pos.col * term->cell_width;
-        const int y_ofs = boxes[i].y1 - six->pos.row * term->cell_height;
+        const int x_ofs = boxes[i].x1 - six->pos.col * six->cell_width;
+        const int y_ofs = boxes[i].y1 - six->pos.row * six->cell_height;
 
         /* Copy image data, one row at a time */
         for (size_t j = 0; j < new_height; j++) {
             memcpy(
                 &new_data[(0 + j) * new_width],
-                &old_data[(y_ofs + j) * six->width + x_ofs],
+                &old_data[(y_ofs + j) * six->original.width + x_ofs],
                 new_width * sizeof(uint32_t));
         }
 
@@ -645,14 +667,27 @@ sixel_overwrite(struct terminal *term, struct sixel *six,
             new_width, new_height, new_data, new_width * sizeof(uint32_t));
 
         struct sixel new_six = {
-            .data = new_data,
-            .pix = new_pix,
-            .width = new_width,
-            .height = new_height,
+            .pix = NULL,
+            .width = -1,
+            .height = -1,
             .pos = {.col = new_col, .row = new_row},
-            .cols = (new_width + term->cell_width - 1) / term->cell_width,
-            .rows = (new_height + term->cell_height - 1) / term->cell_height,
+            .cols = (new_width + six->cell_width - 1) / six->cell_width,
+            .rows = (new_height + six->cell_height - 1) / six->cell_height,
             .opaque = six->opaque,
+            .cell_width = six->cell_width,
+            .cell_height = six->cell_height,
+            .original = {
+                .data = new_data,
+                .pix = new_pix,
+                .width = new_width,
+                .height = new_height,
+            },
+            .scaled = {
+                .data = NULL,
+                .pix = NULL,
+                .width = -1,
+                .height = -1,
+            },
         };
 
 #if defined(_DEBUG)
@@ -847,23 +882,94 @@ sixel_overwrite_at_cursor(struct terminal *term, int width)
 void
 sixel_cell_size_changed(struct terminal *term)
 {
-    struct grid *g = term->grid;
+    tll_foreach(term->normal.sixel_images, it)
+        sixel_invalidate_cache(&it->item);
 
-    term->grid = &term->normal;
-    tll_foreach(term->normal.sixel_images, it) {
-        struct sixel *six = &it->item;
-        six->rows = (six->height + term->cell_height - 1) / term->cell_height;
-        six->cols = (six->width + term->cell_width - 1) / term->cell_width;
+    tll_foreach(term->alt.sixel_images, it)
+        sixel_invalidate_cache(&it->item);
+}
+
+void
+sixel_sync_cache(const struct terminal *term, struct sixel *six)
+{
+    if (six->pix != NULL) {
+#if defined(_DEBUG)
+        if (six->cell_width == term->cell_width &&
+            six->cell_height == term->cell_height)
+        {
+            xassert(six->pix == six->original.pix);
+            xassert(six->width == six->original.width);
+            xassert(six->height == six->original.height);
+
+            xassert(six->scaled.data == NULL);
+            xassert(six->scaled.pix == NULL);
+            xassert(six->scaled.width < 0);
+            xassert(six->scaled.height < 0);
+        } else {
+            xassert(six->pix == six->scaled.pix);
+            xassert(six->width == six->scaled.width);
+            xassert(six->height == six->scaled.height);
+
+            xassert(six->scaled.data != NULL);
+            xassert(six->scaled.pix != NULL);
+
+            /* TODO: check ratio */
+            xassert(six->scaled.width >= 0);
+            xassert(six->scaled.height >= 0);
+        }
+#endif
+        return;
     }
 
-    term->grid = &term->alt;
-    tll_foreach(term->alt.sixel_images, it) {
-        struct sixel *six = &it->item;
-        six->rows = (six->height + term->cell_height - 1) / term->cell_height;
-        six->cols = (six->width + term->cell_width - 1) / term->cell_width;
-    }
+    /* Cache should be invalid */
+    xassert(six->scaled.data == NULL);
+    xassert(six->scaled.pix == NULL);
+    xassert(six->scaled.width < 0);
+    xassert(six->scaled.height < 0);
 
-    term->grid = g;
+    if (six->cell_width == term->cell_width &&
+        six->cell_height == term->cell_height)
+    {
+        six->pix = six->original.pix;
+        six->width = six->original.width;
+        six->height = six->original.height;
+    } else {
+        const double width_ratio = (double)term->cell_width / six->cell_width;
+        const double height_ratio = (double)term->cell_height / six->cell_height;
+
+        struct pixman_f_transform scale;
+        pixman_f_transform_init_scale(
+            &scale, 1. / width_ratio, 1. / height_ratio);
+
+        struct pixman_transform _scale;
+        pixman_transform_from_pixman_f_transform(&_scale, &scale);
+        pixman_image_set_transform(six->original.pix, &_scale);
+        pixman_image_set_filter(six->original.pix, PIXMAN_FILTER_BILINEAR, NULL, 0);
+
+        int scaled_width = (double)six->original.width * width_ratio;
+        int scaled_height = (double)six->original.height * height_ratio;
+        int scaled_stride = scaled_width * sizeof(uint32_t);
+
+        LOG_DBG("scaling sixel: %dx%d -> %dx%d",
+                six->original.width, six->original.height,
+                scaled_width, scaled_height);
+
+        uint8_t *scaled_data = xmalloc(scaled_height * scaled_stride);
+        pixman_image_t *scaled_pix = pixman_image_create_bits_no_clear(
+            PIXMAN_a8r8g8b8, scaled_width, scaled_height,
+            (uint32_t *)scaled_data, scaled_stride);
+
+        pixman_image_composite32(
+            PIXMAN_OP_SRC, six->original.pix, NULL, scaled_pix, 0, 0, 0, 0,
+            0, 0, scaled_width, scaled_height);
+
+        pixman_image_set_transform(six->original.pix, NULL);
+
+        six->scaled.data = scaled_data;
+        six->scaled.pix = six->pix = scaled_pix;
+        six->scaled.width = six->width = scaled_width;
+        six->scaled.height = six->height = scaled_height;
+    }
 }
 
 void
@@ -926,14 +1032,15 @@ sixel_reflow_grid(struct terminal *term, struct grid *grid)
          * allowed of course */
         _sixel_overwrite_by_rectangle(
             term, six->pos.row, six->pos.col, six->rows, six->cols,
-            &it->item.pix, &it->item.opaque);
+            &it->item.original.pix, &it->item.opaque);
 
-        if (it->item.data != pixman_image_get_data(it->item.pix)) {
-            it->item.data = pixman_image_get_data(it->item.pix);
-            it->item.width = pixman_image_get_width(it->item.pix);
-            it->item.height = pixman_image_get_height(it->item.pix);
-            it->item.cols = (it->item.width + term->cell_width - 1) / term->cell_width;
-            it->item.rows = (it->item.height + term->cell_height - 1) / term->cell_height;
+        if (it->item.original.data != pixman_image_get_data(it->item.original.pix)) {
+            it->item.original.data = pixman_image_get_data(it->item.original.pix);
+            it->item.original.width = pixman_image_get_width(it->item.original.pix);
+            it->item.original.height = pixman_image_get_height(it->item.original.pix);
+            it->item.cols = (it->item.original.width + it->item.cell_width - 1) / it->item.cell_width;
+            it->item.rows = (it->item.original.height + it->item.cell_height - 1) / it->item.cell_height;
+            sixel_invalidate_cache(&it->item);
         }
 
         sixel_insert(term, it->item);
@@ -1027,13 +1134,27 @@ sixel_unhook(struct terminal *term)
         }
 
         struct sixel image = {
-            .data = img_data,
-            .width = width,
-            .height = height,
+            .pix = NULL,
+            .width = -1,
+            .height = -1,
             .rows = (height + term->cell_height - 1) / term->cell_height,
             .cols = (width + term->cell_width - 1) / term->cell_width,
             .pos = (struct coord){start_col, cur_row},
             .opaque = !term->sixel.transparent_bg,
+            .cell_width = term->cell_width,
+            .cell_height = term->cell_height,
+            .original = {
+                .data = img_data,
+                .pix = NULL,
+                .width = width,
+                .height = height,
+            },
+            .scaled = {
+                .data = NULL,
+                .pix = NULL,
+                .width = -1,
+                .height = -1,
+            },
         };
 
         xassert(image.rows <= term->grid->num_rows);
@@ -1044,8 +1165,9 @@ sixel_unhook(struct terminal *term)
                 image.width, image.height,
                 image.pos.row, image.pos.row + image.rows);
 
-        image.pix = pixman_image_create_bits_no_clear(
-            PIXMAN_a8r8g8b8, image.width, image.height, img_data, stride);
+        image.original.pix = pixman_image_create_bits_no_clear(
+            PIXMAN_a8r8g8b8, image.original.width, image.original.height,
+            img_data, stride);
 
         pixel_row_idx += height;
         pixel_rows_left -= height;
@@ -1064,7 +1186,8 @@ sixel_unhook(struct terminal *term)
                 ? max(0, image.rows - 1)
                 : image.rows;
 
-            xassert(rows_avail == 0 || image.height % term->cell_height == 0);
+            xassert(rows_avail == 0 ||
+                    image.original.height % term->cell_height == 0);
 
             for (size_t i = 0; i < linefeed_count; i++)
                 term_linefeed(term);
@@ -1084,7 +1207,7 @@ sixel_unhook(struct terminal *term)
                  * higher up.
                  */
                 const int sixel_row_height = 6 * term->sixel.pan;
-                const int sixel_rows = (image.height + sixel_row_height - 1) / sixel_row_height;
+                const int sixel_rows = (image.original.height + sixel_row_height - 1) / sixel_row_height;
                 const int upper_pixel_last_sixel = (sixel_rows - 1) * sixel_row_height;
                 const int term_rows = (upper_pixel_last_sixel + term->cell_height - 1) / term->cell_height;
 
@@ -1117,14 +1240,15 @@ sixel_unhook(struct terminal *term)
 
         _sixel_overwrite_by_rectangle(
             term, image.pos.row, image.pos.col, image.rows, image.cols,
-            &image.pix, &image.opaque);
+            &image.original.pix, &image.opaque);
 
-        if (image.data != pixman_image_get_data(image.pix)) {
-            image.data = pixman_image_get_data(image.pix);
-            image.width = pixman_image_get_width(image.pix);
-            image.height = pixman_image_get_height(image.pix);
-            image.cols = (image.width + term->cell_width - 1) / term->cell_width;
-            image.rows = (image.height + term->cell_height - 1) / term->cell_height;
+        if (image.original.data != pixman_image_get_data(image.original.pix)) {
+            image.original.data = pixman_image_get_data(image.original.pix);
+            image.original.width = pixman_image_get_width(image.original.pix);
+            image.original.height = pixman_image_get_height(image.original.pix);
+            image.cols = (image.original.width + image.cell_width - 1) / image.cell_width;
+            image.rows = (image.original.height + image.cell_height - 1) / image.cell_height;
+            sixel_invalidate_cache(&image);
         }
 
         sixel_insert(term, image);

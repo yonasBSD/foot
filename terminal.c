@@ -763,9 +763,6 @@ term_set_fonts(struct terminal *term, struct fcft_font *fonts[static 4])
     free_custom_glyphs(
         &term->custom_glyphs.legacy, GLYPH_LEGACY_COUNT);
 
-    const int old_cell_width = term->cell_width;
-    const int old_cell_height = term->cell_height;
-
     const struct config *conf = term->conf;
 
     const struct fcft_glyph *M = fcft_rasterize_char_utf32(
@@ -792,28 +789,7 @@ term_set_fonts(struct terminal *term, struct fcft_font *fonts[static 4])
 
     LOG_INFO("cell width=%d, height=%d", term->cell_width, term->cell_height);
 
-    if (term->cell_width < old_cell_width ||
-        term->cell_height < old_cell_height)
-    {
-        /*
-         * The cell size has decreased.
-         *
-         * This means sixels, which we cannot resize, no longer fit
-         * into their "allocated" grid space.
-         *
-         * To be able to fit them, we would have to change the grid
-         * content. Inserting empty lines _might_ seem acceptable, but
-         * we'd also need to insert empty columns, which would break
-         * existing layout completely.
-         *
-         * So we delete them.
-         */
-        sixel_destroy_all(term);
-    } else if (term->cell_width != old_cell_width ||
-               term->cell_height != old_cell_height)
-    {
-        sixel_cell_size_changed(term);
-    }
+    sixel_cell_size_changed(term);
 
     /* Use force, since cell-width/height may have changed */
     render_resize_force(term, term->width / term->scale, term->height / term->scale);

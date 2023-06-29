@@ -80,12 +80,14 @@
   is explicitly added.
 * Default sixel aspect ratio is now 2:1 instead of 1:1.
 * Sixel images are no longer cropped to the last non-transparent row.
+* Sixel images are now re-scaled when the font size is changed
+  ([#1383][1383]).
 * `dpi-aware` now defaults to `no`, and the `auto` value has been
   removed.
 
-
 [1371]: https://codeberg.org/dnkl/foot/pulls/1371
 [1360]: https://codeberg.org/dnkl/foot/issues/1360
+[1383]: https://codeberg.org/dnkl/foot/issues/1383
 
 
 ### Deprecated

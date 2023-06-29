@@ -126,14 +126,48 @@ struct row {
 };
 
 struct sixel {
-    void *data;
+    /*
+     * These three members reflect the "current", maybe scaled version
+     * of the image.
+     *
+     * The values will either be NULL/-1/-1, or match either the
+     * values in "original", or "scaled".
+     *
+     * They are typically reset when we need to invalidate the cached
+     * version (e.g. when the cell dimensions change).
+     */
     pixman_image_t *pix;
     int width;
     int height;
+
     int rows;
     int cols;
     struct coord pos;
     bool opaque;
+
+    /*
+     * We store the cell dimensions of the time the sixel was emitted.
+     *
+     * If the font size is changed, we rescale the image accordingly,
+     * to ensure it stays within its cell boundaries. ‘scaled’ is a
+     * cached, rescaled version of ‘data’ + ‘pix’.
+     */
+    int cell_width;
+    int cell_height;
+
+    struct {
+        void *data;
+        pixman_image_t *pix;
+        int width;
+        int height;
+    } original;
+
+    struct {
+        void *data;
+        pixman_image_t *pix;
+        int width;
+        int height;
+    } scaled;
 };
 
 enum kitty_kbd_flags {
