@@ -4270,10 +4270,10 @@ render_xcursor_update(struct seat *seat)
 
     xassert(seat->pointer.cursor != NULL);
 
+#if defined(HAVE_CURSOR_SHAPE)
     const enum cursor_shape shape = seat->pointer.shape;
     const char *const xcursor = seat->pointer.last_custom_xcursor;
 
-#if defined(HAVE_CURSOR_SHAPE)
     if (seat->pointer.shape_device != NULL) {
         xassert(shape != CURSOR_SHAPE_CUSTOM || xcursor != NULL);
 
