@@ -137,7 +137,7 @@ struct config {
 
     enum { STARTUP_WINDOWED, STARTUP_MAXIMIZED, STARTUP_FULLSCREEN } startup_mode;
 
-    enum {DPI_AWARE_AUTO, DPI_AWARE_YES, DPI_AWARE_NO} dpi_aware;
+    bool dpi_aware;
     struct config_font_list fonts[4];
     struct font_size_adjustment font_size_adjustment;
 

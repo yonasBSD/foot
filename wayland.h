@@ -20,6 +20,11 @@
  #include <xdg-activation-v1.h>
 #endif
 
+#if defined(HAVE_FRACTIONAL_SCALE)
+ #include <viewporter.h>
+ #include <fractional-scale-v1.h>
+#endif
+
 #include <fcft/fcft.h>
 #include <tllist.h>
 
@@ -27,6 +32,7 @@
 
 /* Forward declarations */
 struct terminal;
+struct buffer;
 
 /* Mime-types we support when dealing with data offers (e.g. copy-paste, or DnD) */
 enum data_offer_mime_type {
@@ -38,6 +44,18 @@ enum data_offer_mime_type {
     DATA_OFFER_MIME_TEXT_TEXT,
     DATA_OFFER_MIME_TEXT_STRING,
     DATA_OFFER_MIME_TEXT_UTF8_STRING,
+};
+
+struct wayl_surface {
+    struct wl_surface *surf;
+#if defined(HAVE_FRACTIONAL_SCALE)
+    struct wp_viewport *viewport;
+#endif
+};
+
+struct wayl_sub_surface {
+    struct wayl_surface surface;
+    struct wl_subsurface *sub;
 };
 
 struct wl_window;
@@ -127,10 +145,10 @@ struct seat {
     struct {
         uint32_t serial;
 
-        struct wl_surface *surface;
+        struct wayl_surface surface;
         struct wl_cursor_theme *theme;
         struct wl_cursor *cursor;
-        int scale;
+        float scale;
         bool hidden;
 
         const char *xcursor;
@@ -289,14 +307,9 @@ struct monitor {
     bool use_output_release;
 };
 
-struct wl_surf_subsurf {
-    struct wl_surface *surf;
-    struct wl_subsurface *sub;
-};
-
 struct wl_url {
     const struct url *url;
-    struct wl_surf_subsurf surf;
+    struct wayl_sub_surface surf;
 };
 
 enum csd_mode {CSD_UNKNOWN, CSD_NO, CSD_YES};
@@ -320,21 +333,27 @@ struct xdg_activation_token_context {
 struct wayland;
 struct wl_window {
     struct terminal *term;
-    struct wl_surface *surface;
+    struct wayl_surface surface;
     struct xdg_surface *xdg_surface;
     struct xdg_toplevel *xdg_toplevel;
 #if defined(HAVE_XDG_ACTIVATION)
     tll(struct xdg_activation_token_context *) xdg_tokens;
     bool urgency_token_is_pending;
 #endif
+#if defined(HAVE_FRACTIONAL_SCALE)
+    struct wp_fractional_scale_v1 *fractional_scale;
+#endif
     bool unmapped;
+
+    float scale;
+    bool have_preferred_scale;
 
     struct zxdg_toplevel_decoration_v1 *xdg_toplevel_decoration;
 
     enum csd_mode csd_mode;
 
     struct {
-        struct wl_surf_subsurf surface[CSD_SURF_COUNT];
+        struct wayl_sub_surface surface[CSD_SURF_COUNT];
         struct fcft_font *font;
         int move_timeout_fd;
         uint32_t serial;
@@ -345,10 +364,10 @@ struct wl_window {
         bool minimize:1;
     } wm_capabilities;
 
-    struct wl_surf_subsurf search;
-    struct wl_surf_subsurf scrollback_indicator;
-    struct wl_surf_subsurf render_timer;
-    struct wl_surf_subsurf overlay;
+    struct wayl_sub_surface search;
+    struct wayl_sub_surface scrollback_indicator;
+    struct wayl_sub_surface render_timer;
+    struct wayl_sub_surface overlay;
 
     struct wl_callback *frame_callback;
 
@@ -414,6 +433,11 @@ struct wayland {
     struct zwp_text_input_manager_v3 *text_input_manager;
 #endif
 
+#if defined(HAVE_FRACTIONAL_SCALE)
+    struct wp_viewporter *viewporter;
+    struct wp_fractional_scale_manager_v1 *fractional_scale_manager;
+#endif
+
     bool have_argb8888;
     tll(struct monitor) monitors;  /* All available outputs */
     tll(struct seat) seats;
@@ -426,14 +450,23 @@ struct wayland *wayl_init(
     bool presentation_timings);
 void wayl_destroy(struct wayland *wayl);
 
-bool wayl_reload_xcursor_theme(struct seat *seat, int new_scale);
+bool wayl_reload_xcursor_theme(struct seat *seat, float new_scale);
 
 void wayl_flush(struct wayland *wayl);
 void wayl_roundtrip(struct wayland *wayl);
 
+bool wayl_fractional_scaling(const struct wayland *wayl);
+void wayl_surface_scale(
+    const struct wl_window *win, const struct wayl_surface *surf,
+    const struct buffer *buf, float scale);
+void wayl_surface_scale_explicit_width_height(
+    const struct wl_window *win, const struct wayl_surface *surf,
+    int width, int height, float scale);
+
 struct wl_window *wayl_win_init(struct terminal *term, const char *token);
 void wayl_win_destroy(struct wl_window *win);
 
+void wayl_win_scale(struct wl_window *win, const struct buffer *buf);
 void wayl_win_alpha_changed(struct wl_window *win);
 bool wayl_win_set_urgent(struct wl_window *win);
 
@@ -441,12 +474,12 @@ bool wayl_win_csd_titlebar_visible(const struct wl_window *win);
 bool wayl_win_csd_borders_visible(const struct wl_window *win);
 
 bool wayl_win_subsurface_new(
-    struct wl_window *win, struct wl_surf_subsurf *surf,
+    struct wl_window *win, struct wayl_sub_surface *surf,
     bool allow_pointer_input);
 bool wayl_win_subsurface_new_with_custom_parent(
     struct wl_window *win, struct wl_surface *parent,
-    struct wl_surf_subsurf *surf, bool allow_pointer_input);
-void wayl_win_subsurface_destroy(struct wl_surf_subsurf *surf);
+    struct wayl_sub_surface *surf, bool allow_pointer_input);
+void wayl_win_subsurface_destroy(struct wayl_sub_surface *surf);
 
 #if defined(HAVE_XDG_ACTIVATION)
 bool wayl_get_activation_token(

@@ -912,42 +912,6 @@ get_font_subpixel(const struct terminal *term)
     return FCFT_SUBPIXEL_DEFAULT;
 }
 
-static bool
-term_font_size_by_dpi(const struct terminal *term)
-{
-    switch (term->conf->dpi_aware) {
-    case DPI_AWARE_YES:  return true;
-    case DPI_AWARE_NO:   return false;
-
-    case DPI_AWARE_AUTO:
-        /*
-         * Scale using DPI if all monitors have a scaling factor or 1.
-         *
-         * The idea is this: if a user, with multiple monitors, have
-         * enabled scaling on at least one monitor, then he/she has
-         * most likely done so to match the size of his/hers other
-         * monitors.
-         *
-         * I.e. if the user has one monitor with a scaling factor of
-         * one, and another with a scaling factor of two, he/she
-         * expects things to be twice as large on the second
-         * monitor.
-         *
-         * If we (foot) scale using DPI on the first monitor, and
-         * using the scaling factor on the second monitor, foot will
-         * *not* look twice as big on the second monitor.
-         */
-        tll_foreach(term->wl->monitors, it) {
-            const struct monitor *mon = &it->item;
-            if (mon->scale > 1)
-                return false;
-        }
-        return true;
-    }
-
-    BUG("unhandled DPI awareness value");
-}
-
 int
 term_pt_or_px_as_pixels(const struct terminal *term,
                         const struct pt_or_px *pt_or_px)
@@ -1000,14 +964,14 @@ reload_fonts(struct terminal *term)
             bool use_px_size = term->font_sizes[i][j].px_size > 0;
             char size[64];
 
-            const int scale = term->font_is_sized_by_dpi ? 1 : term->scale;
+            const float scale = term->font_is_sized_by_dpi ? 1. : term->scale;
 
             if (use_px_size)
                 snprintf(size, sizeof(size), ":pixelsize=%d",
-                         term->font_sizes[i][j].px_size * scale);
+                         (int)round(term->font_sizes[i][j].px_size * scale));
             else
                 snprintf(size, sizeof(size), ":size=%.2f",
-                         term->font_sizes[i][j].pt_size * (double)scale);
+                         term->font_sizes[i][j].pt_size * scale);
 
             size_t len = strlen(font->pattern) + strlen(size) + 1;
             names[i][j] = xmalloc(len);
@@ -1232,7 +1196,7 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
         .reverse_wrap = true,
         .auto_margin = true,
         .window_title_stack = tll_init(),
-        .scale = 1,
+        .scale = 1.,
         .flash = {.fd = flash_fd},
         .blink = {.fd = -1},
         .vt = {
@@ -2158,7 +2122,7 @@ term_font_dpi_changed(struct terminal *term, int old_scale)
     xassert(term->scale > 0);
 
     bool was_scaled_using_dpi = term->font_is_sized_by_dpi;
-    bool will_scale_using_dpi = term_font_size_by_dpi(term);
+    bool will_scale_using_dpi = term->conf->dpi_aware;
 
     bool need_font_reload =
         was_scaled_using_dpi != will_scale_using_dpi ||
@@ -3589,23 +3553,23 @@ term_single_shift(struct terminal *term, enum charset_designator idx)
 enum term_surface
 term_surface_kind(const struct terminal *term, const struct wl_surface *surface)
 {
-    if (likely(surface == term->window->surface))
+    if (likely(surface == term->window->surface.surf))
         return TERM_SURF_GRID;
-    else if (surface == term->window->csd.surface[CSD_SURF_TITLE].surf)
+    else if (surface == term->window->csd.surface[CSD_SURF_TITLE].surface.surf)
         return TERM_SURF_TITLE;
-    else if (surface == term->window->csd.surface[CSD_SURF_LEFT].surf)
+    else if (surface == term->window->csd.surface[CSD_SURF_LEFT].surface.surf)
         return TERM_SURF_BORDER_LEFT;
-    else if (surface == term->window->csd.surface[CSD_SURF_RIGHT].surf)
+    else if (surface == term->window->csd.surface[CSD_SURF_RIGHT].surface.surf)
         return TERM_SURF_BORDER_RIGHT;
-    else if (surface == term->window->csd.surface[CSD_SURF_TOP].surf)
+    else if (surface == term->window->csd.surface[CSD_SURF_TOP].surface.surf)
         return TERM_SURF_BORDER_TOP;
-    else if (surface == term->window->csd.surface[CSD_SURF_BOTTOM].surf)
+    else if (surface == term->window->csd.surface[CSD_SURF_BOTTOM].surface.surf)
         return TERM_SURF_BORDER_BOTTOM;
-    else if (surface == term->window->csd.surface[CSD_SURF_MINIMIZE].surf)
+    else if (surface == term->window->csd.surface[CSD_SURF_MINIMIZE].surface.surf)
         return TERM_SURF_BUTTON_MINIMIZE;
-    else if (surface == term->window->csd.surface[CSD_SURF_MAXIMIZE].surf)
+    else if (surface == term->window->csd.surface[CSD_SURF_MAXIMIZE].surface.surf)
         return TERM_SURF_BUTTON_MAXIMIZE;
-    else if (surface == term->window->csd.surface[CSD_SURF_CLOSE].surf)
+    else if (surface == term->window->csd.surface[CSD_SURF_CLOSE].surface.surf)
         return TERM_SURF_BUTTON_CLOSE;
     else
         return TERM_SURF_NONE;

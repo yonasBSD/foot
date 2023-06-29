@@ -185,7 +185,7 @@ empty string to be set, but it must be quoted: *KEY=""*)
 	Default: _no_.
 
 *dpi-aware*
-	*auto*, *yes*, or *no*.
+	Boolean.
 	
 	When set to *yes*, fonts are sized using the monitor's DPI, making
 	a font of a given size have the same physical size, regardless of
@@ -199,12 +199,6 @@ empty string to be set, but it must be quoted: *KEY=""*)
 	instead sized using the monitor's scaling factor; doubling the
 	scaling factor *does* double the font size.
 	
-	Finally, if set to *auto*, fonts will be sized using the monitor's
-	DPI if _all_ monitors have a scaling factor of 1. If at least one
-	monitor as a scaling factor larger than 1 (regardless of whether
-	the foot window is mapped on that monitor or not), fonts will be
-	scaled using the scaling factor.
-	
 	Note that this option typically does not work with bitmap fonts,
 	which only contains a pre-defined set of sizes, and cannot be
 	dynamically scaled. Whichever size (of the available ones) that
@@ -217,7 +211,7 @@ empty string to be set, but it must be quoted: *KEY=""*)
 	to size the font (*dpi-aware=no*), the font's pixel size will be
 	multiplied with the scaling factor.
 	
-	Default: _auto_
+	Default: _no_
 
 *pad*
 	Padding between border and glyphs, in pixels (subject to output

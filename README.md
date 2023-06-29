@@ -411,25 +411,51 @@ This is not how it is meant to be. Fonts are measured in _point sizes_
 **for a reason**; a given point size should have the same height on
 all mediums, be it printers or monitors, regardless of their DPI.
 
-Foot’s default behavior is to use the monitor’s DPI to size fonts when
-output scaling has been disabled on **all** monitors. If at least one
-monitor has output scaling enabled, fonts will instead by sized using
-the scaling factor.
+That said, on Wayland, Hi-DPI monitors are typically handled by
+configuring a _"scaling factor"_ in the compositor. This is usually
+expressed as either a rational value (e.g. _1.5_), or as a percentage
+(e.g. _150%_), by which all fonts and window sizes are supposed to be
+multiplied.
 
-This can be changed to either **always** use the monitor’s DPI
-(regardless of scaling factor), or to **never** use it, with the
-`dpi-aware` option in `foot.ini`. See the man page, **foot.ini**(5)
-for more information.
+For this reason, and because of the new _fractional scaling_ protocol
+(see below for details), and because this is how Wayland applications
+are expected to behave, foot >= 1.15 will default to scaling fonts
+using the compositor’s scaling factor, and **not** the monitor
+DPI.
 
-When fonts are sized using the monitor’s DPI, glyphs should always
-have the same physical height, regardless of monitor.
+This means the (assuming the monitors are at the same viewing
+distance) the font size will appear to change when you move the foot
+window across different monitors, **unless** you have configured the
+monitors’ scaling factors correctly in the compositor.
 
-Furthermore, foot will re-size the fonts on-the-fly when the window is
-moved between screens with different DPIs values. If the window covers
-multiple screens, with different DPIs, the highest DPI will be used.
+This can be changed by setting the `dpi-aware` option to `yes` in
+`foot.ini`. When enabled, fonts will **not** be sized using the
+scaling factor, but will instead be sized using the monitor’s
+DPI. When the foot window is moved across monitors, the font size is
+updated for the current monitor’s DPI.
+
+This means that, assuming the monitors are **at the same viewing
+distance**, the font size will appear to be the same, at all times.
 
 _Note_: if you configure **pixelsize**, rather than **size**, then DPI
 changes will **not** change the font size. Pixels are always pixels.
+
+
+### Fractional scaling on Wayland
+
+For a long time, there was no **true** support for _fractional
+scaling_. That is, values like 1.5 (150%), 1.8 (180%) etc, only
+integer values, like 2 (200%).
+
+Compositors that _did_ support fractional scaling did so using a hack;
+all applications were told to scale to 200%, and then the compositor
+would down-scale the rendered image to e.g. 150%. This works OK for
+everything **except fonts**, which ended up blurry.
+
+With _wayland-protocols 1.32_, a new protocol was introduced, that
+allows compositors to tell applications the _actual_ scaling
+factor. Applications can then scale the image using a _viewport_
+object, instead of setting a scale factor on the raw pixel buffer.
 
 
 ## Supported OSCs

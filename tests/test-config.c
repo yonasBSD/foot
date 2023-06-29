@@ -511,6 +511,7 @@ test_section_main(void)
     test_boolean(&ctx, &parse_section_main, "box-drawings-uses-font-glyphs", &conf.box_drawings_uses_font_glyphs);
     test_boolean(&ctx, &parse_section_main, "locked-title", &conf.locked_title);
     test_boolean(&ctx, &parse_section_main, "notify-focus-inhibit", &conf.notify_focus_inhibit);
+    test_boolean(&ctx, &parse_section_main, "dpi-aware", &conf.dpi_aware);
 
     test_pt_or_px(&ctx, &parse_section_main, "font-size-adjustment", &conf.font_size_adjustment.pt_or_px);  /* TODO: test ‘N%’ values too */
     test_pt_or_px(&ctx, &parse_section_main, "line-height", &conf.line_height);
@@ -523,17 +524,6 @@ test_section_main(void)
     test_uint16(&ctx, &parse_section_main, "workers", &conf.render_worker_count);
 
     test_spawn_template(&ctx, &parse_section_main, "notify", &conf.notify);
-
-    test_enum(
-        &ctx, &parse_section_main, "dpi-aware",
-        9,
-        (const char *[]){"on", "true", "yes", "1",
-                         "off", "false", "no", "0",
-                         "auto"},
-        (int []){DPI_AWARE_YES, DPI_AWARE_YES, DPI_AWARE_YES, DPI_AWARE_YES,
-                 DPI_AWARE_NO, DPI_AWARE_NO, DPI_AWARE_NO, DPI_AWARE_NO,
-                 DPI_AWARE_AUTO},
-        (int *)&conf.dpi_aware);
 
     test_enum(&ctx, &parse_section_main, "selection-target",
               4,

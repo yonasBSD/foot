@@ -89,5 +89,5 @@ quirk_sway_subsurface_unmap(struct terminal *term)
     if (!is_sway())
         return;
 
-    wl_surface_damage_buffer(term->window->surface, 0, 0, INT32_MAX, INT32_MAX);
+    wl_surface_damage_buffer(term->window->surface.surf, 0, 0, INT32_MAX, INT32_MAX);
 }
