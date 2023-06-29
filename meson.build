@@ -169,8 +169,7 @@ if wayland_protocols.version().version_compare('>=1.31')
 else
   fractional_scale = false
 endif
-
-if wayland_protocols.version().version_compare('>=1.31')  # TODO: 1.32
+if wayland_protocols.version().version_compare('>=1.32')
   wl_proto_xml += [
       wayland_protocols_datadir + '/unstable/tablet/tablet-unstable-v2.xml',  # required by cursor-shape-v1
       wayland_protocols_datadir + '/staging/cursor-shape/cursor-shape-v1.xml',
