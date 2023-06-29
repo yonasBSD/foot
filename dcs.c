@@ -427,8 +427,7 @@ dcs_hook(struct terminal *term, uint8_t final)
             int p2 = vt_param_get(term, 1,0);
             int p3 = vt_param_get(term, 2, 0);
 
-            sixel_init(term, p1, p2, p3);
-            term->vt.dcs.put_handler = &sixel_put;
+            term->vt.dcs.put_handler = sixel_init(term, p1, p2, p3);
             term->vt.dcs.unhook_handler = &sixel_unhook;
             break;
         }

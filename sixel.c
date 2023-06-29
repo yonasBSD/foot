@@ -16,6 +16,9 @@
 
 static size_t count;
 
+static void sixel_put_generic(struct terminal *term, uint8_t c);
+static void sixel_put_ar_11(struct terminal *term, uint8_t c);
+
 void
 sixel_fini(struct terminal *term)
 {
@@ -24,7 +27,7 @@ sixel_fini(struct terminal *term)
     free(term->sixel.shared_palette);
 }
 
-void
+sixel_put
 sixel_init(struct terminal *term, int p1, int p2, int p3)
 {
     /*
@@ -119,6 +122,7 @@ sixel_init(struct terminal *term, int p1, int p2, int p3)
         : bg;
 
     count = 0;
+    return pan == 1 && pad == 1 ? &sixel_put_ar_11 : &sixel_put_generic;
 }
 
 void
@@ -1327,7 +1331,8 @@ resize(struct terminal *term, int new_width, int new_height)
 }
 
 static void
-sixel_add(struct terminal *term, int col, int width, uint32_t color, uint8_t sixel)
+sixel_add_generic(struct terminal *term, int col, int width, uint32_t color,
+                  uint8_t sixel)
 {
     xassert(term->sixel.pos.col < term->sixel.image.width);
     xassert(term->sixel.pos.row < term->sixel.image.height);
@@ -1348,7 +1353,37 @@ sixel_add(struct terminal *term, int col, int width, uint32_t color, uint8_t six
 }
 
 static void
-sixel_add_many(struct terminal *term, uint8_t c, unsigned count)
+sixel_add_ar_11(struct terminal *term, int col, int width, uint32_t color,
+                uint8_t sixel)
+{
+    xassert(term->sixel.pos.col < term->sixel.image.width);
+    xassert(term->sixel.pos.row < term->sixel.image.height);
+    xassert(term->sixel.pan == 1);
+
+    const size_t ofs = term->sixel.row_byte_ofs + col;
+    uint32_t *data = &term->sixel.image.data[ofs];
+
+    if (sixel & 0x01)
+        *data = color;
+    data += width;
+    if (sixel & 0x02)
+        *data = color;
+    data += width;
+    if (sixel & 0x04)
+        *data = color;
+    data += width;
+    if (sixel & 0x08)
+        *data = color;
+    data += width;
+    if (sixel & 0x10)
+        *data = color;
+    data += width;
+    if (sixel & 0x20)
+        *data = color;
+}
+
+static void
+sixel_add_many_generic(struct terminal *term, uint8_t c, unsigned count)
 {
     int col = term->sixel.pos.col;
     int width = term->sixel.image.width;
@@ -1362,14 +1397,40 @@ sixel_add_many(struct terminal *term, uint8_t c, unsigned count)
     }
 
     uint32_t color = term->sixel.color;
-    for (unsigned i = 0; i < count; i++, col++)
-        sixel_add(term, col, width, color, c);
+    for (unsigned i = 0; i < count; i++, col++) {
+        /* TODO: is it worth dynamically dispatching to either generic or AR-11? */
+        sixel_add_generic(term, col, width, color, c);
+    }
 
     term->sixel.pos.col = col;
 }
 
 static void
-decsixel(struct terminal *term, uint8_t c)
+sixel_add_many_ar_11(struct terminal *term, uint8_t c, unsigned count)
+{
+    xassert(term->sixel.pan == 1);
+    xassert(term->sixel.pad == 1);
+
+    int col = term->sixel.pos.col;
+    int width = term->sixel.image.width;
+
+    if (unlikely(col + count - 1 >= width)) {
+        resize_horizontally(term, col + count);
+        width = term->sixel.image.width;
+        count = min(count, max(width - col, 0));
+    }
+
+    uint32_t color = term->sixel.color;
+    for (unsigned i = 0; i < count; i++, col++)
+        sixel_add_ar_11(term, col, width, color, c);
+
+    term->sixel.pos.col = col;
+}
+
+IGNORE_WARNING("-Wpedantic")
+
+static void
+decsixel_generic(struct terminal *term, uint8_t c)
 {
     switch (c) {
     case '"':
@@ -1382,6 +1443,7 @@ decsixel(struct terminal *term, uint8_t c)
         term->sixel.state = SIXEL_DECGRI;
         term->sixel.param = 0;
         term->sixel.param_idx = 0;
+        term->sixel.repeat_count = 1;
         break;
 
     case '#':
@@ -1414,17 +1476,8 @@ decsixel(struct terminal *term, uint8_t c)
         }
         break;
 
-    case '?': case '@': case 'A': case 'B': case 'C': case 'D': case 'E':
-    case 'F': case 'G': case 'H': case 'I': case 'J': case 'K': case 'L':
-    case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': case 'S':
-    case 'T': case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
-    case '[': case '\\': case ']': case '^': case '_': case '`': case 'a':
-    case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h':
-    case 'i': case 'j': case 'k': case 'l': case 'm': case 'n': case 'o':
-    case 'p': case 'q': case 'r': case 's': case 't': case 'u': case 'v':
-    case 'w': case 'x': case 'y': case 'z': case '{': case '|': case '}':
-    case '~':
-        sixel_add_many(term, c - 63, 1);
+    case '?' ... '~':
+        sixel_add_many_generic(term, c - 63, 1);
         break;
 
     case ' ':
@@ -1436,6 +1489,17 @@ decsixel(struct terminal *term, uint8_t c)
         LOG_WARN("invalid sixel character: '%c' at idx=%zu", c, count);
         break;
     }
+}
+
+UNIGNORE_WARNINGS
+
+static void
+decsixel_ar_11(struct terminal *term, uint8_t c)
+{
+    if (likely(c >= '?' && c <= '~'))
+        sixel_add_many_ar_11(term, c - 63, 1);
+    else
+        decsixel_generic(term, c);
 }
 
 static void
@@ -1483,46 +1547,62 @@ decgra(struct terminal *term, uint8_t c)
         }
 
         term->sixel.state = SIXEL_DECSIXEL;
-        decsixel(term, c);
+
+        /* Update DCS put handler, since pan/pad may have changed */
+        term->vt.dcs.put_handler = pan == 1 && pad == 1
+            ? &sixel_put_ar_11
+            : &sixel_put_generic;
+
+        if (likely(pan == 1 && pad == 1))
+            decsixel_ar_11(term, c);
+        else
+            decsixel_generic(term, c);
+
         break;
     }
     }
 }
 
+IGNORE_WARNING("-Wpedantic")
+
 static void
-decgri(struct terminal *term, uint8_t c)
+decgri_generic(struct terminal *term, uint8_t c)
 {
     switch (c) {
     case '0': case '1': case '2': case '3': case '4':
-    case '5': case '6': case '7': case '8': case '9':
-        term->sixel.param *= 10;
-        term->sixel.param += c - '0';
+    case '5': case '6': case '7': case '8': case '9': {
+        unsigned param = term->sixel.param;
+        param *= 10;
+        param += c - '0';
+        term->sixel.repeat_count = term->sixel.param = param;
         break;
+    }
 
-    case '?': case '@': case 'A': case 'B': case 'C': case 'D': case 'E':
-    case 'F': case 'G': case 'H': case 'I': case 'J': case 'K': case 'L':
-    case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': case 'S':
-    case 'T': case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
-    case '[': case '\\': case ']': case '^': case '_': case '`': case 'a':
-    case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h':
-    case 'i': case 'j': case 'k': case 'l': case 'm': case 'n': case 'o':
-    case 'p': case 'q': case 'r': case 's': case 't': case 'u': case 'v':
-    case 'w': case 'x': case 'y': case 'z': case '{': case '|': case '}':
-    case '~': {
-        unsigned count = term->sixel.param;
-        if (likely(count > 0))
-            sixel_add_many(term, c - 63, count);
-        else if (unlikely(count == 0))
-            sixel_add_many(term, c - 63, 1);
+    case '?' ... '~': {
+        const unsigned count = term->sixel.repeat_count;
+        sixel_add_many_generic(term, c - 63, count);
         term->sixel.state = SIXEL_DECSIXEL;
         break;
     }
 
     default:
         term->sixel.state = SIXEL_DECSIXEL;
-        sixel_put(term, c);
+        term->vt.dcs.put_handler(term, c);
         break;
     }
+}
+
+UNIGNORE_WARNINGS
+
+static void
+decgri_ar_11(struct terminal *term, uint8_t c)
+{
+    if (likely(c >= '?' && c <= '~')) {
+        const unsigned count = term->sixel.repeat_count;
+        sixel_add_many_ar_11(term, c - 63, count);
+        term->sixel.state = SIXEL_DECSIXEL;
+    } else
+        decgri_generic(term, c);
 }
 
 static void
@@ -1601,19 +1681,36 @@ decgci(struct terminal *term, uint8_t c)
             term->sixel.color = term->sixel.palette[term->sixel.color_idx];
 
         term->sixel.state = SIXEL_DECSIXEL;
-        decsixel(term, c);
+
+        if (likely(term->sixel.pan == 1 && term->sixel.pad == 1))
+            decsixel_ar_11(term, c);
+        else
+            decsixel_generic(term, c);
         break;
     }
     }
 }
 
-void
-sixel_put(struct terminal *term, uint8_t c)
+static void
+sixel_put_generic(struct terminal *term, uint8_t c)
 {
     switch (term->sixel.state) {
-    case SIXEL_DECSIXEL: decsixel(term, c); break;
+    case SIXEL_DECSIXEL: decsixel_generic(term, c); break;
     case SIXEL_DECGRA: decgra(term, c); break;
-    case SIXEL_DECGRI: decgri(term, c); break;
+    case SIXEL_DECGRI: decgri_generic(term, c); break;
+    case SIXEL_DECGCI: decgci(term, c); break;
+    }
+
+    count++;
+}
+
+static void
+sixel_put_ar_11(struct terminal *term, uint8_t c)
+{
+    switch (term->sixel.state) {
+    case SIXEL_DECSIXEL: decsixel_ar_11(term, c); break;
+    case SIXEL_DECGRA: decgra(term, c); break;
+    case SIXEL_DECGRI: decgri_ar_11(term, c); break;
     case SIXEL_DECGCI: decgci(term, c); break;
     }
 
