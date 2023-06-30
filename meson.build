@@ -175,6 +175,9 @@ if wayland_protocols.version().version_compare('>=1.32')
       wayland_protocols_datadir + '/staging/cursor-shape/cursor-shape-v1.xml',
   ]
   add_project_arguments('-DHAVE_CURSOR_SHAPE', language: 'c')
+  cursor_shape = true
+else
+  cursor_shape = false
 endif
 
 foreach prot : wl_proto_xml
@@ -388,6 +391,7 @@ summary(
     'Grapheme clustering': utf8proc.found(),
     'Wayland: xdg-activation-v1': xdg_activation,
     'Wayland: fractional-scale-v1': fractional_scale,
+    'Wayland: cursor-shape-v1': cursor_shape,
     'utmp backend': utmp_backend,
     'utmp helper default path': utmp_default_helper_path,
     'Build terminfo': tic.found(),
