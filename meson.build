@@ -157,11 +157,17 @@ wl_proto_xml = [
 if wayland_protocols.version().version_compare('>=1.21')
   add_project_arguments('-DHAVE_XDG_ACTIVATION', language: 'c')
   wl_proto_xml += [wayland_protocols_datadir + '/staging/xdg-activation/xdg-activation-v1.xml']
+  xdg_activation = true
+else
+  xdg_activation = false
 endif
 if wayland_protocols.version().version_compare('>=1.31')
   add_project_arguments('-DHAVE_FRACTIONAL_SCALE', language: 'c')
   wl_proto_xml += [wayland_protocols_datadir + '/stable/viewporter/viewporter.xml']
   wl_proto_xml += [wayland_protocols_datadir + '/staging/fractional-scale/fractional-scale-v1.xml']
+  fractional_scale = true
+else
+  fractional_scale = false
 endif
 
 foreach prot : wl_proto_xml
@@ -372,6 +378,8 @@ summary(
     'Themes': get_option('themes'),
     'IME': get_option('ime'),
     'Grapheme clustering': utf8proc.found(),
+    'Wayland: xdg-activation-v1': xdg_activation,
+    'Wayland: fractional-scale-v1': fractional_scale,
     'utmp backend': utmp_backend,
     'utmp helper default path': utmp_default_helper_path,
     'Build terminfo': tic.found(),
