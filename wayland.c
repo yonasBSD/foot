@@ -1908,7 +1908,7 @@ wayl_surface_scale_explicit_width_height(
             round((float)height / scale));
 #else
         BUG("wayl_fraction_scaling() returned true, "
-            "but fractional scaling was not available at compile time").
+            "but fractional scaling was not available at compile time");
 #endif
     } else {
         LOG_DBG("scaling by a factor of %.2f using legacy mode "
