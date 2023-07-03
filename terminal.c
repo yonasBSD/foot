@@ -3133,7 +3133,7 @@ term_xcursor_update_for_seat(struct terminal *term, struct seat *seat)
 #if defined(HAVE_CURSOR_SHAPE)
         else if (cursor_string_to_server_shape(term->mouse_user_cursor) != 0
 #else
-        else if (true
+        else if (false
 #endif
                  || render_xcursor_is_valid(seat, term->mouse_user_cursor))
         {
