@@ -169,6 +169,16 @@ if wayland_protocols.version().version_compare('>=1.31')
 else
   fractional_scale = false
 endif
+if wayland_protocols.version().version_compare('>=1.32')
+  wl_proto_xml += [
+      wayland_protocols_datadir + '/unstable/tablet/tablet-unstable-v2.xml',  # required by cursor-shape-v1
+      wayland_protocols_datadir + '/staging/cursor-shape/cursor-shape-v1.xml',
+  ]
+  add_project_arguments('-DHAVE_CURSOR_SHAPE', language: 'c')
+  cursor_shape = true
+else
+  cursor_shape = false
+endif
 
 foreach prot : wl_proto_xml
   wl_proto_headers += custom_target(
@@ -223,6 +233,7 @@ vtlib = static_library(
   'vtlib',
   'base64.c', 'base64.h',
   'composed.c', 'composed.h',
+  'cursor-shape.c', 'cursor-shape.h',
   'csi.c', 'csi.h',
   'dcs.c', 'dcs.h',
   'macros.h',
@@ -380,6 +391,7 @@ summary(
     'Grapheme clustering': utf8proc.found(),
     'Wayland: xdg-activation-v1': xdg_activation,
     'Wayland: fractional-scale-v1': fractional_scale,
+    'Wayland: cursor-shape-v1': cursor_shape,
     'utmp backend': utmp_backend,
     'utmp helper default path': utmp_default_helper_path,
     'Build terminfo': tic.found(),

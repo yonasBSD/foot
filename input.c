@@ -1704,20 +1704,20 @@ is_bottom_right(const struct terminal *term, int x, int y)
          (term->active_surface == TERM_SURF_BORDER_BOTTOM && x > term->width + 1 * csd_border_size * term->scale - 10 * term->scale)));
 }
 
-const char *
+enum cursor_shape
 xcursor_for_csd_border(struct terminal *term, int x, int y)
 {
-    if (is_top_left(term, x, y))                              return XCURSOR_TOP_LEFT_CORNER;
-    else if (is_top_right(term, x, y))                        return XCURSOR_TOP_RIGHT_CORNER;
-    else if (is_bottom_left(term, x, y))                      return XCURSOR_BOTTOM_LEFT_CORNER;
-    else if (is_bottom_right(term, x, y))                     return XCURSOR_BOTTOM_RIGHT_CORNER;
-    else if (term->active_surface == TERM_SURF_BORDER_LEFT)   return XCURSOR_LEFT_SIDE;
-    else if (term->active_surface == TERM_SURF_BORDER_RIGHT)  return XCURSOR_RIGHT_SIDE;
-    else if (term->active_surface == TERM_SURF_BORDER_TOP)    return XCURSOR_TOP_SIDE;
-    else if (term->active_surface == TERM_SURF_BORDER_BOTTOM) return XCURSOR_BOTTOM_SIDE;
+    if (is_top_left(term, x, y))                              return CURSOR_SHAPE_TOP_LEFT_CORNER;
+    else if (is_top_right(term, x, y))                        return CURSOR_SHAPE_TOP_RIGHT_CORNER;
+    else if (is_bottom_left(term, x, y))                      return CURSOR_SHAPE_BOTTOM_LEFT_CORNER;
+    else if (is_bottom_right(term, x, y))                     return CURSOR_SHAPE_BOTTOM_RIGHT_CORNER;
+    else if (term->active_surface == TERM_SURF_BORDER_LEFT)   return CURSOR_SHAPE_LEFT_SIDE;
+    else if (term->active_surface == TERM_SURF_BORDER_RIGHT)  return CURSOR_SHAPE_RIGHT_SIDE;
+    else if (term->active_surface == TERM_SURF_BORDER_TOP)    return CURSOR_SHAPE_TOP_SIDE;
+    else if (term->active_surface == TERM_SURF_BORDER_BOTTOM) return CURSOR_SHAPE_BOTTOM_SIDE;
     else {
         BUG("Unreachable");
-        return NULL;
+        return CURSOR_SHAPE_NONE;
     }
 }
 
@@ -1819,7 +1819,7 @@ wl_pointer_leave(void *data, struct wl_pointer *wl_pointer,
     }
 
     /* Reset last-set-xcursor, to ensure we update it on a pointer-enter event */
-    seat->pointer.xcursor = NULL;
+    seat->pointer.shape = CURSOR_SHAPE_NONE;
 
     /* Reset mouse state */
     seat->mouse.x = seat->mouse.y = 0;

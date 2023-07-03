@@ -76,15 +76,15 @@ render_xcursor_is_valid(const struct seat *seat, const char *cursor)
 }
 
 bool
-render_xcursor_set(struct seat *seat, struct terminal *term, const char *xcursor)
+render_xcursor_set(struct seat *seat, struct terminal *term, enum cursor_shape shape)
 {
     return true;
 }
 
-const char *
+enum cursor_shape
 xcursor_for_csd_border(struct terminal *term, int x, int y)
 {
-    return XCURSOR_LEFT_PTR;
+    return CURSOR_SHAPE_LEFT_PTR;
 }
 
 struct wl_window *

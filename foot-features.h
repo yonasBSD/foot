@@ -46,3 +46,12 @@ static inline bool feature_fractional_scaling(void)
     return false;
 #endif
 }
+
+static inline bool feature_cursor_shape(void)
+{
+#if defined(HAVE_CURSOR_SHAPE)
+    return true;
+#else
+    return false;
+#endif
+}

@@ -31,6 +31,7 @@
 #include "box-drawing.h"
 #include "char32.h"
 #include "config.h"
+#include "cursor-shape.h"
 #include "grid.h"
 #include "hsl.h"
 #include "ime.h"
@@ -4254,26 +4255,61 @@ render_xcursor_update(struct seat *seat)
     if (!seat->mouse_focus)
         return;
 
-    xassert(seat->pointer.xcursor != NULL);
+    xassert(seat->pointer.shape != CURSOR_SHAPE_NONE);
 
-    if (seat->pointer.xcursor == XCURSOR_HIDDEN) {
+    if (seat->pointer.shape == CURSOR_SHAPE_HIDDEN) {
         /* Hide cursor */
+        LOG_DBG("hiding cursor using client-side NULL-surface");
         wl_surface_attach(seat->pointer.surface.surf, NULL, 0, 0);
+        wl_pointer_set_cursor(
+            seat->wl_pointer, seat->pointer.serial, seat->pointer.surface.surf,
+            0, 0);
         wl_surface_commit(seat->pointer.surface.surf);
         return;
     }
 
     xassert(seat->pointer.cursor != NULL);
 
-    const float scale = seat->pointer.scale;
+#if defined(HAVE_CURSOR_SHAPE)
+    const enum cursor_shape shape = seat->pointer.shape;
+    const char *const xcursor = seat->pointer.last_custom_xcursor;
+
+    if (seat->pointer.shape_device != NULL) {
+        xassert(shape != CURSOR_SHAPE_CUSTOM || xcursor != NULL);
+
+        const enum wp_cursor_shape_device_v1_shape custom_shape =
+            (shape == CURSOR_SHAPE_CUSTOM && xcursor != NULL
+             ? cursor_string_to_server_shape(xcursor)
+             : 0);
+
+        if (shape != CURSOR_SHAPE_CUSTOM || custom_shape != 0) {
+            xassert(custom_shape == 0 || shape == CURSOR_SHAPE_CUSTOM);
+
+            const enum wp_cursor_shape_device_v1_shape wp_shape = custom_shape != 0
+                ? custom_shape
+                : cursor_shape_to_server_shape(shape);
+
+            LOG_DBG("setting %scursor shape using cursor-shape-v1",
+                    custom_shape != 0 ? "custom " : "");
+
+            wp_cursor_shape_device_v1_set_shape(
+                seat->pointer.shape_device,
+                seat->pointer.serial,
+                wp_shape);
+
+            return;
+        }
+    }
+#endif
+
+    LOG_DBG("setting %scursor shape using a client-side cursor surface",
+            shape == CURSOR_SHAPE_CUSTOM ? "custom " : "");
+
+    const int scale = seat->pointer.scale;
     struct wl_cursor_image *image = seat->pointer.cursor->images[0];
-    struct wl_buffer *buf = wl_cursor_image_get_buffer(image);
 
-    wayl_surface_scale_explicit_width_height(
-        seat->mouse_focus->window,
-        &seat->pointer.surface, image->width, image->height, scale);
-
-    wl_surface_attach(seat->pointer.surface.surf, buf, 0, 0);
+    wl_surface_attach(
+        seat->pointer.surface.surf, wl_cursor_image_get_buffer(image), 0, 0);
 
     wl_pointer_set_cursor(
         seat->wl_pointer, seat->pointer.serial,
@@ -4282,6 +4318,8 @@ render_xcursor_update(struct seat *seat)
 
     wl_surface_damage_buffer(
         seat->pointer.surface.surf, 0, 0, INT32_MAX, INT32_MAX);
+
+    wl_surface_set_buffer_scale(seat->pointer.surface.surf, scale);
 
     xassert(seat->pointer.xcursor_callback == NULL);
     seat->pointer.xcursor_callback = wl_surface_frame(seat->pointer.surface.surf);
@@ -4434,13 +4472,14 @@ render_refresh_urls(struct terminal *term)
 }
 
 bool
-render_xcursor_set(struct seat *seat, struct terminal *term, const char *xcursor)
+render_xcursor_set(struct seat *seat, struct terminal *term,
+                   enum cursor_shape shape)
 {
     if (seat->pointer.theme == NULL)
         return false;
 
     if (seat->mouse_focus == NULL) {
-        seat->pointer.xcursor = NULL;
+        seat->pointer.shape = CURSOR_SHAPE_NONE;
         return true;
     }
 
@@ -4449,26 +4488,48 @@ render_xcursor_set(struct seat *seat, struct terminal *term, const char *xcursor
         return true;
     }
 
-    if (seat->pointer.xcursor == xcursor)
+    if (seat->pointer.shape == shape &&
+        !(shape == CURSOR_SHAPE_CUSTOM &&
+          strcmp(seat->pointer.last_custom_xcursor,
+                 term->mouse_user_cursor) != 0))
+    {
         return true;
+    }
 
-    if (xcursor != XCURSOR_HIDDEN) {
+    /* TODO: skip this when using server-side cursors */
+    if (shape != CURSOR_SHAPE_HIDDEN) {
+        const char *const xcursor = shape == CURSOR_SHAPE_CUSTOM
+            ? term->mouse_user_cursor
+            : cursor_shape_to_string(shape);
+        const char *const fallback =
+            cursor_shape_to_string(CURSOR_SHAPE_TEXT_FALLBACK);
+
         seat->pointer.cursor = wl_cursor_theme_get_cursor(
             seat->pointer.theme, xcursor);
 
         if (seat->pointer.cursor == NULL) {
             seat->pointer.cursor = wl_cursor_theme_get_cursor(
-                seat->pointer.theme, XCURSOR_TEXT_FALLBACK );
+                seat->pointer.theme, fallback);
+
             if (seat->pointer.cursor == NULL) {
-                LOG_ERR("failed to load xcursor pointer '%s', and fallback '%s'", xcursor, XCURSOR_TEXT_FALLBACK);
+                LOG_ERR("failed to load xcursor pointer "
+                        "'%s', and fallback '%s'", xcursor, fallback);
                 return false;
             }
         }
-    } else
+
+        if (shape == CURSOR_SHAPE_CUSTOM) {
+            free(seat->pointer.last_custom_xcursor);
+            seat->pointer.last_custom_xcursor = xstrdup(term->mouse_user_cursor);
+        }
+    } else {
         seat->pointer.cursor = NULL;
+        free(seat->pointer.last_custom_xcursor);
+        seat->pointer.last_custom_xcursor = NULL;
+    }
 
     /* FDM hook takes care of actual rendering */
-    seat->pointer.xcursor = xcursor;
+    seat->pointer.shape = shape;
     seat->pointer.xcursor_pending = true;
     return true;
 }

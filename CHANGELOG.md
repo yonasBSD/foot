@@ -53,6 +53,10 @@
 * Support for the new fractional-scaling-v1 Wayland protocol. This
   brings true fractional scaling to Wayland in general, and with this
   release, foot.
+* Support for the new `cursor-shape-v1` Wayland protocol, i.e. server
+  side cursor shapes ([#1379][1379]).
+
+[1379]: https://codeberg.org/dnkl/foot/issues/1379
 
 
 ### Changed

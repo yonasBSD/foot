@@ -47,20 +47,6 @@
 
 #define PTMX_TIMING 0
 
-const char *const XCURSOR_HIDDEN = "hidden";
-const char *const XCURSOR_LEFT_PTR = "left_ptr";
-const char *const XCURSOR_TEXT = "text";
-const char *const XCURSOR_TEXT_FALLBACK = "xterm";
-//const char *const XCURSOR_HAND2 = "hand2";
-const char *const XCURSOR_TOP_LEFT_CORNER = "top_left_corner";
-const char *const XCURSOR_TOP_RIGHT_CORNER = "top_right_corner";
-const char *const XCURSOR_BOTTOM_LEFT_CORNER = "bottom_left_corner";
-const char *const XCURSOR_BOTTOM_RIGHT_CORNER = "bottom_right_corner";
-const char *const XCURSOR_LEFT_SIDE = "left_side";
-const char *const XCURSOR_RIGHT_SIDE = "right_side";
-const char *const XCURSOR_TOP_SIDE = "top_side";
-const char *const XCURSOR_BOTTOM_SIDE = "bottom_side";
-
 static void
 enqueue_data_for_slave(const void *data, size_t len, size_t offset,
                        ptmx_buffer_list_t *buffer_list)
@@ -3137,44 +3123,56 @@ term_mouse_motion(struct terminal *term, int button, int row, int col,
 void
 term_xcursor_update_for_seat(struct terminal *term, struct seat *seat)
 {
-    const char *xcursor = NULL;
+    enum cursor_shape shape = CURSOR_SHAPE_NONE;
 
     switch (term->active_surface) {
-    case TERM_SURF_GRID: {
-        bool have_custom_cursor =
-            render_xcursor_is_valid(seat, term->mouse_user_cursor);
+    case TERM_SURF_GRID:
+        if (seat->pointer.hidden)
+            shape = CURSOR_SHAPE_HIDDEN;
 
-        xcursor = seat->pointer.hidden ? XCURSOR_HIDDEN
-            : have_custom_cursor ? term->mouse_user_cursor
-            : term->is_searching ? XCURSOR_LEFT_PTR
-            : (seat->mouse.col >= 0 &&
-               seat->mouse.row >= 0 &&
-               term_mouse_grabbed(term, seat)) ? XCURSOR_TEXT
-            : XCURSOR_LEFT_PTR;
+#if defined(HAVE_CURSOR_SHAPE)
+        else if (cursor_string_to_server_shape(term->mouse_user_cursor) != 0
+#else
+        else if (false
+#endif
+                 || render_xcursor_is_valid(seat, term->mouse_user_cursor))
+        {
+            shape = CURSOR_SHAPE_CUSTOM;
+        }
+
+        else if (seat->mouse.col >= 0 &&
+                 seat->mouse.row >= 0 &&
+                 term_mouse_grabbed(term, seat))
+        {
+            shape = CURSOR_SHAPE_TEXT;
+        }
+
+        else
+            shape = CURSOR_SHAPE_LEFT_PTR;
         break;
-    }
+
     case TERM_SURF_TITLE:
     case TERM_SURF_BUTTON_MINIMIZE:
     case TERM_SURF_BUTTON_MAXIMIZE:
     case TERM_SURF_BUTTON_CLOSE:
-        xcursor = XCURSOR_LEFT_PTR;
+        shape = CURSOR_SHAPE_LEFT_PTR;
         break;
 
     case TERM_SURF_BORDER_LEFT:
     case TERM_SURF_BORDER_RIGHT:
     case TERM_SURF_BORDER_TOP:
     case TERM_SURF_BORDER_BOTTOM:
-        xcursor = xcursor_for_csd_border(term, seat->mouse.x, seat->mouse.y);
+        shape = xcursor_for_csd_border(term, seat->mouse.x, seat->mouse.y);
         break;
 
     case TERM_SURF_NONE:
         return;
     }
 
-    if (xcursor == NULL)
+    if (shape == CURSOR_SHAPE_NONE)
         BUG("xcursor not set");
 
-    render_xcursor_set(seat, term, xcursor);
+    render_xcursor_set(seat, term, shape);
 }
 
 void
@@ -3725,6 +3723,8 @@ void
 term_set_user_mouse_cursor(struct terminal *term, const char *cursor)
 {
     free(term->mouse_user_cursor);
-    term->mouse_user_cursor = cursor != NULL ? xstrdup(cursor) : NULL;
+    term->mouse_user_cursor = cursor != NULL && strlen(cursor) > 0
+        ? xstrdup(cursor)
+        : NULL;
     term_xcursor_update(term);
 }
