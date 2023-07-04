@@ -50,9 +50,9 @@
   is `auto`, which will select `libutempter` on Linux, `ulog` on
   FreeBSD, and `none` for all others.
 * Sixel aspect ratio.
-* Support for the new fractional-scaling-v1 Wayland protocol. This
+* Support for the new `fractional-scale-v1` Wayland protocol. This
   brings true fractional scaling to Wayland in general, and with this
-  release, foot.
+  release, to foot.
 * Support for the new `cursor-shape-v1` Wayland protocol, i.e. server
   side cursor shapes ([#1379][1379]).
 
