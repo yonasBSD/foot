@@ -26,6 +26,7 @@
 
 extern const struct wl_keyboard_listener keyboard_listener;
 extern const struct wl_pointer_listener pointer_listener;
+extern const struct wl_touch_listener touch_listener;
 
 void input_repeat(struct seat *seat, uint32_t key);
 

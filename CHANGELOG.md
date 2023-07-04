@@ -55,8 +55,10 @@
   release, to foot.
 * Support for the new `cursor-shape-v1` Wayland protocol, i.e. server
   side cursor shapes ([#1379][1379]).
+* Support for touchscreen input ([#517][517]).
 
 [1379]: https://codeberg.org/dnkl/foot/issues/1379
+[517]: https://codeberg.org/dnkl/foot/issues/517
 
 
 ### Changed

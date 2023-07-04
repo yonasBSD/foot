@@ -2476,6 +2476,20 @@ parse_section_tweak(struct context *ctx)
 }
 
 static bool
+parse_section_touch(struct context *ctx) {
+    struct config *conf = ctx->conf;
+    const char *key = ctx->key;
+
+    if (strcmp(key, "long-press-delay") == 0)
+        return value_to_uint32(ctx, 10, &conf->touch.long_press_delay);
+
+    else {
+        LOG_CONTEXTUAL_ERR("not a valid option: %s", key);
+        return false;
+    }
+}
+
+static bool
 parse_key_value(char *kv, const char **section, const char **key, const char **value)
 {
     bool section_is_needed = section != NULL;
@@ -2554,6 +2568,7 @@ enum section {
     SECTION_TEXT_BINDINGS,
     SECTION_ENVIRONMENT,
     SECTION_TWEAK,
+    SECTION_TOUCH,
     SECTION_COUNT,
 };
 
@@ -2579,6 +2594,7 @@ static const struct {
     [SECTION_TEXT_BINDINGS] =   {&parse_section_text_bindings, "text-bindings"},
     [SECTION_ENVIRONMENT] =     {&parse_section_environment, "environment"},
     [SECTION_TWEAK] =           {&parse_section_tweak, "tweak"},
+    [SECTION_TOUCH] =           {&parse_section_touch, "touch"},
 };
 
 static_assert(ALEN(section_info) == SECTION_COUNT, "section info array size mismatch");
@@ -3024,6 +3040,10 @@ config_load(struct config *conf, const char *conf_path,
             .box_drawing_solid_shades = true,
             .font_monospace_warn = true,
             .sixel = true,
+        },
+
+        .touch = {
+            .long_press_delay = 400,
         },
 
         .env_vars = tll_init(),

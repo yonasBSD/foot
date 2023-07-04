@@ -283,6 +283,18 @@ default) available; see *foot.ini*(5).
 *wheel*
 	Scroll up/down in history
 
+## TOUCHSCREEN
+
+*tap*
+	Emulates mouse left button click.
+
+*drag*
+	Scrolls up/down in history.
+
+	Holding for a while before dragging (time delay can be configured)
+	emulates mouse dragging with left button held.
+
+
 # FONT FORMAT
 
 The font is specified in FontConfig syntax. That is, a colon-separated

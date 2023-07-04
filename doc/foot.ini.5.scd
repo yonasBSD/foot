@@ -535,6 +535,14 @@ applications can change these at runtime.
 	
 	Default: _yes_.
 
+# SECTION: touch
+
+*long-press-delay*
+	Number of milliseconds to distinguish between a short press and
+	a long press on the touchscreen.
+
+	Default: _400_.
+
 # SECTION: colors
 
 This section controls the 16 ANSI colors, the default foreground and

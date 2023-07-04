@@ -22,6 +22,7 @@ The fast, lightweight and minimalistic Wayland terminal emulator.
       1. [Normal mode](#normal-mode)
       1. [Scrollback search](#scrollback-search)
    1. [Mouse](#mouse)
+   1. [Touchscreen](#touchscreen)
 1. [Server (daemon) mode](#server-daemon-mode)
 1. [URLs](#urls)
 1. [Shell integration](#shell-integration)
@@ -244,6 +245,17 @@ These are the default shortcuts. See `man foot.ini` and the example
 
 <kbd>wheel</kbd>
 : Scroll up/down in history
+
+
+### Touchscreen
+
+<kbd>tap</kbd>
+: Emulates mouse left button click.
+
+<kbd>drag</kbd>
+: Scrolls up/down in history.
+: Holding for a while before dragging (time delay can be configured)
+  emulates mouse dragging with left button held.
 
 
 ## Server (daemon) mode

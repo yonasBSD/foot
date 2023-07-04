@@ -663,6 +663,21 @@ test_section_mouse(void)
 }
 
 static void
+test_section_touch(void)
+{
+    struct config conf = {0};
+    struct context ctx = {
+        .conf = &conf, .section = "touch", .path = "unittest"};
+
+    test_invalid_key(&ctx, &parse_section_touch, "invalid-key");
+
+    test_uint32(&ctx, &parse_section_touch, "long-press-delay",
+                &conf.touch.long_press_delay);
+
+    config_free(&conf);
+}
+
+static void
 test_section_colors(void)
 {
     struct config conf = {0};
@@ -1347,6 +1362,7 @@ main(int argc, const char *const *argv)
     test_section_url();
     test_section_cursor();
     test_section_mouse();
+    test_section_touch();
     test_section_colors();
     test_section_csd();
     test_section_key_bindings();

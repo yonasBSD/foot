@@ -347,6 +347,10 @@ struct config {
         bool sixel;
     } tweak;
 
+    struct {
+        uint32_t long_press_delay;
+    } touch;
+
     user_notifications_t notifications;
 };
 

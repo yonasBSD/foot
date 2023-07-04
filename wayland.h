@@ -47,6 +47,14 @@ enum data_offer_mime_type {
     DATA_OFFER_MIME_TEXT_UTF8_STRING,
 };
 
+enum touch_state {
+    TOUCH_STATE_INHIBITED = -1,
+    TOUCH_STATE_IDLE,
+    TOUCH_STATE_HELD,
+    TOUCH_STATE_DRAGGING,
+    TOUCH_STATE_SCROLLING,
+};
+
 struct wayl_surface {
     struct wl_surface *surf;
 #if defined(HAVE_FRACTIONAL_SCALE)
@@ -164,6 +172,17 @@ struct seat {
         struct wl_callback *xcursor_callback;
         bool xcursor_pending;
     } pointer;
+
+    /* Touch state */
+    struct wl_touch *wl_touch;
+    struct {
+        enum touch_state state;
+
+        uint32_t serial;
+        uint32_t time;
+        struct wl_surface *surface;
+        int32_t id;
+    } touch;
 
     struct {
         int x;

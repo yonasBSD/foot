@@ -222,6 +222,8 @@ seat_destroy(struct seat *seat)
         wl_keyboard_release(seat->wl_keyboard);
     if (seat->wl_pointer != NULL)
         wl_pointer_release(seat->wl_pointer);
+    if (seat->wl_touch != NULL)
+        wl_touch_release(seat->wl_touch);
 
 #if defined(FOOT_IME_ENABLED) && FOOT_IME_ENABLED
     if (seat->wl_text_input != NULL)
@@ -284,9 +286,10 @@ seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
     struct seat *seat = data;
     xassert(seat->wl_seat == wl_seat);
 
-    LOG_DBG("%s: keyboard=%s, pointer=%s", seat->name,
+    LOG_DBG("%s: keyboard=%s, pointer=%s, touch=%s", seat->name,
             (caps & WL_SEAT_CAPABILITY_KEYBOARD) ? "yes" : "no",
-            (caps & WL_SEAT_CAPABILITY_POINTER) ? "yes" : "no");
+            (caps & WL_SEAT_CAPABILITY_POINTER) ? "yes" : "no",
+            (caps & WL_SEAT_CAPABILITY_TOUCH) ? "yes" : "no");
 
     if (caps & WL_SEAT_CAPABILITY_KEYBOARD) {
         if (seat->wl_keyboard == NULL) {
@@ -358,6 +361,22 @@ seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
             seat->pointer.theme = NULL;
             seat->pointer.cursor = NULL;
         }
+    }
+
+    if (caps & WL_SEAT_CAPABILITY_TOUCH) {
+        if (seat->wl_touch == NULL) {
+            seat->wl_touch = wl_seat_get_touch(wl_seat);
+            wl_touch_add_listener(seat->wl_touch, &touch_listener, seat);
+
+            seat->touch.state = TOUCH_STATE_IDLE;
+        }
+    } else {
+        if (seat->wl_touch != NULL) {
+            wl_touch_release(seat->wl_touch);
+            seat->wl_touch = NULL;
+        }
+
+        seat->touch.state = TOUCH_STATE_INHIBITED;
     }
 }
 
