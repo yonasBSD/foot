@@ -1703,7 +1703,11 @@ decgri_generic(struct terminal *term, uint8_t c)
     }
 
     case '?' ... '~': {
-        const unsigned count = term->sixel.repeat_count;
+        unsigned count = term->sixel.repeat_count;
+        if (unlikely(count == 0)) {
+            count = 1;
+        }
+
         sixel_add_many_generic(term, c - 63, count);
         term->sixel.state = SIXEL_DECSIXEL;
         break;
@@ -1722,7 +1726,11 @@ static void
 decgri_ar_11(struct terminal *term, uint8_t c)
 {
     if (likely(c >= '?' && c <= '~')) {
-        const unsigned count = term->sixel.repeat_count;
+        unsigned count = term->sixel.repeat_count;
+        if (unlikely(count == 0)) {
+            count = 1;
+        }
+
         sixel_add_many_ar_11(term, c - 63, count);
         term->sixel.state = SIXEL_DECSIXEL;
     } else
