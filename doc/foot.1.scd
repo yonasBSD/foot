@@ -202,7 +202,7 @@ default) available; see *foot.ini*(5).
 	_OSC 7_ escape sequence, the new terminal will start in the
 	current working directory.
 
-*ctrl*+*shift*+*u*
+*ctrl*+*shift*+*o*
 	Activate URL mode, allowing you to "launch" URLs.
 
 *ctrl*+*shift*+*z*
