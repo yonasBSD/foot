@@ -168,6 +168,9 @@ These are the default shortcuts. See `man foot.ini` and the example
 : Enter URL mode, where all currently visible URLs are tagged with a
   jump label with a key sequence that will open the URL.
 
+<kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>u</kbd>
+: Enter Unicode input mode.
+
 <kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>z</kbd>
 : Jump to the previous, currently not visible, prompt. Requires [shell
   integration](https://codeberg.org/dnkl/foot/wiki#user-content-jumping-between-prompts).
