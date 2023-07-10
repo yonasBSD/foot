@@ -202,8 +202,11 @@ default) available; see *foot.ini*(5).
 	_OSC 7_ escape sequence, the new terminal will start in the
 	current working directory.
 
-*ctrl*+*shift*+*u*
+*ctrl*+*shift*+*o*
 	Activate URL mode, allowing you to "launch" URLs.
+
+*ctrl*+*shift*+*u*
+	Activate Unicode input.
 
 *ctrl*+*shift*+*z*
 	Jump to the previous, currently not visible, prompt. Requires
@@ -310,7 +313,7 @@ Foot supports URL detection. But, unlike many other terminal
 emulators, where URLs are highlighted when they are hovered and opened
 by clicking on them, foot uses a keyboard driven approach.
 
-Pressing *ctrl*+*shift*+*u* enters _“URL mode”_, where all currently
+Pressing *ctrl*+*shift*+*o* enters _“Open URL mode”_, where all currently
 visible URLs are underlined, and is associated with a
 _“jump-label”_. The jump-label indicates the _key sequence_
 (e.g. *”AF”*) to use to activate the URL.
