@@ -164,7 +164,7 @@ These are the default shortcuts. See `man foot.ini` and the example
   sequence](https://codeberg.org/dnkl/foot/wiki#user-content-spawning-new-terminal-instances-in-the-current-working-directory),
   the new terminal will start in the current working directory.
 
-<kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>u</kbd>
+<kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>o</kbd>
 : Enter URL mode, where all currently visible URLs are tagged with a
   jump label with a key sequence that will open the URL.
 
@@ -299,7 +299,7 @@ Foot supports URL detection. But, unlike many other terminal
 emulators, where URLs are highlighted when they are hovered and opened
 by clicking on them, foot uses a keyboard driven approach.
 
-Pressing <kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>u</kbd> enters _“URL
+Pressing <kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>o</kbd> enters _“URL
 mode”_, where all currently visible URLs are underlined, and is
 associated with a _“jump-label”_. The jump-label indicates the _key
 sequence_ (e.g. **”AF”**) to use to activate the URL.
