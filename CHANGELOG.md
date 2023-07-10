@@ -126,6 +126,9 @@
   0` ([#1377][1377]).
 * Crash when scrolling up while running something that generates a lot
   of output (for example, `yes`) ([#1380][1380]).
+* Default key binding for URL mode conflicting with Unicode input on
+  some DEs; `show-urls-launched` is now mapped to `Control+Shift+o` by
+  default, instead of `Control+Shift+u` ([#1183][1183]).
 
 [1317]: https://codeberg.org/dnkl/foot/issues/1317
 [1355]: https://codeberg.org/dnkl/foot/issues/1355
