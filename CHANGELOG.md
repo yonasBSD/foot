@@ -64,9 +64,10 @@
 ### Changed
 
 * Minimum required meson version is now 0.59 ([#1371][1371]).
-* `Control+Shift+u` now bound to `unicode-input` to follow the
-  convention established in GTK and Qt, `show-urls-launch` now bound
-  to `Control+Shift+o` ([#1183][1183])
+* `Control+Shift+u` is now bound to `unicode-input` instead of
+  `show-urls-launch`, to follow the convention established in GTK and
+  Qt ([#1183][1183]).
+* `show-urls-launch` now bound to `Control+Shift+o` ([#1183][1183]).
 * Kitty keyboard protocol: F3 is now encoded as `CSI 13~` instead of
   `CSI R`. The kitty keyboard protocol originally allowed F3 to be
   encoded as `CSI R`, but this was removed from the specification
