@@ -205,6 +205,9 @@ default) available; see *foot.ini*(5).
 *ctrl*+*shift*+*o*
 	Activate URL mode, allowing you to "launch" URLs.
 
+*ctrl*+*shift*+*u*
+	Activate Unicode input.
+
 *ctrl*+*shift*+*z*
 	Jump to the previous, currently not visible, prompt. Requires
 	shell integration.
