@@ -401,7 +401,9 @@ update_term_for_output_change(struct terminal *term)
 
     float old_scale = term->scale;
 
-    render_resize(term, term->width / term->scale, term->height / term->scale);
+    render_resize(term,
+                  round(term->width / term->scale),
+                  round(term->height / term->scale));
     term_font_dpi_changed(term, old_scale);
     term_font_subpixel_changed(term);
     csd_reload_font(term->window, old_scale);

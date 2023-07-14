@@ -3856,8 +3856,8 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
         scale = term->scale;
     }
 
-    width *= scale;
-    height *= scale;
+    width = round(width * scale);
+    height = round(height * scale);
 
     if (width == 0 && height == 0) {
         /*

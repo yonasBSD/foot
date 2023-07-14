@@ -778,7 +778,10 @@ term_set_fonts(struct terminal *term, struct fcft_font *fonts[static 4])
     sixel_cell_size_changed(term);
 
     /* Use force, since cell-width/height may have changed */
-    render_resize_force(term, term->width / term->scale, term->height / term->scale);
+    render_resize_force(
+        term,
+        round(term->width / term->scale),
+        round(term->height / term->scale));
     return true;
 }
 

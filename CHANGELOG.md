@@ -49,6 +49,9 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* Use appropriate rounding when applying fractional scales.
+
 ### Security
 ### Contributors
 
