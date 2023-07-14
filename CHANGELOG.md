@@ -63,6 +63,9 @@
 
 ### Changed
 
+* Default color theme is now
+  [starlight](https://github.com/CosmicToast/starlight)
+  ([#1321][1321]).
 * Minimum required meson version is now 0.59 ([#1371][1371]).
 * `Control+Shift+u` is now bound to `unicode-input` instead of
   `show-urls-launch`, to follow the convention established in GTK and
@@ -99,6 +102,7 @@
   selected, or when the cell has the `reverse` (SGR 7) attribute set
   ([#1347][1347]).
 
+[1321]: https://codeberg.org/dnkl/foot/issues/1321
 [1371]: https://codeberg.org/dnkl/foot/pulls/1371
 [1183]: https://codeberg.org/dnkl/foot/issues/1183
 [1360]: https://codeberg.org/dnkl/foot/issues/1360

@@ -563,15 +563,15 @@ can configure the background transparency with the _alpha_ option.
 
 *regular0*, *regular1* *..* *regular7*
 	The eight basic ANSI colors (Black, Red, Green, Yellow, Blue,
-	Magenta, Cyan, White). Default: _073642_, _dc322f_, _859900_,
-	_b58900_, _268bd2_, _d33682_, _2aa198_ and _eee8d5_ (a variant of
-	the _solarized dark_ theme).
+	Magenta, Cyan, White). Default: _242424_, _cf1745_, _3ecf5b_,
+	_cfcf17_, _0ba6da_, _d926ac_, _17cfa1_, _e6e6e6_ (starlight
+	theme).
 
 *bright0*, *bright1* *..* *bright7*
 	The eight bright ANSI colors (Black, Red, Green, Yellow, Blue,
-	Magenta, Cyan, White). Default: _08404f_, _e35f5c_, _9fb700_,
-	_d9a400_, _4ba1de_, _dc619d_, _32c1b6_ and _ffffff_ (a variant of
-	the _solarized dark_ theme).
+	Magenta, Cyan, White). Default: _616161_, _ff1a53_, _17e640_,
+	_ecff1a_, _1ac6ff_, _f53dc7_, _1affc6_, _ffffff_ (starlight
+	theme).
 
 *dim0*, *dim1* *..* *dim7*
 	Custom colors to use with dimmed colors. Dimmed colors do not have

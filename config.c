@@ -30,8 +30,8 @@
 #include "xmalloc.h"
 #include "xsnprintf.h"
 
-static const uint32_t default_foreground = 0x839496;
-static const uint32_t default_background = 0x002b36;
+static const uint32_t default_foreground = 0xffffff;
+static const uint32_t default_background = 0x242424;
 
 static const size_t min_csd_border_width = 5;
 
@@ -48,23 +48,23 @@ static const size_t min_csd_border_width = 5;
 
 static const uint32_t default_color_table[256] = {
     // Regular
-    0x073642,
-    0xdc322f,
-    0x859900,
-    0xb58900,
-    0x268bd2,
-    0xd33682,
-    0x2aa198,
-    0xeee8d5,
+    0x242424,
+    0xcf1745,
+    0x3ecf5b,
+    0xcfcf17,
+    0x0ba6da,
+    0xd926ac,
+    0x17cfa1,
+    0xe6e6e6,
 
     // Bright
-    0x08404f,
-    0xe35f5c,
-    0x9fb700,
-    0xd9a400,
-    0x4ba1de,
-    0xdc619d,
-    0x32c1b6,
+    0x616161,
+    0xff1a53,
+    0x17e640,
+    0xecff1a,
+    0x1ac6ff,
+    0xf53dc7,
+    0x1affc6,
     0xffffff,
 
     // 6x6x6 RGB cube
