@@ -1475,6 +1475,9 @@ parse_section_csd(struct context *ctx)
     else if (strcmp(key, "hide-when-maximized") == 0)
         return value_to_bool(ctx, &conf->csd.hide_when_maximized);
 
+    else if (strcmp(key, "double-click-to-maximize") == 0)
+        return value_to_bool(ctx, &conf->csd.double_click_to_maximize);
+
     else {
         LOG_CONTEXTUAL_ERR("not a valid action: %s", key);
         return false;
@@ -3009,6 +3012,7 @@ config_load(struct config *conf, const char *conf_path,
             .preferred = CONF_CSD_PREFER_SERVER,
             .font = {0},
             .hide_when_maximized = false,
+            .double_click_to_maximize = true,
             .title_height = 26,
             .border_width = 5,
             .border_width_visible = 0,

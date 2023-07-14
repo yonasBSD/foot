@@ -777,6 +777,8 @@ test_section_csd(void)
                &conf.csd.color.quit);
     test_boolean(&ctx, &parse_section_csd, "hide-when-maximized",
                  &conf.csd.hide_when_maximized);
+    test_boolean(&ctx, &parse_section_csd, "double-click-to-maximize",
+                 &conf.csd.double_click_to_maximize);
 
     /* TODO: verify the ‘set’ bit is actually set for colors */
     /* TODO: font */

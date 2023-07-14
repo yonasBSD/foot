@@ -692,6 +692,10 @@ Examples:
 	is maximized. The completely disable the titlebar, set *size* to 0
 	instead. Default: _no_.
 
+*double-click-to-maximize*
+	Boolean. When enabled, double-clicking the CSD titlebar will
+	(un)maximize the window. Default: _yes_.
+
 *border-width*
 	Width of the border, in pixels (subject to output scaling). Note
 	that the border encompasses the entire window, including the title

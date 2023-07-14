@@ -56,9 +56,12 @@
 * Support for the new `cursor-shape-v1` Wayland protocol, i.e. server
   side cursor shapes ([#1379][1379]).
 * Support for touchscreen input ([#517][517]).
+* `csd.double-click-to-maximize` option to `foot.ini`. Defaults to
+  `yes` ([#1293][1293]).
 
 [1379]: https://codeberg.org/dnkl/foot/issues/1379
 [517]: https://codeberg.org/dnkl/foot/issues/517
+[1293]: https://codeberg.org/dnkl/foot/issues/1293
 
 
 ### Changed

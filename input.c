@@ -2287,7 +2287,10 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
             struct wl_window *win = term->window;
 
             /* Toggle maximized state on double-click */
-            if (button == BTN_LEFT && seat->mouse.count == 2) {
+            if (term->conf->csd.double_click_to_maximize &&
+                button == BTN_LEFT &&
+                seat->mouse.count == 2)
+            {
                 if (win->is_maximized)
                     xdg_toplevel_unset_maximized(win->xdg_toplevel);
                 else

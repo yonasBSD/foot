@@ -285,6 +285,7 @@ struct config {
         uint16_t button_width;
 
         bool hide_when_maximized;
+        bool double_click_to_maximize;
 
         struct {
             bool title_set:1;
