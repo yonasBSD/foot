@@ -94,11 +94,16 @@
   ([#1383][1383]).
 * `dpi-aware` now defaults to `no`, and the `auto` value has been
   removed.
+* When using custom cursor colors (`cursor.color` is set in
+  `foot.ini`), the cursor is no longer inverted when the cell is
+  selected, or when the cell has the `reverse` (SGR 7) attribute set
+  ([#1347][1347]).
 
 [1371]: https://codeberg.org/dnkl/foot/pulls/1371
 [1183]: https://codeberg.org/dnkl/foot/issues/1183
 [1360]: https://codeberg.org/dnkl/foot/issues/1360
 [1383]: https://codeberg.org/dnkl/foot/issues/1383
+[1347]: https://codeberg.org/dnkl/foot/issues/1347
 
 
 ### Deprecated

@@ -405,19 +405,11 @@ cursor_colors_for_cell(const struct terminal *term, const struct cell *cell,
               const pixman_color_t *fg, const pixman_color_t *bg,
               pixman_color_t *cursor_color, pixman_color_t *text_color)
 {
-    bool is_selected = cell->attrs.selected;
-
     if (term->cursor_color.cursor >> 31) {
-        *cursor_color = color_hex_to_pixman(term->cursor_color.cursor);
-        *text_color = color_hex_to_pixman(
-            term->cursor_color.text >> 31
-            ? term->cursor_color.text : term->colors.bg);
+        xassert(term->cursor_color.text >> 31);
 
-        if (cell->attrs.reverse ^ is_selected) {
-            pixman_color_t swap = *cursor_color;
-            *cursor_color = *text_color;
-            *text_color = swap;
-        }
+        *cursor_color = color_hex_to_pixman(term->cursor_color.cursor);
+        *text_color = color_hex_to_pixman(term->cursor_color.text);
     } else {
         *cursor_color = *fg;
         *text_color = *bg;
