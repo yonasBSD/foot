@@ -1,6 +1,6 @@
 # Changelog
 
-* [Unreleased](#unreleased)
+* [1.15.0](#1-15-0)
 * [1.14.0](#1-14-0)
 * [1.13.1](#1-13-1)
 * [1.13.0](#1-13-0)
@@ -42,7 +42,8 @@
 * [1.2.0](#1-2-0)
 
 
-## Unreleased
+## 1.15.0
+
 ### Added
 
 * VT: implemented `XTQMODKEYS` query (`CSI ? Pp m`).
@@ -148,8 +149,22 @@
 [1380]: https://codeberg.org/dnkl/foot/issues/1380
 
 
-### Security
 ### Contributors
+
+* Antoine Beaupré
+* CismonX
+* Craig Barnes
+* Dan Bungert
+* jdevdevdev
+* Kyle Gunger
+* locture
+* Phillip Susi
+* sewn
+* ShugarSkull
+* Vivian Szczepanski
+* Vladimir Bauer
+* wout
+* CosmicToast
 
 
 ## 1.14.0
