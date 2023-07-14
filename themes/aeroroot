@@ -2,7 +2,7 @@
 # Aero root theme
 
 [cursor]
-# color=1a1a1a 9fd5f5
+color=1a1a1a 9fd5f5
 
 [colors]
 foreground=dedeef

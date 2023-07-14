@@ -2,8 +2,8 @@
 # Material Amber
 # Based on material.io guidelines with Amber 50 background
 
-# [cursor]
-# color=fff8e1 21201d
+[cursor]
+color=fff8e1 21201d
 
 [colors]
 foreground = 21201d
