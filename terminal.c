@@ -1298,7 +1298,7 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
         goto err;
 
     /* Load fonts */
-    if (!term_font_dpi_changed(term, 0))
+    if (!term_font_dpi_changed(term, 0.))
         goto err;
 
     term->font_subpixel = get_font_subpixel(term);
@@ -2081,10 +2081,10 @@ term_font_size_reset(struct terminal *term)
 }
 
 bool
-term_font_dpi_changed(struct terminal *term, int old_scale)
+term_font_dpi_changed(struct terminal *term, float old_scale)
 {
     float dpi = get_font_dpi(term);
-    xassert(term->scale > 0);
+    xassert(term->scale > 0.);
 
     bool was_scaled_using_dpi = term->font_is_sized_by_dpi;
     bool will_scale_using_dpi = term->conf->dpi_aware;
@@ -2097,7 +2097,7 @@ term_font_dpi_changed(struct terminal *term, int old_scale)
 
     if (need_font_reload) {
         LOG_DBG("DPI/scale change: DPI-awareness=%s, "
-                "DPI: %.2f -> %.2f, scale: %d -> %d, "
+                "DPI: %.2f -> %.2f, scale: %.2f -> %.2f, "
                 "sizing font based on monitor's %s",
                 term->conf->dpi_aware ? "yes" : "no",
                 term->font_dpi, dpi, old_scale, term->scale,
