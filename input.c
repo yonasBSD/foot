@@ -2739,8 +2739,6 @@ wl_touch_down(void *data, struct wl_touch *wl_touch, uint32_t serial,
     struct terminal *term = win->term;
 
     term->active_surface = term_surface_kind(term, surface);
-    if (term->active_surface != TERM_SURF_GRID)
-        return;
 
     LOG_DBG("touch_down: touch=%p, x=%d, y=%d", (void *)wl_touch,
             wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
@@ -2785,6 +2783,7 @@ wl_touch_up(void *data, struct wl_touch *wl_touch, uint32_t serial,
                           WL_POINTER_BUTTON_STATE_RELEASED);
         /* fallthrough */
     case TOUCH_STATE_SCROLLING:
+        term->active_surface = TERM_SURF_NONE;
         seat->touch.state = TOUCH_STATE_IDLE;
         break;
 
@@ -2815,7 +2814,7 @@ wl_touch_motion(void *data, struct wl_touch *wl_touch, uint32_t time,
 
     switch (seat->touch.state) {
     case TOUCH_STATE_HELD:
-        if (time <= seat->touch.time) {
+        if (time <= seat->touch.time && term->active_surface == TERM_SURF_GRID) {
             if (touch_to_scroll(seat, term, surface_x, surface_y))
                 seat->touch.state = TOUCH_STATE_SCROLLING;
             break;
