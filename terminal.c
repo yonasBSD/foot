@@ -847,7 +847,8 @@ get_font_subpixel(const struct terminal *term)
      * output or not.
      *
      * Thus, when determining which subpixel mode to use, we can't do
-     * much but select *an* output. So, we pick the first one.
+     * much but select *an* output. So, we pick the one we were most
+     * recently mapped on.
      *
      * If we're not mapped at all, we pick the first available
      * monitor, and hope that's where we'll eventually get mapped.
@@ -857,7 +858,7 @@ get_font_subpixel(const struct terminal *term)
      */
 
     if (tll_length(term->window->on_outputs) > 0)
-        wl_subpixel = tll_front(term->window->on_outputs)->subpixel;
+        wl_subpixel = tll_back(term->window->on_outputs)->subpixel;
     else if (tll_length(term->wl->monitors) > 0)
         wl_subpixel = tll_front(term->wl->monitors).subpixel;
     else
