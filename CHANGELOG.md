@@ -46,6 +46,12 @@
 ## Unreleased
 ### Added
 ### Changed
+
+* When window is mapped, use metadata (DPI, scaling factor, subpixel
+  configuration) from the monitor we were most recently mapped on,
+  instead of the one least recently.
+
+
 ### Deprecated
 ### Removed
 ### Fixed
