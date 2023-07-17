@@ -396,17 +396,35 @@ static const struct wl_seat_listener seat_listener = {
 static void
 update_term_for_output_change(struct terminal *term)
 {
-    if (tll_length(term->window->on_outputs) == 0)
-        return;
+    const float old_scale = term->scale;
+    const float logical_width = term->width / term->scale;
+    const float logical_height = term->height / term->scale;
 
-    float old_scale = term->scale;
-
-    render_resize(term,
-                  round(term->width / term->scale),
-                  round(term->height / term->scale));
-    term_font_dpi_changed(term, old_scale);
+    /* Note: order matters! term_update_scale() must come first */
+    bool scale_updated = term_update_scale(term);
+    bool fonts_updated = term_font_dpi_changed(term, old_scale);
     term_font_subpixel_changed(term);
+
     csd_reload_font(term->window, old_scale);
+
+    if (fonts_updated) {
+        /*
+         * If the fonts have been updated, the cell dimensions have
+         * changed. This requires a “forced” resize, since the surface
+         * buffer dimensions may not have been updated (in which case
+         * render_size() normally shortcuts and returns early).
+         */
+        render_resize_force(term, round(logical_width), round(logical_height));
+    }
+
+    else if (scale_updated) {
+        /*
+         * A scale update means the surface buffer dimensions have
+         * been updated, even though the window logical dimensions
+         * haven’t changed.
+         */
+        render_resize(term, round(logical_width), round(logical_height));
+    }
 }
 
 static void

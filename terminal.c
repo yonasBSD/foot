@@ -733,7 +733,8 @@ term_line_height_update(struct terminal *term)
 }
 
 static bool
-term_set_fonts(struct terminal *term, struct fcft_font *fonts[static 4])
+term_set_fonts(struct terminal *term, struct fcft_font *fonts[static 4],
+               bool resize_grid)
 {
     for (size_t i = 0; i < 4; i++) {
         xassert(fonts[i] != NULL);
@@ -777,11 +778,15 @@ term_set_fonts(struct terminal *term, struct fcft_font *fonts[static 4])
 
     sixel_cell_size_changed(term);
 
-    /* Use force, since cell-width/height may have changed */
-    render_resize_force(
-        term,
-        round(term->width / term->scale),
-        round(term->height / term->scale));
+    /* Optimization - some code paths (are forced to) call
+     * render_resize() after this function */
+    if (resize_grid) {
+        /* Use force, since cell-width/height may have changed */
+        render_resize_force(
+            term,
+            round(term->width / term->scale),
+            round(term->height / term->scale));
+    }
     return true;
 }
 
@@ -899,7 +904,7 @@ font_loader_thread(void *_data)
 }
 
 static bool
-reload_fonts(struct terminal *term)
+reload_fonts(struct terminal *term, bool resize_grid)
 {
     const struct config *conf = term->conf;
 
@@ -1026,7 +1031,7 @@ reload_fonts(struct terminal *term)
         }
     }
 
-    return success ? term_set_fonts(term, fonts) : success;
+    return success ? term_set_fonts(term, fonts, resize_grid) : success;
 }
 
 static bool
@@ -1044,7 +1049,7 @@ load_fonts_from_conf(struct terminal *term)
         }
     }
 
-    return reload_fonts(term);
+    return reload_fonts(term, true);
 }
 
 static void fdm_client_terminated(
@@ -1987,7 +1992,7 @@ term_font_size_adjust_by_points(struct terminal *term, float amount)
         }
     }
 
-    return reload_fonts(term);
+    return reload_fonts(term, true);
 }
 
 static bool
@@ -2010,7 +2015,7 @@ term_font_size_adjust_by_pixels(struct terminal *term, int amount)
         }
     }
 
-    return reload_fonts(term);
+    return reload_fonts(term, true);
 }
 
 static bool
@@ -2034,7 +2039,7 @@ term_font_size_adjust_by_percent(struct terminal *term, bool increment, float pe
         }
     }
 
-    return reload_fonts(term);
+    return reload_fonts(term, true);
 }
 
 bool
@@ -2072,6 +2077,36 @@ term_font_size_reset(struct terminal *term)
 }
 
 bool
+term_update_scale(struct terminal *term)
+{
+    const struct wl_window *win = term->window;
+
+    /*
+     * We have a number of “sources” we can use as scale. We choose
+     * the scale in the following order:
+     *
+     *  - “preferred” scale, from the fractional-scale-v1 protocol
+     *  - scaling factor of output we most recently were mapped on
+     *  - if we’re not mapped, use the scaling factor from the first
+     *    available output.
+     *  - if there aren’t any outputs available, use 1.0
+     */
+    const float new_scale =
+        (wayl_fractional_scaling(term->wl) && win->scale > 0.
+         ? win->scale
+         : (tll_length(win->on_outputs) > 0
+            ? tll_back(win->on_outputs)->scale
+            : 1.));
+
+    if (new_scale == term->scale)
+        return false;
+
+    LOG_DBG("scaling factor changed: %.2f -> %.2f", term->scale, new_scale);
+    term->scale = new_scale;
+    return true;
+}
+
+bool
 term_font_dpi_changed(struct terminal *term, float old_scale)
 {
     float dpi = get_font_dpi(term);
@@ -2099,9 +2134,9 @@ term_font_dpi_changed(struct terminal *term, float old_scale)
     term->font_is_sized_by_dpi = will_scale_using_dpi;
 
     if (!need_font_reload)
-        return true;
+        return false;
 
-    return reload_fonts(term);
+    return reload_fonts(term, false);
 }
 
 void
@@ -3500,7 +3535,7 @@ term_update_ascii_printer(struct terminal *term)
 
 #if defined(_DEBUG) && LOG_ENABLE_DBG
     if (term->ascii_printer != new_printer) {
-        LOG_DBG("§switching ASCII printer %s -> %s",
+        LOG_DBG("switching ASCII printer %s -> %s",
                 term->ascii_printer == &ascii_printer_fast ? "fast" : "generic",
                 new_printer == &ascii_printer_fast ? "fast" : "generic");
     }

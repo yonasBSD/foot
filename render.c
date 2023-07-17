@@ -3841,21 +3841,7 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
     if (term->cell_width == 0 && term->cell_height == 0)
         return false;
 
-    float scale = -1;
-    if (wayl_fractional_scaling(term->wl)) {
-        scale = term->window->scale;
-    } else {
-        tll_foreach(term->window->on_outputs, it) {
-            if (it->item->scale > scale)
-                scale = it->item->scale;
-        }
-    }
-
-    if (scale < 0.) {
-        /* Haven't 'entered' an output yet? */
-        scale = term->scale;
-    }
-
+    const float scale = term->scale;
     width = round(width * scale);
     height = round(height * scale);
 
@@ -3942,9 +3928,9 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
     /* Drop out of URL mode */
     urls_reset(term);
 
+    LOG_DBG("resized: size=%dx%d (scale=%.2f)", width, height, term->scale);
     term->width = width;
     term->height = height;
-    term->scale = scale;
 
     const uint32_t scrollback_lines = term->render.scrollback_lines;
 
@@ -4148,12 +4134,11 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
 
     sixel_reflow(term);
 
-#if defined(_DEBUG) && LOG_ENABLE_DBG
-    LOG_DBG("resize: %dx%d, grid: cols=%d, rows=%d "
+    LOG_DBG("resized: grid: cols=%d, rows=%d "
             "(left-margin=%d, right-margin=%d, top-margin=%d, bottom-margin=%d)",
-            term->width, term->height, term->cols, term->rows,
-            term->margins.left, term->margins.right, term->margins.top, term->margins.bottom);
-#endif
+            term->cols, term->rows,
+            term->margins.left, term->margins.right,
+            term->margins.top, term->margins.bottom);
 
     if (term->scroll_region.start >= term->rows)
         term->scroll_region.start = 0;
@@ -4295,7 +4280,7 @@ render_xcursor_update(struct seat *seat)
 #endif
 
     LOG_DBG("setting %scursor shape using a client-side cursor surface",
-            shape == CURSOR_SHAPE_CUSTOM ? "custom " : "");
+            seat->pointer.shape == CURSOR_SHAPE_CUSTOM ? "custom " : "");
 
     const float scale = seat->pointer.scale;
     struct wl_cursor_image *image = seat->pointer.cursor->images[0];
