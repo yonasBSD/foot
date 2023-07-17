@@ -1447,6 +1447,11 @@ wayl_init(struct fdm *fdm, struct key_binding_manager *key_binding_manager,
         LOG_ERR("no seats available (wl_seat interface too old?)");
         goto out;
     }
+    if (tll_length(wayl->monitors) == 0) {
+        LOG_ERR("no monitors available");
+        goto out;
+    }
+
     if (wayl->primary_selection_device_manager == NULL)
         LOG_WARN("no primary selection available");
 
