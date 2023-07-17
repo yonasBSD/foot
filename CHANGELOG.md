@@ -51,6 +51,9 @@
 ### Fixed
 
 * Use appropriate rounding when applying fractional scales.
+* Xcursor not being scaled correctly on `fractional-scale-v1` capable
+  compositors.
+
 
 ### Security
 ### Contributors

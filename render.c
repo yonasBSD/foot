@@ -4297,11 +4297,15 @@ render_xcursor_update(struct seat *seat)
     LOG_DBG("setting %scursor shape using a client-side cursor surface",
             shape == CURSOR_SHAPE_CUSTOM ? "custom " : "");
 
-    const int scale = seat->pointer.scale;
+    const float scale = seat->pointer.scale;
     struct wl_cursor_image *image = seat->pointer.cursor->images[0];
+    struct wl_buffer *buf = wl_cursor_image_get_buffer(image);
 
-    wl_surface_attach(
-        seat->pointer.surface.surf, wl_cursor_image_get_buffer(image), 0, 0);
+    wayl_surface_scale_explicit_width_height(
+        seat->mouse_focus->window,
+        &seat->pointer.surface, image->width, image->height, scale);
+
+    wl_surface_attach(seat->pointer.surface.surf, buf, 0, 0);
 
     wl_pointer_set_cursor(
         seat->wl_pointer, seat->pointer.serial,
@@ -4310,8 +4314,6 @@ render_xcursor_update(struct seat *seat)
 
     wl_surface_damage_buffer(
         seat->pointer.surface.surf, 0, 0, INT32_MAX, INT32_MAX);
-
-    wl_surface_set_buffer_scale(seat->pointer.surface.surf, scale);
 
     xassert(seat->pointer.xcursor_callback == NULL);
     seat->pointer.xcursor_callback = wl_surface_frame(seat->pointer.surface.surf);
