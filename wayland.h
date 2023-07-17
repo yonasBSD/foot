@@ -315,7 +315,10 @@ struct monitor {
         } scaled;
     } ppi;
 
-    float dpi;
+    struct {
+        float scaled;
+        float physical;
+    } dpi;
 
     int scale;
     float refresh;

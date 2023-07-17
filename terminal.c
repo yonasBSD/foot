@@ -796,41 +796,34 @@ get_font_dpi(const struct terminal *term)
      * Conceptually, we use the physical monitor specs to calculate
      * the DPI, and we ignore the output's scaling factor.
      *
-     * However, to deal with fractional scaling, where we're told to
-     * render at e.g. 2x, but are then downscaled by the compositor to
-     * e.g. 1.25, we use the scaled DPI value multiplied by the scale
-     * factor instead.
+     * However, to deal with legacy fractional scaling, where we're
+     * told to render at e.g. 2x, but are then downscaled by the
+     * compositor to e.g. 1.25, we use the scaled DPI value multiplied
+     * by the scale factor instead.
      *
      * For integral scaling factors the resulting DPI is the same as
      * if we had used the physical DPI.
      *
-     * For fractional scaling factors we'll get a DPI *larger* than
-     * the physical DPI, that ends up being right when later
+     * For legacy fractional scaling factors we'll get a DPI *larger*
+     * than the physical DPI, that ends up being right when later
      * downscaled by the compositor.
+     *
+     * With the newer fractional-scale-v1 protocol, we use the
+     * monitor’s real DPI, since we scale everything to the correct
+     * scaling factor (no downscaling done by the compositor).
      */
 
-    /* Use highest DPI from outputs we're mapped on */
-    double dpi = 0.0;
-    xassert(term->window != NULL);
-    tll_foreach(term->window->on_outputs, it) {
-        if (it->item->dpi > dpi)
-            dpi = it->item->dpi;
-    }
+    xassert(tll_length(term->wl->monitors) > 0);
 
-    /* If we're not mapped, use DPI from first monitor. Hopefully this is where we'll get mapped later... */
-    if (dpi == 0.) {
-        tll_foreach(term->wl->monitors, it) {
-            dpi = it->item.dpi;
-            break;
-        }
-    }
+    const struct wl_window *win = term->window;
+    const struct monitor *mon = tll_length(win->on_outputs) > 0
+        ? tll_back(win->on_outputs)
+        : &tll_front(term->wl->monitors);
 
-    if (dpi == 0) {
-        /* No monitors? */
-        dpi = 96.;
-    }
-
-    return dpi;
+    if (wayl_fractional_scaling(term->wl))
+        return mon->dpi.physical;
+    else
+        return mon->dpi.scaled;
 }
 
 static enum fcft_subpixel
@@ -1285,11 +1278,9 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
     reaper_add(term->reaper, term->slave, &fdm_client_terminated, term);
 
     /* Guess scale; we're not mapped yet, so we don't know on which
-     * output we'll be. Pick highest scale we find for now */
-    tll_foreach(term->wl->monitors, it) {
-        if (it->item.scale > term->scale)
-            term->scale = it->item.scale;
-    }
+     * output we'll be. Use scaling factor from first monitor */
+    xassert(tll_length(term->wl->monitors) > 0);
+    term->scale = tll_front(term->wl->monitors).scale;
 
     memcpy(term->colors.table, term->conf->colors.table, sizeof(term->colors.table));
 
@@ -2096,7 +2087,7 @@ term_font_dpi_changed(struct terminal *term, float old_scale)
          : old_scale != term->scale);
 
     if (need_font_reload) {
-        LOG_DBG("DPI/scale change: DPI-awareness=%s, "
+        LOG_DBG("DPI/scale change: DPI-aware=%s, "
                 "DPI: %.2f -> %.2f, scale: %.2f -> %.2f, "
                 "sizing font based on monitor's %s",
                 term->conf->dpi_aware ? "yes" : "no",

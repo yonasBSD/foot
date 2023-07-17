@@ -435,6 +435,9 @@ output_update_ppi(struct monitor *mon)
     double x_inches = mon->dim.mm.width * 0.03937008;
     double y_inches = mon->dim.mm.height * 0.03937008;
 
+    const int width = mon->dim.px_real.width;
+    const int height = mon->dim.px_real.height;
+
     mon->ppi.real.x = mon->dim.px_real.width / x_inches;
     mon->ppi.real.y = mon->dim.px_real.height / y_inches;
 
@@ -457,27 +460,36 @@ output_update_ppi(struct monitor *mon)
         break;
     }
 
-    int scaled_width = mon->dim.px_scaled.width;
-    int scaled_height = mon->dim.px_scaled.height;
-
-    if (scaled_width == 0 && scaled_height == 0 && mon->scale > 0) {
-        /* Estimate scaled width/height if none has been provided */
-        scaled_width = mon->dim.px_real.width / mon->scale;
-        scaled_height = mon->dim.px_real.height / mon->scale;
-    }
+    const int scaled_width = mon->dim.px_scaled.width;
+    const int scaled_height = mon->dim.px_scaled.height;
 
     mon->ppi.scaled.x = scaled_width / x_inches;
     mon->ppi.scaled.y = scaled_height / y_inches;
 
-    double px_diag = sqrt(pow(scaled_width, 2) + pow(scaled_height, 2));
-    mon->dpi = px_diag / mon->inch * mon->scale;
+    const double px_diag_physical = sqrt(pow(width, 2) + pow(height, 2));
+    mon->dpi.physical = width == 0 && height == 0
+        ? 96.
+        : px_diag_physical / mon->inch;
 
-    if (mon->dpi > 1000) {
+    const double px_diag_scaled = sqrt(pow(scaled_width, 2) + pow(scaled_height, 2));
+    mon->dpi.scaled = scaled_width == 0 && scaled_height == 0
+        ? 96.
+        : px_diag_scaled / mon->inch * mon->scale;
+
+    if (mon->dpi.physical > 1000) {
         if (mon->name != NULL) {
-            LOG_WARN("%s: DPI=%f is unreasonable, using 96 instead",
-                     mon->name, mon->dpi);
+            LOG_WARN("%s: DPI=%f (physical) is unreasonable, using 96 instead",
+                     mon->name, mon->dpi.physical);
         }
-        mon->dpi = 96;
+        mon->dpi.physical = 96;
+    }
+
+    if (mon->dpi.scaled > 1000) {
+        if (mon->name != NULL) {
+            LOG_WARN("%s: DPI=%f (logical) is unreasonable, using 96 instead",
+                     mon->name, mon->dpi.scaled);
+        }
+        mon->dpi.scaled = 96;
     }
 }
 
@@ -1487,14 +1499,12 @@ wayl_init(struct fdm *fdm, struct key_binding_manager *key_binding_manager,
 
     tll_foreach(wayl->monitors, it) {
         LOG_INFO(
-            "%s: %dx%d+%dx%d@%dHz %s %.2f\" scale=%d PPI=%dx%d (physical) PPI=%dx%d (logical), DPI=%.2f",
+            "%s: %dx%d+%dx%d@%dHz %s %.2f\" scale=%d, DPI=%.2f/%.2f (physical/scaled)",
             it->item.name, it->item.dim.px_real.width, it->item.dim.px_real.height,
             it->item.x, it->item.y, (int)round(it->item.refresh),
             it->item.model != NULL ? it->item.model : it->item.description,
             it->item.inch, it->item.scale,
-            it->item.ppi.real.x, it->item.ppi.real.y,
-            it->item.ppi.scaled.x, it->item.ppi.scaled.y,
-            it->item.dpi);
+            it->item.dpi.physical, it->item.dpi.scaled);
     }
 
     wayl->fd = wl_display_get_fd(wayl->display);
