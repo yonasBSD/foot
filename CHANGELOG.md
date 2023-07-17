@@ -59,6 +59,14 @@
 * Use appropriate rounding when applying fractional scales.
 * Xcursor not being scaled correctly on `fractional-scale-v1` capable
   compositors.
+* `dpi-aware=yes` being broken on `fractional-scale-v1` capable
+  compositors (and when a fractional sacling factor is being used)
+  ([#1404][1404]).
+* Initial font size being wrong on `fractional-scale-v1` capable
+  compositors, with multiple monitors with different scaling factors
+  connected ([#1404][1404]).
+
+[1404]: https://codeberg.org/dnkl/foot/issues/1404
 
 
 ### Security
