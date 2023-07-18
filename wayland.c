@@ -396,17 +396,35 @@ static const struct wl_seat_listener seat_listener = {
 static void
 update_term_for_output_change(struct terminal *term)
 {
-    if (tll_length(term->window->on_outputs) == 0)
-        return;
+    const float old_scale = term->scale;
+    const float logical_width = term->width / term->scale;
+    const float logical_height = term->height / term->scale;
 
-    float old_scale = term->scale;
-
-    render_resize(term,
-                  round(term->width / term->scale),
-                  round(term->height / term->scale));
-    term_font_dpi_changed(term, old_scale);
+    /* Note: order matters! term_update_scale() must come first */
+    bool scale_updated = term_update_scale(term);
+    bool fonts_updated = term_font_dpi_changed(term, old_scale);
     term_font_subpixel_changed(term);
+
     csd_reload_font(term->window, old_scale);
+
+    if (fonts_updated) {
+        /*
+         * If the fonts have been updated, the cell dimensions have
+         * changed. This requires a “forced” resize, since the surface
+         * buffer dimensions may not have been updated (in which case
+         * render_size() normally shortcuts and returns early).
+         */
+        render_resize_force(term, round(logical_width), round(logical_height));
+    }
+
+    else if (scale_updated) {
+        /*
+         * A scale update means the surface buffer dimensions have
+         * been updated, even though the window logical dimensions
+         * haven’t changed.
+         */
+        render_resize(term, round(logical_width), round(logical_height));
+    }
 }
 
 static void
@@ -435,6 +453,9 @@ output_update_ppi(struct monitor *mon)
     double x_inches = mon->dim.mm.width * 0.03937008;
     double y_inches = mon->dim.mm.height * 0.03937008;
 
+    const int width = mon->dim.px_real.width;
+    const int height = mon->dim.px_real.height;
+
     mon->ppi.real.x = mon->dim.px_real.width / x_inches;
     mon->ppi.real.y = mon->dim.px_real.height / y_inches;
 
@@ -457,27 +478,36 @@ output_update_ppi(struct monitor *mon)
         break;
     }
 
-    int scaled_width = mon->dim.px_scaled.width;
-    int scaled_height = mon->dim.px_scaled.height;
-
-    if (scaled_width == 0 && scaled_height == 0 && mon->scale > 0) {
-        /* Estimate scaled width/height if none has been provided */
-        scaled_width = mon->dim.px_real.width / mon->scale;
-        scaled_height = mon->dim.px_real.height / mon->scale;
-    }
+    const int scaled_width = mon->dim.px_scaled.width;
+    const int scaled_height = mon->dim.px_scaled.height;
 
     mon->ppi.scaled.x = scaled_width / x_inches;
     mon->ppi.scaled.y = scaled_height / y_inches;
 
-    double px_diag = sqrt(pow(scaled_width, 2) + pow(scaled_height, 2));
-    mon->dpi = px_diag / mon->inch * mon->scale;
+    const double px_diag_physical = sqrt(pow(width, 2) + pow(height, 2));
+    mon->dpi.physical = width == 0 && height == 0
+        ? 96.
+        : px_diag_physical / mon->inch;
 
-    if (mon->dpi > 1000) {
+    const double px_diag_scaled = sqrt(pow(scaled_width, 2) + pow(scaled_height, 2));
+    mon->dpi.scaled = scaled_width == 0 && scaled_height == 0
+        ? 96.
+        : px_diag_scaled / mon->inch * mon->scale;
+
+    if (mon->dpi.physical > 1000) {
         if (mon->name != NULL) {
-            LOG_WARN("%s: DPI=%f is unreasonable, using 96 instead",
-                     mon->name, mon->dpi);
+            LOG_WARN("%s: DPI=%f (physical) is unreasonable, using 96 instead",
+                     mon->name, mon->dpi.physical);
         }
-        mon->dpi = 96;
+        mon->dpi.physical = 96;
+    }
+
+    if (mon->dpi.scaled > 1000) {
+        if (mon->name != NULL) {
+            LOG_WARN("%s: DPI=%f (logical) is unreasonable, using 96 instead",
+                     mon->name, mon->dpi.scaled);
+        }
+        mon->dpi.scaled = 96;
     }
 }
 
@@ -1435,6 +1465,11 @@ wayl_init(struct fdm *fdm, struct key_binding_manager *key_binding_manager,
         LOG_ERR("no seats available (wl_seat interface too old?)");
         goto out;
     }
+    if (tll_length(wayl->monitors) == 0) {
+        LOG_ERR("no monitors available");
+        goto out;
+    }
+
     if (wayl->primary_selection_device_manager == NULL)
         LOG_WARN("no primary selection available");
 
@@ -1487,14 +1522,12 @@ wayl_init(struct fdm *fdm, struct key_binding_manager *key_binding_manager,
 
     tll_foreach(wayl->monitors, it) {
         LOG_INFO(
-            "%s: %dx%d+%dx%d@%dHz %s %.2f\" scale=%d PPI=%dx%d (physical) PPI=%dx%d (logical), DPI=%.2f",
+            "%s: %dx%d+%dx%d@%dHz %s %.2f\" scale=%d, DPI=%.2f/%.2f (physical/scaled)",
             it->item.name, it->item.dim.px_real.width, it->item.dim.px_real.height,
             it->item.x, it->item.y, (int)round(it->item.refresh),
             it->item.model != NULL ? it->item.model : it->item.description,
             it->item.inch, it->item.scale,
-            it->item.ppi.real.x, it->item.ppi.real.y,
-            it->item.ppi.scaled.x, it->item.ppi.scaled.y,
-            it->item.dpi);
+            it->item.dpi.physical, it->item.dpi.scaled);
     }
 
     wayl->fd = wl_display_get_fd(wayl->display);
@@ -1603,10 +1636,15 @@ static void fractional_scale_preferred_scale(
     uint32_t scale)
 {
     struct wl_window *win = data;
-    win->scale = (float)scale / 120.;
-    win->have_preferred_scale = true;
 
-    LOG_DBG("fractional scale: %.3f", win->scale);
+    const float new_scale = (float)scale / 120.;
+
+    if (win->scale == new_scale)
+        return;
+
+    LOG_DBG("fractional scale: %.2f -> %.2f", win->scale, new_scale);
+
+    win->scale = new_scale;
     update_term_for_output_change(win->term);
 }
 
@@ -1971,7 +2009,7 @@ wayl_surface_scale_explicit_width_height(
     int width, int height, float scale)
 {
 
-    if (wayl_fractional_scaling(win->term->wl) && win->have_preferred_scale) {
+    if (wayl_fractional_scaling(win->term->wl) && win->scale > 0.) {
 #if defined(HAVE_FRACTIONAL_SCALE)
         LOG_DBG("scaling by a factor of %.2f using fractional scaling "
                 "(width=%d, height=%d) ", scale, width, height);
