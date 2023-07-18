@@ -49,22 +49,22 @@ static const size_t min_csd_border_width = 5;
 static const uint32_t default_color_table[256] = {
     // Regular
     0x242424,
-    0xcf1745,
-    0x3ecf5b,
-    0xcfcf17,
-    0x0ba6da,
-    0xd926ac,
-    0x17cfa1,
+    0xf62b5a,
+    0x47b413,
+    0xe3c401,
+    0x24acd4,
+    0xf2affd,
+    0x13c299,
     0xe6e6e6,
 
     // Bright
     0x616161,
-    0xff1a53,
-    0x17e640,
-    0xecff1a,
-    0x1ac6ff,
-    0xf53dc7,
-    0x1affc6,
+    0xff4d51,
+    0x35d450,
+    0xe9e836,
+    0x5dc5f8,
+    0xfeabf2,
+    0x24dfc4,
     0xffffff,
 
     // 6x6x6 RGB cube

@@ -50,6 +50,9 @@
 * When window is mapped, use metadata (DPI, scaling factor, subpixel
   configuration) from the monitor we were most recently mapped on,
   instead of the one least recently.
+* Starlight theme (the default theme) updated to [V4][starlight-v4]
+
+[starlight-v4]: https://github.com/CosmicToast/starlight/blob/v4/CHANGELOG.md#v4
 
 
 ### Deprecated
