@@ -341,8 +341,10 @@ seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
     } else {
         if (seat->wl_pointer != NULL) {
 #if defined(HAVE_CURSOR_SHAPE)
-            wp_cursor_shape_device_v1_destroy(seat->pointer.shape_device);
-            seat->pointer.shape_device = NULL;
+            if (seat->pointer.shape_device != NULL) {
+                wp_cursor_shape_device_v1_destroy(seat->pointer.shape_device);
+                seat->pointer.shape_device = NULL;
+            }
 #endif
 
             wl_pointer_release(seat->wl_pointer);
