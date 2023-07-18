@@ -70,6 +70,8 @@
   connected ([#1404][1404]).
 * Crash when _pointer capability_ is removed from a seat, on
   compositors without `cursor-shape-v1 support` ([#1411][1411]).
+* Crash on exit, if the mouse is hovering over the foot window (does
+  not happen on all compositors)
 
 [1404]: https://codeberg.org/dnkl/foot/issues/1404
 [1411]: https://codeberg.org/dnkl/foot/pulls/1411

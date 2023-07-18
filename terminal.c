@@ -1607,8 +1607,6 @@ term_destroy(struct terminal *term)
     if (term == NULL)
         return 0;
 
-    key_binding_unref(term->wl->key_binding_manager, term->conf);
-
     tll_foreach(term->wl->terms, it) {
         if (it->item == term) {
             tll_remove(term->wl->terms, it);
@@ -1653,6 +1651,8 @@ term_destroy(struct terminal *term)
         }
     }
     mtx_unlock(&term->render.workers.lock);
+
+    key_binding_unref(term->wl->key_binding_manager, term->conf);
 
     urls_reset(term);
 
