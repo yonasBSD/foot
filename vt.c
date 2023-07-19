@@ -437,6 +437,27 @@ UNITTEST
 }
 
 static void
+tab_set(struct terminal *term)
+{
+    int col = term->grid->cursor.point.col;
+
+    if (tll_length(term->tab_stops) == 0 || tll_back(term->tab_stops) < col) {
+        tll_push_back(term->tab_stops, col);
+        return;
+    }
+
+    tll_foreach(term->tab_stops, it) {
+        if (it->item < col) {
+            continue;
+        }
+        if (it->item > col) {
+            tll_insert_before(term->tab_stops, it, col);
+        }
+        break;
+    }
+}
+
+static void
 action_esc_dispatch(struct terminal *term, uint8_t final)
 {
     LOG_DBG("ESC: %s", esc_as_string(term, final));
@@ -478,14 +499,7 @@ action_esc_dispatch(struct terminal *term, uint8_t final)
             break;
 
         case 'H':
-            tll_foreach(term->tab_stops, it) {
-                if (it->item >= term->grid->cursor.point.col) {
-                    tll_insert_before(term->tab_stops, it, term->grid->cursor.point.col);
-                    break;
-                }
-            }
-
-            tll_push_back(term->tab_stops, term->grid->cursor.point.col);
+            tab_set(term);
             break;
 
         case 'M':
