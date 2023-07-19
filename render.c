@@ -1953,12 +1953,15 @@ render_osd(struct terminal *term, const struct wayl_sub_surface *sub_surf,
     wl_surface_attach(sub_surf->surface.surf, buf->wl_buf, 0, 0);
     wl_surface_damage_buffer(sub_surf->surface.surf, 0, 0, buf->width, buf->height);
 
-    struct wl_region *region = wl_compositor_create_region(term->wl->compositor);
-    if (region != NULL) {
-        wl_region_add(region, 0, 0, buf->width, buf->height);
-        wl_surface_set_opaque_region(sub_surf->surface.surf, region);
-        wl_region_destroy(region);
-    }
+    if (alpha == 0xffff) {
+        struct wl_region *region = wl_compositor_create_region(term->wl->compositor);
+        if (region != NULL) {
+            wl_region_add(region, 0, 0, buf->width, buf->height);
+            wl_surface_set_opaque_region(sub_surf->surface.surf, region);
+            wl_region_destroy(region);
+        }
+    } else
+        wl_surface_set_opaque_region(sub_surf->surface.surf, NULL);
 
     wl_surface_commit(sub_surf->surface.surf);
     quirk_weston_subsurface_desync_off(sub_surf->sub);
