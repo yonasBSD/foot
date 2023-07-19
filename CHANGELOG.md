@@ -51,8 +51,11 @@
   configuration) from the monitor we were most recently mapped on,
   instead of the one least recently.
 * Starlight theme (the default theme) updated to [V4][starlight-v4]
+* Background transparency (alpha) is now disabled in fullscreened
+  windows ([#1416][1416]).
 
 [starlight-v4]: https://github.com/CosmicToast/starlight/blob/v4/CHANGELOG.md#v4
+[1416]: https://codeberg.org/dnkl/foot/issues/1416
 
 
 ### Deprecated

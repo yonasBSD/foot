@@ -526,8 +526,35 @@ render_cell(struct terminal *term, pixman_image_t *pix,
             uint32_t swap = _fg;
             _fg = _bg;
             _bg = swap;
-        } else if (cell->attrs.bg_src == COLOR_DEFAULT)
-            alpha = term->colors.alpha;
+        }
+
+        else if (cell->attrs.bg_src == COLOR_DEFAULT) {
+            if (term->window->is_fullscreen) {
+                /*
+                 * Note: disable transparency when fullscreened.
+                 *
+                 * This is because the wayland protocol recommends
+                 * (mandates even?) the compositor render a black
+                 * background behind fullscreened transparent windows.
+                 *
+                 * In other words, transparency does not work when
+                 * fullscreened, in the sense that you don't see
+                 * what's behind the window.
+                 *
+                 * And if we keep our alpha channel, the background
+                 * color will just look weird. For example, if the
+                 * background color is white, and alpha is 0.5, then
+                 * the window will be drawn in a shade of gray while
+                 * fullscreened.
+                 *
+                 * By disabling the alpha channel, the window will at
+                 * least be rendered in the intended background color.
+                 */
+                xassert(alpha == 0xffff);
+            } else {
+                alpha = term->colors.alpha;
+            }
+        }
     }
 
     if (unlikely(is_selected && _fg == _bg)) {
