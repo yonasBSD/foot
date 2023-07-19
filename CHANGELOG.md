@@ -63,7 +63,7 @@
 * Xcursor not being scaled correctly on `fractional-scale-v1` capable
   compositors.
 * `dpi-aware=yes` being broken on `fractional-scale-v1` capable
-  compositors (and when a fractional sacling factor is being used)
+  compositors (and when a fractional scaling factor is being used)
   ([#1404][1404]).
 * Initial font size being wrong on `fractional-scale-v1` capable
   compositors, with multiple monitors with different scaling factors
