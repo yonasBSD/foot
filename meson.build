@@ -329,13 +329,13 @@ if systemd.found() or custom_systemd_units_dir != ''
 
   configure_file(
     configuration: configuration,
-    input: 'foot-server@.service.in',
+    input: 'foot-server.service.in',
     output: '@BASENAME@',
     install_dir: systemd_units_dir
     )
 
   install_data(
-    'foot-server@.socket',
+    'foot-server.socket',
     install_dir: systemd_units_dir)
 endif
 

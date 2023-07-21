@@ -1,0 +1,9 @@
+[Socket]
+ListenStream=%t/foot.sock
+
+[Unit]
+PartOf=graphical-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+
+[Install]
+WantedBy=graphical-session.target

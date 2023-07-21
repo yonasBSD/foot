@@ -305,7 +305,12 @@ color_brighten(const struct terminal *term, uint32_t color)
 static inline int
 font_baseline(const struct terminal *term)
 {
-    return term->font_y_ofs + term->fonts[0]->ascent;
+    const struct fcft_font *font = term->fonts[0];
+    const int line_height = term->cell_height;
+    const int font_height = font->ascent + font->descent;
+    const int glyph_top_y = round((line_height - font_height) / 2.);
+
+    return term->font_y_ofs + glyph_top_y + font->ascent;
 }
 
 static void
@@ -526,8 +531,35 @@ render_cell(struct terminal *term, pixman_image_t *pix,
             uint32_t swap = _fg;
             _fg = _bg;
             _bg = swap;
-        } else if (cell->attrs.bg_src == COLOR_DEFAULT)
-            alpha = term->colors.alpha;
+        }
+
+        else if (cell->attrs.bg_src == COLOR_DEFAULT) {
+            if (term->window->is_fullscreen) {
+                /*
+                 * Note: disable transparency when fullscreened.
+                 *
+                 * This is because the wayland protocol recommends
+                 * (mandates even?) the compositor render a black
+                 * background behind fullscreened transparent windows.
+                 *
+                 * In other words, transparency does not work when
+                 * fullscreened, in the sense that you don't see
+                 * what's behind the window.
+                 *
+                 * And if we keep our alpha channel, the background
+                 * color will just look weird. For example, if the
+                 * background color is white, and alpha is 0.5, then
+                 * the window will be drawn in a shade of gray while
+                 * fullscreened.
+                 *
+                 * By disabling the alpha channel, the window will at
+                 * least be rendered in the intended background color.
+                 */
+                xassert(alpha == 0xffff);
+            } else {
+                alpha = term->colors.alpha;
+            }
+        }
     }
 
     if (unlikely(is_selected && _fg == _bg)) {
@@ -1926,12 +1958,15 @@ render_osd(struct terminal *term, const struct wayl_sub_surface *sub_surf,
     wl_surface_attach(sub_surf->surface.surf, buf->wl_buf, 0, 0);
     wl_surface_damage_buffer(sub_surf->surface.surf, 0, 0, buf->width, buf->height);
 
-    struct wl_region *region = wl_compositor_create_region(term->wl->compositor);
-    if (region != NULL) {
-        wl_region_add(region, 0, 0, buf->width, buf->height);
-        wl_surface_set_opaque_region(sub_surf->surface.surf, region);
-        wl_region_destroy(region);
-    }
+    if (alpha == 0xffff) {
+        struct wl_region *region = wl_compositor_create_region(term->wl->compositor);
+        if (region != NULL) {
+            wl_region_add(region, 0, 0, buf->width, buf->height);
+            wl_surface_set_opaque_region(sub_surf->surface.surf, region);
+            wl_region_destroy(region);
+        }
+    } else
+        wl_surface_set_opaque_region(sub_surf->surface.surf, NULL);
 
     wl_surface_commit(sub_surf->surface.surf);
     quirk_weston_subsurface_desync_off(sub_surf->sub);
@@ -3841,23 +3876,9 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
     if (term->cell_width == 0 && term->cell_height == 0)
         return false;
 
-    float scale = -1;
-    if (wayl_fractional_scaling(term->wl)) {
-        scale = term->window->scale;
-    } else {
-        tll_foreach(term->window->on_outputs, it) {
-            if (it->item->scale > scale)
-                scale = it->item->scale;
-        }
-    }
-
-    if (scale < 0.) {
-        /* Haven't 'entered' an output yet? */
-        scale = term->scale;
-    }
-
-    width *= scale;
-    height *= scale;
+    const float scale = term->scale;
+    width = round(width * scale);
+    height = round(height * scale);
 
     if (width == 0 && height == 0) {
         /*
@@ -3942,9 +3963,9 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
     /* Drop out of URL mode */
     urls_reset(term);
 
+    LOG_DBG("resized: size=%dx%d (scale=%.2f)", width, height, term->scale);
     term->width = width;
     term->height = height;
-    term->scale = scale;
 
     const uint32_t scrollback_lines = term->render.scrollback_lines;
 
@@ -4148,12 +4169,11 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
 
     sixel_reflow(term);
 
-#if defined(_DEBUG) && LOG_ENABLE_DBG
-    LOG_DBG("resize: %dx%d, grid: cols=%d, rows=%d "
+    LOG_DBG("resized: grid: cols=%d, rows=%d "
             "(left-margin=%d, right-margin=%d, top-margin=%d, bottom-margin=%d)",
-            term->width, term->height, term->cols, term->rows,
-            term->margins.left, term->margins.right, term->margins.top, term->margins.bottom);
-#endif
+            term->cols, term->rows,
+            term->margins.left, term->margins.right,
+            term->margins.top, term->margins.bottom);
 
     if (term->scroll_region.start >= term->rows)
         term->scroll_region.start = 0;
@@ -4295,13 +4315,17 @@ render_xcursor_update(struct seat *seat)
 #endif
 
     LOG_DBG("setting %scursor shape using a client-side cursor surface",
-            shape == CURSOR_SHAPE_CUSTOM ? "custom " : "");
+            seat->pointer.shape == CURSOR_SHAPE_CUSTOM ? "custom " : "");
 
-    const int scale = seat->pointer.scale;
+    const float scale = seat->pointer.scale;
     struct wl_cursor_image *image = seat->pointer.cursor->images[0];
+    struct wl_buffer *buf = wl_cursor_image_get_buffer(image);
 
-    wl_surface_attach(
-        seat->pointer.surface.surf, wl_cursor_image_get_buffer(image), 0, 0);
+    wayl_surface_scale_explicit_width_height(
+        seat->mouse_focus->window,
+        &seat->pointer.surface, image->width, image->height, scale);
+
+    wl_surface_attach(seat->pointer.surface.surf, buf, 0, 0);
 
     wl_pointer_set_cursor(
         seat->wl_pointer, seat->pointer.serial,
@@ -4310,8 +4334,6 @@ render_xcursor_update(struct seat *seat)
 
     wl_surface_damage_buffer(
         seat->pointer.surface.surf, 0, 0, INT32_MAX, INT32_MAX);
-
-    wl_surface_set_buffer_scale(seat->pointer.surface.surf, scale);
 
     xassert(seat->pointer.xcursor_callback == NULL);
     seat->pointer.xcursor_callback = wl_surface_frame(seat->pointer.surface.surf);

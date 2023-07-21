@@ -733,7 +733,8 @@ term_line_height_update(struct terminal *term)
 }
 
 static bool
-term_set_fonts(struct terminal *term, struct fcft_font *fonts[static 4])
+term_set_fonts(struct terminal *term, struct fcft_font *fonts[static 4],
+               bool resize_grid)
 {
     for (size_t i = 0; i < 4; i++) {
         xassert(fonts[i] != NULL);
@@ -777,8 +778,15 @@ term_set_fonts(struct terminal *term, struct fcft_font *fonts[static 4])
 
     sixel_cell_size_changed(term);
 
-    /* Use force, since cell-width/height may have changed */
-    render_resize_force(term, term->width / term->scale, term->height / term->scale);
+    /* Optimization - some code paths (are forced to) call
+     * render_resize() after this function */
+    if (resize_grid) {
+        /* Use force, since cell-width/height may have changed */
+        render_resize_force(
+            term,
+            round(term->width / term->scale),
+            round(term->height / term->scale));
+    }
     return true;
 }
 
@@ -793,41 +801,34 @@ get_font_dpi(const struct terminal *term)
      * Conceptually, we use the physical monitor specs to calculate
      * the DPI, and we ignore the output's scaling factor.
      *
-     * However, to deal with fractional scaling, where we're told to
-     * render at e.g. 2x, but are then downscaled by the compositor to
-     * e.g. 1.25, we use the scaled DPI value multiplied by the scale
-     * factor instead.
+     * However, to deal with legacy fractional scaling, where we're
+     * told to render at e.g. 2x, but are then downscaled by the
+     * compositor to e.g. 1.25, we use the scaled DPI value multiplied
+     * by the scale factor instead.
      *
      * For integral scaling factors the resulting DPI is the same as
      * if we had used the physical DPI.
      *
-     * For fractional scaling factors we'll get a DPI *larger* than
-     * the physical DPI, that ends up being right when later
+     * For legacy fractional scaling factors we'll get a DPI *larger*
+     * than the physical DPI, that ends up being right when later
      * downscaled by the compositor.
+     *
+     * With the newer fractional-scale-v1 protocol, we use the
+     * monitor’s real DPI, since we scale everything to the correct
+     * scaling factor (no downscaling done by the compositor).
      */
 
-    /* Use highest DPI from outputs we're mapped on */
-    double dpi = 0.0;
-    xassert(term->window != NULL);
-    tll_foreach(term->window->on_outputs, it) {
-        if (it->item->dpi > dpi)
-            dpi = it->item->dpi;
-    }
+    xassert(tll_length(term->wl->monitors) > 0);
 
-    /* If we're not mapped, use DPI from first monitor. Hopefully this is where we'll get mapped later... */
-    if (dpi == 0.) {
-        tll_foreach(term->wl->monitors, it) {
-            dpi = it->item.dpi;
-            break;
-        }
-    }
+    const struct wl_window *win = term->window;
+    const struct monitor *mon = tll_length(win->on_outputs) > 0
+        ? tll_back(win->on_outputs)
+        : &tll_front(term->wl->monitors);
 
-    if (dpi == 0) {
-        /* No monitors? */
-        dpi = 96.;
-    }
-
-    return dpi;
+    if (wayl_fractional_scaling(term->wl))
+        return mon->dpi.physical;
+    else
+        return mon->dpi.scaled;
 }
 
 static enum fcft_subpixel
@@ -846,7 +847,8 @@ get_font_subpixel(const struct terminal *term)
      * output or not.
      *
      * Thus, when determining which subpixel mode to use, we can't do
-     * much but select *an* output. So, we pick the first one.
+     * much but select *an* output. So, we pick the one we were most
+     * recently mapped on.
      *
      * If we're not mapped at all, we pick the first available
      * monitor, and hope that's where we'll eventually get mapped.
@@ -856,7 +858,7 @@ get_font_subpixel(const struct terminal *term)
      */
 
     if (tll_length(term->window->on_outputs) > 0)
-        wl_subpixel = tll_front(term->window->on_outputs)->subpixel;
+        wl_subpixel = tll_back(term->window->on_outputs)->subpixel;
     else if (tll_length(term->wl->monitors) > 0)
         wl_subpixel = tll_front(term->wl->monitors).subpixel;
     else
@@ -903,7 +905,7 @@ font_loader_thread(void *_data)
 }
 
 static bool
-reload_fonts(struct terminal *term)
+reload_fonts(struct terminal *term, bool resize_grid)
 {
     const struct config *conf = term->conf;
 
@@ -1030,7 +1032,7 @@ reload_fonts(struct terminal *term)
         }
     }
 
-    return success ? term_set_fonts(term, fonts) : success;
+    return success ? term_set_fonts(term, fonts, resize_grid) : success;
 }
 
 static bool
@@ -1048,7 +1050,7 @@ load_fonts_from_conf(struct terminal *term)
         }
     }
 
-    return reload_fonts(term);
+    return reload_fonts(term, true);
 }
 
 static void fdm_client_terminated(
@@ -1282,11 +1284,9 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
     reaper_add(term->reaper, term->slave, &fdm_client_terminated, term);
 
     /* Guess scale; we're not mapped yet, so we don't know on which
-     * output we'll be. Pick highest scale we find for now */
-    tll_foreach(term->wl->monitors, it) {
-        if (it->item.scale > term->scale)
-            term->scale = it->item.scale;
-    }
+     * output we'll be. Use scaling factor from first monitor */
+    xassert(tll_length(term->wl->monitors) > 0);
+    term->scale = tll_front(term->wl->monitors).scale;
 
     memcpy(term->colors.table, term->conf->colors.table, sizeof(term->colors.table));
 
@@ -1295,7 +1295,7 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
         goto err;
 
     /* Load fonts */
-    if (!term_font_dpi_changed(term, 0))
+    if (!term_font_dpi_changed(term, 0.))
         goto err;
 
     term->font_subpixel = get_font_subpixel(term);
@@ -1607,8 +1607,6 @@ term_destroy(struct terminal *term)
     if (term == NULL)
         return 0;
 
-    key_binding_unref(term->wl->key_binding_manager, term->conf);
-
     tll_foreach(term->wl->terms, it) {
         if (it->item == term) {
             tll_remove(term->wl->terms, it);
@@ -1653,6 +1651,8 @@ term_destroy(struct terminal *term)
         }
     }
     mtx_unlock(&term->render.workers.lock);
+
+    key_binding_unref(term->wl->key_binding_manager, term->conf);
 
     urls_reset(term);
 
@@ -1993,7 +1993,7 @@ term_font_size_adjust_by_points(struct terminal *term, float amount)
         }
     }
 
-    return reload_fonts(term);
+    return reload_fonts(term, true);
 }
 
 static bool
@@ -2016,7 +2016,7 @@ term_font_size_adjust_by_pixels(struct terminal *term, int amount)
         }
     }
 
-    return reload_fonts(term);
+    return reload_fonts(term, true);
 }
 
 static bool
@@ -2040,7 +2040,7 @@ term_font_size_adjust_by_percent(struct terminal *term, bool increment, float pe
         }
     }
 
-    return reload_fonts(term);
+    return reload_fonts(term, true);
 }
 
 bool
@@ -2078,10 +2078,40 @@ term_font_size_reset(struct terminal *term)
 }
 
 bool
-term_font_dpi_changed(struct terminal *term, int old_scale)
+term_update_scale(struct terminal *term)
+{
+    const struct wl_window *win = term->window;
+
+    /*
+     * We have a number of “sources” we can use as scale. We choose
+     * the scale in the following order:
+     *
+     *  - “preferred” scale, from the fractional-scale-v1 protocol
+     *  - scaling factor of output we most recently were mapped on
+     *  - if we’re not mapped, use the scaling factor from the first
+     *    available output.
+     *  - if there aren’t any outputs available, use 1.0
+     */
+    const float new_scale =
+        (wayl_fractional_scaling(term->wl) && win->scale > 0.
+         ? win->scale
+         : (tll_length(win->on_outputs) > 0
+            ? tll_back(win->on_outputs)->scale
+            : 1.));
+
+    if (new_scale == term->scale)
+        return false;
+
+    LOG_DBG("scaling factor changed: %.2f -> %.2f", term->scale, new_scale);
+    term->scale = new_scale;
+    return true;
+}
+
+bool
+term_font_dpi_changed(struct terminal *term, float old_scale)
 {
     float dpi = get_font_dpi(term);
-    xassert(term->scale > 0);
+    xassert(term->scale > 0.);
 
     bool was_scaled_using_dpi = term->font_is_sized_by_dpi;
     bool will_scale_using_dpi = term->conf->dpi_aware;
@@ -2093,11 +2123,10 @@ term_font_dpi_changed(struct terminal *term, int old_scale)
          : old_scale != term->scale);
 
     if (need_font_reload) {
-        LOG_DBG("DPI/scale change: DPI-awareness=%s, "
-                "DPI: %.2f -> %.2f, scale: %d -> %d, "
+        LOG_DBG("DPI/scale change: DPI-aware=%s, "
+                "DPI: %.2f -> %.2f, scale: %.2f -> %.2f, "
                 "sizing font based on monitor's %s",
-                term->conf->dpi_aware == DPI_AWARE_AUTO ? "auto" :
-                term->conf->dpi_aware == DPI_AWARE_YES ? "yes" : "no",
+                term->conf->dpi_aware ? "yes" : "no",
                 term->font_dpi, dpi, old_scale, term->scale,
                 will_scale_using_dpi ? "DPI" : "scaling factor");
     }
@@ -2106,9 +2135,9 @@ term_font_dpi_changed(struct terminal *term, int old_scale)
     term->font_is_sized_by_dpi = will_scale_using_dpi;
 
     if (!need_font_reload)
-        return true;
+        return false;
 
-    return reload_fonts(term);
+    return reload_fonts(term, false);
 }
 
 void
@@ -3507,7 +3536,7 @@ term_update_ascii_printer(struct terminal *term)
 
 #if defined(_DEBUG) && LOG_ENABLE_DBG
     if (term->ascii_printer != new_printer) {
-        LOG_DBG("§switching ASCII printer %s -> %s",
+        LOG_DBG("switching ASCII printer %s -> %s",
                 term->ascii_printer == &ascii_printer_fast ? "fast" : "generic",
                 new_printer == &ascii_printer_fast ? "fast" : "generic");
     }

@@ -1,13 +1,13 @@
 [Service]
 ExecStart=@bindir@/foot --server=3
-Environment=WAYLAND_DISPLAY=%i
 UnsetEnvironment=LISTEN_PID LISTEN_FDS LISTEN_FDNAMES
 NonBlocking=true
 
 [Unit]
 Requires=%N.socket
-Description=Foot terminal server mode for WAYLAND_DISPLAY=%i
+Description=Foot terminal server mode
 Documentation=man:foot(1)
+PartOf=graphical-session.target
 
 [Install]
-WantedBy=wayland-instance@.target
+WantedBy=graphical-session.target

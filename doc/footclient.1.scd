@@ -146,6 +146,11 @@ terminfo entries manually, by copying *foot* and *foot-direct* to
 	Used to construct the default _PATH_ for the *--server-socket*
 	option, when no explicit argument is given (see above).
 
+If the socket at default _PATH_ does not exist, *footclient* will
+fallback to the less specific path, with the following priority:
+*$XDG\_RUNTIME\_DIR/foot-$WAYLAND\_DISPLAY.sock*,
+*$XDG\_RUNTIME\_DIR/foot.sock*, */tmp/foot.sock*.
+
 ## Variables set in the child process
 
 *TERM*

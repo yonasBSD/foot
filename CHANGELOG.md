@@ -1,5 +1,6 @@
 # Changelog
 
+* [Unreleased](#unreleased)
 * [1.15.0](#1-15-0)
 * [1.14.0](#1-14-0)
 * [1.13.1](#1-13-1)
@@ -40,6 +41,58 @@
 * [1.2.2](#1-2-2)
 * [1.2.1](#1-2-1)
 * [1.2.0](#1-2-0)
+
+
+## Unreleased
+### Added
+### Changed
+
+* When window is mapped, use metadata (DPI, scaling factor, subpixel
+  configuration) from the monitor we were most recently mapped on,
+  instead of the one least recently.
+* Starlight theme (the default theme) updated to [V4][starlight-v4]
+* Background transparency (alpha) is now disabled in fullscreened
+  windows ([#1416][1416]).
+* Foot server systemd units now use the standard
+  graphical-session.target ([#1281][1281]).
+* If `$XDG_RUNTIME_DIR/foot-$WAYLAND_DISPLAY.sock` does not exist,
+  `footclient` now tries `$XDG_RUNTIME_DIR/foot.sock`, then
+  `/tmp/foot.sock`, even if `$WAYLAND_DISPLAY` and/or
+  `$XDG_RUNTIME_DIR` are defined ([#1281][1281]).
+* Font baseline calculation: try to center the text within the line,
+  instead of anchoring it at the top ([#1302][1302]).
+
+[starlight-v4]: https://github.com/CosmicToast/starlight/blob/v4/CHANGELOG.md#v4
+[1416]: https://codeberg.org/dnkl/foot/issues/1416
+[1281]: https://codeberg.org/dnkl/foot/pulls/1281
+[1302]: https://codeberg.org/dnkl/foot/issues/1302
+
+
+### Deprecated
+### Removed
+### Fixed
+
+* Use appropriate rounding when applying fractional scales.
+* Xcursor not being scaled correctly on `fractional-scale-v1` capable
+  compositors.
+* `dpi-aware=yes` being broken on `fractional-scale-v1` capable
+  compositors (and when a fractional scaling factor is being used)
+  ([#1404][1404]).
+* Initial font size being wrong on `fractional-scale-v1` capable
+  compositors, with multiple monitors with different scaling factors
+  connected ([#1404][1404]).
+* Crash when _pointer capability_ is removed from a seat, on
+  compositors without `cursor-shape-v1 support` ([#1411][1411]).
+* Crash on exit, if the mouse is hovering over the foot window (does
+  not happen on all compositors)
+* Visual glitches when CSD titlebar is transparent.
+
+[1404]: https://codeberg.org/dnkl/foot/issues/1404
+[1411]: https://codeberg.org/dnkl/foot/pulls/1411
+
+
+### Security
+### Contributors
 
 
 ## 1.15.0

@@ -1,24 +1,24 @@
 # -*- conf -*-
-# Theme: starlight (https://github.com/CosmicToast/starlight)
+# Theme: starlight V4 (https://github.com/CosmicToast/starlight)
 
 [colors]
 foreground = FFFFFF
 background = 242424
 
 regular0 = 242424
-regular1 = CF1745
-regular2 = 3ECF5B
-regular3 = CFCF17
-regular4 = 0BA6DA
-regular5 = D926AC
-regular6 = 17CFA1
-regular7 = E6E6E6
+regular1 = f62b5a
+regular2 = 47b413
+regular3 = e3c401
+regular4 = 24acd4
+regular5 = f2affd
+regular6 = 13c299
+regular7 = e6e6e6
 
 bright0 = 616161
-bright1 = FF1A53
-bright2 = 17E640
-bright3 = ECFF1A
-bright4 = 1AC6FF
-bright5 = F53DC7
-bright6 = 1AFFC6
-bright7 = FFFFFF
+bright1 = ff4d51
+bright2 = 35d450
+bright3 = e9e836
+bright4 = 5dc5f8
+bright5 = feabf2
+bright6 = 24dfc4
+bright7 = ffffff

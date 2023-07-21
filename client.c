@@ -374,16 +374,19 @@ main(int argc, char *const *argv)
         const char *xdg_runtime = getenv("XDG_RUNTIME_DIR");
         if (xdg_runtime != NULL) {
             const char *wayland_display = getenv("WAYLAND_DISPLAY");
-            if (wayland_display != NULL)
+            if (wayland_display != NULL) {
                 snprintf(addr.sun_path, sizeof(addr.sun_path),
                          "%s/foot-%s.sock", xdg_runtime, wayland_display);
-            else
+                connected = (connect(fd, (const struct sockaddr *)&addr, sizeof(addr)) == 0);
+            }
+            if (!connected) {
+                LOG_WARN("%s: failed to connect, will now try %s/foot.sock",
+                         addr.sun_path, xdg_runtime);
                 snprintf(addr.sun_path, sizeof(addr.sun_path),
                          "%s/foot.sock", xdg_runtime);
-
-            if (connect(fd, (const struct sockaddr *)&addr, sizeof(addr)) == 0)
-                connected = true;
-            else
+                connected = (connect(fd, (const struct sockaddr *)&addr, sizeof(addr)) == 0);
+            }
+            if (!connected)
                 LOG_WARN("%s: failed to connect, will now try /tmp/foot.sock", addr.sun_path);
         }
 
