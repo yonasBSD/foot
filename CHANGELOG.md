@@ -59,10 +59,13 @@
   `footclient` now tries `$XDG_RUNTIME_DIR/foot.sock`, then
   `/tmp/foot.sock`, even if `$WAYLAND_DISPLAY` and/or
   `$XDG_RUNTIME_DIR` are defined ([#1281][1281]).
+* Font baseline calculation: try to center the text within the line,
+  instead of anchoring it at the top ([#1302][1302]).
 
 [starlight-v4]: https://github.com/CosmicToast/starlight/blob/v4/CHANGELOG.md#v4
 [1416]: https://codeberg.org/dnkl/foot/issues/1416
 [1281]: https://codeberg.org/dnkl/foot/pulls/1281
+[1302]: https://codeberg.org/dnkl/foot/issues/1302
 
 
 ### Deprecated
