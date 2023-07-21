@@ -121,14 +121,14 @@ the foot command line
 	of a socket provided by a supervision daemon (such as systemd or s6), and
 	use that socket as it's own.
 
-	Two systemd units (foot-server@.{service,socket}) are provided to use that
-	feature with systemd. They need to be instantiated with the value of
-	$WAYLAND_DISPLAY (multiples instances can co-exists).
+	Two systemd units (foot-server.{service,socket}) are provided to use that
+	feature with systemd. To use socket activation, only enable the
+	socket unit.
 
 	Note that starting *foot --server* as a systemd service will use
-	the environment of the systemd user instance; thus, if you need specific
-	environment variables, you'll need to import them using *systemctl --user
-	import-environment* or use a drop-in for the foot-server service.
+	the environment of the systemd user instance; thus, you'll need
+	to import *$WAYLAND_DISPLAY* in it using *systemctl --user
+	import-environment WAYLAND_DISPLAY*.
 
 *-H*,*--hold*
 	Remain open after child process exits.
