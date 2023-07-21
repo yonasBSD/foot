@@ -1,6 +1,6 @@
 # Changelog
 
-* [Unreleased](#unreleased)
+* [1.15.1](#1-15-1)
 * [1.15.0](#1-15-0)
 * [1.14.0](#1-14-0)
 * [1.13.1](#1-13-1)
@@ -43,8 +43,8 @@
 * [1.2.0](#1-2-0)
 
 
-## Unreleased
-### Added
+## 1.15.1
+
 ### Changed
 
 * When window is mapped, use metadata (DPI, scaling factor, subpixel
@@ -68,8 +68,6 @@
 [1302]: https://codeberg.org/dnkl/foot/issues/1302
 
 
-### Deprecated
-### Removed
 ### Fixed
 
 * Use appropriate rounding when applying fractional scales.
@@ -91,8 +89,13 @@
 [1411]: https://codeberg.org/dnkl/foot/pulls/1411
 
 
-### Security
 ### Contributors
+
+* Ayush Agarwal
+* CismonX
+* Max Gautier
+* Ronan Pigott
+* xdavidwu
 
 
 ## 1.15.0
