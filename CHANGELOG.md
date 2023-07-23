@@ -53,9 +53,15 @@
 
 * Crash when copying text that contains invalid UTF-8 ([#1423][1423]).
 * Wrong font size after suspending the monitor ([#1431][1431]).
+* Vertical alignment in URL jump labels, and the scrollback position
+  indicator ([#1430][1430]).
+* Regression: line- and box drawing characters not covering the full
+  height of the line, when a custom `line-height` is being used
+  ([#1430][1430]).
 
 [1423]: https://codeberg.org/dnkl/foot/issues/1423
 [1431]: https://codeberg.org/dnkl/foot/issues/1431
+[1430]: https://codeberg.org/dnkl/foot/issues/1430
 
 
 ### Security

@@ -3011,7 +3011,7 @@ box_drawing(const struct terminal *term, char32_t wc)
         .cols = 1,
         .pix = buf.pix,
         .x = -term->font_x_ofs,
-        .y = term->font_y_ofs + term->fonts[0]->ascent,
+        .y = term_font_baseline(term),
         .width = width,
         .height = height,
         .advance = {
