@@ -50,6 +50,12 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* Crash when copying text that contains invalid UTF-8 ([#1423][1423]).
+
+[1423]: https://codeberg.org/dnkl/foot/issues/1423
+
+
 ### Security
 ### Contributors
 

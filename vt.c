@@ -913,6 +913,16 @@ action_utf8_33(struct terminal *term, uint8_t c)
 {
     // wc = ((utf8[0] & 0xf) << 12) | ((utf8[1] & 0x3f) << 6) | (utf8[2] & 0x3f)
     term->vt.utf8 |= c & 0x3f;
+
+    const char32_t utf32 = term->vt.utf8;
+    if (unlikely(utf32 >= 0xd800 && utf32 <= 0xdfff)) {
+        /* Invalid sequence - invalid UTF-16 surrogate halves */
+        return;
+    }
+
+    /* Note: the E0 range contains overlong encodings. We don’t try to
+       detect, as they’ll still decode to valid UTF-32. */
+
     action_utf8_print(term, term->vt.utf8);
 }
 
@@ -942,6 +952,17 @@ action_utf8_44(struct terminal *term, uint8_t c)
 {
     // wc = ((utf8[0] & 7) << 18) | ((utf8[1] & 0x3f) << 12) | ((utf8[2] & 0x3f) << 6) | (utf8[3] & 0x3f);
     term->vt.utf8 |= c & 0x3f;
+
+    const char32_t utf32 = term->vt.utf8;
+
+    if (unlikely(utf32 > 0x10FFFF)) {
+        /* Invalid UTF-8 */
+        return;
+    }
+
+    /* Note: the F0 range contains overlong encodings. We don’t try to
+       detect, as they’ll still decode to valid UTF-32. */
+
     action_utf8_print(term, term->vt.utf8);
 }
 
