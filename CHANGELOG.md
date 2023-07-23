@@ -52,8 +52,10 @@
 ### Fixed
 
 * Crash when copying text that contains invalid UTF-8 ([#1423][1423]).
+* Wrong font size after suspending the monitor ([#1431][1431]).
 
 [1423]: https://codeberg.org/dnkl/foot/issues/1423
+[1431]: https://codeberg.org/dnkl/foot/issues/1431
 
 
 ### Security
