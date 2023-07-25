@@ -1208,8 +1208,8 @@ csi_dispatch(struct terminal *term, uint8_t final)
                     char reply[64];
                     size_t n = xsnprintf(
                         reply, sizeof(reply), "\033[4;%d;%dt",
-                        (int)round(height / term->scale),
-                        (int)(width / term->scale));
+                        (int)roundf(height / term->scale),
+                        (int)roundf((width / term->scale)));
                     term_to_slave(term, reply, n);
                 }
                 break;
@@ -1233,8 +1233,8 @@ csi_dispatch(struct terminal *term, uint8_t final)
                 char reply[64];
                 size_t n = xsnprintf(
                     reply, sizeof(reply), "\033[6;%d;%dt",
-                    (int)round(term->cell_height / term->scale),
-                    (int)round(term->cell_width / term->scale));
+                    (int)roundf(term->cell_height / term->scale),
+                    (int)roundf(term->cell_width / term->scale));
                 term_to_slave(term, reply, n);
                 break;
             }
@@ -1252,8 +1252,8 @@ csi_dispatch(struct terminal *term, uint8_t final)
                     char reply[64];
                     size_t n = xsnprintf(
                         reply, sizeof(reply), "\033[9;%d;%dt",
-                        (int)round(it->item->dim.px_real.height / term->cell_height / term->scale),
-                        (int)round(it->item->dim.px_real.width / term->cell_width / term->scale));
+                        (int)roundf(it->item->dim.px_real.height / term->cell_height / term->scale),
+                        (int)roundf(it->item->dim.px_real.width / term->cell_width / term->scale));
                     term_to_slave(term, reply, n);
                     break;
                 }

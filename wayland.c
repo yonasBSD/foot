@@ -57,7 +57,7 @@ csd_reload_font(struct wl_window *win, float old_scale)
 
     char pixelsize[32];
     snprintf(pixelsize, sizeof(pixelsize), "pixelsize=%u",
-             (int)round(conf->csd.title_height * scale * 1 / 2));
+             (int)roundf(conf->csd.title_height * scale * 1 / 2));
 
     LOG_DBG("loading CSD font \"%s:%s\" (old-scale=%.2f, scale=%.2f)",
             patterns[0], pixelsize, old_scale, scale);
@@ -416,7 +416,7 @@ update_term_for_output_change(struct terminal *term)
          * buffer dimensions may not have been updated (in which case
          * render_size() normally shortcuts and returns early).
          */
-        render_resize_force(term, round(logical_width), round(logical_height));
+        render_resize_force(term, (int)roundf(logical_width), (int)roundf(logical_height));
     }
 
     else if (scale_updated) {
@@ -425,7 +425,7 @@ update_term_for_output_change(struct terminal *term)
          * been updated, even though the window logical dimensions
          * haven’t changed.
          */
-        render_resize(term, round(logical_width), round(logical_height));
+        render_resize(term, (int)roundf(logical_width), (int)roundf(logical_height));
     }
 }
 
@@ -1528,7 +1528,7 @@ wayl_init(struct fdm *fdm, struct key_binding_manager *key_binding_manager,
         LOG_INFO(
             "%s: %dx%d+%dx%d@%dHz %s %.2f\" scale=%d, DPI=%.2f/%.2f (physical/scaled)",
             it->item.name, it->item.dim.px_real.width, it->item.dim.px_real.height,
-            it->item.x, it->item.y, (int)round(it->item.refresh),
+            it->item.x, it->item.y, (int)roundf(it->item.refresh),
             it->item.model != NULL ? it->item.model : it->item.description,
             it->item.inch, it->item.scale,
             it->item.dpi.physical, it->item.dpi.scaled);
@@ -1996,24 +1996,12 @@ wayl_roundtrip(struct wayland *wayl)
     wayl_flush(wayl);
 }
 
-
-bool
-wayl_fractional_scaling(const struct wayland *wayl)
-{
-#if defined(HAVE_FRACTIONAL_SCALE)
-    return wayl->fractional_scale_manager != NULL;
-#else
-    return false;
-#endif
-}
-
 void
 wayl_surface_scale_explicit_width_height(
     const struct wl_window *win, const struct wayl_surface *surf,
     int width, int height, float scale)
 {
-
-    if (wayl_fractional_scaling(win->term->wl) && win->scale > 0.) {
+    if (term_fractional_scaling(win->term)) {
 #if defined(HAVE_FRACTIONAL_SCALE)
         LOG_DBG("scaling by a factor of %.2f using fractional scaling "
                 "(width=%d, height=%d) ", scale, width, height);
@@ -2021,8 +2009,8 @@ wayl_surface_scale_explicit_width_height(
         wl_surface_set_buffer_scale(surf->surf, 1);
         wp_viewport_set_destination(
             surf->viewport,
-            round((float)width / scale),
-            round((float)height / scale));
+            (int32_t)roundf((float)width / scale),
+            (int32_t)roundf((float)height / scale));
 #else
         BUG("wayl_fraction_scaling() returned true, "
             "but fractional scaling was not available at compile time");
@@ -2031,9 +2019,9 @@ wayl_surface_scale_explicit_width_height(
         LOG_DBG("scaling by a factor of %.2f using legacy mode "
                 "(width=%d, height=%d)", scale, width, height);
 
-        xassert(scale == floor(scale));
+        xassert(scale == floorf(scale));
 
-        const int iscale = (int)scale;
+        const int iscale = (int)floorf(scale);
         xassert(width % iscale == 0);
         xassert(height % iscale == 0);
 

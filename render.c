@@ -306,7 +306,7 @@ static void
 draw_unfocused_block(const struct terminal *term, pixman_image_t *pix,
                      const pixman_color_t *color, int x, int y, int cell_cols)
 {
-    const int scale = round(term->scale);
+    const int scale = (int)roundf(term->scale);
     const int width = min(min(scale, term->cell_width), term->cell_height);
 
     pixman_image_fill_rectangles(
@@ -2022,8 +2022,8 @@ render_csd_border(struct terminal *term, enum csd_surface surf_idx,
      */
 
     float scale = term->scale;
-    int bwidth = round(term->conf->csd.border_width * scale);
-    int vwidth = round(term->conf->csd.border_width_visible * scale); /* Visible size */
+    int bwidth = (int)roundf(term->conf->csd.border_width * scale);
+    int vwidth = (int)roundf(term->conf->csd.border_width_visible * scale); /* Visible size */
 
     xassert(bwidth >= vwidth);
 
@@ -2396,7 +2396,10 @@ render_csd(struct terminal *term)
         widths[i] = width;
         heights[i] = height;
 
-        wl_subsurface_set_position(sub, x / term->scale, y / term->scale);
+        wl_subsurface_set_position(
+            sub,
+            (int32_t)roundf(x / term->scale),
+            (int32_t)roundf(y / term->scale));
     }
 
     struct buffer *bufs[CSD_SURF_COUNT];
@@ -2487,7 +2490,7 @@ render_scrollback_position(struct terminal *term)
         char lineno_str[64];
         snprintf(lineno_str, sizeof(lineno_str), "%d", rebased_view + 1);
         mbstoc32(_text, lineno_str, ALEN(_text));
-        cell_count = ceil(log10(term->grid->num_rows));
+        cell_count = (int)ceilf(log10f(term->grid->num_rows));
         break;
     }
 
@@ -2497,13 +2500,16 @@ render_scrollback_position(struct terminal *term)
         break;
     }
 
-    const int scale = term->scale;
-    const int margin = 3 * scale;
+    const int iscale = (int)ceilf(term->scale);
+    const int margin = (int)roundf(3. * term->scale);
 
-    const int width =
-        (2 * margin + cell_count * term->cell_width + scale - 1) / scale * scale;
-    const int height =
-        (2 * margin + term->cell_height + scale - 1) / scale * scale;
+    int width = margin + cell_count * term->cell_width + margin;
+    int height = margin + term->cell_height + margin;
+
+    if (!term_fractional_scaling(term)) {
+        width = (width + iscale - 1) / iscale * iscale;
+        height = (height + iscale - 1) / iscale * iscale;
+    }
 
     /* *Where* to render - parent relative coordinates */
     int surf_top = 0;
@@ -2531,8 +2537,13 @@ render_scrollback_position(struct terminal *term)
     }
     }
 
-    const int x = (term->width - margin - width) / scale * scale;
-    const int y = (term->margins.top + surf_top) / scale * scale;
+    int x = term->width - margin - width;
+    int y = term->margins.top + surf_top;
+
+    if (!term_fractional_scaling(term)) {
+        x = (x + iscale - 1) / iscale * iscale;
+        y = (y + iscale - 1) / iscale * iscale;
+    }
 
     if (y + height > term->height) {
         wl_surface_attach(win->scrollback_indicator.surface.surf, NULL, 0, 0);
@@ -2544,7 +2555,9 @@ render_scrollback_position(struct terminal *term)
     struct buffer *buf = shm_get_buffer(chain, width, height);
 
     wl_subsurface_set_position(
-        win->scrollback_indicator.sub, x / scale, y / scale);
+        win->scrollback_indicator.sub,
+        (int32_t)roundf(x / term->scale),
+        (int32_t)roundf(y / term->scale));
 
     uint32_t fg = term->colors.table[0];
     uint32_t bg = term->colors.table[8 + 4];
@@ -2573,21 +2586,25 @@ render_render_timer(struct terminal *term, struct timespec render_time)
     char32_t text[256];
     mbstoc32(text, usecs_str, ALEN(text));
 
-    const int scale = round(term->scale);
+    const int iscale = (int)ceilf(term->scale);
     const int cell_count = c32len(text);
-    const int margin = 3 * scale;
-    const int width =
-        (2 * margin + cell_count * term->cell_width + scale - 1) / scale * scale;
-    const int height =
-        (2 * margin + term->cell_height + scale - 1) / scale * scale;
+    const int margin = (int)roundf(3. * term->scale);
+
+    int width = margin + cell_count * term->cell_width + margin;
+    int height = margin + term->cell_height + margin;
+
+    if (!term_fractional_scaling(term)) {
+        width = (width + iscale - 1) / iscale * iscale;
+        height = (height + iscale - 1) / iscale * iscale;
+    }
 
     struct buffer_chain *chain = term->render.chains.render_timer;
     struct buffer *buf = shm_get_buffer(chain, width, height);
 
     wl_subsurface_set_position(
         win->render_timer.sub,
-        margin / term->scale,
-        (term->margins.top + term->cell_height - margin) / term->scale);
+        (int32_t)roundf(margin / term->scale),
+        (int32_t)roundf((term->margins.top + term->cell_height - margin) / term->scale));
 
     render_osd(
         term,
@@ -3132,19 +3149,24 @@ render_search_box(struct terminal *term)
     const size_t total_cells = c32swidth(text, text_len);
     const size_t wanted_visible_cells = max(20, total_cells);
 
-    xassert(term->scale >= 1);
-    const int rounded_scale = round(term->scale);
-
-    const size_t margin = 3 * rounded_scale;
+    xassert(term->scale >= 1.);
+    const size_t margin = (size_t)roundf(3 * term->scale);
 
     const size_t width = term->width - 2 * margin;
-    const size_t visible_width = min(
+    size_t visible_width = min(
         term->width - 2 * margin,
-        (2 * margin + wanted_visible_cells * term->cell_width + rounded_scale - 1) / rounded_scale * rounded_scale);
-    const size_t height = min(
-        term->height - 2 * margin,
-        (2 * margin + 1 * term->cell_height + rounded_scale - 1) / rounded_scale * rounded_scale);
+        margin + wanted_visible_cells * term->cell_width + margin);
 
+    size_t height = min(
+        term->height - 2 * margin,
+        margin + 1 * term->cell_height + margin);
+
+    if (!term_fractional_scaling(term)) {
+        const int iscale = (int)ceilf(term->scale);
+        visible_width = (visible_width + iscale - 1) / iscale * iscale;
+        height = (height + iscale - 1) / iscale * iscale;
+    }
+    
     const size_t visible_cells = (visible_width - 2 * margin) / term->cell_width;
     size_t glyph_offset = term->render.search_glyph_offset;
 
@@ -3390,8 +3412,8 @@ render_search_box(struct terminal *term)
     /* TODO: this is only necessary on a window resize */
     wl_subsurface_set_position(
         term->window->search.sub,
-        margin / term->scale,
-        max(0, (int32_t)term->height - height - margin) / term->scale);
+        (int32_t)roundf(margin / term->scale),
+        (int32_t)roundf(max(0, (int32_t)term->height - height - margin) / term->scale));
 
     wayl_surface_scale(term->window, &term->window->search.surface, buf, term->scale);
     wl_surface_attach(term->window->search.surface.surf, buf->wl_buf, 0, 0);
@@ -3420,9 +3442,8 @@ render_urls(struct terminal *term)
     struct wl_window *win = term->window;
     xassert(tll_length(win->urls) > 0);
 
-    const int scale = round(term->scale);
-    const int x_margin = 2 * scale;
-    const int y_margin = 1 * scale;
+    const int x_margin = (int)roundf(2 * term->scale);
+    const int y_margin = (int)roundf(1 * term->scale);
 
     /* Calculate view start, counted from the *current* scrollback start */
     const int scrollback_end
@@ -3592,10 +3613,14 @@ render_urls(struct terminal *term)
         if (cols == 0)
             continue;
 
-        const int width =
-            (2 * x_margin + cols * term->cell_width + scale - 1) / scale * scale;
-        const int height =
-            (2 * y_margin + term->cell_height + scale - 1) / scale * scale;
+        int width = x_margin + cols * term->cell_width + x_margin;
+        int height = y_margin + term->cell_height + y_margin;
+
+        if (!term_fractional_scaling(term)) {
+            const int iscale = (int)ceilf(term->scale);
+            width = (width + iscale - 1) / iscale * iscale;
+            height = (height + iscale - 1) / iscale * iscale;
+        }
 
         info[render_count].url = &it->item;
         info[render_count].text = xc32dup(label);
@@ -3631,8 +3656,8 @@ render_urls(struct terminal *term)
 
         wl_subsurface_set_position(
             sub_surf->sub,
-            (term->margins.left + x) / term->scale,
-            (term->margins.top + y) / term->scale);
+            (int32_t)roundf((term->margins.left + x) / term->scale),
+            (int32_t)roundf((term->margins.top + y) / term->scale));
 
         render_osd(
             term, sub_surf, term->fonts[0], bufs[i], label,
@@ -3909,8 +3934,8 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
                  * Ensure we can scale to logical size, and back to
                  * pixels without truncating.
                  */
-                if (wayl_fractional_scaling(term->wl)) {
-                    xassert((int)round(scale) == (int)scale);
+                if (!term_fractional_scaling(term)) {
+                    xassert((int)ceilf(scale) == (int)scale);
 
                     int iscale = scale;
                     if (width % iscale)
