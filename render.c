@@ -299,7 +299,9 @@ color_brighten(const struct terminal *term, uint32_t color)
 
     int hue, sat, lum;
     rgb_to_hsl(color, &hue, &sat, &lum);
-    return hsl_to_rgb(hue, sat, min(100, lum * 1.3));
+
+    lum = (int)roundf(lum * term->conf->bold_in_bright.amount);
+    return hsl_to_rgb(hue, sat, min(lum, 100));
 }
 
 static void

@@ -480,7 +480,7 @@ value_to_dimensions(struct context *ctx, uint32_t *x, uint32_t *y)
 }
 
 static bool NOINLINE
-value_to_double(struct context *ctx, float *res)
+value_to_float(struct context *ctx, float *res)
 {
     const char *s = ctx->value;
 
@@ -659,7 +659,7 @@ value_to_pt_or_px(struct context *ctx, struct pt_or_px *res)
         res->px = value;
     } else {
         float value;
-        if (!value_to_double(ctx, &value))
+        if (!value_to_float(ctx, &value))
             return false;
         res->pt = value;
         res->px = 0;
@@ -1089,7 +1089,7 @@ parse_section_scrollback(struct context *ctx)
     }
 
     else if (strcmp(key, "multiplier") == 0)
-        return value_to_double(ctx, &conf->scrollback.multiplier);
+        return value_to_float(ctx, &conf->scrollback.multiplier);
 
     else {
         LOG_CONTEXTUAL_ERR("not a valid option: %s", key);
@@ -1298,7 +1298,7 @@ parse_section_colors(struct context *ctx)
 
     else if (strcmp(key, "alpha") == 0) {
         float alpha;
-        if (!value_to_double(ctx, &alpha))
+        if (!value_to_float(ctx, &alpha))
             return false;
 
         if (alpha < 0. || alpha > 1.) {
@@ -2461,7 +2461,7 @@ parse_section_tweak(struct context *ctx)
     }
 
     else if (strcmp(key, "box-drawing-base-thickness") == 0)
-        return value_to_double(ctx, &conf->tweak.box_drawing_base_thickness);
+        return value_to_float(ctx, &conf->tweak.box_drawing_base_thickness);
 
     else if (strcmp(key, "box-drawing-solid-shades") == 0)
         return value_to_bool(ctx, &conf->tweak.box_drawing_solid_shades);
@@ -2471,6 +2471,9 @@ parse_section_tweak(struct context *ctx)
 
     else if (strcmp(key, "sixel") == 0)
         return value_to_bool(ctx, &conf->tweak.sixel);
+
+    else if (strcmp(key, "bold-text-in-bright-amount") == 0)
+        return value_to_float(ctx, &conf->bold_in_bright.amount);
 
     else {
         LOG_CONTEXTUAL_ERR("not a valid option: %s", key);
@@ -2939,6 +2942,7 @@ config_load(struct config *conf, const char *conf_path,
         .bold_in_bright = {
             .enabled = false,
             .palette_based = false,
+            .amount = 1.3,
         },
         .startup_mode = STARTUP_WINDOWED,
         .fonts = {{0}},

@@ -46,6 +46,12 @@
 
 ## Unreleased
 ### Added
+
+* `[tweak].bold-text-in-bright-amount` option ([#1434][1434]).
+
+[1434]: https://codeberg.org/dnkl/foot/issues/1434
+
+
 ### Changed
 ### Deprecated
 ### Removed
