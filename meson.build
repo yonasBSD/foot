@@ -352,11 +352,16 @@ if get_option('themes')
   install_subdir('themes', install_dir: join_paths(get_option('datadir'), 'foot'))
 endif
 
+terminfo_base_name = get_option('terminfo-base-name')
+if terminfo_base_name == ''
+  terminfo_base_name = get_option('default-terminfo')
+endif
+
 tic = find_program('tic', native: true, required: get_option('terminfo'))
 if tic.found()
   conf_data = configuration_data(
     {
-      'default_terminfo': get_option('default-terminfo'),
+      'default_terminfo': terminfo_base_name
     }
   )
 
@@ -367,9 +372,9 @@ if tic.found()
   )
   custom_target(
     'terminfo',
-    output: get_option('default-terminfo')[0],
+    output: terminfo_base_name[0],
     input: preprocessed,
-    command: [tic, '-x', '-o', '@OUTDIR@', '-e', '@0@,@0@-direct'.format(get_option('default-terminfo')), '@INPUT@'],
+    command: [tic, '-x', '-o', '@OUTDIR@', '-e', '@0@,@0@-direct'.format(terminfo_base_name), '@INPUT@'],
     install: true,
     install_dir: terminfo_install_location
   )
@@ -395,6 +400,7 @@ summary(
     'utmp backend': utmp_backend,
     'utmp helper default path': utmp_default_helper_path,
     'Build terminfo': tic.found(),
+    'Terminfo base name': terminfo_base_name,
     'Terminfo install location': terminfo_install_location,
     'Default TERM': get_option('default-terminfo'),
     'Set TERMINFO': get_option('custom-terminfo-install-location') != '',

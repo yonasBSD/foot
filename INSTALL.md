@@ -151,6 +151,7 @@ Available compile-time options:
 | `-Dgrapheme-clustering`              | feature | `auto`                  | Enables grapheme clustering                                                     | libutf8proc         |
 | `-Dterminfo`                         | feature | `enabled`               | Build and install terminfo files                                                | tic (ncurses)       |
 | `-Ddefault-terminfo`                 | string  | `foot`                  | Default value of `TERM`                                                         | None                |
+| `-Dterminfo-base-name`               | string  | `-Ddefault-terminfo`    | Base name of the generated terminfo files                                       | None                |
 | `-Dcustom-terminfo-install-location` | string  | `${datadir}/terminfo`   | Value to set `TERMINFO` to                                                      | None                |
 | `-Dsystemd-units-dir`                | string  | `${systemduserunitdir}` | Where to install the systemd service files (absolute)                           | None                |
 | `-Dutmp-backend`                     | combo   | `auto`                  | Which utmp backend to use (`none`, `libutempter`, `ulog` or `auto`)             | libutempter or ulog |
@@ -165,8 +166,18 @@ under a different name. Setting this changes the default value of
 `$TERM`, and the names of the terminfo files (if
 `-Dterminfo=enabled`).
 
-`-Dcustom-terminfo-install-location` enables foot’s terminfo to
-co-exist with ncurses’ version, without changing the terminfo
+If you want foot to use the terminfo files from ncurses, but still
+package foot's own terminfo files under a different name, you can use
+the `-Dterminfo-base-name` option. Many distributions use the name
+`foot-extra`, and thus it might be a good idea to re-use that:
+
+```sh
+meson ... -Ddefault-terminfo=foot -Dterminfo-base-name=foot-extra
+```
+(or just leave out `-Ddefault-terminfo`, since it defaults to `foot` anyway).
+
+Finally, `-Dcustom-terminfo-install-location` enables foot’s terminfo
+to co-exist with ncurses’ version, without changing the terminfo
 names. The idea is that you install foot’s terminfo to a non-standard
 location, for example `/usr/share/foot/terminfo`. Use
 `-Dcustom-terminfo-install-location` to tell foot where the terminfo

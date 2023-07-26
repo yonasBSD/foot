@@ -48,6 +48,11 @@
 ### Added
 
 * `[tweak].bold-text-in-bright-amount` option ([#1434][1434]).
+* `-Dterminfo-base-name` meson option, allowing you to name the
+  terminfo files to something other than `-Ddefault-terminfo`. Use
+  case: have foot default to using the terminfo from ncurses (`foot`,
+  `foot-direct`), while still packaging foot's terminfo files, but
+  under a different name (e.g. `foot-extra`, `foot-extra-direct`).
 
 [1434]: https://codeberg.org/dnkl/foot/issues/1434
 
