@@ -1808,33 +1808,49 @@ get_csd_data(const struct terminal *term, enum csd_surface surf_idx)
     const bool borders_visible = wayl_win_csd_borders_visible(term->window);
     const bool title_visible = wayl_win_csd_titlebar_visible(term->window);
 
-    /* Only title bar is rendered in maximized mode */
+    const float scale = term->scale;
+
     const int border_width = borders_visible
-        ? term->conf->csd.border_width * term->scale : 0;
+        ? roundf(term->conf->csd.border_width * scale) : 0;
 
     const int title_height = title_visible
-        ? term->conf->csd.title_height * term->scale : 0;
+        ? roundf(term->conf->csd.title_height * scale) : 0;
 
     const int button_width = title_visible
-        ? term->conf->csd.button_width * term->scale : 0;
+        ? roundf(term->conf->csd.button_width * scale) : 0;
 
     const int button_close_width = term->width >= 1 * button_width
         ? button_width : 0;
 
     const int button_maximize_width =
         term->width >= 2 * button_width && term->window->wm_capabilities.maximize
-        ? button_width : 0;
+            ? button_width : 0;
 
     const int button_minimize_width =
         term->width >= 3 * button_width && term->window->wm_capabilities.minimize
-        ? button_width : 0;
+            ? button_width : 0;
+
+    /*
+     * With fractional scaling, we must ensure the offset, when
+     * divided by the scale (in set_position()), and the scaled back
+     * (by the compositor), matches the actual pixel count made up by
+     * the titlebar and the border.
+     */
+    const int top_offset = roundf(
+        scale * (roundf(-title_height / scale) - roundf(border_width / scale)));
+
+    const int top_bottom_width = roundf(
+        scale * (roundf(term->width / scale) + 2 * roundf(border_width / scale)));
+
+    const int left_right_height = roundf(
+        scale * (roundf(title_height / scale) + roundf(term->height / scale)));
 
     switch (surf_idx) {
-    case CSD_SURF_TITLE:  return (struct csd_data){            0,                -title_height,                   term->width,                 title_height};
-    case CSD_SURF_LEFT:   return (struct csd_data){-border_width,                -title_height,                   border_width, title_height + term->height};
-    case CSD_SURF_RIGHT:  return (struct csd_data){  term->width,                -title_height,                   border_width, title_height + term->height};
-    case CSD_SURF_TOP:    return (struct csd_data){-border_width, -title_height - border_width, term->width + 2 * border_width,                border_width};
-    case CSD_SURF_BOTTOM: return (struct csd_data){-border_width,                 term->height, term->width + 2 * border_width,                border_width};
+    case CSD_SURF_TITLE:  return (struct csd_data){            0, -title_height,      term->width,      title_height};
+    case CSD_SURF_LEFT:   return (struct csd_data){-border_width, -title_height,     border_width, left_right_height};
+    case CSD_SURF_RIGHT:  return (struct csd_data){  term->width, -title_height,     border_width, left_right_height};
+    case CSD_SURF_TOP:    return (struct csd_data){-border_width,    top_offset, top_bottom_width,      border_width};
+    case CSD_SURF_BOTTOM: return (struct csd_data){-border_width,  term->height, top_bottom_width,      border_width};
 
     /* Positioned relative to CSD_SURF_TITLE */
     case CSD_SURF_MINIMIZE: return (struct csd_data){term->width - 3 * button_width, 0, button_minimize_width, title_height};
