@@ -2010,11 +2010,12 @@ wayl_surface_scale_explicit_width_height(
         LOG_DBG("scaling by a factor of %.2f using fractional scaling "
                 "(width=%d, height=%d) ", scale, width, height);
 
+        xassert((int)roundf(scale * (int)roundf(width / scale)) == width);
+        xassert((int)roundf(scale * (int)roundf(height / scale)) == height);
+
         wl_surface_set_buffer_scale(surf->surf, 1);
         wp_viewport_set_destination(
-            surf->viewport,
-            (int32_t)roundf((float)width / scale),
-            (int32_t)roundf((float)height / scale));
+            surf->viewport, roundf(width / scale), roundf(height / scale));
 #else
         BUG("wayl_fraction_scaling() returned true, "
             "but fractional scaling was not available at compile time");
