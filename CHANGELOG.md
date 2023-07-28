@@ -69,10 +69,13 @@
 * Regression: line- and box drawing characters not covering the full
   height of the line, when a custom `line-height` is being used
   ([#1430][1430]).
+* Crash when compositor does not implement the _viewporter_ interface
+  ([#1444][1444]).
 
 [1423]: https://codeberg.org/dnkl/foot/issues/1423
 [1431]: https://codeberg.org/dnkl/foot/issues/1431
 [1430]: https://codeberg.org/dnkl/foot/issues/1430
+[1444]: https://codeberg.org/dnkl/foot/issues/1444
 
 
 ### Security
