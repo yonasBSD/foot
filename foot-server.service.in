@@ -8,6 +8,7 @@ Requires=%N.socket
 Description=Foot terminal server mode
 Documentation=man:foot(1)
 PartOf=graphical-session.target
+After=graphical-session.target
 
 [Install]
 WantedBy=graphical-session.target
