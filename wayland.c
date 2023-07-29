@@ -2000,21 +2000,35 @@ wayl_roundtrip(struct wayland *wayl)
     wayl_flush(wayl);
 }
 
-void
-wayl_surface_scale_explicit_width_height(
+static void
+surface_scale_explicit_width_height(
     const struct wl_window *win, const struct wayl_surface *surf,
-    int width, int height, float scale)
+    int width, int height, float scale, bool verify)
 {
     if (term_fractional_scaling(win->term)) {
 #if defined(HAVE_FRACTIONAL_SCALE)
         LOG_DBG("scaling by a factor of %.2f using fractional scaling "
                 "(width=%d, height=%d) ", scale, width, height);
 
+        if (verify) {
+            if ((int)roundf(scale * (int)roundf(width / scale)) != width) {
+                BUG("width=%d is not valid with scaling factor %.2f (%d != %d)",
+                    width, scale,
+                    (int)roundf(scale * (int)roundf(width / scale)),
+                    width);
+            }
+
+            if ((int)roundf(scale * (int)roundf(height / scale)) != height) {
+                BUG("height=%d is not valid with scaling factor %.2f (%d != %d)",
+                    height, scale,
+                    (int)roundf(scale * (int)roundf(height / scale)),
+                    height);
+            }
+        }
+
         wl_surface_set_buffer_scale(surf->surf, 1);
         wp_viewport_set_destination(
-            surf->viewport,
-            (int32_t)roundf((float)width / scale),
-            (int32_t)roundf((float)height / scale));
+            surf->viewport, roundf(width / scale), roundf(height / scale));
 #else
         BUG("wayl_fraction_scaling() returned true, "
             "but fractional scaling was not available at compile time");
@@ -2034,11 +2048,19 @@ wayl_surface_scale_explicit_width_height(
 }
 
 void
+wayl_surface_scale_explicit_width_height(
+    const struct wl_window *win, const struct wayl_surface *surf,
+    int width, int height, float scale)
+{
+    surface_scale_explicit_width_height(win, surf, width, height, scale, false);
+}
+
+void
 wayl_surface_scale(const struct wl_window *win, const struct wayl_surface *surf,
                    const struct buffer *buf, float scale)
 {
-    wayl_surface_scale_explicit_width_height(
-        win, surf, buf->width, buf->height, scale);
+    surface_scale_explicit_width_height(
+        win, surf, buf->width, buf->height, scale, true);
 }
 
 void

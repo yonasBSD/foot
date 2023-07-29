@@ -71,11 +71,13 @@
   ([#1430][1430]).
 * Crash when compositor does not implement the _viewporter_ interface
   ([#1444][1444]).
+* CSD rendering with fractional scaling ([#1441][1441]).
 
 [1423]: https://codeberg.org/dnkl/foot/issues/1423
 [1431]: https://codeberg.org/dnkl/foot/issues/1431
 [1430]: https://codeberg.org/dnkl/foot/issues/1430
 [1444]: https://codeberg.org/dnkl/foot/issues/1444
+[1441]: https://codeberg.org/dnkl/foot/issues/1441
 
 
 ### Security
