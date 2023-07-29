@@ -56,8 +56,12 @@
 
 * Minimum required version of _wayland-protocols_ is now 1.32
   ([#1391][1391]).
+* `foot-server.service` systemd now checks for
+  `ConditionEnvironment=WAYLAND_DISPLAY` for consistency with the
+  socket unit ([#1448][1448])
 
 [1391]: https://codeberg.org/dnkl/foot/issues/1391
+[1448]: https://codeberg.org/dnkl/foot/pulls/1448
 
 
 ### Deprecated
@@ -67,6 +71,13 @@
 
 
 ### Fixed
+
+* Race condition for systemd units start in GNOME and KDE
+  ([#1436][1436]).
+
+[1436]: https://codeberg.org/dnkl/foot/issues/1436
+
+
 ### Security
 ### Contributors
 
