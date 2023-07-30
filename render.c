@@ -3933,22 +3933,9 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
                 width += 2 * term->conf->pad_x * scale;
                 height += 2 * term->conf->pad_y * scale;
 
-                /*
-                 * Ensure we can scale to logical size, and back to
-                 * pixels without truncating.
-                 */
-                if (!term_fractional_scaling(term)) {
-                    xassert((int)ceilf(scale) == (int)scale);
-
-                    int iscale = scale;
-                    if (width % iscale)
-                        width += iscale - width % iscale;
-                    if (height % iscale)
-                        height += iscale - height % iscale;
-
-                    xassert(width % iscale == 0);
-                    xassert(height % iscale == 0);
-                }
+                /* Ensure width/height is a valid multiple of scale */
+                width = roundf(scale * roundf(width / scale));
+                height = roundf(scale * roundf(height / scale));
                 break;
             }
         }
