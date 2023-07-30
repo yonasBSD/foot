@@ -1662,7 +1662,7 @@ send_clipboard_or_primary(struct seat *seat, int fd, const char *selection,
         return;
     }
 
-    size_t len = strlen(selection);
+    size_t len = selection != NULL ? strlen(selection) : 0;
     size_t async_idx = 0;
 
     switch (async_write(fd, selection, len, &async_idx)) {
@@ -1701,7 +1701,6 @@ send(void *data, struct wl_data_source *wl_data_source, const char *mime_type,
     struct seat *seat = data;
     const struct wl_clipboard *clipboard = &seat->clipboard;
 
-    xassert(clipboard->text != NULL);
     send_clipboard_or_primary(seat, fd, clipboard->text, "clipboard");
 }
 
@@ -1756,7 +1755,6 @@ primary_send(void *data,
     struct seat *seat = data;
     const struct wl_primary *primary = &seat->primary;
 
-    xassert(primary->text != NULL);
     send_clipboard_or_primary(seat, fd, primary->text, "primary");
 }
 

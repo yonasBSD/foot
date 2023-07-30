@@ -784,8 +784,8 @@ term_set_fonts(struct terminal *term, struct fcft_font *fonts[static 4],
         /* Use force, since cell-width/height may have changed */
         render_resize_force(
             term,
-            round(term->width / term->scale),
-            round(term->height / term->scale));
+            (int)roundf(term->width / term->scale),
+            (int)roundf(term->height / term->scale));
     }
     return true;
 }
@@ -825,7 +825,7 @@ get_font_dpi(const struct terminal *term)
         ? tll_back(win->on_outputs)
         : &tll_front(term->wl->monitors);
 
-    if (wayl_fractional_scaling(term->wl))
+    if (term_fractional_scaling(term))
         return mon->dpi.physical;
     else
         return mon->dpi.scaled;
@@ -880,12 +880,12 @@ int
 term_pt_or_px_as_pixels(const struct terminal *term,
                         const struct pt_or_px *pt_or_px)
 {
-    double scale = !term->font_is_sized_by_dpi ? term->scale : 1.;
-    double dpi = term->font_is_sized_by_dpi  ? term->font_dpi : 96.;
+    float scale = !term->font_is_sized_by_dpi ? term->scale : 1.;
+    float dpi = term->font_is_sized_by_dpi  ? term->font_dpi : 96.;
 
     return pt_or_px->px == 0
-        ? round(pt_or_px->pt * scale * dpi / 72)
-        : pt_or_px->px * scale;
+        ? (int)roundf(pt_or_px->pt * scale * dpi / 72)
+        : (int)roundf(pt_or_px->px * scale);
 }
 
 struct font_load_data {
@@ -932,7 +932,7 @@ reload_fonts(struct terminal *term, bool resize_grid)
 
             if (use_px_size)
                 snprintf(size, sizeof(size), ":pixelsize=%d",
-                         (int)round(term->font_sizes[i][j].px_size * scale));
+                         (int)roundf(term->font_sizes[i][j].px_size * scale));
             else
                 snprintf(size, sizeof(size), ":size=%.2f",
                          term->font_sizes[i][j].pt_size * scale);
@@ -2078,6 +2078,16 @@ term_font_size_reset(struct terminal *term)
 }
 
 bool
+term_fractional_scaling(const struct terminal *term)
+{
+#if defined(HAVE_FRACTIONAL_SCALE)
+    return term->wl->fractional_scale_manager != NULL && term->window->scale > 0.;
+#else
+    return false;
+#endif
+}
+
+bool
 term_update_scale(struct terminal *term)
 {
     const struct wl_window *win = term->window;
@@ -2093,7 +2103,7 @@ term_update_scale(struct terminal *term)
      *  - if there aren’t any outputs available, use 1.0
      */
     const float new_scale =
-        (wayl_fractional_scaling(term->wl) && win->scale > 0.
+        (term_fractional_scaling(term)
          ? win->scale
          : (tll_length(win->on_outputs) > 0
             ? tll_back(win->on_outputs)->scale
@@ -2164,6 +2174,17 @@ term_font_subpixel_changed(struct terminal *term)
     term->font_subpixel = subpixel;
     term_damage_view(term);
     render_refresh(term);
+}
+
+int
+term_font_baseline(const struct terminal *term)
+{
+    const struct fcft_font *font = term->fonts[0];
+    const int line_height = term->cell_height;
+    const int font_height = max(font->height, font->ascent + font->descent);
+    const int glyph_top_y = round((line_height - font_height) / 2.);
+
+    return term->font_y_ofs + glyph_top_y + font->ascent;
 }
 
 void

@@ -15,7 +15,8 @@ option('tests', type: 'boolean', value: true, description: 'Build tests')
 option('terminfo', type: 'feature', value: 'enabled', description: 'Build and install foot\'s terminfo files.')
 option('default-terminfo', type: 'string', value: 'foot',
        description: 'Default value of the "term" option in foot.ini.')
-
+option('terminfo-base-name', type: 'string',
+       description: 'Base name of the generated terminfo files. Defaults to the value of the \'default-terminfo\' meson option')
 option('custom-terminfo-install-location', type: 'string', value: '',
        description: 'Path to foot\'s terminfo, relative to ${prefix}. If set, foot will set $TERMINFO to this value in the client process.')
 

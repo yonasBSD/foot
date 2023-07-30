@@ -57,7 +57,7 @@ csd_reload_font(struct wl_window *win, float old_scale)
 
     char pixelsize[32];
     snprintf(pixelsize, sizeof(pixelsize), "pixelsize=%u",
-             (int)round(conf->csd.title_height * scale * 1 / 2));
+             (int)roundf(conf->csd.title_height * scale * 1 / 2));
 
     LOG_DBG("loading CSD font \"%s:%s\" (old-scale=%.2f, scale=%.2f)",
             patterns[0], pixelsize, old_scale, scale);
@@ -315,15 +315,17 @@ seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
             }
 
 #if defined(HAVE_FRACTIONAL_SCALE)
-            xassert(seat->pointer.surface.viewport == NULL);
-            seat->pointer.surface.viewport = wp_viewporter_get_viewport(
-                seat->wayl->viewporter, seat->pointer.surface.surf);
+            if (seat->wayl->viewporter != NULL) {
+                xassert(seat->pointer.surface.viewport == NULL);
+                seat->pointer.surface.viewport = wp_viewporter_get_viewport(
+                    seat->wayl->viewporter, seat->pointer.surface.surf);
 
-            if (seat->pointer.surface.viewport == NULL) {
-                LOG_ERR("%s: failed to create pointer viewport", seat->name);
-                wl_surface_destroy(seat->pointer.surface.surf);
-                seat->pointer.surface.surf = NULL;
-                return;
+                if (seat->pointer.surface.viewport == NULL) {
+                    LOG_ERR("%s: failed to create pointer viewport", seat->name);
+                    wl_surface_destroy(seat->pointer.surface.surf);
+                    seat->pointer.surface.surf = NULL;
+                    return;
+                }
             }
 #endif
 
@@ -351,8 +353,10 @@ seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
             wl_surface_destroy(seat->pointer.surface.surf);
 
 #if defined(HAVE_FRACTIONAL_SCALE)
-            wp_viewport_destroy(seat->pointer.surface.viewport);
-            seat->pointer.surface.viewport = NULL;
+            if (seat->pointer.surface.viewport != NULL) {
+                wp_viewport_destroy(seat->pointer.surface.viewport);
+                seat->pointer.surface.viewport = NULL;
+            }
 #endif
 
             if (seat->pointer.theme != NULL)
@@ -416,7 +420,7 @@ update_term_for_output_change(struct terminal *term)
          * buffer dimensions may not have been updated (in which case
          * render_size() normally shortcuts and returns early).
          */
-        render_resize_force(term, round(logical_width), round(logical_height));
+        render_resize_force(term, (int)roundf(logical_width), (int)roundf(logical_height));
     }
 
     else if (scale_updated) {
@@ -425,7 +429,7 @@ update_term_for_output_change(struct terminal *term)
          * been updated, even though the window logical dimensions
          * haven’t changed.
          */
-        render_resize(term, round(logical_width), round(logical_height));
+        render_resize(term, (int)roundf(logical_width), (int)roundf(logical_height));
     }
 }
 
@@ -620,6 +624,8 @@ xdg_output_handle_logical_size(void *data, struct zxdg_output_v1 *xdg_output,
 static void
 xdg_output_handle_done(void *data, struct zxdg_output_v1 *xdg_output)
 {
+    struct monitor *mon = data;
+    update_terms_on_monitor(mon);
 }
 
 static void
@@ -1526,7 +1532,7 @@ wayl_init(struct fdm *fdm, struct key_binding_manager *key_binding_manager,
         LOG_INFO(
             "%s: %dx%d+%dx%d@%dHz %s %.2f\" scale=%d, DPI=%.2f/%.2f (physical/scaled)",
             it->item.name, it->item.dim.px_real.width, it->item.dim.px_real.height,
-            it->item.x, it->item.y, (int)round(it->item.refresh),
+            it->item.x, it->item.y, (int)roundf(it->item.refresh),
             it->item.model != NULL ? it->item.model : it->item.description,
             it->item.inch, it->item.scale,
             it->item.dpi.physical, it->item.dpi.scaled);
@@ -1994,33 +2000,35 @@ wayl_roundtrip(struct wayland *wayl)
     wayl_flush(wayl);
 }
 
-
-bool
-wayl_fractional_scaling(const struct wayland *wayl)
-{
-#if defined(HAVE_FRACTIONAL_SCALE)
-    return wayl->fractional_scale_manager != NULL;
-#else
-    return false;
-#endif
-}
-
-void
-wayl_surface_scale_explicit_width_height(
+static void
+surface_scale_explicit_width_height(
     const struct wl_window *win, const struct wayl_surface *surf,
-    int width, int height, float scale)
+    int width, int height, float scale, bool verify)
 {
-
-    if (wayl_fractional_scaling(win->term->wl) && win->scale > 0.) {
+    if (term_fractional_scaling(win->term)) {
 #if defined(HAVE_FRACTIONAL_SCALE)
         LOG_DBG("scaling by a factor of %.2f using fractional scaling "
                 "(width=%d, height=%d) ", scale, width, height);
 
+        if (verify) {
+            if ((int)roundf(scale * (int)roundf(width / scale)) != width) {
+                BUG("width=%d is not valid with scaling factor %.2f (%d != %d)",
+                    width, scale,
+                    (int)roundf(scale * (int)roundf(width / scale)),
+                    width);
+            }
+
+            if ((int)roundf(scale * (int)roundf(height / scale)) != height) {
+                BUG("height=%d is not valid with scaling factor %.2f (%d != %d)",
+                    height, scale,
+                    (int)roundf(scale * (int)roundf(height / scale)),
+                    height);
+            }
+        }
+
         wl_surface_set_buffer_scale(surf->surf, 1);
         wp_viewport_set_destination(
-            surf->viewport,
-            round((float)width / scale),
-            round((float)height / scale));
+            surf->viewport, roundf(width / scale), roundf(height / scale));
 #else
         BUG("wayl_fraction_scaling() returned true, "
             "but fractional scaling was not available at compile time");
@@ -2029,9 +2037,9 @@ wayl_surface_scale_explicit_width_height(
         LOG_DBG("scaling by a factor of %.2f using legacy mode "
                 "(width=%d, height=%d)", scale, width, height);
 
-        xassert(scale == floor(scale));
+        xassert(scale == floorf(scale));
 
-        const int iscale = (int)scale;
+        const int iscale = (int)floorf(scale);
         xassert(width % iscale == 0);
         xassert(height % iscale == 0);
 
@@ -2040,11 +2048,19 @@ wayl_surface_scale_explicit_width_height(
 }
 
 void
+wayl_surface_scale_explicit_width_height(
+    const struct wl_window *win, const struct wayl_surface *surf,
+    int width, int height, float scale)
+{
+    surface_scale_explicit_width_height(win, surf, width, height, scale, false);
+}
+
+void
 wayl_surface_scale(const struct wl_window *win, const struct wayl_surface *surf,
                    const struct buffer *buf, float scale)
 {
-    wayl_surface_scale_explicit_width_height(
-        win, surf, buf->width, buf->height, scale);
+    surface_scale_explicit_width_height(
+        win, surf, buf->width, buf->height, scale, true);
 }
 
 void

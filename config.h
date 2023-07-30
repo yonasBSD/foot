@@ -133,6 +133,7 @@ struct config {
     struct {
         bool enabled;
         bool palette_based;
+        float amount;
     } bold_in_bright;
 
     enum { STARTUP_WINDOWED, STARTUP_MAXIMIZED, STARTUP_FULLSCREEN } startup_mode;

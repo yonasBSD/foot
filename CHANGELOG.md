@@ -1,5 +1,6 @@
 # Changelog
 
+* [Unreleased](#unreleased)
 * [1.15.1](#1-15-1)
 * [1.15.0](#1-15-0)
 * [1.14.0](#1-14-0)
@@ -41,6 +42,50 @@
 * [1.2.2](#1-2-2)
 * [1.2.1](#1-2-1)
 * [1.2.0](#1-2-0)
+
+
+## Unreleased
+### Added
+
+* `[tweak].bold-text-in-bright-amount` option ([#1434][1434]).
+* `-Dterminfo-base-name` meson option, allowing you to name the
+  terminfo files to something other than `-Ddefault-terminfo`. Use
+  case: have foot default to using the terminfo from ncurses (`foot`,
+  `foot-direct`), while still packaging foot's terminfo files, but
+  under a different name (e.g. `foot-extra`, `foot-extra-direct`).
+
+[1434]: https://codeberg.org/dnkl/foot/issues/1434
+
+
+### Changed
+### Deprecated
+### Removed
+### Fixed
+
+* Crash when copying text that contains invalid UTF-8 ([#1423][1423]).
+* Wrong font size after suspending the monitor ([#1431][1431]).
+* Vertical alignment in URL jump labels, and the scrollback position
+  indicator ([#1430][1430]).
+* Regression: line- and box drawing characters not covering the full
+  height of the line, when a custom `line-height` is being used
+  ([#1430][1430]).
+* Crash when compositor does not implement the _viewporter_ interface
+  ([#1444][1444]).
+* CSD rendering with fractional scaling ([#1441][1441]).
+* Regression: crash with certain combinations of
+  `--window-size-chars=NxM` and desktop scaling factors
+  ([#1446][1446]).
+
+[1423]: https://codeberg.org/dnkl/foot/issues/1423
+[1431]: https://codeberg.org/dnkl/foot/issues/1431
+[1430]: https://codeberg.org/dnkl/foot/issues/1430
+[1444]: https://codeberg.org/dnkl/foot/issues/1444
+[1441]: https://codeberg.org/dnkl/foot/issues/1441
+[1446]: https://codeberg.org/dnkl/foot/issues/1446
+
+
+### Security
+### Contributors
 
 
 ## 1.15.1

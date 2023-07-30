@@ -299,25 +299,16 @@ color_brighten(const struct terminal *term, uint32_t color)
 
     int hue, sat, lum;
     rgb_to_hsl(color, &hue, &sat, &lum);
-    return hsl_to_rgb(hue, sat, min(100, lum * 1.3));
-}
 
-static inline int
-font_baseline(const struct terminal *term)
-{
-    const struct fcft_font *font = term->fonts[0];
-    const int line_height = term->cell_height;
-    const int font_height = font->ascent + font->descent;
-    const int glyph_top_y = round((line_height - font_height) / 2.);
-
-    return term->font_y_ofs + glyph_top_y + font->ascent;
+    lum = (int)roundf(lum * term->conf->bold_in_bright.amount);
+    return hsl_to_rgb(hue, sat, min(lum, 100));
 }
 
 static void
 draw_unfocused_block(const struct terminal *term, pixman_image_t *pix,
                      const pixman_color_t *color, int x, int y, int cell_cols)
 {
-    const int scale = round(term->scale);
+    const int scale = (int)roundf(term->scale);
     const int width = min(min(scale, term->cell_width), term->cell_height);
 
     pixman_image_fill_rectangles(
@@ -335,7 +326,7 @@ draw_beam_cursor(const struct terminal *term, pixman_image_t *pix,
                  const struct fcft_font *font,
                  const pixman_color_t *color, int x, int y)
 {
-    int baseline = y + font_baseline(term) - term->fonts[0]->ascent;
+    int baseline = y + term_font_baseline(term) - term->fonts[0]->ascent;
     pixman_image_fill_rectangles(
         PIXMAN_OP_SRC, pix, color,
         1, &(pixman_rectangle16_t){
@@ -347,7 +338,7 @@ draw_beam_cursor(const struct terminal *term, pixman_image_t *pix,
 static int
 underline_offset(const struct terminal *term, const struct fcft_font *font)
 {
-    return font_baseline(term) -
+    return term_font_baseline(term) -
         (term->conf->use_custom_underline_offset
          ? -term_pt_or_px_as_pixels(term, &term->conf->underline_offset)
          : font->underline.position);
@@ -401,7 +392,7 @@ draw_strikeout(const struct terminal *term, pixman_image_t *pix,
     pixman_image_fill_rectangles(
         PIXMAN_OP_SRC, pix, color,
         1, &(pixman_rectangle16_t){
-            x, y + font_baseline(term) - font->strikeout.position,
+            x, y + term_font_baseline(term) - font->strikeout.position,
             cols * term->cell_width, font->strikeout.thickness});
 }
 
@@ -767,13 +758,13 @@ render_cell(struct terminal *term, pixman_image_t *pix,
             if (!(cell->attrs.blink && term->blink.state == BLINK_OFF)) {
                 pixman_image_composite32(
                     PIXMAN_OP_OVER, glyph->pix, NULL, pix, 0, 0, 0, 0,
-                    pen_x + letter_x_ofs + g_x, y + font_baseline(term) - g_y,
+                    pen_x + letter_x_ofs + g_x, y + term_font_baseline(term) - g_y,
                     glyph->width, glyph->height);
             }
         } else {
             pixman_image_composite32(
                 PIXMAN_OP_OVER, clr_pix, glyph->pix, pix, 0, 0, 0, 0,
-                pen_x + letter_x_ofs + g_x, y + font_baseline(term) - g_y,
+                pen_x + letter_x_ofs + g_x, y + term_font_baseline(term) - g_y,
                 glyph->width, glyph->height);
 
             /* Combining characters */
@@ -813,7 +804,7 @@ render_cell(struct terminal *term, pixman_image_t *pix,
                         /* Some fonts use a negative offset, while others use a
                          * "normal" offset */
                         pen_x + x_ofs + g->x,
-                        y + font_baseline(term) - g->y,
+                        y + term_font_baseline(term) - g->y,
                         g->width, g->height);
                 }
             }
@@ -1817,33 +1808,49 @@ get_csd_data(const struct terminal *term, enum csd_surface surf_idx)
     const bool borders_visible = wayl_win_csd_borders_visible(term->window);
     const bool title_visible = wayl_win_csd_titlebar_visible(term->window);
 
-    /* Only title bar is rendered in maximized mode */
+    const float scale = term->scale;
+
     const int border_width = borders_visible
-        ? term->conf->csd.border_width * term->scale : 0;
+        ? roundf(term->conf->csd.border_width * scale) : 0;
 
     const int title_height = title_visible
-        ? term->conf->csd.title_height * term->scale : 0;
+        ? roundf(term->conf->csd.title_height * scale) : 0;
 
     const int button_width = title_visible
-        ? term->conf->csd.button_width * term->scale : 0;
+        ? roundf(term->conf->csd.button_width * scale) : 0;
 
     const int button_close_width = term->width >= 1 * button_width
         ? button_width : 0;
 
     const int button_maximize_width =
         term->width >= 2 * button_width && term->window->wm_capabilities.maximize
-        ? button_width : 0;
+            ? button_width : 0;
 
     const int button_minimize_width =
         term->width >= 3 * button_width && term->window->wm_capabilities.minimize
-        ? button_width : 0;
+            ? button_width : 0;
+
+    /*
+     * With fractional scaling, we must ensure the offset, when
+     * divided by the scale (in set_position()), and the scaled back
+     * (by the compositor), matches the actual pixel count made up by
+     * the titlebar and the border.
+     */
+    const int top_offset = roundf(
+        scale * (roundf(-title_height / scale) - roundf(border_width / scale)));
+
+    const int top_bottom_width = roundf(
+        scale * (roundf(term->width / scale) + 2 * roundf(border_width / scale)));
+
+    const int left_right_height = roundf(
+        scale * (roundf(title_height / scale) + roundf(term->height / scale)));
 
     switch (surf_idx) {
-    case CSD_SURF_TITLE:  return (struct csd_data){            0,                -title_height,                   term->width,                 title_height};
-    case CSD_SURF_LEFT:   return (struct csd_data){-border_width,                -title_height,                   border_width, title_height + term->height};
-    case CSD_SURF_RIGHT:  return (struct csd_data){  term->width,                -title_height,                   border_width, title_height + term->height};
-    case CSD_SURF_TOP:    return (struct csd_data){-border_width, -title_height - border_width, term->width + 2 * border_width,                border_width};
-    case CSD_SURF_BOTTOM: return (struct csd_data){-border_width,                 term->height, term->width + 2 * border_width,                border_width};
+    case CSD_SURF_TITLE:  return (struct csd_data){            0, -title_height,      term->width,      title_height};
+    case CSD_SURF_LEFT:   return (struct csd_data){-border_width, -title_height,     border_width, left_right_height};
+    case CSD_SURF_RIGHT:  return (struct csd_data){  term->width, -title_height,     border_width, left_right_height};
+    case CSD_SURF_TOP:    return (struct csd_data){-border_width,    top_offset, top_bottom_width,      border_width};
+    case CSD_SURF_BOTTOM: return (struct csd_data){-border_width,  term->height, top_bottom_width,      border_width};
 
     /* Positioned relative to CSD_SURF_TITLE */
     case CSD_SURF_MINIMIZE: return (struct csd_data){term->width - 3 * button_width, 0, button_minimize_width, title_height};
@@ -1937,12 +1944,12 @@ render_osd(struct terminal *term, const struct wayl_sub_surface *sub_surf,
         if (pixman_image_get_format(glyph->pix) == PIXMAN_a8r8g8b8) {
             pixman_image_composite32(
                 PIXMAN_OP_OVER, glyph->pix, NULL, buf->pix[0], 0, 0, 0, 0,
-                x + x_ofs + glyph->x, y + term->font_y_ofs + font->ascent - glyph->y,
+                x + x_ofs + glyph->x, y + term->font_y_ofs + font->ascent /*term_font_baseline(term)*/ - glyph->y,
                 glyph->width, glyph->height);
         } else {
             pixman_image_composite32(
                 PIXMAN_OP_OVER, src, glyph->pix, buf->pix[0], 0, 0, 0, 0,
-                x + x_ofs + glyph->x, y + term->font_y_ofs + font->ascent - glyph->y,
+                x + x_ofs + glyph->x, y + term->font_y_ofs + font->ascent /* term_font_baseline(term)*/ - glyph->y,
                 glyph->width, glyph->height);
         }
 
@@ -2033,8 +2040,8 @@ render_csd_border(struct terminal *term, enum csd_surface surf_idx,
      */
 
     float scale = term->scale;
-    int bwidth = round(term->conf->csd.border_width * scale);
-    int vwidth = round(term->conf->csd.border_width_visible * scale); /* Visible size */
+    int bwidth = (int)roundf(term->conf->csd.border_width * scale);
+    int vwidth = (int)roundf(term->conf->csd.border_width_visible * scale); /* Visible size */
 
     xassert(bwidth >= vwidth);
 
@@ -2379,6 +2386,7 @@ render_csd(struct terminal *term)
     if (term->window->is_fullscreen)
         return;
 
+    const float scale = term->scale;
     struct csd_data infos[CSD_SURF_COUNT];
     int widths[CSD_SURF_COUNT];
     int heights[CSD_SURF_COUNT];
@@ -2406,8 +2414,7 @@ render_csd(struct terminal *term)
 
         widths[i] = width;
         heights[i] = height;
-
-        wl_subsurface_set_position(sub, x / term->scale, y / term->scale);
+        wl_subsurface_set_position(sub, roundf(x / scale), roundf(y / scale));
     }
 
     struct buffer *bufs[CSD_SURF_COUNT];
@@ -2498,7 +2505,7 @@ render_scrollback_position(struct terminal *term)
         char lineno_str[64];
         snprintf(lineno_str, sizeof(lineno_str), "%d", rebased_view + 1);
         mbstoc32(_text, lineno_str, ALEN(_text));
-        cell_count = ceil(log10(term->grid->num_rows));
+        cell_count = (int)ceilf(log10f(term->grid->num_rows));
         break;
     }
 
@@ -2508,13 +2515,14 @@ render_scrollback_position(struct terminal *term)
         break;
     }
 
-    const int scale = term->scale;
-    const int margin = 3 * scale;
+    const float scale = term->scale;
+    const int margin = (int)roundf(3. * scale);
 
-    const int width =
-        (2 * margin + cell_count * term->cell_width + scale - 1) / scale * scale;
-    const int height =
-        (2 * margin + term->cell_height + scale - 1) / scale * scale;
+    int width = margin + cell_count * term->cell_width + margin;
+    int height = margin + term->cell_height + margin;
+
+    width = roundf(scale * ceilf(width / scale));
+    height = roundf(scale * ceilf(height / scale));
 
     /* *Where* to render - parent relative coordinates */
     int surf_top = 0;
@@ -2542,8 +2550,11 @@ render_scrollback_position(struct terminal *term)
     }
     }
 
-    const int x = (term->width - margin - width) / scale * scale;
-    const int y = (term->margins.top + surf_top) / scale * scale;
+    int x = term->width - margin - width;
+    int y = term->margins.top + surf_top;
+
+    x = roundf(scale * ceilf(x / scale));
+    y = roundf(scale * ceilf(y / scale));
 
     if (y + height > term->height) {
         wl_surface_attach(win->scrollback_indicator.surface.surf, NULL, 0, 0);
@@ -2555,7 +2566,7 @@ render_scrollback_position(struct terminal *term)
     struct buffer *buf = shm_get_buffer(chain, width, height);
 
     wl_subsurface_set_position(
-        win->scrollback_indicator.sub, x / scale, y / scale);
+        win->scrollback_indicator.sub, roundf(x / scale), roundf(y / scale));
 
     uint32_t fg = term->colors.table[0];
     uint32_t bg = term->colors.table[8 + 4];
@@ -2584,21 +2595,23 @@ render_render_timer(struct terminal *term, struct timespec render_time)
     char32_t text[256];
     mbstoc32(text, usecs_str, ALEN(text));
 
-    const int scale = round(term->scale);
+    const float scale = term->scale;
     const int cell_count = c32len(text);
-    const int margin = 3 * scale;
-    const int width =
-        (2 * margin + cell_count * term->cell_width + scale - 1) / scale * scale;
-    const int height =
-        (2 * margin + term->cell_height + scale - 1) / scale * scale;
+    const int margin = (int)roundf(3. * scale);
+
+    int width = margin + cell_count * term->cell_width + margin;
+    int height = margin + term->cell_height + margin;
+
+    width = roundf(scale * ceilf(width / scale));
+    height = roundf(scale * ceilf(height / scale));
 
     struct buffer_chain *chain = term->render.chains.render_timer;
     struct buffer *buf = shm_get_buffer(chain, width, height);
 
     wl_subsurface_set_position(
         win->render_timer.sub,
-        margin / term->scale,
-        (term->margins.top + term->cell_height - margin) / term->scale);
+        roundf(margin / scale),
+        roundf((term->margins.top + term->cell_height - margin) / scale));
 
     render_osd(
         term,
@@ -3143,18 +3156,21 @@ render_search_box(struct terminal *term)
     const size_t total_cells = c32swidth(text, text_len);
     const size_t wanted_visible_cells = max(20, total_cells);
 
-    xassert(term->scale >= 1);
-    const int rounded_scale = round(term->scale);
+    const float scale = term->scale;
+    xassert(scale >= 1.);
+    const size_t margin = (size_t)roundf(3 * scale);
 
-    const size_t margin = 3 * rounded_scale;
-
-    const size_t width = term->width - 2 * margin;
-    const size_t visible_width = min(
-        term->width - 2 * margin,
-        (2 * margin + wanted_visible_cells * term->cell_width + rounded_scale - 1) / rounded_scale * rounded_scale);
-    const size_t height = min(
+    size_t width = term->width - 2 * margin;
+    size_t height = min(
         term->height - 2 * margin,
-        (2 * margin + 1 * term->cell_height + rounded_scale - 1) / rounded_scale * rounded_scale);
+        margin + 1 * term->cell_height + margin);
+
+    width = roundf(scale * ceilf((term->width - 2 * margin) / scale));
+    height = roundf(scale * ceilf(height / scale));
+
+    size_t visible_width = min(
+        term->width - 2 * margin,
+        margin + wanted_visible_cells * term->cell_width + margin);
 
     const size_t visible_cells = (visible_width - 2 * margin) / term->cell_width;
     size_t glyph_offset = term->render.search_glyph_offset;
@@ -3364,7 +3380,7 @@ render_search_box(struct terminal *term)
             /* Glyph surface is a pre-rendered image (typically a color emoji...) */
             pixman_image_composite32(
                 PIXMAN_OP_OVER, glyph->pix, NULL, buf->pix[0], 0, 0, 0, 0,
-                x + x_ofs + glyph->x, y + font_baseline(term) - glyph->y,
+                x + x_ofs + glyph->x, y + term_font_baseline(term) - glyph->y,
                 glyph->width, glyph->height);
         } else {
             int combining_ofs = width == 0
@@ -3376,7 +3392,7 @@ render_search_box(struct terminal *term)
             pixman_image_composite32(
                 PIXMAN_OP_OVER, src, glyph->pix, buf->pix[0], 0, 0, 0, 0,
                 x + x_ofs + combining_ofs + glyph->x,
-                y + font_baseline(term) - glyph->y,
+                y + term_font_baseline(term) - glyph->y,
             glyph->width, glyph->height);
             pixman_image_unref(src);
         }
@@ -3401,10 +3417,10 @@ render_search_box(struct terminal *term)
     /* TODO: this is only necessary on a window resize */
     wl_subsurface_set_position(
         term->window->search.sub,
-        margin / term->scale,
-        max(0, (int32_t)term->height - height - margin) / term->scale);
+        roundf(margin / scale),
+        roundf(max(0, (int32_t)term->height - height - margin) / scale));
 
-    wayl_surface_scale(term->window, &term->window->search.surface, buf, term->scale);
+    wayl_surface_scale(term->window, &term->window->search.surface, buf, scale);
     wl_surface_attach(term->window->search.surface.surf, buf->wl_buf, 0, 0);
     wl_surface_damage_buffer(term->window->search.surface.surf, 0, 0, width, height);
 
@@ -3431,9 +3447,9 @@ render_urls(struct terminal *term)
     struct wl_window *win = term->window;
     xassert(tll_length(win->urls) > 0);
 
-    const int scale = round(term->scale);
-    const int x_margin = 2 * scale;
-    const int y_margin = 1 * scale;
+    const float scale = term->scale;
+    const int x_margin = (int)roundf(2 * scale);
+    const int y_margin = (int)roundf(1 * scale);
 
     /* Calculate view start, counted from the *current* scrollback start */
     const int scrollback_end
@@ -3603,10 +3619,11 @@ render_urls(struct terminal *term)
         if (cols == 0)
             continue;
 
-        const int width =
-            (2 * x_margin + cols * term->cell_width + scale - 1) / scale * scale;
-        const int height =
-            (2 * y_margin + term->cell_height + scale - 1) / scale * scale;
+        int width = x_margin + cols * term->cell_width + x_margin;
+        int height = y_margin + term->cell_height + y_margin;
+
+        width = roundf(scale * ceilf(width / scale));
+        height = roundf(scale * ceilf(height / scale));
 
         info[render_count].url = &it->item;
         info[render_count].text = xc32dup(label);
@@ -3642,8 +3659,8 @@ render_urls(struct terminal *term)
 
         wl_subsurface_set_position(
             sub_surf->sub,
-            (term->margins.left + x) / term->scale,
-            (term->margins.top + y) / term->scale);
+            roundf((term->margins.left + x) / scale),
+            roundf((term->margins.top + y) / scale));
 
         render_osd(
             term, sub_surf, term->fonts[0], bufs[i], label,
@@ -3916,22 +3933,9 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
                 width += 2 * term->conf->pad_x * scale;
                 height += 2 * term->conf->pad_y * scale;
 
-                /*
-                 * Ensure we can scale to logical size, and back to
-                 * pixels without truncating.
-                 */
-                if (wayl_fractional_scaling(term->wl)) {
-                    xassert((int)round(scale) == (int)scale);
-
-                    int iscale = scale;
-                    if (width % iscale)
-                        width += iscale - width % iscale;
-                    if (height % iscale)
-                        height += iscale - height % iscale;
-
-                    xassert(width % iscale == 0);
-                    xassert(height % iscale == 0);
-                }
+                /* Ensure width/height is a valid multiple of scale */
+                width = roundf(scale * roundf(width / scale));
+                height = roundf(scale * roundf(height / scale));
                 break;
             }
         }
@@ -3942,8 +3946,8 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
     const int min_rows = 1;
 
     /* Minimum window size (must be divisible by the scaling factor)*/
-    const int min_width = (min_cols * term->cell_width + scale - 1) / scale * scale;
-    const int min_height = (min_rows * term->cell_height + scale - 1) / scale * scale;
+    const int min_width = roundf(scale * ceilf((min_cols * term->cell_width) / scale));
+    const int min_height = roundf(scale * ceilf((min_rows * term->cell_height) / scale));
 
     width = max(width, min_width);
     height = max(height, min_height);
@@ -4203,22 +4207,43 @@ damage_view:
         const bool title_shown = wayl_win_csd_titlebar_visible(term->window);
         const bool border_shown = wayl_win_csd_borders_visible(term->window);
 
-        const int title_height =
-            title_shown ? term->conf->csd.title_height : 0;
-        const int border_width =
-            border_shown ? term->conf->csd.border_width_visible : 0;
+        const int title = title_shown
+            ? roundf(term->conf->csd.title_height * scale)
+            : 0;
+        const int border = border_shown
+            ? roundf(term->conf->csd.border_width_visible * scale)
+            : 0;
+
+        /* Must use surface logical coordinates (same calculations as
+           in get_csd_data(), but with different inputs) */
+        const int toplevel_min_width = roundf(border / scale) +
+                                       roundf(min_width / scale) +
+                                       roundf(border / scale);
+
+        const int toplevel_min_height = roundf(border / scale) +
+                                        roundf(title / scale) +
+                                        roundf(min_height / scale) +
+                                        roundf(border / scale);
+
+        const int toplevel_width = roundf(border / scale) +
+                                   roundf(term->width / scale) +
+                                   roundf(border / scale);
+
+        const int toplevel_height = roundf(border / scale) +
+                                    roundf(title / scale) +
+                                    roundf(term->height / scale) +
+                                    roundf(border / scale);
+
+        const int x = roundf(-border / scale);
+        const int y = roundf(-title / scale) - roundf(border / scale);
 
         xdg_toplevel_set_min_size(
             term->window->xdg_toplevel,
-            min_width / scale + 2 * border_width,
-            min_height / scale + title_height + 2 * border_width);
+            toplevel_min_width, toplevel_min_height);
 
         xdg_surface_set_window_geometry(
             term->window->xdg_surface,
-            -border_width,
-            -title_height - border_width,
-            term->width / term->scale + 2 * border_width,
-            term->height / term->scale + title_height + 2 * border_width);
+            x, y, toplevel_width, toplevel_height);
     }
 
     tll_free(term->normal.scroll_damage);

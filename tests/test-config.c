@@ -265,7 +265,7 @@ test_uint32(struct context *ctx, bool (*parse_fun)(struct context *ctx),
 }
 
 static void
-test_double(struct context *ctx, bool (*parse_fun)(struct context *ctx),
+test_float(struct context *ctx, bool (*parse_fun)(struct context *ctx),
             const char *key, const float *ptr)
 {
     ctx->key = key;
@@ -580,7 +580,7 @@ test_section_scrollback(void)
 
     test_uint32(&ctx, &parse_section_scrollback, "lines",
                 &conf.scrollback.lines);
-    test_double(&ctx, parse_section_scrollback, "multiplier", &conf.scrollback.multiplier);
+    test_float(&ctx, parse_section_scrollback, "multiplier", &conf.scrollback.multiplier);
 
     test_enum(
         &ctx, &parse_section_scrollback, "indicator-position",
@@ -1312,7 +1312,7 @@ test_section_tweak(void)
                  RENDER_TIMER_BOTH},
         (int *)&conf.tweak.render_timer);
 
-    test_double(&ctx, &parse_section_tweak, "box-drawing-base-thickness",
+    test_float(&ctx, &parse_section_tweak, "box-drawing-base-thickness",
                 &conf.tweak.box_drawing_base_thickness);
     test_boolean(&ctx, &parse_section_tweak, "box-drawing-solid-shades",
         &conf.tweak.box_drawing_solid_shades);
@@ -1344,6 +1344,9 @@ test_section_tweak(void)
 
     test_boolean(&ctx, &parse_section_tweak, "font-monospace-warn",
                  &conf.tweak.font_monospace_warn);
+
+    test_float(&ctx, &parse_section_tweak, "bold-text-in-bright-amount",
+               &conf.bold_in_bright.amount);
 
 #if 0 /* Must be equal to, or less than INT32_MAX */
     test_uint32(&ctx, &parse_section_tweak, "max-shm-pool-size-mb",

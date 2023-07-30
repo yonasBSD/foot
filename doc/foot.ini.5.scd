@@ -1337,7 +1337,13 @@ any of these options.
 	Default: _512_. Maximum allowed: _2048_ (2GB).
 
 *sixel*
-	Boolean. When enabled, foot will process sixel images. Default: _yes_
+	Boolean. When enabled, foot will process sixel images. Default:
+	_yes_
+
+*bold-text-in-bright-amount*
+	Amount by which bold fonts are brightened when
+	*bold-text-in-bright* is set to *yes* (the *palette-based* variant
+	is not affected by this option). Default: _1.3_.
 
 # SEE ALSO
 
