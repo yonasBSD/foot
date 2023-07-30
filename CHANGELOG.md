@@ -1,6 +1,6 @@
 # Changelog
 
-* [Unreleased](#unreleased)
+* [1.15.2](#1-15-2)
 * [1.15.1](#1-15-1)
 * [1.15.0](#1-15-0)
 * [1.14.0](#1-14-0)
@@ -44,7 +44,8 @@
 * [1.2.0](#1-2-0)
 
 
-## Unreleased
+## 1.15.2
+
 ### Added
 
 * `[tweak].bold-text-in-bright-amount` option ([#1434][1434]).
@@ -57,9 +58,6 @@
 [1434]: https://codeberg.org/dnkl/foot/issues/1434
 
 
-### Changed
-### Deprecated
-### Removed
 ### Fixed
 
 * Crash when copying text that contains invalid UTF-8 ([#1423][1423]).
@@ -82,10 +80,6 @@
 [1444]: https://codeberg.org/dnkl/foot/issues/1444
 [1441]: https://codeberg.org/dnkl/foot/issues/1441
 [1446]: https://codeberg.org/dnkl/foot/issues/1446
-
-
-### Security
-### Contributors
 
 
 ## 1.15.1
