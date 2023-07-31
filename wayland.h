@@ -15,10 +15,7 @@
 #include <xdg-decoration-unstable-v1.h>
 #include <xdg-output-unstable-v1.h>
 #include <xdg-shell.h>
-
-#if defined(HAVE_XDG_ACTIVATION)
- #include <xdg-activation-v1.h>
-#endif
+#include <xdg-activation-v1.h>
 
 #if defined(HAVE_FRACTIONAL_SCALE)
  #include <viewporter.h>
@@ -345,7 +342,6 @@ struct wl_url {
 
 enum csd_mode {CSD_UNKNOWN, CSD_NO, CSD_YES};
 
-#if defined(HAVE_XDG_ACTIVATION)
 typedef void (*activation_token_cb_t)(const char *token, void *data);
 
 /*
@@ -359,7 +355,6 @@ struct xdg_activation_token_context {
     activation_token_cb_t cb;                     /* User provided callback */
     void *cb_data;                                /* Callback user pointer */
 };
-#endif
 
 struct wayland;
 struct wl_window {
@@ -367,10 +362,10 @@ struct wl_window {
     struct wayl_surface surface;
     struct xdg_surface *xdg_surface;
     struct xdg_toplevel *xdg_toplevel;
-#if defined(HAVE_XDG_ACTIVATION)
+
     tll(struct xdg_activation_token_context *) xdg_tokens;
     bool urgency_token_is_pending;
-#endif
+
 #if defined(HAVE_FRACTIONAL_SCALE)
     struct wp_fractional_scale_v1 *fractional_scale;
 #endif
@@ -451,9 +446,7 @@ struct wayland {
     struct wl_data_device_manager *data_device_manager;
     struct zwp_primary_selection_device_manager_v1 *primary_selection_device_manager;
 
-#if defined(HAVE_XDG_ACTIVATION)
     struct xdg_activation_v1 *xdg_activation;
-#endif
 
 #if defined(HAVE_CURSOR_SHAPE)
     struct wp_cursor_shape_manager_v1 *cursor_shape_manager;
@@ -515,8 +508,6 @@ bool wayl_win_subsurface_new_with_custom_parent(
     struct wayl_sub_surface *surf, bool allow_pointer_input);
 void wayl_win_subsurface_destroy(struct wayl_sub_surface *surf);
 
-#if defined(HAVE_XDG_ACTIVATION)
 bool wayl_get_activation_token(
     struct wayland *wayl, struct seat *seat, uint32_t serial,
     struct wl_window *win, activation_token_cb_t cb, void *cb_data);
-#endif

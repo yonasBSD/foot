@@ -1217,7 +1217,6 @@ handle_global(void *data, struct wl_registry *registry,
         }
     }
 
-#if defined(HAVE_XDG_ACTIVATION)
     else if (strcmp(interface, xdg_activation_v1_interface.name) == 0) {
         const uint32_t required = 1;
         if (!verify_iface_version(interface, version, required))
@@ -1226,7 +1225,6 @@ handle_global(void *data, struct wl_registry *registry,
         wayl->xdg_activation = wl_registry_bind(
             wayl->registry, name, &xdg_activation_v1_interface, required);
     }
-#endif
 
 #if defined(HAVE_FRACTIONAL_SCALE)
     else if (strcmp(interface, wp_viewporter_interface.name) == 0) {
@@ -1481,11 +1479,7 @@ wayl_init(struct fdm *fdm, struct key_binding_manager *key_binding_manager,
     if (wayl->primary_selection_device_manager == NULL)
         LOG_WARN("no primary selection available");
 
-#if defined(HAVE_XDG_ACTIVATION)
     if (wayl->xdg_activation == NULL) {
-#else
-    if (true) {
-#endif
         LOG_WARN(
             "no XDG activation support; "
             "bell.urgent will fall back to coloring the window margins red");
@@ -1604,10 +1598,8 @@ wayl_destroy(struct wayland *wayl)
     if (wayl->cursor_shape_manager != NULL)
         wp_cursor_shape_manager_v1_destroy(wayl->cursor_shape_manager);
 #endif
-#if defined(HAVE_XDG_ACTIVATION)
     if (wayl->xdg_activation != NULL)
         xdg_activation_v1_destroy(wayl->xdg_activation);
-#endif
     if (wayl->xdg_output_manager != NULL)
         zxdg_output_manager_v1_destroy(wayl->xdg_output_manager);
     if (wayl->shell != NULL)
@@ -1739,11 +1731,9 @@ wayl_win_init(struct terminal *term, const char *token)
 
     wl_surface_commit(win->surface.surf);
 
-#if defined(HAVE_XDG_ACTIVATION)
     /* Complete XDG startup notification */
     if (token)
         xdg_activation_v1_activate(wayl->xdg_activation, token, win->surface.surf);
-#endif
 
     if (!wayl_win_subsurface_new(win, &win->overlay, false)) {
         LOG_ERR("failed to create overlay surface");
@@ -1850,14 +1840,13 @@ wayl_win_destroy(struct wl_window *win)
     shm_purge(term->render.chains.url);
     shm_purge(term->render.chains.csd);
 
-#if defined(HAVE_XDG_ACTIVATION)
     tll_foreach(win->xdg_tokens, it) {
         xdg_activation_token_v1_destroy(it->item->xdg_token);
         free(it->item);
 
         tll_remove(win->xdg_tokens, it);
     }
-#endif
+
 #if defined(HAVE_FRACTIONAL_SCALE)
     if (win->fractional_scale != NULL)
         wp_fractional_scale_v1_destroy(win->fractional_scale);
@@ -2090,7 +2079,6 @@ wayl_win_alpha_changed(struct wl_window *win)
         wl_surface_set_opaque_region(win->surface.surf, NULL);
 }
 
-#if defined(HAVE_XDG_ACTIVATION)
 static void
 activation_token_for_urgency_done(const char *token, void *data)
 {
@@ -2100,12 +2088,10 @@ activation_token_for_urgency_done(const char *token, void *data)
     win->urgency_token_is_pending = false;
     xdg_activation_v1_activate(wayl->xdg_activation, token, win->surface.surf);
 }
-#endif /* HAVE_XDG_ACTIVATION */
 
 bool
 wayl_win_set_urgent(struct wl_window *win)
 {
-#if defined(HAVE_XDG_ACTIVATION)
     if (win->urgency_token_is_pending) {
         /* We already have a pending token. Don’t request another one,
          * to avoid flooding the Wayland socket */
@@ -2119,7 +2105,6 @@ wayl_win_set_urgent(struct wl_window *win)
         win->urgency_token_is_pending = true;
         return true;
     }
-#endif
 
     return false;
 }
@@ -2229,8 +2214,6 @@ wayl_win_subsurface_destroy(struct wayl_sub_surface *surf)
     }
 }
 
-#if defined(HAVE_XDG_ACTIVATION)
-
 static void
 activation_token_done(void *data, struct xdg_activation_token_v1 *xdg_token,
                       const char *token)
@@ -2296,4 +2279,3 @@ wayl_get_activation_token(
     xdg_activation_token_v1_commit(token);
     return true;
 }
-#endif

@@ -86,7 +86,6 @@ spawn_url_launcher_with_token(struct terminal *term,
     return ret;
 }
 
-#if defined(HAVE_XDG_ACTIVATION)
 struct spawn_activation_context {
     struct terminal *term;
     char *url;
@@ -101,13 +100,11 @@ activation_token_done(const char *token, void *data)
     free(ctx->url);
     free(ctx);
 }
-#endif
 
 static bool
 spawn_url_launcher(struct seat *seat, struct terminal *term, const char *url,
                    uint32_t serial)
 {
-#if defined(HAVE_XDG_ACTIVATION)
     struct spawn_activation_context *ctx = xmalloc(sizeof(*ctx));
     *ctx = (struct spawn_activation_context){
         .term = term,
@@ -123,7 +120,6 @@ spawn_url_launcher(struct seat *seat, struct terminal *term, const char *url,
 
     free(ctx->url);
     free(ctx);
-#endif
 
     return spawn_url_launcher_with_token(term, url, NULL);
 }
