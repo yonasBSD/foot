@@ -1000,23 +1000,7 @@ parse_section_main(struct context *ctx)
     else if (strcmp(key, "box-drawings-uses-font-glyphs") == 0)
         return value_to_bool(ctx, &conf->box_drawings_uses_font_glyphs);
 
-    else if (strcmp(key, "utmp-helper") == 0 || strcmp(key, "utempter") == 0) {
-        if (strcmp(key, "utempter") == 0) {
-            struct user_notification deprecation = {
-                .kind = USER_NOTIFICATION_DEPRECATED,
-                .text = xasprintf(
-                    "%s:%d: \033[1m[main].utempter\033[22m, "
-                    "use \033[1m[main].utmp-helper\033[22m instead",
-                    ctx->path, ctx->lineno),
-            };
-            tll_push_back(conf->notifications, deprecation);
-
-            LOG_WARN(
-                "%s:%d: [main].utempter is deprecated, "
-                "use [main].utmp-helper instead",
-                ctx->path, ctx->lineno);
-        }
-
+    else if (strcmp(key, "utmp-helper") == 0) {
         if (!value_to_str(ctx, &conf->utmp_helper_path))
             return false;
 

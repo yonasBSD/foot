@@ -502,7 +502,6 @@ test_section_main(void)
     test_string(&ctx, &parse_section_main, "shell", &conf.shell);
     test_string(&ctx, &parse_section_main, "term", &conf.term);
     test_string(&ctx, &parse_section_main, "app-id", &conf.app_id);
-    test_string(&ctx, &parse_section_main, "utempter", &conf.utmp_helper_path);
     test_string(&ctx, &parse_section_main, "utmp-helper", &conf.utmp_helper_path);
 
     test_c32string(&ctx, &parse_section_main, "word-delimiters", &conf.word_delimiters);

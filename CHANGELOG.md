@@ -50,6 +50,10 @@
 ### Changed
 ### Deprecated
 ### Removed
+
+* `utempter` config (was deprecated in 1.15.0).
+
+
 ### Fixed
 
 * `-f,--font` command line option not affecting `csd.font` (if unset).
