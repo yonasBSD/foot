@@ -53,6 +53,10 @@
 ### Fixed
 
 * `-f,--font` command line option not affecting `csd.font` (if unset).
+* Vertical alignment in URL jump labels, and the scrollback position
+  indicator. The fix in 1.15.2 was incorrect, and was reverted in the
+  last minute. But we forgot to remove the entry from the changelog
+  ([#1430][1430]).
 
 
 ### Security

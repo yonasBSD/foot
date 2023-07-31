@@ -1890,7 +1890,7 @@ static void
 render_osd(struct terminal *term, const struct wayl_sub_surface *sub_surf,
            struct fcft_font *font, struct buffer *buf,
            const char32_t *text, uint32_t _fg, uint32_t _bg,
-           unsigned x, unsigned y)
+           unsigned x)
 {
     pixman_region32_t clip;
     pixman_region32_init_rect(&clip, 0, 0, buf->width, buf->height);
@@ -1938,18 +1938,27 @@ render_osd(struct terminal *term, const struct wayl_sub_surface *sub_surf,
 
     pixman_image_t *src = pixman_image_create_solid_fill(&fg);
 
+    /* Calculate baseline  */
+    unsigned y;
+    {
+        const int line_height = buf->height;
+        const int font_height = max(font->height, font->ascent + font->descent);
+        const int glyph_top_y = round((line_height - font_height) / 2.);
+        y = term->font_y_ofs + glyph_top_y + font->ascent;
+    }
+
     for (size_t i = 0; i < glyph_count; i++) {
         const struct fcft_glyph *glyph = glyphs[i];
 
         if (pixman_image_get_format(glyph->pix) == PIXMAN_a8r8g8b8) {
             pixman_image_composite32(
                 PIXMAN_OP_OVER, glyph->pix, NULL, buf->pix[0], 0, 0, 0, 0,
-                x + x_ofs + glyph->x, y + term->font_y_ofs + font->ascent /*term_font_baseline(term)*/ - glyph->y,
+                x + x_ofs + glyph->x, y - glyph->y,
                 glyph->width, glyph->height);
         } else {
             pixman_image_composite32(
                 PIXMAN_OP_OVER, src, glyph->pix, buf->pix[0], 0, 0, 0, 0,
-                x + x_ofs + glyph->x, y + term->font_y_ofs + font->ascent /* term_font_baseline(term)*/ - glyph->y,
+                x + x_ofs + glyph->x, y - glyph->y,
                 glyph->width, glyph->height);
         }
 
@@ -2011,9 +2020,7 @@ render_csd_title(struct terminal *term, const struct csd_data *info,
 
     const int margin = M != NULL ? M->advance.x : win->csd.font->max_advance.x;
 
-    render_osd(term, surf, win->csd.font, buf, title_text, fg, bg, margin,
-               (buf->height - win->csd.font->height) / 2);
-
+    render_osd(term, surf, win->csd.font, buf, title_text, fg, bg, margin);
     csd_commit(term, &surf->surface, buf);
     free(_title_text);
 }
@@ -2580,7 +2587,7 @@ render_scrollback_position(struct terminal *term)
         &win->scrollback_indicator,
         term->fonts[0], buf, text,
         fg, 0xffu << 24 | bg,
-        width - margin - c32len(text) * term->cell_width, margin);
+        width - margin - c32len(text) * term->cell_width);
 }
 
 static void
@@ -2618,7 +2625,7 @@ render_render_timer(struct terminal *term, struct timespec render_time)
         &win->render_timer,
         term->fonts[0], buf, text,
         term->colors.table[0], 0xffu << 24 | term->colors.table[8 + 1],
-        margin, margin);
+        margin);
 }
 
 static void frame_callback(
@@ -3664,7 +3671,7 @@ render_urls(struct terminal *term)
 
         render_osd(
             term, sub_surf, term->fonts[0], bufs[i], label,
-            fg, 0xffu << 24 | bg, x_margin, y_margin);
+            fg, 0xffu << 24 | bg, x_margin);
 
         free(info[i].text);
     }
