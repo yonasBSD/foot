@@ -2080,11 +2080,7 @@ term_font_size_reset(struct terminal *term)
 bool
 term_fractional_scaling(const struct terminal *term)
 {
-#if defined(HAVE_FRACTIONAL_SCALE)
     return term->wl->fractional_scale_manager != NULL && term->window->scale > 0.;
-#else
-    return false;
-#endif
 }
 
 bool

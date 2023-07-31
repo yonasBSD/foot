@@ -153,16 +153,10 @@ wl_proto_xml = [
   wayland_protocols_datadir + '/stable/presentation-time/presentation-time.xml',
   wayland_protocols_datadir + '/unstable/text-input/text-input-unstable-v3.xml',
   wayland_protocols_datadir + '/staging/xdg-activation/xdg-activation-v1.xml',
+  wayland_protocols_datadir + '/stable/viewporter/viewporter.xml',
+  wayland_protocols_datadir + '/staging/fractional-scale/fractional-scale-v1.xml',
   ]
 
-if wayland_protocols.version().version_compare('>=1.31')
-  add_project_arguments('-DHAVE_FRACTIONAL_SCALE', language: 'c')
-  wl_proto_xml += [wayland_protocols_datadir + '/stable/viewporter/viewporter.xml']
-  wl_proto_xml += [wayland_protocols_datadir + '/staging/fractional-scale/fractional-scale-v1.xml']
-  fractional_scale = true
-else
-  fractional_scale = false
-endif
 if wayland_protocols.version().version_compare('>=1.32')
   wl_proto_xml += [
       wayland_protocols_datadir + '/unstable/tablet/tablet-unstable-v2.xml',  # required by cursor-shape-v1
@@ -388,7 +382,6 @@ summary(
     'Themes': get_option('themes'),
     'IME': get_option('ime'),
     'Grapheme clustering': utf8proc.found(),
-    'Wayland: fractional-scale-v1': fractional_scale,
     'Wayland: cursor-shape-v1': cursor_shape,
     'utmp backend': utmp_backend,
     'utmp helper default path': utmp_default_helper_path,

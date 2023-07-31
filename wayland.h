@@ -9,18 +9,15 @@
 #include <xkbcommon/xkbcommon.h>
 
 /* Wayland protocols */
+#include <fractional-scale-v1.h>
 #include <presentation-time.h>
 #include <primary-selection-unstable-v1.h>
 #include <text-input-unstable-v3.h>
+#include <viewporter.h>
+#include <xdg-activation-v1.h>
 #include <xdg-decoration-unstable-v1.h>
 #include <xdg-output-unstable-v1.h>
 #include <xdg-shell.h>
-#include <xdg-activation-v1.h>
-
-#if defined(HAVE_FRACTIONAL_SCALE)
- #include <viewporter.h>
- #include <fractional-scale-v1.h>
-#endif
 
 #include <fcft/fcft.h>
 #include <tllist.h>
@@ -54,9 +51,7 @@ enum touch_state {
 
 struct wayl_surface {
     struct wl_surface *surf;
-#if defined(HAVE_FRACTIONAL_SCALE)
     struct wp_viewport *viewport;
-#endif
 };
 
 struct wayl_sub_surface {
@@ -362,15 +357,12 @@ struct wl_window {
     struct wayl_surface surface;
     struct xdg_surface *xdg_surface;
     struct xdg_toplevel *xdg_toplevel;
+    struct wp_fractional_scale_v1 *fractional_scale;
 
     tll(struct xdg_activation_token_context *) xdg_tokens;
     bool urgency_token_is_pending;
 
-#if defined(HAVE_FRACTIONAL_SCALE)
-    struct wp_fractional_scale_v1 *fractional_scale;
-#endif
     bool unmapped;
-
     float scale;
 
     struct zxdg_toplevel_decoration_v1 *xdg_toplevel_decoration;
@@ -448,6 +440,9 @@ struct wayland {
 
     struct xdg_activation_v1 *xdg_activation;
 
+    struct wp_viewporter *viewporter;
+    struct wp_fractional_scale_manager_v1 *fractional_scale_manager;
+
 #if defined(HAVE_CURSOR_SHAPE)
     struct wp_cursor_shape_manager_v1 *cursor_shape_manager;
 #endif
@@ -455,14 +450,9 @@ struct wayland {
     bool presentation_timings;
     struct wp_presentation *presentation;
     uint32_t presentation_clock_id;
-
+    
 #if defined(FOOT_IME_ENABLED) && FOOT_IME_ENABLED
     struct zwp_text_input_manager_v3 *text_input_manager;
-#endif
-
-#if defined(HAVE_FRACTIONAL_SCALE)
-    struct wp_viewporter *viewporter;
-    struct wp_fractional_scale_manager_v1 *fractional_scale_manager;
 #endif
 
     bool have_argb8888;

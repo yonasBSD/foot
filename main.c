@@ -53,12 +53,11 @@ version_and_features(void)
 {
     static char buf[256];
     snprintf(buf, sizeof(buf),
-             "version: %s %cpgo %cime %cgraphemes %cfractional-scaling %ccursor-shape %cassertions",
+             "version: %s %cpgo %cime %cgraphemes %ccursor-shape %cassertions",
              FOOT_VERSION,
              feature_pgo() ? '+' : '-',
              feature_ime() ? '+' : '-',
              feature_graphemes() ? '+' : '-',
-             feature_fractional_scaling() ? '+' : '-',
              feature_cursor_shape() ? '+' : '-',
              feature_assertions() ? '+' : '-');
     return buf;

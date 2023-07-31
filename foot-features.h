@@ -38,15 +38,6 @@ static inline bool feature_graphemes(void)
 #endif
 }
 
-static inline bool feature_fractional_scaling(void)
-{
-#if defined(HAVE_FRACTIONAL_SCALE)
-    return true;
-#else
-    return false;
-#endif
-}
-
 static inline bool feature_cursor_shape(void)
 {
 #if defined(HAVE_CURSOR_SHAPE)
