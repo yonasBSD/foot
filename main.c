@@ -222,21 +222,11 @@ main(int argc, char *const *argv)
 
     bool check_config = false;
     const char *conf_path = NULL;
-    const char *conf_term = NULL;
-    const char *conf_title = NULL;
-    const char *conf_app_id = NULL;
     const char *custom_cwd = NULL;
-    bool login_shell = false;
-    tll(char *) conf_fonts = tll_init();
-    enum conf_size_type conf_size_type = CONF_SIZE_PX;
-    int conf_width = -1;
-    int conf_height = -1;
     bool as_server = false;
     const char *conf_server_socket_path = NULL;
     bool presentation_timings = false;
     bool hold = false;
-    bool maximized = false;
-    bool fullscreen = false;
     bool unlink_pid_file = false;
     const char *pid_file = NULL;
     enum log_class log_level = LOG_CLASS_WARNING;
@@ -261,23 +251,23 @@ main(int argc, char *const *argv)
             break;
 
         case 'o':
-            tll_push_back(overrides, optarg);
+            tll_push_back(overrides, xstrdup(optarg));
             break;
 
         case 't':
-            conf_term = optarg;
+            tll_push_back(overrides, xasprintf("term=%s", optarg));
             break;
 
         case 'L':
-            login_shell = true;
+            tll_push_back(overrides, xstrdup("login-shell=yes"));
             break;
 
         case 'T':
-            conf_title = optarg;
+            tll_push_back(overrides, xasprintf("title%s", optarg));
             break;
 
         case 'a':
-            conf_app_id = optarg;
+            tll_push_back(overrides, xasprintf("app-id=%s", optarg));
             break;
 
         case 'D': {
@@ -290,27 +280,11 @@ main(int argc, char *const *argv)
             break;
         }
 
-        case 'f':
-            tll_free_and_free(conf_fonts, free);
-            for (char *font = strtok(optarg, ","); font != NULL; font = strtok(NULL, ",")) {
-
-                /* Strip leading spaces */
-                while (*font != '\0' && isspace(*font))
-                    font++;
-
-                /* Strip trailing spaces */
-                char *end = font + strlen(font);
-                xassert(*end == '\0');
-                end--;
-                while (end > font && isspace(*end))
-                    *(end--) = '\0';
-
-                if (strlen(font) == 0)
-                    continue;
-
-                tll_push_back(conf_fonts, font);
-            }
+        case 'f': {
+            char *font_override = xasprintf("font=%s", optarg);
+            tll_push_back(overrides, font_override);
             break;
+        }
 
         case 'w': {
             unsigned width, height;
@@ -319,9 +293,9 @@ main(int argc, char *const *argv)
                 return ret;
             }
 
-            conf_size_type = CONF_SIZE_PX;
-            conf_width = width;
-            conf_height = height;
+            tll_push_back(
+                overrides, xasprintf("initial-window-size-pixels=%ux%u",
+                                     width, height));
             break;
         }
 
@@ -332,9 +306,9 @@ main(int argc, char *const *argv)
                 return ret;
             }
 
-            conf_size_type = CONF_SIZE_CELLS;
-            conf_width = width;
-            conf_height = height;
+            tll_push_back(
+                overrides, xasprintf("initial-window-size-chars=%ux%u",
+                                     width, height));
             break;
         }
 
@@ -353,13 +327,11 @@ main(int argc, char *const *argv)
             break;
 
         case 'm':
-            maximized = true;
-            fullscreen = false;
+            tll_push_back(overrides, xstrdup("initial-window-mode=maximized"));
             break;
 
         case 'F':
-            fullscreen = true;
-            maximized = false;
+            tll_push_back(overrides, xstrdup("initial-window-mode=fullscreen"));
             break;
 
         case 'p':
@@ -494,7 +466,7 @@ main(int argc, char *const *argv)
     bool conf_successful = config_load(
         &conf, conf_path, &user_notifications, &overrides, check_config, as_server);
 
-    tll_free(overrides);
+    tll_free_and_free(overrides, free);
     if (!conf_successful) {
         config_free(&conf);
         return ret;
@@ -515,53 +487,10 @@ main(int argc, char *const *argv)
         (enum fcft_log_class)log_level);
     fcft_set_scaling_filter(conf.tweak.fcft_filter);
 
-    if (conf_term != NULL) {
-        free(conf.term);
-        conf.term = xstrdup(conf_term);
-    }
-    if (conf_title != NULL) {
-        free(conf.title);
-        conf.title = xstrdup(conf_title);
-    }
-    if (conf_app_id != NULL) {
-        free(conf.app_id);
-        conf.app_id = xstrdup(conf_app_id);
-    }
-    if (login_shell)
-        conf.login_shell = true;
-    if (tll_length(conf_fonts) > 0) {
-        for (size_t i = 0; i < ALEN(conf.fonts); i++)
-            config_font_list_destroy(&conf.fonts[i]);
-
-        struct config_font_list *font_list = &conf.fonts[0];
-        xassert(font_list->count == 0);
-        xassert(font_list->arr == NULL);
-
-        font_list->arr = xmalloc(
-            tll_length(conf_fonts) * sizeof(font_list->arr[0]));
-
-        tll_foreach(conf_fonts, it) {
-            struct config_font font;
-            if (!config_font_parse(it->item, &font)) {
-                LOG_ERR("%s: invalid font specification", it->item);
-            } else
-                font_list->arr[font_list->count++] = font;
-        }
-        tll_free(conf_fonts);
-    }
-    if (conf_width > 0 && conf_height > 0) {
-        conf.size.type = conf_size_type;
-        conf.size.width = conf_width;
-        conf.size.height = conf_height;
-    }
     if (conf_server_socket_path != NULL) {
         free(conf.server_socket_path);
         conf.server_socket_path = xstrdup(conf_server_socket_path);
     }
-    if (maximized)
-        conf.startup_mode = STARTUP_MAXIMIZED;
-    else if (fullscreen)
-        conf.startup_mode = STARTUP_FULLSCREEN;
     conf.presentation_timings = presentation_timings;
     conf.hold_at_exit = hold;
 
