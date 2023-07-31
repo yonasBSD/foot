@@ -51,6 +51,10 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* `-f,--font` command line option not affecting `csd.font` (if unset).
+
+
 ### Security
 ### Contributors
 
