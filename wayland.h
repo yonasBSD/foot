@@ -152,9 +152,7 @@ struct seat {
         struct wl_cursor *cursor;
 
         /* Server-side cursor */
-#if defined(HAVE_CURSOR_SHAPE)
         struct wp_cursor_shape_device_v1 *shape_device;
-#endif
 
         float scale;
         bool hidden;
@@ -443,9 +441,7 @@ struct wayland {
     struct wp_viewporter *viewporter;
     struct wp_fractional_scale_manager_v1 *fractional_scale_manager;
 
-#if defined(HAVE_CURSOR_SHAPE)
     struct wp_cursor_shape_manager_v1 *cursor_shape_manager;
-#endif
 
     bool presentation_timings;
     struct wp_presentation *presentation;

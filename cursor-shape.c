@@ -34,8 +34,6 @@ cursor_shape_to_string(enum cursor_shape shape)
     return table[shape];
 }
 
-#if defined(HAVE_CURSOR_SHAPE)
-
 enum wp_cursor_shape_device_v1_shape
 cursor_shape_to_server_shape(enum cursor_shape shape)
 {
@@ -111,5 +109,3 @@ cursor_string_to_server_shape(const char *xcursor)
 
     return 0;
 }
-
-#endif  /* HAVE_CURSOR_SHAPE */

@@ -10,13 +10,10 @@
 #include <sys/timerfd.h>
 #include <sys/epoll.h>
 
+#include <cursor-shape-v1.h>
 #include <wayland-client.h>
 #include <wayland-cursor.h>
 #include <xkbcommon/xkbcommon-compose.h>
-
-#if defined(HAVE_CURSOR_SHAPE)
-#include <cursor-shape-v1.h>
-#endif
 
 #include <tllist.h>
 
@@ -210,12 +207,8 @@ seat_destroy(struct seat *seat)
         zwp_primary_selection_device_v1_destroy(seat->primary_selection_device);
     if (seat->data_device != NULL)
         wl_data_device_release(seat->data_device);
-
-#if defined(HAVE_CURSOR_SHAPE)
     if (seat->pointer.shape_device != NULL)
         wp_cursor_shape_device_v1_destroy(seat->pointer.shape_device);
-#endif
-
     if (seat->wl_keyboard != NULL)
         wl_keyboard_release(seat->wl_keyboard);
     if (seat->wl_pointer != NULL)
@@ -328,22 +321,18 @@ seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
             seat->wl_pointer = wl_seat_get_pointer(wl_seat);
             wl_pointer_add_listener(seat->wl_pointer, &pointer_listener, seat);
 
-#if defined(HAVE_CURSOR_SHAPE)
             if (seat->wayl->cursor_shape_manager != NULL) {
                 xassert(seat->pointer.shape_device == NULL);
                 seat->pointer.shape_device = wp_cursor_shape_manager_v1_get_pointer(
                     seat->wayl->cursor_shape_manager, seat->wl_pointer);
             }
-#endif
         }
     } else {
         if (seat->wl_pointer != NULL) {
-#if defined(HAVE_CURSOR_SHAPE)
             if (seat->pointer.shape_device != NULL) {
                 wp_cursor_shape_device_v1_destroy(seat->pointer.shape_device);
                 seat->pointer.shape_device = NULL;
             }
-#endif
 
             wl_pointer_release(seat->wl_pointer);
             wl_surface_destroy(seat->pointer.surface.surf);
@@ -1239,7 +1228,6 @@ handle_global(void *data, struct wl_registry *registry,
             &wp_fractional_scale_manager_v1_interface, required);
     }
 
-#if defined(HAVE_CURSOR_SHAPE)
     else if (strcmp(interface, wp_cursor_shape_manager_v1_interface.name) == 0) {
         const uint32_t required = 1;
         if (!verify_iface_version(interface, version, required))
@@ -1248,7 +1236,6 @@ handle_global(void *data, struct wl_registry *registry,
         wayl->cursor_shape_manager = wl_registry_bind(
             wayl->registry, name, &wp_cursor_shape_manager_v1_interface, required);
     }
-#endif
 
 #if defined(FOOT_IME_ENABLED) && FOOT_IME_ENABLED
     else if (strcmp(interface, zwp_text_input_manager_v3_interface.name) == 0) {
@@ -1480,11 +1467,7 @@ wayl_init(struct fdm *fdm, struct key_binding_manager *key_binding_manager,
     if (wayl->fractional_scale_manager == NULL || wayl->viewporter == NULL)
         LOG_WARN("fractional scaling not available");
 
-#if defined(HAVE_CURSOR_SHAPE)
     if (wayl->cursor_shape_manager == NULL) {
-#else
-    if (true) {
-#endif
         LOG_WARN("no server-side cursors available, "
                  "falling back to client-side cursors");
     }
@@ -1579,11 +1562,8 @@ wayl_destroy(struct wayland *wayl)
         wp_fractional_scale_manager_v1_destroy(wayl->fractional_scale_manager);
     if (wayl->viewporter != NULL)
         wp_viewporter_destroy(wayl->viewporter);
-
-#if defined(HAVE_CURSOR_SHAPE)
     if (wayl->cursor_shape_manager != NULL)
         wp_cursor_shape_manager_v1_destroy(wayl->cursor_shape_manager);
-#endif
     if (wayl->xdg_activation != NULL)
         xdg_activation_v1_destroy(wayl->xdg_activation);
     if (wayl->xdg_output_manager != NULL)
