@@ -51,7 +51,7 @@
 ### Deprecated
 ### Removed
 
-* `utempter` config (was deprecated in 1.15.0).
+* `utempter` config option (was deprecated in 1.15.0).
 
 
 ### Fixed
