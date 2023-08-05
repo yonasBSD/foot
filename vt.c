@@ -645,7 +645,7 @@ chain_key(uint32_t old_key, uint32_t new_wc)
     new_key ^= new_wc;
 
     /* Multiply with magic hash constant */
-    new_key *= 2654435761;
+    new_key *= 2654435761ul;
 
     /* And mask, to ensure the new value is within range */
     new_key &= CELL_COMB_CHARS_HI - CELL_COMB_CHARS_LO;
