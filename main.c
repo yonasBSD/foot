@@ -263,7 +263,7 @@ main(int argc, char *const *argv)
             break;
 
         case 'T':
-            tll_push_back(overrides, xasprintf("title%s", optarg));
+            tll_push_back(overrides, xasprintf("title=%s", optarg));
             break;
 
         case 'a':
