@@ -4314,7 +4314,6 @@ render_xcursor_update(struct seat *seat)
 
     xassert(seat->pointer.cursor != NULL);
 
-#if defined(HAVE_CURSOR_SHAPE)
     const enum cursor_shape shape = seat->pointer.shape;
     const char *const xcursor = seat->pointer.last_custom_xcursor;
 
@@ -4344,7 +4343,6 @@ render_xcursor_update(struct seat *seat)
             return;
         }
     }
-#endif
 
     LOG_DBG("setting %scursor shape using a client-side cursor surface",
             seat->pointer.shape == CURSOR_SHAPE_CUSTOM ? "custom " : "");

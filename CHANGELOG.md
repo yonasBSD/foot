@@ -49,6 +49,13 @@
 ## Unreleased
 ### Added
 ### Changed
+
+* Minimum required version of _wayland-protocols_ is now 1.32
+  ([#1391][1391]).
+
+[1391]: https://codeberg.org/dnkl/foot/issues/1391
+
+
 ### Deprecated
 ### Removed
 

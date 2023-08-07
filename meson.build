@@ -123,7 +123,7 @@ math = cc.find_library('m')
 threads = [dependency('threads'), cc.find_library('stdthreads', required: false)]
 libepoll = dependency('epoll-shim', required: false)
 pixman = dependency('pixman-1')
-wayland_protocols = dependency('wayland-protocols')
+wayland_protocols = dependency('wayland-protocols', version: '>=1.32')
 wayland_client = dependency('wayland-client')
 wayland_cursor = dependency('wayland-cursor')
 xkb = dependency('xkbcommon', version: '>=1.0.0')
@@ -152,33 +152,12 @@ wl_proto_xml = [
   wayland_protocols_datadir + '/unstable/primary-selection/primary-selection-unstable-v1.xml',
   wayland_protocols_datadir + '/stable/presentation-time/presentation-time.xml',
   wayland_protocols_datadir + '/unstable/text-input/text-input-unstable-v3.xml',
+  wayland_protocols_datadir + '/staging/xdg-activation/xdg-activation-v1.xml',
+  wayland_protocols_datadir + '/stable/viewporter/viewporter.xml',
+  wayland_protocols_datadir + '/staging/fractional-scale/fractional-scale-v1.xml',
+  wayland_protocols_datadir + '/unstable/tablet/tablet-unstable-v2.xml',  # required by cursor-shape-v1
+  wayland_protocols_datadir + '/staging/cursor-shape/cursor-shape-v1.xml',
   ]
-
-if wayland_protocols.version().version_compare('>=1.21')
-  add_project_arguments('-DHAVE_XDG_ACTIVATION', language: 'c')
-  wl_proto_xml += [wayland_protocols_datadir + '/staging/xdg-activation/xdg-activation-v1.xml']
-  xdg_activation = true
-else
-  xdg_activation = false
-endif
-if wayland_protocols.version().version_compare('>=1.31')
-  add_project_arguments('-DHAVE_FRACTIONAL_SCALE', language: 'c')
-  wl_proto_xml += [wayland_protocols_datadir + '/stable/viewporter/viewporter.xml']
-  wl_proto_xml += [wayland_protocols_datadir + '/staging/fractional-scale/fractional-scale-v1.xml']
-  fractional_scale = true
-else
-  fractional_scale = false
-endif
-if wayland_protocols.version().version_compare('>=1.32')
-  wl_proto_xml += [
-      wayland_protocols_datadir + '/unstable/tablet/tablet-unstable-v2.xml',  # required by cursor-shape-v1
-      wayland_protocols_datadir + '/staging/cursor-shape/cursor-shape-v1.xml',
-  ]
-  add_project_arguments('-DHAVE_CURSOR_SHAPE', language: 'c')
-  cursor_shape = true
-else
-  cursor_shape = false
-endif
 
 foreach prot : wl_proto_xml
   wl_proto_headers += custom_target(
@@ -394,9 +373,6 @@ summary(
     'Themes': get_option('themes'),
     'IME': get_option('ime'),
     'Grapheme clustering': utf8proc.found(),
-    'Wayland: xdg-activation-v1': xdg_activation,
-    'Wayland: fractional-scale-v1': fractional_scale,
-    'Wayland: cursor-shape-v1': cursor_shape,
     'utmp backend': utmp_backend,
     'utmp helper default path': utmp_default_helper_path,
     'Build terminfo': tic.found(),

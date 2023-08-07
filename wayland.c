@@ -10,13 +10,10 @@
 #include <sys/timerfd.h>
 #include <sys/epoll.h>
 
+#include <cursor-shape-v1.h>
 #include <wayland-client.h>
 #include <wayland-cursor.h>
 #include <xkbcommon/xkbcommon-compose.h>
-
-#if defined(HAVE_CURSOR_SHAPE)
-#include <cursor-shape-v1.h>
-#endif
 
 #include <tllist.h>
 
@@ -193,10 +190,8 @@ seat_destroy(struct seat *seat)
         wl_cursor_theme_destroy(seat->pointer.theme);
     if (seat->pointer.surface.surf != NULL)
         wl_surface_destroy(seat->pointer.surface.surf);
-#if defined(HAVE_FRACTIONAL_SCALE)
     if (seat->pointer.surface.viewport != NULL)
         wp_viewport_destroy(seat->pointer.surface.viewport);
-#endif
     if (seat->pointer.xcursor_callback != NULL)
         wl_callback_destroy(seat->pointer.xcursor_callback);
 
@@ -212,12 +207,8 @@ seat_destroy(struct seat *seat)
         zwp_primary_selection_device_v1_destroy(seat->primary_selection_device);
     if (seat->data_device != NULL)
         wl_data_device_release(seat->data_device);
-
-#if defined(HAVE_CURSOR_SHAPE)
     if (seat->pointer.shape_device != NULL)
         wp_cursor_shape_device_v1_destroy(seat->pointer.shape_device);
-#endif
-
     if (seat->wl_keyboard != NULL)
         wl_keyboard_release(seat->wl_keyboard);
     if (seat->wl_pointer != NULL)
@@ -314,7 +305,6 @@ seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
                 return;
             }
 
-#if defined(HAVE_FRACTIONAL_SCALE)
             if (seat->wayl->viewporter != NULL) {
                 xassert(seat->pointer.surface.viewport == NULL);
                 seat->pointer.surface.viewport = wp_viewporter_get_viewport(
@@ -327,37 +317,30 @@ seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
                     return;
                 }
             }
-#endif
 
             seat->wl_pointer = wl_seat_get_pointer(wl_seat);
             wl_pointer_add_listener(seat->wl_pointer, &pointer_listener, seat);
 
-#if defined(HAVE_CURSOR_SHAPE)
             if (seat->wayl->cursor_shape_manager != NULL) {
                 xassert(seat->pointer.shape_device == NULL);
                 seat->pointer.shape_device = wp_cursor_shape_manager_v1_get_pointer(
                     seat->wayl->cursor_shape_manager, seat->wl_pointer);
             }
-#endif
         }
     } else {
         if (seat->wl_pointer != NULL) {
-#if defined(HAVE_CURSOR_SHAPE)
             if (seat->pointer.shape_device != NULL) {
                 wp_cursor_shape_device_v1_destroy(seat->pointer.shape_device);
                 seat->pointer.shape_device = NULL;
             }
-#endif
 
             wl_pointer_release(seat->wl_pointer);
             wl_surface_destroy(seat->pointer.surface.surf);
 
-#if defined(HAVE_FRACTIONAL_SCALE)
             if (seat->pointer.surface.viewport != NULL) {
                 wp_viewport_destroy(seat->pointer.surface.viewport);
                 seat->pointer.surface.viewport = NULL;
             }
-#endif
 
             if (seat->pointer.theme != NULL)
                 wl_cursor_theme_destroy(seat->pointer.theme);
@@ -1217,7 +1200,6 @@ handle_global(void *data, struct wl_registry *registry,
         }
     }
 
-#if defined(HAVE_XDG_ACTIVATION)
     else if (strcmp(interface, xdg_activation_v1_interface.name) == 0) {
         const uint32_t required = 1;
         if (!verify_iface_version(interface, version, required))
@@ -1226,9 +1208,7 @@ handle_global(void *data, struct wl_registry *registry,
         wayl->xdg_activation = wl_registry_bind(
             wayl->registry, name, &xdg_activation_v1_interface, required);
     }
-#endif
 
-#if defined(HAVE_FRACTIONAL_SCALE)
     else if (strcmp(interface, wp_viewporter_interface.name) == 0) {
         const uint32_t required = 1;
         if (!verify_iface_version(interface, version, required))
@@ -1247,9 +1227,7 @@ handle_global(void *data, struct wl_registry *registry,
             wayl->registry, name,
             &wp_fractional_scale_manager_v1_interface, required);
     }
-#endif
 
-#if defined(HAVE_CURSOR_SHAPE)
     else if (strcmp(interface, wp_cursor_shape_manager_v1_interface.name) == 0) {
         const uint32_t required = 1;
         if (!verify_iface_version(interface, version, required))
@@ -1258,7 +1236,6 @@ handle_global(void *data, struct wl_registry *registry,
         wayl->cursor_shape_manager = wl_registry_bind(
             wayl->registry, name, &wp_cursor_shape_manager_v1_interface, required);
     }
-#endif
 
 #if defined(FOOT_IME_ENABLED) && FOOT_IME_ENABLED
     else if (strcmp(interface, zwp_text_input_manager_v3_interface.name) == 0) {
@@ -1481,29 +1458,16 @@ wayl_init(struct fdm *fdm, struct key_binding_manager *key_binding_manager,
     if (wayl->primary_selection_device_manager == NULL)
         LOG_WARN("no primary selection available");
 
-#if defined(HAVE_XDG_ACTIVATION)
     if (wayl->xdg_activation == NULL) {
-#else
-    if (true) {
-#endif
         LOG_WARN(
             "no XDG activation support; "
             "bell.urgent will fall back to coloring the window margins red");
     }
 
-#if defined(HAVE_FRACTIONAL_SCALE)
-    if (wayl->fractional_scale_manager == NULL || wayl->viewporter == NULL) {
-#else
-    if (true) {
-#endif
+    if (wayl->fractional_scale_manager == NULL || wayl->viewporter == NULL)
         LOG_WARN("fractional scaling not available");
-    }
 
-#if defined(HAVE_CURSOR_SHAPE)
     if (wayl->cursor_shape_manager == NULL) {
-#else
-    if (true) {
-#endif
         LOG_WARN("no server-side cursors available, "
                  "falling back to client-side cursors");
     }
@@ -1594,20 +1558,14 @@ wayl_destroy(struct wayland *wayl)
         zwp_text_input_manager_v3_destroy(wayl->text_input_manager);
 #endif
 
-#if defined(HAVE_FRACTIONAL_SCALE)
     if (wayl->fractional_scale_manager != NULL)
         wp_fractional_scale_manager_v1_destroy(wayl->fractional_scale_manager);
     if (wayl->viewporter != NULL)
         wp_viewporter_destroy(wayl->viewporter);
-#endif
-#if defined(HAVE_CURSOR_SHAPE)
     if (wayl->cursor_shape_manager != NULL)
         wp_cursor_shape_manager_v1_destroy(wayl->cursor_shape_manager);
-#endif
-#if defined(HAVE_XDG_ACTIVATION)
     if (wayl->xdg_activation != NULL)
         xdg_activation_v1_destroy(wayl->xdg_activation);
-#endif
     if (wayl->xdg_output_manager != NULL)
         zxdg_output_manager_v1_destroy(wayl->xdg_output_manager);
     if (wayl->shell != NULL)
@@ -1638,8 +1596,8 @@ wayl_destroy(struct wayland *wayl)
     free(wayl);
 }
 
-#if defined(HAVE_FRACTIONAL_SCALE)
-static void fractional_scale_preferred_scale(
+static void
+fractional_scale_preferred_scale(
     void *data, struct wp_fractional_scale_v1 *wp_fractional_scale_v1,
     uint32_t scale)
 {
@@ -1659,7 +1617,6 @@ static void fractional_scale_preferred_scale(
 static const struct wp_fractional_scale_v1_listener fractional_scale_listener = {
     .preferred_scale = &fractional_scale_preferred_scale,
 };
-#endif
 
 struct wl_window *
 wayl_win_init(struct terminal *term, const char *token)
@@ -1692,7 +1649,6 @@ wayl_win_init(struct terminal *term, const char *token)
 
     wl_surface_add_listener(win->surface.surf, &surface_listener, win);
 
-#if defined(HAVE_FRACTIONAL_SCALE)
     if (wayl->fractional_scale_manager != NULL && wayl->viewporter != NULL) {
         win->surface.viewport = wp_viewporter_get_viewport(wayl->viewporter, win->surface.surf);
 
@@ -1702,7 +1658,6 @@ wayl_win_init(struct terminal *term, const char *token)
         wp_fractional_scale_v1_add_listener(
             win->fractional_scale, &fractional_scale_listener, win);
     }
-#endif
 
     win->xdg_surface = xdg_wm_base_get_xdg_surface(wayl->shell, win->surface.surf);
     xdg_surface_add_listener(win->xdg_surface, &xdg_surface_listener, win);
@@ -1739,11 +1694,9 @@ wayl_win_init(struct terminal *term, const char *token)
 
     wl_surface_commit(win->surface.surf);
 
-#if defined(HAVE_XDG_ACTIVATION)
     /* Complete XDG startup notification */
     if (token)
         xdg_activation_v1_activate(wayl->xdg_activation, token, win->surface.surf);
-#endif
 
     if (!wayl_win_subsurface_new(win, &win->overlay, false)) {
         LOG_ERR("failed to create overlay surface");
@@ -1850,20 +1803,17 @@ wayl_win_destroy(struct wl_window *win)
     shm_purge(term->render.chains.url);
     shm_purge(term->render.chains.csd);
 
-#if defined(HAVE_XDG_ACTIVATION)
     tll_foreach(win->xdg_tokens, it) {
         xdg_activation_token_v1_destroy(it->item->xdg_token);
         free(it->item);
 
         tll_remove(win->xdg_tokens, it);
     }
-#endif
-#if defined(HAVE_FRACTIONAL_SCALE)
+
     if (win->fractional_scale != NULL)
         wp_fractional_scale_v1_destroy(win->fractional_scale);
     if (win->surface.viewport != NULL)
         wp_viewport_destroy(win->surface.viewport);
-#endif
     if (win->frame_callback != NULL)
         wl_callback_destroy(win->frame_callback);
     if (win->xdg_toplevel_decoration != NULL)
@@ -2006,7 +1956,6 @@ surface_scale_explicit_width_height(
     int width, int height, float scale, bool verify)
 {
     if (term_fractional_scaling(win->term)) {
-#if defined(HAVE_FRACTIONAL_SCALE)
         LOG_DBG("scaling by a factor of %.2f using fractional scaling "
                 "(width=%d, height=%d) ", scale, width, height);
 
@@ -2029,10 +1978,6 @@ surface_scale_explicit_width_height(
         wl_surface_set_buffer_scale(surf->surf, 1);
         wp_viewport_set_destination(
             surf->viewport, roundf(width / scale), roundf(height / scale));
-#else
-        BUG("wayl_fraction_scaling() returned true, "
-            "but fractional scaling was not available at compile time");
-#endif
     } else {
         LOG_DBG("scaling by a factor of %.2f using legacy mode "
                 "(width=%d, height=%d)", scale, width, height);
@@ -2090,7 +2035,6 @@ wayl_win_alpha_changed(struct wl_window *win)
         wl_surface_set_opaque_region(win->surface.surf, NULL);
 }
 
-#if defined(HAVE_XDG_ACTIVATION)
 static void
 activation_token_for_urgency_done(const char *token, void *data)
 {
@@ -2100,12 +2044,10 @@ activation_token_for_urgency_done(const char *token, void *data)
     win->urgency_token_is_pending = false;
     xdg_activation_v1_activate(wayl->xdg_activation, token, win->surface.surf);
 }
-#endif /* HAVE_XDG_ACTIVATION */
 
 bool
 wayl_win_set_urgent(struct wl_window *win)
 {
-#if defined(HAVE_XDG_ACTIVATION)
     if (win->urgency_token_is_pending) {
         /* We already have a pending token. Don’t request another one,
          * to avoid flooding the Wayland socket */
@@ -2119,7 +2061,6 @@ wayl_win_set_urgent(struct wl_window *win)
         win->urgency_token_is_pending = true;
         return true;
     }
-#endif
 
     return false;
 }
@@ -2167,7 +2108,6 @@ wayl_win_subsurface_new_with_custom_parent(
         return false;
     }
 
-#if defined(HAVE_FRACTIONAL_SCALE)
     struct wp_viewport *viewport = NULL;
     if (wayl->fractional_scale_manager != NULL &&  wayl->viewporter != NULL) {
         viewport = wp_viewporter_get_viewport(wayl->viewporter, main_surface);
@@ -2178,7 +2118,6 @@ wayl_win_subsurface_new_with_custom_parent(
             return false;
         }
     }
-#endif
 
     wl_surface_set_user_data(main_surface, win);
     wl_subsurface_set_sync(sub);
@@ -2193,9 +2132,7 @@ wayl_win_subsurface_new_with_custom_parent(
 
     surf->surface.surf = main_surface;
     surf->sub = sub;
-#if defined(HAVE_FRACTIONAL_SCALE)
     surf->surface.viewport = viewport;
-#endif
     return true;
 }
 
@@ -2213,12 +2150,11 @@ wayl_win_subsurface_destroy(struct wayl_sub_surface *surf)
     if (surf == NULL)
         return;
 
-#if defined(HAVE_FRACTIONAL_SCALE)
     if (surf->surface.viewport != NULL) {
         wp_viewport_destroy(surf->surface.viewport);
         surf->surface.viewport = NULL;
     }
-#endif
+
     if (surf->sub != NULL) {
         wl_subsurface_destroy(surf->sub);
         surf->sub = NULL;
@@ -2228,8 +2164,6 @@ wayl_win_subsurface_destroy(struct wayl_sub_surface *surf)
         surf->surface.surf = NULL;
     }
 }
-
-#if defined(HAVE_XDG_ACTIVATION)
 
 static void
 activation_token_done(void *data, struct xdg_activation_token_v1 *xdg_token,
@@ -2296,4 +2230,3 @@ wayl_get_activation_token(
     xdg_activation_token_v1_commit(token);
     return true;
 }
-#endif
