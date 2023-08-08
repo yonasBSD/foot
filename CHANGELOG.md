@@ -48,6 +48,10 @@
 
 ## Unreleased
 ### Added
+
+* Support for building with _wayland-protocols_ as a subproject.
+
+
 ### Changed
 
 * Minimum required version of _wayland-protocols_ is now 1.32

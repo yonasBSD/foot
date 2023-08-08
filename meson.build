@@ -123,7 +123,9 @@ math = cc.find_library('m')
 threads = [dependency('threads'), cc.find_library('stdthreads', required: false)]
 libepoll = dependency('epoll-shim', required: false)
 pixman = dependency('pixman-1')
-wayland_protocols = dependency('wayland-protocols', version: '>=1.32')
+wayland_protocols = dependency('wayland-protocols', version: '>=1.32',
+                               fallback: 'wayland-protocols',
+                               default_options: ['tests=false'])
 wayland_client = dependency('wayland-client')
 wayland_cursor = dependency('wayland-cursor')
 xkb = dependency('xkbcommon', version: '>=1.0.0')
@@ -146,17 +148,17 @@ wscanner_prog = find_program(
 wl_proto_headers = []
 wl_proto_src = []
 wl_proto_xml = [
-  wayland_protocols_datadir + '/stable/xdg-shell/xdg-shell.xml',
-  wayland_protocols_datadir + '/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml',
-  wayland_protocols_datadir + '/unstable/xdg-output/xdg-output-unstable-v1.xml',
-  wayland_protocols_datadir + '/unstable/primary-selection/primary-selection-unstable-v1.xml',
-  wayland_protocols_datadir + '/stable/presentation-time/presentation-time.xml',
-  wayland_protocols_datadir + '/unstable/text-input/text-input-unstable-v3.xml',
-  wayland_protocols_datadir + '/staging/xdg-activation/xdg-activation-v1.xml',
-  wayland_protocols_datadir + '/stable/viewporter/viewporter.xml',
-  wayland_protocols_datadir + '/staging/fractional-scale/fractional-scale-v1.xml',
-  wayland_protocols_datadir + '/unstable/tablet/tablet-unstable-v2.xml',  # required by cursor-shape-v1
-  wayland_protocols_datadir + '/staging/cursor-shape/cursor-shape-v1.xml',
+  wayland_protocols_datadir / 'stable/xdg-shell/xdg-shell.xml',
+  wayland_protocols_datadir / 'unstable/xdg-decoration/xdg-decoration-unstable-v1.xml',
+  wayland_protocols_datadir / 'unstable/xdg-output/xdg-output-unstable-v1.xml',
+  wayland_protocols_datadir / 'unstable/primary-selection/primary-selection-unstable-v1.xml',
+  wayland_protocols_datadir / 'stable/presentation-time/presentation-time.xml',
+  wayland_protocols_datadir / 'unstable/text-input/text-input-unstable-v3.xml',
+  wayland_protocols_datadir / 'staging/xdg-activation/xdg-activation-v1.xml',
+  wayland_protocols_datadir / 'stable/viewporter/viewporter.xml',
+  wayland_protocols_datadir / 'staging/fractional-scale/fractional-scale-v1.xml',
+  wayland_protocols_datadir / 'unstable/tablet/tablet-unstable-v2.xml',  # required by cursor-shape-v1
+  wayland_protocols_datadir / 'staging/cursor-shape/cursor-shape-v1.xml',
   ]
 
 foreach prot : wl_proto_xml
