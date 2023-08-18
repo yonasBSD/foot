@@ -1,4 +1,4 @@
-pipeline:
+steps:
   codespell:
     when:
       branch:
