@@ -1161,6 +1161,7 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
         .auto_margin = true,
         .window_title_stack = tll_init(),
         .scale = 1.,
+        .scale_before_unmap = -1,
         .flash = {.fd = flash_fd},
         .blink = {.fd = -1},
         .vt = {
@@ -2094,21 +2095,27 @@ term_update_scale(struct terminal *term)
      *
      *  - “preferred” scale, from the fractional-scale-v1 protocol
      *  - scaling factor of output we most recently were mapped on
-     *  - if we’re not mapped, use the scaling factor from the first
-     *    available output.
+     *  - if we're not mapped, use the last known scaling factor
+     *  - if we're not mapped, and we don't have a last known scaling
+     *    factor, use the scaling factor from the first available
+     *    output.
      *  - if there aren’t any outputs available, use 1.0
      */
-    const float new_scale =
-        (term_fractional_scaling(term)
-         ? win->scale
-         : (tll_length(win->on_outputs) > 0
+    const float new_scale = (term_fractional_scaling(term)
+        ? win->scale
+        : tll_length(win->on_outputs) > 0
             ? tll_back(win->on_outputs)->scale
-            : 1.));
+            : term->scale_before_unmap > 0.
+                ? term->scale_before_unmap
+                : tll_length(term->wl->monitors) > 0
+                    ? tll_front(term->wl->monitors).scale
+                    : 1.);
 
     if (new_scale == term->scale)
         return false;
 
     LOG_DBG("scaling factor changed: %.2f -> %.2f", term->scale, new_scale);
+    term->scale_before_unmap = new_scale;
     term->scale = new_scale;
     return true;
 }

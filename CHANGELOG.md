@@ -74,8 +74,11 @@
 
 * Race condition for systemd units start in GNOME and KDE
   ([#1436][1436]).
+* One frame being rendered at the wrong scale after being hidden by
+  another opaque, maximized window ([#1464][1464]).
 
 [1436]: https://codeberg.org/dnkl/foot/issues/1436
+[1464]: https://codeberg.org/dnkl/foot/issues/1464
 
 
 ### Security

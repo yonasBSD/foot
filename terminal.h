@@ -489,6 +489,7 @@ struct terminal {
     } blink;
 
     float scale;
+    float scale_before_unmap;  /* Last scaling factor used */
     int width;  /* pixels */
     int height; /* pixels */
     int stashed_width;
