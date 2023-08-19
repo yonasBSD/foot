@@ -1751,6 +1751,28 @@ mouse_coord_pixel_to_cell(struct seat *seat, const struct terminal *term,
         seat->mouse.row = (y - term->margins.top) / term->cell_height;
 }
 
+static bool
+touch_is_active(const struct seat *seat)
+{
+    if (seat->wl_touch == NULL) {
+        return false;
+    }
+
+    switch (seat->touch.state) {
+    case TOUCH_STATE_IDLE:
+    case TOUCH_STATE_INHIBITED:
+        return false;
+
+    case TOUCH_STATE_HELD:
+    case TOUCH_STATE_DRAGGING:
+    case TOUCH_STATE_SCROLLING:
+        return true;
+    }
+
+    BUG("Bad touch state: %d", seat->touch.state);
+    return false;
+}
+
 static void
 wl_pointer_enter(void *data, struct wl_pointer *wl_pointer,
                  uint32_t serial, struct wl_surface *surface,
@@ -1764,25 +1786,14 @@ wl_pointer_enter(void *data, struct wl_pointer *wl_pointer,
 
     struct seat *seat = data;
 
-    if (seat->wl_touch != NULL) {
-        switch (seat->touch.state) {
-        case TOUCH_STATE_IDLE:
-            mouse_button_state_reset(seat);
-            seat->touch.state = TOUCH_STATE_INHIBITED;
-            break;
-
-        case TOUCH_STATE_INHIBITED:
-            break;
-
-        case TOUCH_STATE_HELD:
-        case TOUCH_STATE_DRAGGING:
-        case TOUCH_STATE_SCROLLING:
-            return;
-        }
-    }
-
     struct wl_window *win = wl_surface_get_user_data(surface);
     struct terminal *term = win->term;
+
+    seat->mouse_focus = term;
+    term->active_surface = term_surface_kind(term, surface);
+
+    if (touch_is_active(seat))
+        return;
 
     int x = wl_fixed_to_int(surface_x) * term->scale;
     int y = wl_fixed_to_int(surface_y) * term->scale;
@@ -1798,9 +1809,6 @@ wl_pointer_enter(void *data, struct wl_pointer *wl_pointer,
             x, y);
 
     xassert(tll_length(seat->mouse.buttons) == 0);
-
-    seat->mouse_focus = term;
-    term->active_surface = term_surface_kind(term, surface);
 
     wayl_reload_xcursor_theme(seat, term->scale); /* Scale may have changed */
     term_xcursor_update_for_seat(term, seat);
@@ -1837,10 +1845,19 @@ wl_pointer_leave(void *data, struct wl_pointer *wl_pointer,
     struct seat *seat = data;
 
     if (seat->wl_touch != NULL) {
-        if (seat->touch.state != TOUCH_STATE_INHIBITED) {
+        switch (seat->touch.state) {
+        case TOUCH_STATE_IDLE:
+            break;
+
+        case TOUCH_STATE_INHIBITED:
+            seat->touch.state = TOUCH_STATE_IDLE;
+            break;
+
+        case TOUCH_STATE_HELD:
+        case TOUCH_STATE_DRAGGING:
+        case TOUCH_STATE_SCROLLING:
             return;
         }
-        seat->touch.state = TOUCH_STATE_IDLE;
     }
 
     struct terminal *old_moused = seat->mouse_focus;
@@ -1919,7 +1936,7 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
     struct seat *seat = data;
 
     /* Touch-emulated pointer events have wl_pointer == NULL. */
-    if (wl_pointer != NULL && seat->touch.state != TOUCH_STATE_INHIBITED)
+    if (wl_pointer != NULL && touch_is_active(seat))
         return;
 
     struct wayland *wayl = seat->wayl;
@@ -2147,7 +2164,7 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
     struct seat *seat = data;
 
     /* Touch-emulated pointer events have wl_pointer == NULL. */
-    if (wl_pointer != NULL && seat->touch.state != TOUCH_STATE_INHIBITED)
+    if (wl_pointer != NULL && touch_is_active(seat))
         return;
 
     struct wayland *wayl = seat->wayl;
@@ -2162,6 +2179,10 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
     bool send_to_client = false;
 
     if (state == WL_POINTER_BUTTON_STATE_PRESSED) {
+        if (seat->wl_touch != NULL && seat->touch.state == TOUCH_STATE_IDLE) {
+            seat->touch.state = TOUCH_STATE_INHIBITED;
+        }
+
         /* Time since last click */
         struct timespec now, since_last;
         clock_gettime(CLOCK_MONOTONIC, &now);
@@ -2260,6 +2281,12 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
                 send_to_client = it->item.send_to_client;
                 tll_remove(seat->mouse.buttons, it);
                 break;
+            }
+        }
+
+        if (seat->wl_touch != NULL && seat->touch.state == TOUCH_STATE_INHIBITED) {
+            if (tll_length(seat->mouse.buttons) == 0) {
+                seat->touch.state = TOUCH_STATE_IDLE;
             }
         }
 
@@ -2610,7 +2637,7 @@ wl_pointer_axis(void *data, struct wl_pointer *wl_pointer,
 {
     struct seat *seat = data;
 
-    if (seat->touch.state != TOUCH_STATE_INHIBITED)
+    if (touch_is_active(seat))
         return;
 
     if (seat->mouse.have_discrete)
@@ -2643,7 +2670,7 @@ wl_pointer_axis_discrete(void *data, struct wl_pointer *wl_pointer,
 {
     struct seat *seat = data;
 
-    if (seat->touch.state != TOUCH_STATE_INHIBITED)
+    if (touch_is_active(seat))
         return;
 
     seat->mouse.have_discrete = true;
@@ -2663,7 +2690,7 @@ wl_pointer_frame(void *data, struct wl_pointer *wl_pointer)
 {
     struct seat *seat = data;
 
-    if (seat->touch.state != TOUCH_STATE_INHIBITED)
+    if (touch_is_active(seat))
         return;
 
     seat->mouse.have_discrete = false;
@@ -2681,7 +2708,7 @@ wl_pointer_axis_stop(void *data, struct wl_pointer *wl_pointer,
 {
     struct seat *seat = data;
 
-    if (seat->touch.state != TOUCH_STATE_INHIBITED)
+    if (touch_is_active(seat))
         return;
 
     xassert(axis < ALEN(seat->mouse.aggregated));
@@ -2738,8 +2765,6 @@ wl_touch_down(void *data, struct wl_touch *wl_touch, uint32_t serial,
     struct wl_window *win = wl_surface_get_user_data(surface);
     struct terminal *term = win->term;
 
-    term->active_surface = term_surface_kind(term, surface);
-
     LOG_DBG("touch_down: touch=%p, x=%d, y=%d", (void *)wl_touch,
             wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
 
@@ -2754,6 +2779,7 @@ wl_touch_down(void *data, struct wl_touch *wl_touch, uint32_t serial,
     seat->touch.serial = serial;
     seat->touch.time = time + term->conf->touch.long_press_delay;
     seat->touch.surface = surface;
+    seat->touch.surface_kind = term_surface_kind(term, surface);
     seat->touch.id = id;
 }
 
@@ -2771,7 +2797,10 @@ wl_touch_up(void *data, struct wl_touch *wl_touch, uint32_t serial,
     struct wl_window *win = wl_surface_get_user_data(seat->touch.surface);
     struct terminal *term = win->term;
 
+    struct terminal *old_term = seat->mouse_focus;
+    enum term_surface old_active_surface = term->active_surface;
     seat->mouse_focus = term;
+    term->active_surface = seat->touch.surface_kind;
 
     switch (seat->touch.state) {
     case TOUCH_STATE_HELD:
@@ -2793,7 +2822,8 @@ wl_touch_up(void *data, struct wl_touch *wl_touch, uint32_t serial,
         break;
     }
 
-    seat->mouse_focus = NULL;
+    seat->mouse_focus = old_term;
+    term->active_surface = old_active_surface;
 }
 
 static void
@@ -2810,7 +2840,10 @@ wl_touch_motion(void *data, struct wl_touch *wl_touch, uint32_t time,
     struct wl_window *win = wl_surface_get_user_data(seat->touch.surface);
     struct terminal *term = win->term;
 
+    struct terminal *old_term = seat->mouse_focus;
+    enum term_surface old_active_surface = term->active_surface;
     seat->mouse_focus = term;
+    term->active_surface = seat->touch.surface_kind;
 
     switch (seat->touch.state) {
     case TOUCH_STATE_HELD:
@@ -2837,7 +2870,8 @@ wl_touch_motion(void *data, struct wl_touch *wl_touch, uint32_t time,
         break;
     }
 
-    seat->mouse_focus = NULL;
+    seat->mouse_focus = old_term;
+    term->active_surface = old_active_surface;
 }
 
 static void

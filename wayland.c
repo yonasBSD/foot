@@ -345,6 +345,12 @@ seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
             if (seat->pointer.theme != NULL)
                 wl_cursor_theme_destroy(seat->pointer.theme);
 
+            if (seat->wl_touch != NULL &&
+                seat->touch.state == TOUCH_STATE_INHIBITED)
+            {
+                seat->touch.state = TOUCH_STATE_IDLE;
+            }
+
             seat->wl_pointer = NULL;
             seat->pointer.surface.surf = NULL;
             seat->pointer.theme = NULL;

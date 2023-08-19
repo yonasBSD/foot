@@ -171,6 +171,7 @@ struct seat {
         uint32_t serial;
         uint32_t time;
         struct wl_surface *surface;
+        int surface_kind;
         int32_t id;
     } touch;
 
