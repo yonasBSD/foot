@@ -326,121 +326,138 @@ auto_detected(const struct terminal *term, enum url_action action,
 
         for (int c = 0; c < term->cols; c++) {
             const struct cell *cell = &row->cells[c];
-            char32_t wc = cell->wc;
 
-            switch (state) {
-            case STATE_PROTOCOL:
-                for (size_t i = 0; i < max_prot_len - 1; i++) {
+            if (cell->wc >= CELL_SPACER)
+                continue;
+
+            const char32_t *wcs = NULL;
+            size_t wc_count = 0;
+
+            if (cell->wc >= CELL_COMB_CHARS_LO && cell->wc <= CELL_COMB_CHARS_HI) {
+                struct composed *composed =
+                    composed_lookup(term->composed, cell->wc - CELL_COMB_CHARS_LO);
+                wcs = composed->chars;
+                wc_count = composed->count;
+            } else {
+                wcs = &cell->wc;
+                wc_count = 1;
+            }
+
+            for (size_t w_idx = 0; w_idx < wc_count; w_idx++) {
+                char32_t wc = wcs[w_idx];
+
+                switch (state) {
+                case STATE_PROTOCOL:
+                  for (size_t i = 0; i < max_prot_len - 1; i++) {
                     proto_chars[i] = proto_chars[i + 1];
                     proto_start[i] = proto_start[i + 1];
-                }
+                  }
 
-                if (proto_char_count >= max_prot_len)
+                  if (proto_char_count >= max_prot_len)
                     proto_char_count = max_prot_len - 1;
 
-                proto_chars[max_prot_len - 1] = wc;
-                proto_start[max_prot_len - 1] = (struct coord){c, r};
-                proto_char_count++;
+                  proto_chars[max_prot_len - 1] = wc;
+                  proto_start[max_prot_len - 1] = (struct coord){c, r};
+                  proto_char_count++;
 
-                for (size_t i = 0; i < conf->url.prot_count; i++) {
+                  for (size_t i = 0; i < conf->url.prot_count; i++) {
                     size_t prot_len = c32len(conf->url.protocols[i]);
 
                     if (proto_char_count < prot_len)
-                        continue;
+                      continue;
 
-                    const char32_t *proto = &proto_chars[max_prot_len - prot_len];
+                    const char32_t *proto =
+                        &proto_chars[max_prot_len - prot_len];
 
-                    if (c32ncasecmp(conf->url.protocols[i], proto, prot_len) == 0) {
-                        state = STATE_URL;
-                        start = proto_start[max_prot_len - prot_len];
+                    if (c32ncasecmp(conf->url.protocols[i], proto, prot_len) ==
+                        0) {
+                      state = STATE_URL;
+                      start = proto_start[max_prot_len - prot_len];
 
-                        c32ncpy(url, proto, prot_len);
-                        len = prot_len;
+                      c32ncpy(url, proto, prot_len);
+                      len = prot_len;
 
-                        parenthesis = brackets = ltgts = 0;
-                        break;
+                      parenthesis = brackets = ltgts = 0;
+                      break;
                     }
-                }
-                break;
+                  }
+                  break;
 
-            case STATE_URL: {
-                const char32_t *match = bsearch(
-                    &wc,
-                    uri_characters,
-                    uri_characters_count,
-                    sizeof(uri_characters[0]),
-                    &c32cmp_single);
+                case STATE_URL: {
+                  const char32_t *match =
+                      bsearch(&wc, uri_characters, uri_characters_count,
+                              sizeof(uri_characters[0]), &c32cmp_single);
 
-                bool emit_url = false;
+                  bool emit_url = false;
 
-                if (match == NULL) {
+                  if (match == NULL) {
                     /*
                      * Character is not a valid URI character. Emit
                      * the URL we’ve collected so far, *without*
                      * including _this_ character.
                      */
                     emit_url = true;
-                } else {
+                  } else {
                     xassert(*match == wc);
 
                     switch (wc) {
                     default:
-                        url[len++] = wc;
-                        break;
+                      url[len++] = wc;
+                      break;
 
                     case U'(':
-                        parenthesis++;
-                        url[len++] = wc;
-                        break;
+                      parenthesis++;
+                      url[len++] = wc;
+                      break;
 
                     case U'[':
-                        brackets++;
-                        url[len++] = wc;
-                        break;
+                      brackets++;
+                      url[len++] = wc;
+                      break;
 
                     case U'<':
-                        ltgts++;
-                        url[len++] = wc;
-                        break;
+                      ltgts++;
+                      url[len++] = wc;
+                      break;
 
                     case U')':
-                        if (--parenthesis < 0)
-                            emit_url = true;
-                        else
-                            url[len++] = wc;
-                        break;
+                      if (--parenthesis < 0)
+                        emit_url = true;
+                      else
+                        url[len++] = wc;
+                      break;
 
                     case U']':
-                        if (--brackets < 0)
-                            emit_url = true;
-                        else
-                            url[len++] = wc;
-                        break;
+                      if (--brackets < 0)
+                        emit_url = true;
+                      else
+                        url[len++] = wc;
+                      break;
 
                     case U'>':
-                        if (--ltgts < 0)
-                            emit_url = true;
-                        else
-                            url[len++] = wc;
-                        break;
+                      if (--ltgts < 0)
+                        emit_url = true;
+                      else
+                        url[len++] = wc;
+                      break;
                     }
-                }
+                  }
 
-                if (c >= term->cols - 1 && row->linebreak) {
+                  if (c >= term->cols - 1 && row->linebreak) {
                     /*
                      * Endpoint is inclusive, and we’ll be subtracting
                      * 1 from the column when emitting the URL.
                      */
                     c++;
                     emit_url = true;
-                }
+                  }
 
-                if (emit_url) {
+                  if (emit_url) {
                     struct coord end = {c, r};
 
                     if (--end.col < 0) {
-                        end.row--;
-                        end.col = term->cols - 1;
+                      end.row--;
+                      end.col = term->cols - 1;
                     }
 
                     /* Heuristic to remove trailing characters that
@@ -448,21 +465,28 @@ auto_detected(const struct terminal *term, enum url_action action,
                      * the end of the URL */
                     bool done = false;
                     do {
-                        switch (url[len - 1]) {
-                        case U'.': case U',': case U':': case U';': case U'?':
-                        case U'!': case U'"': case U'\'': case U'%':
-                            len--;
-                            end.col--;
-                            if (end.col < 0) {
-                                end.row--;
-                                end.col = term->cols - 1;
-                            }
-                            break;
-
-                        default:
-                            done = true;
-                            break;
+                      switch (url[len - 1]) {
+                      case U'.':
+                      case U',':
+                      case U':':
+                      case U';':
+                      case U'?':
+                      case U'!':
+                      case U'"':
+                      case U'\'':
+                      case U'%':
+                        len--;
+                        end.col--;
+                        if (end.col < 0) {
+                          end.row--;
+                          end.col = term->cols - 1;
                         }
+                        break;
+
+                      default:
+                        done = true;
+                        break;
+                      }
                     } while (!done);
 
                     url[len] = U'\0';
@@ -472,25 +496,26 @@ auto_detected(const struct terminal *term, enum url_action action,
 
                     char *url_utf8 = ac32tombs(url);
                     if (url_utf8 != NULL) {
-                        tll_push_back(
-                            *urls,
-                            ((struct url){
-                                .id = (uint64_t)rand() << 32 | rand(),
-                                .url = url_utf8,
-                                .range = {
-                                    .start = start,
-                                    .end = end,
-                                },
-                                .action = action,
-                                .osc8 = false}));
+                      tll_push_back(
+                          *urls,
+                          ((struct url){.id = (uint64_t)rand() << 32 | rand(),
+                                        .url = url_utf8,
+                                        .range =
+                                            {
+                                                .start = start,
+                                                .end = end,
+                                            },
+                                        .action = action,
+                                        .osc8 = false}));
                     }
 
                     state = STATE_PROTOCOL;
                     len = 0;
                     parenthesis = brackets = ltgts = 0;
+                  }
+                  break;
                 }
-                break;
-            }
+                }
             }
         }
     }
