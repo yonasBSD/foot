@@ -916,6 +916,10 @@ osc_dispatch(struct terminal *term)
         }
         break;
 
+    case 176:
+        term_set_app_id(term, string);
+        break;
+
     case 555:
         osc_flash(term);
         break;

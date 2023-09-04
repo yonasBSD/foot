@@ -536,6 +536,7 @@ with the terminal emulator itself. Foot implements the following OSCs:
 * `OSC 117` - reset highlight background color
 * `OSC 119` - reset highlight foreground color
 * `OSC 133` - [shell integration](#shell-integration)
+* `OSC 176` - set app ID
 * `OSC 555` - flash screen (**foot specific**)
 * `OSC 777` - desktop notification (only the `;notify` sub-command of
   OSC 777 is supported.)
