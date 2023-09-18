@@ -41,6 +41,8 @@ enum bind_action_normal {
     BIND_ACTION_UNICODE_INPUT,
 
     /* Mouse specific actions - i.e. they require a mouse coordinate */
+    BIND_ACTION_SCROLLBACK_UP_MOUSE,
+    BIND_ACTION_SCROLLBACK_DOWN_MOUSE,
     BIND_ACTION_SELECT_BEGIN,
     BIND_ACTION_SELECT_BEGIN_BLOCK,
     BIND_ACTION_SELECT_EXTEND,

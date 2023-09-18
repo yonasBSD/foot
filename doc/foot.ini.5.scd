@@ -1032,9 +1032,14 @@ of the modifiers *must* be valid XKB key names, and the button name
 *must* be a valid libinput name. You can find the button names using
 *libinput debug-events*.
 
-The trailing *COUNT* is optional and specifies the click count
-required to trigger the binding. The default if *COUNT* is omitted is
-_1_.
+The trailing *COUNT* (number of times the button has to be clicked) is
+optional and specifies the click count required to trigger the
+binding. The default if *COUNT* is omitted is _1_.
+
+To map wheel events (i.e. scrolling), use the button names *BTN_BACK*
+(up) and *BTN_FORWARD* (down). Note that these events never generate a
+*COUNT* larger than 1. That is, *BTN_BACK+2*, for example, will never
+trigger.
 
 A modifier+button combination can only be mapped to *one* action. Lets
 say you want to bind *BTN\_MIDDLE* to *fullscreen*. Since
@@ -1055,6 +1060,22 @@ _action=none_; e.g. *primary-paste=none*.
 
 The actions to which mouse combos can be bound are listed below. All
 actions listed under *key-bindings* can be used here as well.
+
+*scrollback-up-mouse*
+	Normal screen: scrolls up the contents.
+	
+	Alt screen: send fake _KeyUP_ events to the client application, if
+	alternate scroll mode is enabled.
+	
+	Default: _BTN_BACK_
+
+*scrollback-down-mouse*
+	Normal screen: scrolls down the contents.
+	
+	Alt screen: send fake _KeyDOWN_ events to the client application, if
+	alternate scroll mode is enabled.
+
+	Default: _BTN_FORWARD_
 
 *select-begin*
 	Begin an interactive selection. The selection is finalized, and

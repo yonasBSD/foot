@@ -81,9 +81,11 @@ pipe_closed:
     return true;
 }
 
+static void alternate_scroll(struct seat *seat, int amount, int button);
+
 static bool
 execute_binding(struct seat *seat, struct terminal *term,
-                const struct key_binding *binding, uint32_t serial)
+                const struct key_binding *binding, uint32_t serial, int amount)
 {
     const enum bind_action_normal action = binding->action;
 
@@ -115,6 +117,14 @@ execute_binding(struct seat *seat, struct terminal *term,
         }
         break;
 
+    case BIND_ACTION_SCROLLBACK_UP_MOUSE:
+        if (term->grid == &term->alt) {
+            if (term->alt_scrolling)
+                alternate_scroll(seat, amount, BTN_BACK);
+        } else
+                cmd_scrollback_up(term, amount);
+        break;
+
     case BIND_ACTION_SCROLLBACK_DOWN_PAGE:
         if (term->grid == &term->normal) {
             cmd_scrollback_down(term, term->rows);
@@ -134,6 +144,14 @@ execute_binding(struct seat *seat, struct terminal *term,
             cmd_scrollback_down(term, 1);
             return true;
         }
+        break;
+
+    case BIND_ACTION_SCROLLBACK_DOWN_MOUSE:
+        if (term->grid == &term->alt) {
+            if (term->alt_scrolling)
+                alternate_scroll(seat, amount, BTN_FORWARD);
+        } else
+            cmd_scrollback_down(term, amount);
         break;
 
     case BIND_ACTION_SCROLLBACK_HOME:
@@ -1478,7 +1496,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
             /* Match translated symbol */
             if (bind->k.sym == sym &&
                 bind->mods == (bind_mods & ~bind_consumed) &&
-                execute_binding(seat, term, bind, serial))
+                execute_binding(seat, term, bind, serial, 1))
             {
                 goto maybe_repeat;
             }
@@ -1489,7 +1507,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
             /* Match untranslated symbols */
             for (size_t i = 0; i < raw_count; i++) {
                 if (bind->k.sym == raw_syms[i] &&
-                    execute_binding(seat, term, bind, serial))
+                    execute_binding(seat, term, bind, serial, 1))
                 {
                     goto maybe_repeat;
                 }
@@ -1498,7 +1516,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
             /* Match raw key code */
             tll_foreach(bind->k.key_codes, code) {
                 if (code->item == key &&
-                    execute_binding(seat, term, bind, serial))
+                    execute_binding(seat, term, bind, serial, 1))
                 {
                     goto maybe_repeat;
                 }
@@ -2152,6 +2170,95 @@ fdm_csd_move(struct fdm *fdm, int fd, int events, void *data)
     return true;
 }
 
+static const struct key_binding *
+ match_mouse_binding(const struct seat *seat, const struct terminal *term,
+                     int button)
+{
+    if (seat->wl_keyboard != NULL && seat->kbd.xkb_state != NULL) {
+        /* Seat has keyboard - use mouse bindings *with* modifiers */
+
+        const struct key_binding_set *bindings =
+            key_binding_for(term->wl->key_binding_manager, term->conf, seat);
+        xassert(bindings != NULL);
+
+        xkb_mod_mask_t mods;
+        get_current_modifiers(seat, &mods, NULL, 0);
+        mods &= seat->kbd.bind_significant;
+
+        /* Ignore selection override modifiers when
+         * matching modifiers */
+        mods &= ~bindings->selection_overrides;
+
+        const struct key_binding *match = NULL;
+
+        tll_foreach(bindings->mouse, it) {
+            const struct key_binding *binding = &it->item;
+
+            if (binding->m.button != button) {
+                /* Wrong button */
+                continue;
+            }
+
+            if (binding->mods != mods) {
+                /* Modifier mismatch */
+                continue;
+            }
+
+            if (binding->m.count > seat->mouse.count) {
+                /* Not correct click count */
+                continue;
+            }
+
+            if (match == NULL || binding->m.count > match->m.count)
+                match = binding;
+        }
+
+        return match;
+    }
+
+    else {
+        /* Seat does NOT have a keyboard - use mouse bindings *without*
+         * modifiers */
+        const struct config_key_binding *match = NULL;
+        const struct config *conf = term->conf;
+
+        for (size_t i = 0; i < conf->bindings.mouse.count; i++) {
+            const struct config_key_binding *binding =
+                &conf->bindings.mouse.arr[i];
+
+            if (binding->m.button != button) {
+                /* Wrong button */
+                continue;
+            }
+
+            if (binding->m.count > seat->mouse.count) {
+                /* Incorrect click count */
+                continue;
+            }
+
+            const struct config_key_modifiers no_mods = {0};
+            if (memcmp(&binding->modifiers, &no_mods, sizeof(no_mods)) != 0) {
+                /* Binding has modifiers */
+                continue;
+            }
+
+            if (match == NULL || binding->m.count > match->m.count)
+                match = binding;
+        }
+
+        if (match != NULL) {
+            static struct key_binding bind;
+            bind.action = match->action;
+            bind.aux = &match->aux;
+            return &bind;
+        }
+
+        return NULL;
+    }
+
+    BUG("should not get here");
+}
+
 static void
 wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
                   uint32_t serial, uint32_t time, uint32_t button, uint32_t state)
@@ -2426,86 +2533,11 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
             bool consumed = false;
 
             if (cursor_is_on_grid && term_mouse_grabbed(term, seat)) {
-                if (seat->wl_keyboard != NULL && seat->kbd.xkb_state != NULL) {
-                    /* Seat has keyboard - use mouse bindings *with* modifiers */
+                const struct key_binding *match =
+                    match_mouse_binding(seat, term, button);
 
-                    const struct key_binding_set *bindings = key_binding_for(
-                        wayl->key_binding_manager, term->conf, seat);
-                    xassert(bindings != NULL);
-
-                    xkb_mod_mask_t mods;
-                    get_current_modifiers(seat, &mods, NULL, 0);
-                    mods &= seat->kbd.bind_significant;
-
-                    /* Ignore selection override modifiers when
-                     * matching modifiers */
-                    mods &= ~bindings->selection_overrides;
-
-                    const struct key_binding *match = NULL;
-
-                    tll_foreach(bindings->mouse, it) {
-                        const struct key_binding *binding = &it->item;
-
-                        if (binding->m.button != button) {
-                            /* Wrong button */
-                            continue;
-                        }
-
-                        if (binding->mods != mods) {
-                            /* Modifier mismatch */
-                            continue;
-                        }
-
-                        if  (binding->m.count > seat->mouse.count) {
-                            /* Not correct click count */
-                            continue;
-                        }
-
-                        if (match == NULL || binding->m.count > match->m.count)
-                            match = binding;
-                    }
-
-                    if (match != NULL)
-                        consumed = execute_binding(seat, term, match, serial);
-                }
-
-                else {
-                    /* Seat does NOT have a keyboard - use mouse bindings *without* modifiers */
-                    const struct config_key_binding *match = NULL;
-                    const struct config *conf = term->conf;
-
-                    for (size_t i = 0; i < conf->bindings.mouse.count; i++) {
-                        const struct config_key_binding *binding =
-                            &conf->bindings.mouse.arr[i];
-
-                        if (binding->m.button != button) {
-                            /* Wrong button */
-                            continue;
-                        }
-
-                        if (binding->m.count > seat->mouse.count) {
-                            /* Incorrect click count */
-                            continue;
-                        }
-
-                        const struct config_key_modifiers no_mods = {0};
-                        if (memcmp(&binding->modifiers, &no_mods, sizeof(no_mods)) != 0) {
-                            /* Binding has modifiers */
-                            continue;
-                        }
-
-                        if (match == NULL || binding->m.count > match->m.count)
-                            match = binding;
-                    }
-
-                    if (match != NULL) {
-                        struct key_binding bind = {
-                            .action = match->action,
-                            .aux = &match->aux,
-                        };
-                        consumed = execute_binding(seat, term, &bind, serial);
-                    }
-                }
+                if (match != NULL)
+                    consumed = execute_binding(seat, term, match, serial, 1);
             }
 
             send_to_client = !consumed && cursor_is_on_grid;
@@ -2580,26 +2612,15 @@ mouse_scroll(struct seat *seat, int amount, enum wl_pointer_axis axis)
     amount = abs(amount);
 
     if (term_mouse_grabbed(term, seat)) {
-        if (term->grid == &term->alt) {
-            if (term->alt_scrolling) {
-                switch (button) {
-                case BTN_BACK:
-                case BTN_FORWARD:
-                    alternate_scroll(seat, amount, button);
-                    break;
-                }
-            }
-        } else {
-            switch (button) {
-            case BTN_BACK:
-                cmd_scrollback_up(term, amount);
-                break;
+        seat->mouse.count = 1;
 
-            case BTN_FORWARD:
-                cmd_scrollback_down(term, amount);
-                break;
-            }
-        }
+        const struct key_binding *match =
+            match_mouse_binding(seat, term, button);
+
+        if (match != NULL)
+            execute_binding(seat, term, match, seat->pointer.serial, amount);
+
+        seat->mouse.last_released_button = button;
     }
 
     else if (seat->mouse.col >= 0 && seat->mouse.row >= 0) {

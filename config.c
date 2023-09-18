@@ -120,6 +120,8 @@ static const char *const binding_action_map[] = {
     [BIND_ACTION_UNICODE_INPUT] = "unicode-input",
 
     /* Mouse-specific actions */
+    [BIND_ACTION_SCROLLBACK_UP_MOUSE] = "scrollback-up-mouse",
+    [BIND_ACTION_SCROLLBACK_DOWN_MOUSE] = "scrollback-down-mouse",
     [BIND_ACTION_SELECT_BEGIN] = "select-begin",
     [BIND_ACTION_SELECT_BEGIN_BLOCK] = "select-begin-block",
     [BIND_ACTION_SELECT_EXTEND] = "select-extend",
@@ -2871,6 +2873,8 @@ static void
 add_default_mouse_bindings(struct config *conf)
 {
     static const struct config_key_binding bindings[] = {
+        {BIND_ACTION_SCROLLBACK_UP_MOUSE, m_none, {.m = {BTN_BACK, 1}}},
+        {BIND_ACTION_SCROLLBACK_DOWN_MOUSE, m_none, {.m = {BTN_FORWARD, 1}}},
         {BIND_ACTION_PRIMARY_PASTE, m_none, {.m = {BTN_MIDDLE, 1}}},
         {BIND_ACTION_SELECT_BEGIN, m_none, {.m = {BTN_LEFT, 1}}},
         {BIND_ACTION_SELECT_BEGIN_BLOCK, m_ctrl, {.m = {BTN_LEFT, 1}}},
