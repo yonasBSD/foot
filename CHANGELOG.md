@@ -55,8 +55,12 @@
 * New mouse bindings: `scrollback-up-mouse` and
   `scrollback-down-mouse`, bound to `BTN_BACK` and `BTN_FORWARD`
   respectively.
+* New key binding: `select-quote`. This key binding selects text
+  between quote characters, and falls back to selecting the entire
+  row ([#1364][1364]).
 
 [1077]: https://codeberg.org/dnkl/foot/issues/1077
+[1364]: https://codeberg.org/dnkl/foot/issues/1364
 
 
 ### Changed
@@ -66,6 +70,10 @@
 * `foot-server.service` systemd now checks for
   `ConditionEnvironment=WAYLAND_DISPLAY` for consistency with the
   socket unit ([#1448][1448])
+* Default key binding for `select-row` is now `BTN_LEFT+4`. However,
+  in many cases, triple clicking will still be enough to select the
+  entire row; see the new key binding `select-quote` (mapped to
+  `BTN_LEFT+3` by default) ([#1364][1364]).
 
 [1391]: https://codeberg.org/dnkl/foot/issues/1391
 [1448]: https://codeberg.org/dnkl/foot/pulls/1448

@@ -1101,10 +1101,37 @@ actions listed under *key-bindings* can be used here as well.
 	selection_, when the button is released. Default:
 	_Control+BTN\_LEFT-2_.
 
+*select-quote*
+	Begin an interactive "quote" selection. This is similar to
+	*select-word*, except an entire quote is selected (that is,
+	everything inside the quote, excluding the quote
+	characters). Recognized quote characters are: *"* and *'*.
+	
+	If a complete quote cannot be found on the current logical row
+	(only one quote character, or none are found), the entire row is
+	selected.
+	
+	The selection is finalized, and copied to the _primary selection_,
+	when the button is released.
+
+	After the initial selection has been made, it behaves like a
+	normal word, or row selection, depending on whether a quote was
+	found or not. This affects what happens when, for example,
+	extending the selection.
+	
+	Notes:
+	- Escaped quote characters are not supported (*"foo \\"bar"* will
+	  match *'foo \\'*, not *'foo "bar'*).
+	- Foot does not try to handle mismatched quote characters; they
+	  will simply not match.
+	- Nested quotes (using different quote characters) are supported.
+	
+	Default: _BTN\_LEFT-3_.
+
 *select-row*
 	Begin an interactive row-wise selection. The selection is
 	finalized, and copied to the _primary selection_, when the button
-	is released. Default: _BTN\_LEFT-3_.
+	is released. Default: _BTN\_LEFT-4_.
 
 *select-extend*
 	Interactively extend an existing selection, using the original

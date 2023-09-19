@@ -128,6 +128,7 @@ static const char *const binding_action_map[] = {
     [BIND_ACTION_SELECT_EXTEND_CHAR_WISE] = "select-extend-character-wise",
     [BIND_ACTION_SELECT_WORD] = "select-word",
     [BIND_ACTION_SELECT_WORD_WS] = "select-word-whitespace",
+    [BIND_ACTION_SELECT_QUOTE] = "select-quote",
     [BIND_ACTION_SELECT_ROW] = "select-row",
 };
 
@@ -2882,7 +2883,8 @@ add_default_mouse_bindings(struct config *conf)
         {BIND_ACTION_SELECT_EXTEND_CHAR_WISE, m_ctrl, {.m = {BTN_RIGHT, 1}}},
         {BIND_ACTION_SELECT_WORD, m_none, {.m = {BTN_LEFT, 2}}},
         {BIND_ACTION_SELECT_WORD_WS, m_ctrl, {.m = {BTN_LEFT, 2}}},
-        {BIND_ACTION_SELECT_ROW, m_none, {.m = {BTN_LEFT, 3}}},
+        {BIND_ACTION_SELECT_QUOTE, m_none, {.m = {BTN_LEFT, 3}}},
+        {BIND_ACTION_SELECT_ROW, m_none, {.m = {BTN_LEFT, 4}}},
     };
 
     conf->bindings.mouse.count = ALEN(bindings);

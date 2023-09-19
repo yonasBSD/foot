@@ -472,6 +472,11 @@ execute_binding(struct seat *seat, struct terminal *term,
             term, seat->mouse.col, seat->mouse.row, SELECTION_WORD_WISE, true);
         return true;
 
+    case BIND_ACTION_SELECT_QUOTE:
+        selection_start(
+            term, seat->mouse.col, seat->mouse.row, SELECTION_QUOTE_WISE, false);
+        break;
+
     case BIND_ACTION_SELECT_ROW:
         selection_start(
             term, seat->mouse.col, seat->mouse.row, SELECTION_LINE_WISE, false);
