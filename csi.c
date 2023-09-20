@@ -491,6 +491,10 @@ decset_decrst(struct terminal *term, unsigned param, bool enable)
             term_disable_app_sync_updates(term);
         break;
 
+    case 2027:
+        term->grapheme_shaping = enable;
+        break;
+
     case 8452:
         term->sixel.cursor_right_of_graphics = enable;
         break;
@@ -572,6 +576,7 @@ decrqm(const struct terminal *term, unsigned param)
     case 1070: return decrpm(term->sixel.use_private_palette);
     case 2004: return decrpm(term->bracketed_paste);
     case 2026: return decrpm(term->render.app_sync_updates.enabled);
+    case 2027: return decrpm(term->grapheme_shaping);
     case 8452: return decrpm(term->sixel.cursor_right_of_graphics);
     case 737769: return decrpm(term_ime_is_enabled(term));
     }
@@ -614,6 +619,7 @@ xtsave(struct terminal *term, unsigned param)
     case 1070: term->xtsave.sixel_private_palette = term->sixel.use_private_palette; break;
     case 2004: term->xtsave.bracketed_paste = term->bracketed_paste; break;
     case 2026: term->xtsave.app_sync_updates = term->render.app_sync_updates.enabled; break;
+    case 2027: term->xtsave.grapheme_shaping = term->grapheme_shaping; break;
     case 8452: term->xtsave.sixel_cursor_right_of_graphics = term->sixel.cursor_right_of_graphics; break;
     case 737769: term->xtsave.ime = term_ime_is_enabled(term); break;
     }
@@ -655,6 +661,7 @@ xtrestore(struct terminal *term, unsigned param)
     case 1070: enable = term->xtsave.sixel_private_palette; break;
     case 2004: enable = term->xtsave.bracketed_paste; break;
     case 2026: enable = term->xtsave.app_sync_updates; break;
+    case 2027: enable = term->xtsave.grapheme_shaping; break;
     case 8452: enable = term->xtsave.sixel_cursor_right_of_graphics; break;
     case 737769: enable = term->xtsave.ime; break;
 

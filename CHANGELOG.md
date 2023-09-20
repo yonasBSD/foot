@@ -58,6 +58,8 @@
 * New key binding: `select-quote`. This key binding selects text
   between quote characters, and falls back to selecting the entire
   row ([#1364][1364]).
+* Support for DECSET/DECRST/DECRQM 2027 (_Grapheme cluster
+  processing_).
 
 [1077]: https://codeberg.org/dnkl/foot/issues/1077
 [1364]: https://codeberg.org/dnkl/foot/issues/1364

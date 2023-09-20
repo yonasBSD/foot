@@ -328,6 +328,9 @@ that corresponds to one of the following modes:
 |  2026
 :  terminal-wg
 :  Application synchronized updates mode
+|  2027
+:  contour
+:  Grapheme cluster processing
 |  8452
 :  xterm
 :  Position cursor to the right of sixels, instead of on the next line

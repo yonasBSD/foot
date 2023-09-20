@@ -1307,6 +1307,8 @@ any of these options.
 		- foot must have been compiled with utf8proc support
 		- fcft must have been compiled with HarfBuzz support
 	
+	This option can also be set runtime with DECSET/DECRST 2027.
+	
 	See also: *grapheme-width-method*.
 	
 	Default: _yes_

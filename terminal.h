@@ -469,6 +469,7 @@ struct terminal {
         bool alt_screen:1;
         bool ime:1;
         bool app_sync_updates:1;
+        bool grapheme_shaping:1;
 
         bool sixel_display_mode:1;
         bool sixel_private_palette:1;
@@ -718,6 +719,8 @@ struct terminal {
 
     char *foot_exe;
     char *cwd;
+
+    bool grapheme_shaping;
 };
 
 struct config;

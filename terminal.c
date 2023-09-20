@@ -1253,6 +1253,7 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
         },
         .foot_exe = xstrdup(foot_exe),
         .cwd = xstrdup(cwd),
+        .grapheme_shaping = conf->tweak.grapheme_shaping,
 #if defined(FOOT_IME_ENABLED) && FOOT_IME_ENABLED
         .ime_enabled = true,
 #endif
@@ -1902,6 +1903,8 @@ term_reset(struct terminal *term, bool hard)
         sixel_destroy(&it->item);
         tll_remove(term->alt.sixel_images, it);
     }
+
+    term->grapheme_shaping = term->conf->tweak.grapheme_shaping;
 
 #if defined(FOOT_IME_ENABLED) && FOOT_IME_ENABLED
     term_ime_enable(term);

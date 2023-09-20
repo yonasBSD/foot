@@ -657,7 +657,7 @@ static void
 action_utf8_print(struct terminal *term, char32_t wc)
 {
     int width = c32width(wc);
-    const bool grapheme_clustering = term->conf->tweak.grapheme_shaping;
+    const bool grapheme_clustering = term->grapheme_shaping;
 
 #if !defined(FOOT_GRAPHEME_CLUSTERING)
     xassert(!grapheme_clustering);
