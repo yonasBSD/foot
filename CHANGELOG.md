@@ -74,9 +74,12 @@
   in many cases, triple clicking will still be enough to select the
   entire row; see the new key binding `select-quote` (mapped to
   `BTN_LEFT+3` by default) ([#1364][1364]).
+* `file://` prefix from URI's are no longer stripped when
+  opened/activated ([#1474][1474]).
 
 [1391]: https://codeberg.org/dnkl/foot/issues/1391
 [1448]: https://codeberg.org/dnkl/foot/pulls/1448
+[1474]: https://codeberg.org/dnkl/foot/pulls/1474
 
 
 ### Deprecated

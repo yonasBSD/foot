@@ -128,46 +128,17 @@ static void
 activate_url(struct seat *seat, struct terminal *term, const struct url *url,
              uint32_t serial)
 {
-    char *url_string = NULL;
-
-    char *scheme, *host, *path;
-    if (uri_parse(url->url, strlen(url->url), &scheme, NULL, NULL,
-                  &host, NULL, &path, NULL, NULL))
-    {
-        if (strcmp(scheme, "file") == 0 && hostname_is_localhost(host)) {
-            /*
-             * This is a file in *this* computer. Pass only the
-             * filename to the URL-launcher.
-             *
-             * I.e. strip the ‘file://user@host/’ prefix.
-             */
-            url_string = path;
-        } else
-            free(path);
-
-        free(scheme);
-        free(host);
-    }
-
-    if (url_string == NULL)
-        url_string = xstrdup(url->url);
-
     switch (url->action) {
     case URL_ACTION_COPY:
-        if (text_to_clipboard(seat, term, url_string, seat->kbd.serial)) {
-            /* Now owned by our clipboard “manager” */
-            url_string = NULL;
-        }
+        text_to_clipboard(seat, term, xstrdup(url->url), seat->kbd.serial);
         break;
 
     case URL_ACTION_LAUNCH:
     case URL_ACTION_PERSISTENT: {
-        spawn_url_launcher(seat, term, url_string, serial);
+        spawn_url_launcher(seat, term, url->url, serial);
         break;
     }
     }
-
-    free(url_string);
 }
 
 void
