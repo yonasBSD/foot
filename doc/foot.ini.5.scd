@@ -751,32 +751,32 @@ e.g. *search-start=none*.
 
 *noop*
 	All key combinations listed here will not be sent to the
-	application. Default: _not bound_.
+	application. Default: _none_.
 
 *scrollback-up-page*
 	Scrolls up/back one page in history. Default: _Shift+Page\_Up_.
 
 *scrollback-up-half-page*
-	Scrolls up/back half of a page in history. Default: _not bound_.
+	Scrolls up/back half of a page in history. Default: _none_.
 
 *scrollback-up-line*
-	Scrolls up/back a single line in history. Default: _not bound_.
+	Scrolls up/back a single line in history. Default: _none_.
 
 *scrollback-down-page*
 	Scroll down/forward one page in history. Default:
 	_Shift+Page\_Down_.
 
 *scrollback-down-half-page*
-	Scroll down/forward half of a page in history. Default: _not bound_.
+	Scroll down/forward half of a page in history. Default: _none_.
 
 *scrollback-down-line*
-	Scroll down/forward a single line in history. Default: _not bound_.
+	Scroll down/forward a single line in history. Default: _none_.
 
 *scrollback-home*
-	Scroll to the beginning of the scrollback. Default: _not bound_.
+	Scroll to the beginning of the scrollback. Default: _none_.
 
 *scrollback-end*
-	Scroll to the end (bottom) of the scrollback. Default: _not bound_.
+	Scroll to the end (bottom) of the scrollback. Default: _none_.
 
 *clipboard-copy*
 	Copies the current selection into the _clipboard_. Default: _Control+Shift+c_
@@ -809,13 +809,13 @@ e.g. *search-start=none*.
 	current working directory. Default: _Control+Shift+n_.
 
 *minimize*
-	Minimizes the window. Default: _not bound_.
+	Minimizes the window. Default: _none_.
 
 *maximize*
-	Toggle the maximized state. Default: _not bound_.
+	Toggle the maximized state. Default: _none_.
 
 *fullscreen*
-	Toggles the fullscreen state. Default: _not bound_.
+	Toggles the fullscreen state. Default: _none_.
 
 *pipe-visible*, *pipe-scrollback*, *pipe-selected*
 	Pipes the currently visible text, the entire scrollback, or the
@@ -833,7 +833,7 @@ e.g. *search-start=none*.
 		*pipe-visible=[sh -c "xurls | uniq | tac | fuzzel | xargs -r
 		firefox"] Control+Print*
 	
-	Default: _not bound_
+	Default: _none_
 
 *show-urls-launch*
 	Enter URL mode, where all currently visible URLs are tagged with a
