@@ -576,7 +576,9 @@ decrqm(const struct terminal *term, unsigned param)
     case 1070: return decrpm(term->sixel.use_private_palette);
     case 2004: return decrpm(term->bracketed_paste);
     case 2026: return decrpm(term->render.app_sync_updates.enabled);
-    case 2027: return decrpm(term->grapheme_shaping);
+    case 2027: return term->conf->tweak.grapheme_width_method != GRAPHEME_WIDTH_DOUBLE
+        ? DECRPM_PERMANENTLY_RESET
+        : decrpm(term->grapheme_shaping);
     case 8452: return decrpm(term->sixel.cursor_right_of_graphics);
     case 737769: return decrpm(term_ime_is_enabled(term));
     }
