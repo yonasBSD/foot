@@ -1701,7 +1701,7 @@ wayl_win_init(struct terminal *term, const char *token)
     wl_surface_commit(win->surface.surf);
 
     /* Complete XDG startup notification */
-    if (token)
+    if (token && wayl->xdg_activation)
         xdg_activation_v1_activate(wayl->xdg_activation, token, win->surface.surf);
 
     if (!wayl_win_subsurface_new(win, &win->overlay, false)) {
