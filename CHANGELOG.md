@@ -93,10 +93,13 @@
   another opaque, maximized window ([#1464][1464]).
 * Double-width characters, and grapheme clusters breaking URL
   auto-detection ([#1465][1465]).
+* Crash when `XDG_ACTIVATION_TOKEN` is set, but compositor does not
+  support XDG activation ([#1493][1493]).
 
 [1436]: https://codeberg.org/dnkl/foot/issues/1436
 [1464]: https://codeberg.org/dnkl/foot/issues/1464
 [1465]: https://codeberg.org/dnkl/foot/issues/1465
+[1493]: https://codeberg.org/dnkl/foot/pulls/1493
 
 
 ### Security
