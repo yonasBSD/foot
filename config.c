@@ -2912,7 +2912,7 @@ config_load(struct config *conf, const char *conf_path,
             config_override_t *overrides, bool errors_are_fatal,
             bool as_server)
 {
-    bool ret = false;
+    bool ret = true;
     enum fcft_capabilities fcft_caps = fcft_capabilities();
 
     *conf = (struct config) {
@@ -3106,45 +3106,40 @@ config_load(struct config *conf, const char *conf_path,
         if (fd < 0) {
             LOG_AND_NOTIFY_ERRNO("%s: failed to open", conf_path);
             ret = !errors_are_fatal;
-            goto out;
+        } else {
+            conf_file.path = xstrdup(conf_path);
+            conf_file.fd = fd;
         }
-
-        conf_file.path = xstrdup(conf_path);
-        conf_file.fd = fd;
     } else {
         conf_file = open_config();
         if (conf_file.fd < 0) {
             LOG_WARN("no configuration found, using defaults");
             ret = !errors_are_fatal;
-            goto out;
         }
     }
 
-    xassert(conf_file.path != NULL);
-    xassert(conf_file.fd >= 0);
-    LOG_INFO("loading configuration from %s", conf_file.path);
+    if (conf_file.path && conf_file.fd >= 0) {
+        LOG_INFO("loading configuration from %s", conf_file.path);
 
-    FILE *f = fdopen(conf_file.fd, "r");
-    if (f == NULL) {
-        LOG_AND_NOTIFY_ERRNO("%s: failed to open", conf_file.path);
-        ret = !errors_are_fatal;
-        goto out;
+        FILE *f = fdopen(conf_file.fd, "r");
+        if (f == NULL) {
+            LOG_AND_NOTIFY_ERRNO("%s: failed to open", conf_file.path);
+            ret = !errors_are_fatal;
+        } else {
+            if (!parse_config_file(f, conf, conf_file.path, errors_are_fatal))
+                ret = !errors_are_fatal;
+
+            fclose(f);
+        }
     }
 
-    if (!parse_config_file(f, conf, conf_file.path, errors_are_fatal) ||
-        !config_override_apply(conf, overrides, errors_are_fatal))
-    {
+    if (!config_override_apply(conf, overrides, errors_are_fatal))
         ret = !errors_are_fatal;
-    } else
-        ret = true;
-
-    fclose(f);
 
     conf->colors.use_custom.selection =
         conf->colors.selection_fg >> 24 == 0 &&
         conf->colors.selection_bg >> 24 == 0;
 
-out:
     if (ret && conf->fonts[0].count == 0) {
         struct config_font font;
         if (!config_font_parse("monospace", &font)) {

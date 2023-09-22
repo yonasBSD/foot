@@ -80,10 +80,14 @@
   opened/activated ([#1474][1474]).
 * `XTGETTCAP` with capabilities that are not properly hex encoded will
   be ignored, instead of echo:ed back to the TTY in an error response.
+* Command line configuration overrides are now applied even if the
+  configuration file does not exist or can't be
+  parsed. ([#1495][1495]).
 
 [1391]: https://codeberg.org/dnkl/foot/issues/1391
 [1448]: https://codeberg.org/dnkl/foot/pulls/1448
 [1474]: https://codeberg.org/dnkl/foot/pulls/1474
+[1495]: https://codeberg.org/dnkl/foot/pulls/1495
 
 
 ### Deprecated
