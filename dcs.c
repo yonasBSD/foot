@@ -111,14 +111,11 @@ static void
 xtgettcap_reply(struct terminal *term, const char *hex_cap_name, size_t len)
 {
     char *name = hex_decode(hex_cap_name, len);
-    if (name == NULL)
-        goto err;
+    if (name == NULL) {
+        LOG_WARN("XTGETTCAP: invalid hex encoding, ignoring capability");
+        return;
+    }
 
-#if 0
-    const struct foot_terminfo_entry *entry =
-        bsearch(name, terminfo_capabilities, ALEN(terminfo_capabilities),
-                sizeof(*entry), &terminfo_entry_compar);
-#endif
     const char *value;
     bool valid_capability = lookup_capability(name, &value);
     xassert(!valid_capability || value != NULL);

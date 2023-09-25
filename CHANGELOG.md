@@ -76,6 +76,8 @@
   `BTN_LEFT+3` by default) ([#1364][1364]).
 * `file://` prefix from URI's are no longer stripped when
   opened/activated ([#1474][1474]).
+* `XTGETTCAP` with capabilities that are not properly hex encoded will
+  be ignored, instead of echo:ed back to the TTY in an error response.
 
 [1391]: https://codeberg.org/dnkl/foot/issues/1391
 [1448]: https://codeberg.org/dnkl/foot/pulls/1448
