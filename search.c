@@ -9,6 +9,7 @@
 #define LOG_ENABLE_DBG 0
 #include "log.h"
 #include "char32.h"
+#include "commands.h"
 #include "config.h"
 #include "extract.h"
 #include "grid.h"
@@ -82,7 +83,14 @@ search_ensure_size(struct terminal *term, size_t wanted_size)
 }
 
 static bool
-has_wrapped_around(const struct terminal *term, int abs_row_no)
+has_wrapped_around_left(const struct terminal *term, int abs_row_no)
+{
+    int rebased_row = grid_row_abs_to_sb(term->grid, term->rows, abs_row_no);
+    return rebased_row == term->grid->num_rows - 1 || term->grid->rows[abs_row_no] == NULL;
+}
+
+static bool
+has_wrapped_around_right(const struct terminal *term, int abs_row_no)
 {
     int rebased_row = grid_row_abs_to_sb(term->grid, term->rows, abs_row_no);
     return rebased_row == 0;
@@ -235,13 +243,19 @@ search_update_selection(struct terminal *term, const struct range *match)
     }
 
     if (start_row != term->search.match.row ||
-        start_col != term->search.match.col)
+        start_col != term->search.match.col ||
+
+        /* Pointer leave events trigger selection_finalize() :/ */
+        !term->selection.ongoing)
     {
         int selection_row = start_row - grid->view + grid->num_rows;
         selection_row &= grid->num_rows - 1;
 
         selection_start(
             term, start_col, selection_row, SELECTION_CHAR_WISE, false);
+
+        term->search.match.row = start_row;
+        term->search.match.col = start_col;
     }
 
     /* Update selection endpoint */
@@ -273,16 +287,16 @@ matches_cell(const struct terminal *term, const struct cell *cell, size_t search
         return -1;
 
     if (composed != NULL) {
-        if (search_ofs + 1 + composed->count > term->search.len)
+        if (search_ofs + composed->count > term->search.len)
             return -1;
 
         for (size_t j = 1; j < composed->count; j++) {
-            if (composed->chars[j] != term->search.buf[search_ofs + 1 + j])
+            if (composed->chars[j] != term->search.buf[search_ofs + j])
                 return -1;
         }
     }
 
-    return composed != NULL ? 1 + composed->count : 1;
+    return composed != NULL ? composed->count : 1;
 }
 
 static bool
@@ -369,8 +383,11 @@ find_next(struct terminal *term, enum search_direction direction,
                 match_len += additional_chars;
                 match_end_col++;
 
-                while (match_row->cells[match_end_col].wc > CELL_SPACER)
+                while (match_end_col < term->cols &&
+                       match_row->cells[match_end_col].wc > CELL_SPACER)
+                {
                     match_end_col++;
+                }
             }
 
             if (match_len != term->search.len) {
@@ -546,6 +563,7 @@ search_matches_next(struct search_match_iterator *iter)
         term->cols - 1,
         grid_row_absolute_in_view(grid, term->rows - 1)};
 
+    /* BUG: matches *starting* outside the view, but ending *inside*, aren't matched */
     struct range match;
     bool found = find_next(term, SEARCH_FORWARD, abs_start, abs_end, &match);
     if (!found)
@@ -564,11 +582,6 @@ search_matches_next(struct search_match_iterator *iter)
     LOG_DBG("match at (view-local coordinates) %dx%d-%dx%d, view=%d",
             match.start.row, match.start.col,
             match.end.row, match.end.col, grid->view);
-
-    xassert(match.start.row >= 0);
-    xassert(match.start.row < term->rows);
-    xassert(match.end.row >= 0);
-    xassert(match.end.row < term->rows);
 
     /* Assert match end comes *after* the match start */
     xassert(match.end.row > match.start.row ||
@@ -642,67 +655,282 @@ search_add_chars(struct terminal *term, const char *src, size_t count)
     add_wchars(term, c32s, chars);
 }
 
-static void
-search_match_to_end_of_word(struct terminal *term, bool spaces_only)
+enum extend_direction {SEARCH_EXTEND_LEFT, SEARCH_EXTEND_RIGHT};
+
+static bool
+coord_advance_left(const struct terminal *term, struct coord *pos,
+                   const struct row **row)
 {
-    if (term->search.match_len == 0)
+    const struct grid *grid = term->grid;
+    struct coord new_pos = *pos;
+
+    if (--new_pos.col < 0) {
+        new_pos.row = (new_pos.row - 1 + grid->num_rows) & (grid->num_rows - 1);
+        new_pos.col = term->cols - 1;
+
+        if (has_wrapped_around_left(term, new_pos.row))
+            return false;
+
+        if (row != NULL)
+            *row = grid->rows[new_pos.row];
+    }
+
+    *pos = new_pos;
+    return true;
+}
+
+static bool
+coord_advance_right(const struct terminal *term, struct coord *pos,
+                    const struct row **row)
+{
+    const struct grid *grid = term->grid;
+    struct coord new_pos = *pos;
+
+    if (++new_pos.col >= term->cols) {
+        new_pos.row = (new_pos.row + 1) & (grid->num_rows - 1);
+        new_pos.col = 0;
+
+        if (has_wrapped_around_right(term, new_pos.row))
+            return false;
+
+        if (row != NULL)
+            *row = grid->rows[new_pos.row];
+    }
+
+    *pos = new_pos;
+    return true;
+}
+
+static void
+search_extend_find_char(const struct terminal *term, struct coord *target,
+                        enum extend_direction direction)
+{
+    struct coord pos = direction == SEARCH_EXTEND_LEFT
+        ? selection_get_start(term) : selection_get_end(term);
+    xassert(pos.row >= 0);
+    xassert(pos.row < term->grid->num_rows);
+
+    *target = pos;
+
+    const struct row *row = term->grid->rows[pos.row];
+
+    while (true) {
+        switch (direction) {
+        case SEARCH_EXTEND_LEFT:
+            if (!coord_advance_left(term, &pos, &row))
+                return;
+            break;
+
+        case SEARCH_EXTEND_RIGHT:
+            if (!coord_advance_right(term, &pos, &row))
+                return;
+            break;
+        }
+
+        const char32_t wc = row->cells[pos.col].wc;
+
+        if (wc >= CELL_SPACER || wc == U'\0')
+            continue;
+
+        *target = pos;
         return;
+    }
+}
 
-    xassert(term->selection.coords.end.row >= 0);
+static void
+search_extend_find_char_left(const struct terminal *term, struct coord *target)
+{
+    search_extend_find_char(term, target, SEARCH_EXTEND_LEFT);
+}
 
+static void
+search_extend_find_char_right(const struct terminal *term, struct coord *target)
+{
+    search_extend_find_char(term, target, SEARCH_EXTEND_RIGHT);
+}
+
+static void
+search_extend_find_word(const struct terminal *term, bool spaces_only,
+                        struct coord *target, enum extend_direction direction)
+{
     struct grid *grid = term->grid;
-    const bool move_cursor = term->search.cursor == term->search.len;
+    struct coord pos = direction == SEARCH_EXTEND_LEFT
+        ? selection_get_start(term)
+        : selection_get_end(term);
+    
+    xassert(pos.row >= 0);
+    xassert(pos.row < grid->num_rows);
 
-    struct coord old_end = selection_get_end(term);
-    struct coord new_end = old_end;
-    struct row *row = NULL;
-
-    xassert(new_end.row >= 0);
-    xassert(new_end.row < grid->num_rows);
-
-    /* Advances a coordinate by one column, to the right. Returns
-     * false if we’ve reached the scrollback wrap-around */
-#define advance_pos(coord) __extension__                                \
-        ({                                                              \
-            bool wrapped_around = false;                                \
-            if (++(coord).col >= term->cols) {                          \
-                (coord).row = ((coord).row + 1) & (grid->num_rows - 1); \
-                (coord).col = 0;                                        \
-                row = grid->rows[(coord).row];                          \
-                if (has_wrapped_around(term, (coord.row)))              \
-                    wrapped_around = true;                              \
-            }                                                           \
-            !wrapped_around;                                             \
-        })
+    *target = pos;
 
     /* First character to consider is the *next* character */
-    if (!advance_pos(new_end))
-        return;
+    switch (direction) {
+    case SEARCH_EXTEND_LEFT:
+        if (!coord_advance_left(term, &pos, NULL))
+            return;
+        break;
 
-    xassert(new_end.row >= 0);
-    xassert(new_end.row < grid->num_rows);
-    xassert(grid->rows[new_end.row] != NULL);
+    case SEARCH_EXTEND_RIGHT:
+        if (!coord_advance_right(term, &pos, NULL))
+            return;
+        break;
+    }
+
+    xassert(pos.row >= 0);
+    xassert(pos.row < grid->num_rows);
+    xassert(grid->rows[pos.row] != NULL);
 
     /* Find next word boundary */
-    new_end.row -= grid->view + grid->num_rows;
-    new_end.row &= grid->num_rows - 1;
-    selection_find_word_boundary_right(term, &new_end, spaces_only, false);
-    new_end.row += grid->view;
-    new_end.row &= grid->num_rows - 1;
+    switch (direction) {
+    case SEARCH_EXTEND_LEFT:
+        selection_find_word_boundary_left(term, &pos, spaces_only);
+        break;
 
-    struct coord pos = old_end;
-    row = grid->rows[pos.row];
+    case SEARCH_EXTEND_RIGHT:
+        selection_find_word_boundary_right(term, &pos, spaces_only, false);
+        break;
+    }
+
+    *target = pos;
+}
+
+static void
+search_extend_find_word_left(const struct terminal *term, bool spaces_only,
+                             struct coord *target)
+{
+    search_extend_find_word(term, spaces_only, target, SEARCH_EXTEND_LEFT);
+}
+
+static void
+search_extend_find_word_right(const struct terminal *term, bool spaces_only,
+                              struct coord *target)
+{
+    search_extend_find_word(term, spaces_only, target, SEARCH_EXTEND_RIGHT);
+}
+
+static void
+search_extend_find_line(const struct terminal *term, struct coord *target,
+                        enum extend_direction direction)
+{
+    struct coord pos = direction == SEARCH_EXTEND_LEFT
+        ? selection_get_start(term) : selection_get_end(term);
+
+    xassert(pos.row >= 0);
+    xassert(pos.row < term->grid->num_rows);
+
+    *target = pos;
+
+    const struct grid *grid = term->grid;
+
+    switch (direction) {
+    case SEARCH_EXTEND_LEFT:
+        pos.row = (pos.row - 1 + grid->num_rows) & (grid->num_rows - 1);
+        if (has_wrapped_around_right(term, pos.row))
+            return;
+        break;
+
+    case SEARCH_EXTEND_RIGHT:
+        pos.row = (pos.row + 1) & (grid->num_rows - 1);
+        if (has_wrapped_around_left(term, pos.row))
+            return;
+        break;
+    }
+
+    *target = pos;
+}
+
+static void
+search_extend_find_line_up(const struct terminal *term, struct coord *target)
+{
+    search_extend_find_line(term, target, SEARCH_EXTEND_LEFT);
+}
+
+static void
+search_extend_find_line_down(const struct terminal *term, struct coord *target)
+{
+    search_extend_find_line(term, target, SEARCH_EXTEND_RIGHT);
+}
+
+static void
+search_extend_left(struct terminal *term, const struct coord *target)
+{
+    const struct coord last_coord = selection_get_start(term);
+    struct coord pos = *target;
+    const struct row *row = term->grid->rows[pos.row];
+
+    const bool move_cursor = term->search.cursor != 0;
+
+    struct extraction_context *ctx = extract_begin(SELECTION_NONE, false);
+    if (ctx == NULL)
+        return;
+
+    while (pos.col != last_coord.col || pos.row != last_coord.row) {
+        if (!extract_one(term, row, &row->cells[pos.col], pos.col, ctx))
+            break;
+        if (!coord_advance_right(term, &pos, &row))
+            break;
+    }
+
+    char32_t *new_text;
+    size_t new_len;
+
+    if (!extract_finish_wide(ctx, &new_text, &new_len))
+        return;
+
+    if (!search_ensure_size(term, term->search.len + new_len))
+        return;
+
+    memmove(&term->search.buf[new_len], &term->search.buf[0],
+            term->search.len * sizeof(term->search.buf[0]));
+
+    size_t actually_copied = 0;
+    for (size_t i = 0; i < new_len; i++) {
+        if (new_text[i] == U'\n') {
+            /* extract() adds newlines, which we never match against */
+            continue;
+        }
+
+        term->search.buf[actually_copied++] = new_text[i];
+        term->search.len++;
+    }
+
+    xassert(actually_copied <= new_len);
+    if (actually_copied < new_len) {
+        memmove(
+            &term->search.buf[actually_copied], &term->search.buf[new_len],
+            (term->search.len - actually_copied) * sizeof(term->search.buf[0]));
+    }
+
+    term->search.buf[term->search.len] = U'\0';
+    free(new_text);
+
+    if (move_cursor)
+        term->search.cursor += actually_copied;
+
+    struct range match = {.start = *target, .end = selection_get_end(term)};
+    search_update_selection(term, &match);
+
+    term->search.match_len = term->search.len;
+}
+
+static void
+search_extend_right(struct terminal *term, const struct coord *target)
+{
+    struct coord pos = selection_get_end(term);
+    const struct row *row = term->grid->rows[pos.row];
+
+    const bool move_cursor = term->search.cursor == term->search.len;
 
     struct extraction_context *ctx = extract_begin(SELECTION_NONE, false);
     if (ctx == NULL)
         return;
 
     do {
-        if (!advance_pos(pos))
+        if (!coord_advance_right(term, &pos, &row))
             break;
         if (!extract_one(term, row, &row->cells[pos.col], pos.col, ctx))
             break;
-    } while (pos.col != new_end.col || pos.row != new_end.row);
+    } while (pos.col != target->col || pos.row != target->row);
 
     char32_t *new_text;
     size_t new_len;
@@ -728,12 +956,9 @@ search_match_to_end_of_word(struct terminal *term, bool spaces_only)
     if (move_cursor)
         term->search.cursor = term->search.len;
 
-    struct range match = {.start = term->search.match, .end = new_end};
+    struct range match = {.start = term->search.match, .end = *target};
     search_update_selection(term, &match);
-
     term->search.match_len = term->search.len;
-
-#undef advance_pos
 }
 
 static size_t
@@ -820,6 +1045,20 @@ execute_binding(struct seat *seat, struct terminal *term,
 
     switch (action) {
     case BIND_ACTION_SEARCH_NONE:
+        return false;
+
+    case BIND_ACTION_SEARCH_SCROLLBACK_UP_PAGE:
+        if (term->grid == &term->normal) {
+            cmd_scrollback_up(term, term->rows);
+            return true;
+        }
+        return false;
+
+    case BIND_ACTION_SEARCH_SCROLLBACK_DOWN_PAGE:
+        if (term->grid == &term->normal) {
+            cmd_scrollback_down(term, term->rows);
+            return true;
+        }
         return false;
 
     case BIND_ACTION_SEARCH_CANCEL:
@@ -967,17 +1206,77 @@ execute_binding(struct seat *seat, struct terminal *term,
         return true;
     }
 
-    case BIND_ACTION_SEARCH_EXTEND_WORD:
-        search_match_to_end_of_word(term, false);
+    case BIND_ACTION_SEARCH_EXTEND_CHAR: {
+        struct coord target;
+        search_extend_find_char_right(term, &target);
+        search_extend_right(term, &target);
         *update_search_result = false;
         *redraw = true;
         return true;
+    }
 
-    case BIND_ACTION_SEARCH_EXTEND_WORD_WS:
-        search_match_to_end_of_word(term, true);
+    case BIND_ACTION_SEARCH_EXTEND_WORD: {
+        struct coord target;
+        search_extend_find_word_right(term, false, &target);
+        search_extend_right(term, &target);
         *update_search_result = false;
         *redraw = true;
         return true;
+    }
+
+    case BIND_ACTION_SEARCH_EXTEND_WORD_WS: {
+        struct coord target;
+        search_extend_find_word_right(term, true, &target);
+        search_extend_right(term, &target);
+        *update_search_result = false;
+        *redraw = true;
+        return true;
+    }
+
+    case BIND_ACTION_SEARCH_EXTEND_LINE_DOWN: {
+        struct coord target;
+        search_extend_find_line_down(term, &target);
+        search_extend_right(term, &target);
+        *update_search_result = false;
+        *redraw = true;
+        return true;
+    }
+
+    case BIND_ACTION_SEARCH_EXTEND_BACKWARD_CHAR: {
+        struct coord target;
+        search_extend_find_char_left(term, &target);
+        search_extend_left(term, &target);
+        *update_search_result = false;
+        *redraw = true;
+        return true;
+    }
+
+    case BIND_ACTION_SEARCH_EXTEND_BACKWARD_WORD: {
+        struct coord target;
+        search_extend_find_word_left(term, false, &target);
+        search_extend_left(term, &target);
+        *update_search_result = false;
+        *redraw = true;
+        return true;
+    }
+
+    case BIND_ACTION_SEARCH_EXTEND_BACKWARD_WORD_WS: {
+        struct coord target;
+        search_extend_find_word_left(term, true, &target);
+        search_extend_left(term, &target);
+        *update_search_result = false;
+        *redraw = true;
+        return true;
+    }
+
+    case BIND_ACTION_SEARCH_EXTEND_LINE_UP: {
+        struct coord target;
+        search_extend_find_line_up(term, &target);
+        search_extend_left(term, &target);
+        *update_search_result = false;
+        *redraw = true;
+        return true;
+    }
 
     case BIND_ACTION_SEARCH_CLIPBOARD_PASTE:
         text_from_clipboard(
