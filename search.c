@@ -705,6 +705,9 @@ static void
 search_extend_find_char(const struct terminal *term, struct coord *target,
                         enum extend_direction direction)
 {
+    if (term->search.match_len == 0)
+        return;
+
     struct coord pos = direction == SEARCH_EXTEND_LEFT
         ? selection_get_start(term) : selection_get_end(term);
     xassert(pos.row >= 0);
@@ -753,11 +756,14 @@ static void
 search_extend_find_word(const struct terminal *term, bool spaces_only,
                         struct coord *target, enum extend_direction direction)
 {
+    if (term->search.match_len == 0)
+        return;
+
     struct grid *grid = term->grid;
     struct coord pos = direction == SEARCH_EXTEND_LEFT
         ? selection_get_start(term)
         : selection_get_end(term);
-    
+
     xassert(pos.row >= 0);
     xassert(pos.row < grid->num_rows);
 
@@ -812,6 +818,9 @@ static void
 search_extend_find_line(const struct terminal *term, struct coord *target,
                         enum extend_direction direction)
 {
+    if (term->search.match_len == 0)
+        return;
+
     struct coord pos = direction == SEARCH_EXTEND_LEFT
         ? selection_get_start(term) : selection_get_end(term);
 
@@ -854,6 +863,9 @@ search_extend_find_line_down(const struct terminal *term, struct coord *target)
 static void
 search_extend_left(struct terminal *term, const struct coord *target)
 {
+    if (term->search.match_len == 0)
+        return;
+
     const struct coord last_coord = selection_get_start(term);
     struct coord pos = *target;
     const struct row *row = term->grid->rows[pos.row];
@@ -916,6 +928,9 @@ search_extend_left(struct terminal *term, const struct coord *target)
 static void
 search_extend_right(struct terminal *term, const struct coord *target)
 {
+    if (term->search.match_len == 0)
+        return;
+
     struct coord pos = selection_get_end(term);
     const struct row *row = term->grid->rows[pos.row];
 
