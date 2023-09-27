@@ -684,7 +684,16 @@ selection_start(struct terminal *term, int col, int row,
         term->selection.pivot.start = term->selection.coords.start;
         term->selection.pivot.end = end;
 
-        selection_update(term, end.col, end.row);
+        /*
+         * FIXME: go through selection.c and make sure all public
+         * functions use the *same* coordinate system...
+         *
+         * selection_find_word_boundary*() uses absolute row numbers,
+         * while selection_update(), and pretty much all others, use
+         * view-local.
+         */
+
+        selection_update(term, end.col, end.row - term->grid->view);
         break;
     }
 
@@ -1100,15 +1109,11 @@ set_pivot_point_for_block_and_char_wise(struct terminal *term,
 void
 selection_update(struct terminal *term, int col, int row)
 {
-    if (term->selection.coords.start.row < 0) {
-        LOG_ERR("NO SELECTION");
+    if (term->selection.coords.start.row < 0)
         return;
-    }
 
-    if (!term->selection.ongoing) {
-        LOG_ERR("NOT ON-GOING");
+    if (!term->selection.ongoing)
         return;
-    }
 
     xassert(term->grid->view + row != -1);
 
