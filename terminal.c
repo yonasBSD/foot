@@ -826,9 +826,9 @@ get_font_dpi(const struct terminal *term)
         : &tll_front(term->wl->monitors);
 
     if (term_fractional_scaling(term))
-        return mon->dpi.physical;
+        return mon != NULL ? mon->dpi.physical : 96.;
     else
-        return mon->dpi.scaled;
+        return mon != NULL ? mon->dpi.scaled : 96.;
 }
 
 static enum fcft_subpixel
