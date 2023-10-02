@@ -758,7 +758,7 @@ xdg_toplevel_configure(void *data, struct xdg_toplevel *xdg_toplevel,
 #if defined(XDG_TOPLEVEL_STATE_SUSPENDED_SINCE_VERSION)
         case XDG_TOPLEVEL_STATE_SUSPENDED:    is_suspended = true; break;
 #endif
-    }
+        }
 
 #if defined(LOG_ENABLE_DBG) && LOG_ENABLE_DBG
         if (*state >= 0 && *state < ALEN(strings)) {
@@ -831,17 +831,52 @@ xdg_toplevel_wm_capabilities(void *data,
     win->wm_capabilities.maximize = false;
     win->wm_capabilities.minimize = false;
 
-    uint32_t *cap_ptr;
-    wl_array_for_each(cap_ptr, caps) {
-        switch (*cap_ptr) {
+#if defined(LOG_ENABLE_DBG) && LOG_ENABLE_DBG
+    char cap_str[2048];
+    int cap_chars = 0;
+
+    static const char *const strings[] = {
+        [XDG_TOPLEVEL_WM_CAPABILITIES_WINDOW_MENU] = "window-menu",
+        [XDG_TOPLEVEL_WM_CAPABILITIES_MAXIMIZE] = "maximize",
+        [XDG_TOPLEVEL_WM_CAPABILITIES_FULLSCREEN] = "fullscreen",
+        [XDG_TOPLEVEL_WM_CAPABILITIES_MINIMIZE] = "minimize",
+    };
+#endif
+
+    enum xdg_toplevel_wm_capabilities *cap;
+    wl_array_for_each(cap, caps) {
+        switch (*cap) {
         case XDG_TOPLEVEL_WM_CAPABILITIES_MAXIMIZE:
             win->wm_capabilities.maximize = true;
             break;
+
         case XDG_TOPLEVEL_WM_CAPABILITIES_MINIMIZE:
             win->wm_capabilities.minimize = true;
             break;
+
+        case XDG_TOPLEVEL_WM_CAPABILITIES_WINDOW_MENU:
+        case XDG_TOPLEVEL_WM_CAPABILITIES_FULLSCREEN:
+            break;
         }
+
+#if defined(LOG_ENABLE_DBG) && LOG_ENABLE_DBG
+        if (*cap >= 0 && *cap < ALEN(strings)) {
+            cap_chars += snprintf(
+                &cap_str[cap_chars], sizeof(cap_str) - cap_chars,
+                "%s, ",
+                 strings[*cap] != NULL ? strings[*cap] : "<unknown>");
+        }
+#endif
     }
+
+#if defined(LOG_ENABLE_DBG) && LOG_ENABLE_DBG
+    if (cap_chars > 2)
+        cap_str[cap_chars - 2] = '\0';
+    else
+        cap_str[0] = '\0';
+
+    LOG_DBG("xdg-toplevel: wm-capabilities=[%s]", cap_str);
+#endif
 }
 #endif
 
