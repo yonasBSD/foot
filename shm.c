@@ -527,7 +527,7 @@ struct buffer *
 shm_get_buffer(struct buffer_chain *chain, int width, int height)
 {
     LOG_DBG(
-        "chain=%p: looking for a re-usable %dx%d buffer "
+        "chain=%p: looking for a reusable %dx%d buffer "
         "among %zu potential buffers",
         (void *)chain, width, height, tll_length(chain->bufs));
 
