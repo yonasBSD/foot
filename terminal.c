@@ -2675,7 +2675,7 @@ term_scroll_partial(struct terminal *term, struct scroll_region region, int rows
         /*
          * Selection is (partly) inside either the top or bottom
          * scrolling regions, or on (at least one) of the lines
-         * scrolled in (i.e. re-used lines).
+         * scrolled in (i.e. reused lines).
          */
         if (selection_on_top_region(term, region) ||
             selection_on_bottom_region(term, region))
@@ -2749,7 +2749,7 @@ term_scroll_reverse_partial(struct terminal *term,
         /*
          * Selection is (partly) inside either the top or bottom
          * scrolling regions, or on (at least one) of the lines
-         * scrolled in (i.e. re-used lines).
+         * scrolled in (i.e. reused lines).
          */
         if (selection_on_top_region(term, region) ||
             selection_on_bottom_region(term, region))

@@ -584,7 +584,7 @@ _line_wrap(struct grid *old_grid, struct row **new_grid, struct row *row,
         new_row = grid_row_alloc(col_count, false);
         new_grid[*row_idx] = new_row;
     } else {
-        /* Scrollback is full, need to re-use a row */
+        /* Scrollback is full, need to reuse a row */
         grid_row_reset_extra(new_row);
         new_row->linebreak = false;
         new_row->prompt_marker = false;
@@ -597,7 +597,7 @@ _line_wrap(struct grid *old_grid, struct row **new_grid, struct row *row,
         }
 
         /*
-         * TODO: detect if the re-used row is covered by the
+         * TODO: detect if the reused row is covered by the
          * selection. Of so, cancel the selection. The problem: we
          * don’t know if we’ve translated the selection coordinates
          * yet.

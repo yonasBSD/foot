@@ -409,10 +409,10 @@
   has terminated very early (for example, by trying to launch a
   non-existing shell/client).
 * Glitchy rendering when scrolling in the scrollback, on compositors
-  that does not allow Wayland buffer re-use (e.g. KDE/plasma)
+  that does not allow Wayland buffer reuse (e.g. KDE/plasma)
   ([#1173][1173])
 * Scrollback search matches not being highlighted correctly, on
-  compositors that does not allow Wayland buffer re-use
+  compositors that does not allow Wayland buffer reuse
   (e.g. KDE/plasma).
 * Nanosecs "overflow" when calculating timeout value for
   `resize-delay-ms` option.
@@ -2331,7 +2331,7 @@ means foot can be PGO:d in e.g. sandboxed build scripts. See
 * Window title always being set to "foot" on reset.
 * Terminfo entry `kb2` (center keypad key); it is now set to `\EOu`
   (which is what foot emits) instead of the incorrect value `\EOE`.
-* Palette re-use in sixel images. Previously, the palette was reset
+* Palette reuse in sixel images. Previously, the palette was reset
   after each image.
 * Do not auto-resize a sixel image for which the client has specified
   a size. This fixes an issue where an image would incorrectly

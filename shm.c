@@ -555,7 +555,7 @@ shm_get_buffer(struct buffer_chain *chain, int width, int height)
                     cached = buf;
                 else {
                     /* We have multiple buffers eligible for
-                     * re-use. Pick the “youngest” one, and mark the
+                     * reuse. Pick the “youngest” one, and mark the
                      * other one for purging */
                     if (buf->public.age < cached->public.age) {
                         shm_unref(&cached->public);

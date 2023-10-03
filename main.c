@@ -176,7 +176,7 @@ int
 main(int argc, char *const *argv)
 {
     /* Custom exit code, to enable users to differentiate between foot
-     * itself failing, and the client application failiing */
+     * itself failing, and the client application failing */
     static const int foot_exit_failure = -26;
     int ret = foot_exit_failure;
 

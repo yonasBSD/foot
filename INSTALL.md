@@ -169,7 +169,7 @@ under a different name. Setting this changes the default value of
 If you want foot to use the terminfo files from ncurses, but still
 package foot's own terminfo files under a different name, you can use
 the `-Dterminfo-base-name` option. Many distributions use the name
-`foot-extra`, and thus it might be a good idea to re-use that:
+`foot-extra`, and thus it might be a good idea to reuse that:
 
 ```sh
 meson ... -Ddefault-terminfo=foot -Dterminfo-base-name=foot-extra

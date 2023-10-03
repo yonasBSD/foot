@@ -1614,7 +1614,7 @@ render_overlay(struct terminal *term)
             buf->age == 0;
 
         if (!buffer_reuse) {
-            /* Can’t re-use last frame’s damage - set to full window,
+            /* Can’t reuse last frame’s damage - set to full window,
              * to ensure *everything* is updated */
             pixman_region32_init_rect(
                 &old_see_through, 0, 0, buf->width, buf->height);
@@ -4026,7 +4026,7 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
     /*
      * Since text reflow is slow, don’t do it *while* resizing. Only
      * do it when done, or after “pausing” the resize for sufficiently
-     * long. We re-use the TIOCSWINSZ timer to handle this. See
+     * long. We reuse the TIOCSWINSZ timer to handle this. See
      * send_dimensions_to_client() and fdm_tiocswinsz().
      *
      * To be able to do the final reflow correctly, we need a copy of

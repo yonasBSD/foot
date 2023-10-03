@@ -697,7 +697,7 @@ urls_assign_key_combos(const struct config *conf, url_list_t *urls)
 
         /*
          * Scan previous URLs, and check if *this* URL matches any of
-         * them; if so, re-use the *same* key combo.
+         * them; if so, reuse the *same* key combo.
          */
         bool url_already_seen = false;
         tll_foreach(*urls, it2) {
