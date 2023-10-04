@@ -1848,6 +1848,8 @@ erase_line(struct terminal *term, struct row *row)
 void
 term_reset(struct terminal *term, bool hard)
 {
+    LOG_INFO("%s resetting the terminal", hard ? "hard" : "soft");
+
     term->cursor_keys_mode = CURSOR_KEYS_NORMAL;
     term->keypad_keys_mode = KEYPAD_NUMERICAL;
     term->reverse = false;
