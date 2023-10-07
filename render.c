@@ -459,8 +459,8 @@ draw_cursor(const struct terminal *term, const struct cell *cell,
 }
 
 static int
-render_cell(struct terminal *term, pixman_image_t *pix,
-            struct row *row, int col, int row_no, bool has_cursor)
+render_cell(struct terminal *term, pixman_image_t *pix, pixman_region32_t *damage,
+            struct row *row, int row_no, int col, bool has_cursor)
 {
     struct cell *cell = &row->cells[col];
     if (cell->attrs.clean)
@@ -716,6 +716,12 @@ render_cell(struct terminal *term, pixman_image_t *pix,
         &clip, x, y,
         render_width, term->cell_height);
     pixman_image_set_clip_region32(pix, &clip);
+
+    if (damage != NULL) {
+        pixman_region32_union_rect(
+            damage, damage, x, y, render_width, term->cell_height);
+    }
+
     pixman_region32_fini(&clip);
 
     /* Background */
@@ -842,11 +848,11 @@ draw_cursor:
 }
 
 static void
-render_row(struct terminal *term, pixman_image_t *pix, struct row *row,
-           int row_no, int cursor_col)
+render_row(struct terminal *term, pixman_image_t *pix, pixman_region32_t *damage,
+           struct row *row, int row_no, int cursor_col)
 {
     for (int col = term->cols - 1; col >= 0; col--)
-        render_cell(term, pix, row, col, row_no, cursor_col == col);
+        render_cell(term, pix, damage, row, row_no, col, cursor_col == col);
 }
 
 static void
@@ -918,13 +924,13 @@ render_margin(struct terminal *term, struct buffer *buf,
     /* Ensure the updated regions are copied to the next frame's
      * buffer when we're double buffering */
     pixman_region32_union_rect(
-        &buf->dirty, &buf->dirty, 0, 0, term->width, term->margins.top);
+        &buf->dirty[0], &buf->dirty[0], 0, 0, term->width, term->margins.top);
     pixman_region32_union_rect(
-        &buf->dirty, &buf->dirty, 0, bmargin, term->width, term->margins.bottom);
+        &buf->dirty[0], &buf->dirty[0], 0, bmargin, term->width, term->margins.bottom);
     pixman_region32_union_rect(
-        &buf->dirty, &buf->dirty, 0, 0, term->margins.left, term->height);
+        &buf->dirty[0], &buf->dirty[0], 0, 0, term->margins.left, term->height);
     pixman_region32_union_rect(
-        &buf->dirty, &buf->dirty,
+        &buf->dirty[0], &buf->dirty[0],
         rmargin, 0, term->margins.right, term->height);
 
     if (apply_damage) {
@@ -1060,7 +1066,7 @@ grid_render_scroll(struct terminal *term, struct buffer *buf,
      * last frame’s damage (see reapply_old_damage()
      */
     pixman_region32_union_rect(
-        &buf->dirty, &buf->dirty, 0, dst_y, buf->width, height);
+        &buf->dirty[0], &buf->dirty[0], 0, dst_y, buf->width, height);
 }
 
 static void
@@ -1137,7 +1143,7 @@ grid_render_scroll_reverse(struct terminal *term, struct buffer *buf,
      * last frame’s damage (see reapply_old_damage()
      */
     pixman_region32_union_rect(
-        &buf->dirty, &buf->dirty, 0, dst_y, buf->width, height);
+        &buf->dirty[0], &buf->dirty[0], 0, dst_y, buf->width, height);
 }
 
 static void
@@ -1278,7 +1284,7 @@ render_sixel(struct terminal *term, pixman_image_t *pix,
         if (!sixel->opaque) {
             /* TODO: multithreading */
             int cursor_col = cursor->row == term_row_no ? cursor->col : -1;
-            render_row(term, pix, row, term_row_no, cursor_col);
+            render_row(term, pix, NULL, row, term_row_no, cursor_col);
         } else {
             for (int col = sixel->pos.col;
                  col < min(sixel->pos.col + sixel->cols, term->cols);
@@ -1293,7 +1299,7 @@ render_sixel(struct terminal *term, pixman_image_t *pix,
                     if ((last_row_needs_erase && last_row) ||
                         (last_col_needs_erase && last_col))
                     {
-                        render_cell(term, pix, row, col, term_row_no, cursor_col == col);
+                        render_cell(term, pix, NULL, row, term_row_no, col, cursor_col == col);
                     } else {
                         cell->attrs.clean = 1;
                         cell->attrs.confined = 1;
@@ -1464,7 +1470,7 @@ render_ime_preedit_for_seat(struct terminal *term, struct seat *seat,
             break;
 
         row->cells[col_idx + i] = *cell;
-        render_cell(term, buf->pix[0], row, col_idx + i, row_idx, false);
+        render_cell(term, buf->pix[0], NULL, row, row_idx, col_idx + i, false);
     }
 
     int start = seat->ime.preedit.cursor.start - ime_ofs;
@@ -1791,7 +1797,8 @@ render_worker_thread(void *_ctx)
                 struct row *row = grid_row_in_view(term->grid, row_no);
                 int cursor_col = cursor.row == row_no ? cursor.col : -1;
 
-                render_row(term, buf->pix[my_id], row, row_no, cursor_col);
+                render_row(term, buf->pix[my_id], &buf->dirty[my_id],
+                           row, row_no, cursor_col);
                 break;
             }
 
@@ -2737,11 +2744,11 @@ reapply_old_damage(struct terminal *term, struct buffer *new, struct buffer *old
          * current frame’s scroll damage *first*. This is done later,
          * when rendering the frame.
          */
-        pixman_region32_subtract(&dirty, &old->dirty, &dirty);
+        pixman_region32_subtract(&dirty, &old->dirty[0], &dirty);
         pixman_image_set_clip_region32(new->pix[0], &dirty);
     } else {
         /* Copy *all* of last frame’s damaged areas */
-        pixman_image_set_clip_region32(new->pix[0], &old->dirty);
+        pixman_image_set_clip_region32(new->pix[0], &old->dirty[0]);
     }
 
     pixman_image_composite32(
@@ -2966,28 +2973,14 @@ grid_render(struct terminal *term)
         xassert(tll_length(term->render.workers.queue) == 0);
     }
 
-    int first_dirty_row = -1;
+    pixman_region32_t damage;
+    pixman_region32_init(&damage);
+
     for (int r = 0; r < term->rows; r++) {
         struct row *row = grid_row_in_view(term->grid, r);
 
-        if (!row->dirty) {
-            if (first_dirty_row >= 0) {
-                int x = term->margins.left;
-                int y = term->margins.top + first_dirty_row * term->cell_height;
-                int width = term->width - term->margins.left - term->margins.right;
-                int height = (r - first_dirty_row) * term->cell_height;
-
-                wl_surface_damage_buffer(
-                    term->window->surface.surf, x, y, width, height);
-                pixman_region32_union_rect(
-                    &buf->dirty, &buf->dirty, 0, y, buf->width, height);
-            }
-            first_dirty_row = -1;
+        if (!row->dirty)
             continue;
-        }
-
-        if (first_dirty_row < 0)
-            first_dirty_row = r;
 
         row->dirty = false;
 
@@ -2995,19 +2988,10 @@ grid_render(struct terminal *term)
             tll_push_back(term->render.workers.queue, r);
 
         else {
+            /* TODO: damage region */
             int cursor_col = cursor.row == r ? cursor.col : -1;
-            render_row(term, buf->pix[0], row, r, cursor_col);
+            render_row(term, buf->pix[0], &damage, row, r, cursor_col);
         }
-    }
-
-    if (first_dirty_row >= 0) {
-        int x = term->margins.left;
-        int y = term->margins.top + first_dirty_row * term->cell_height;
-        int width = term->width - term->margins.left - term->margins.right;
-        int height = (term->rows - first_dirty_row) * term->cell_height;
-
-        wl_surface_damage_buffer(term->window->surface.surf, x, y, width, height);
-        pixman_region32_union_rect(&buf->dirty, &buf->dirty, 0, y, buf->width, height);
     }
 
     /* Signal workers the frame is done */
@@ -3020,6 +3004,25 @@ grid_render(struct terminal *term)
             sem_wait(&term->render.workers.done);
         term->render.workers.buf = NULL;
     }
+
+    for (size_t i = 0; i < term->render.workers.count; i++)
+        pixman_region32_union(&damage, &damage, &buf->dirty[i + 1]);
+
+    pixman_region32_union(&buf->dirty[0], &buf->dirty[0], &damage);
+
+    {
+        int box_count = 0;
+        pixman_box32_t *boxes = pixman_region32_rectangles(&damage, &box_count);
+
+        for (size_t i = 0; i < box_count; i++) {
+            wl_surface_damage_buffer(
+                term->window->surface.surf,
+                boxes[i].x1, boxes[i].y1,
+                boxes[i].x2 - boxes[i].x1, boxes[i].y2 - boxes[i].y1);
+        }
+    }
+
+    pixman_region32_fini(&damage);
 
     render_overlay(term);
     render_ime_preedit(term, buf);

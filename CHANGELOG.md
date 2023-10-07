@@ -98,6 +98,9 @@
 * Command line configuration overrides are now applied even if the
   configuration file does not exist or can't be
   parsed. ([#1495][1495]).
+* Wayland surface damage is now more fine-grained. This should result
+  in lower latencies in many use cases, especially on high DPI
+  monitors.
 
 [1391]: https://codeberg.org/dnkl/foot/issues/1391
 [1448]: https://codeberg.org/dnkl/foot/pulls/1448

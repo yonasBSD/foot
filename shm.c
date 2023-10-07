@@ -157,7 +157,9 @@ buffer_destroy(struct buffer_private *buf)
     pool_unref(buf->pool);
     buf->pool = NULL;
 
-    pixman_region32_fini(&buf->public.dirty);
+    for (size_t i = 0; i < buf->public.pix_instances; i++)
+        pixman_region32_fini(&buf->public.dirty[i]);
+    free(buf->public.dirty);
     free(buf);
 }
 
@@ -476,7 +478,12 @@ get_new_buffers(struct buffer_chain *chain, size_t count,
         else
             tll_push_front(chain->bufs, buf);
 
-        pixman_region32_init(&buf->public.dirty);
+        buf->public.dirty = malloc(
+            chain->pix_instances * sizeof(buf->public.dirty[0]));
+
+        for (size_t j = 0; j < chain->pix_instances; j++)
+            pixman_region32_init(&buf->public.dirty[j]);
+
         pool->ref_count++;
         offset += buf->size;
         bufs[i] = &buf->public;
@@ -585,7 +592,8 @@ shm_get_buffer(struct buffer_chain *chain, int width, int height)
     if (cached != NULL) {
         LOG_DBG("re-using buffer %p from cache", (void *)cached);
         cached->busy = true;
-        pixman_region32_clear(&cached->public.dirty);
+        for (size_t i = 0; i < cached->public.pix_instances; i++)
+            pixman_region32_clear(&cached->public.dirty[i]);
         xassert(cached->public.pix_instances == chain->pix_instances);
         return &cached->public;
     }

@@ -24,7 +24,18 @@ struct buffer {
 
     unsigned age;
 
-    pixman_region32_t dirty;
+    /*
+     * First item in the array is used to track frame-to-frame
+     * damage. This is used when re-applying damage from the last
+     * frame, when the compositor doesn't release buffers immediately
+     * (forcing us to double buffer)
+     *
+     * The remaining items are used to track surface damage. Each
+     * worker thread adds its own cell damage to "its" region. When
+     * the frame is done, all damage is converted to a single region,
+     * which is then used in calls to wl_surface_damage_buffer().
+     */
+    pixman_region32_t *dirty;
 };
 
 void shm_fini(void);
