@@ -545,6 +545,8 @@ render_cell(struct terminal *term, pixman_image_t *pix,
                  *
                  * By disabling the alpha channel, the window will at
                  * least be rendered in the intended background color.
+                 *
+                 * NOTE: if changing this, also update render_margin()
                  */
                 xassert(alpha == 0xffff);
             } else {
@@ -882,8 +884,15 @@ render_margin(struct terminal *term, struct buffer *buf,
     const int bmargin = term->height - term->margins.bottom;
     const int line_count = end_line - start_line;
 
-    uint32_t _bg = !term->reverse ? term->colors.bg : term->colors.fg;
-    pixman_color_t bg = color_hex_to_pixman_with_alpha(_bg, term->colors.alpha);
+    const uint32_t _bg = !term->reverse ? term->colors.bg : term->colors.fg;
+    uint16_t alpha = term->colors.alpha;
+
+    if (term->window->is_fullscreen) {
+        /* Disable alpha in fullscreen - see render_cell() for details */
+        alpha = 0xffff;
+    }
+
+    pixman_color_t bg = color_hex_to_pixman_with_alpha(_bg, alpha);
 
     pixman_image_fill_rectangles(
         PIXMAN_OP_SRC, buf->pix[0], &bg, 4,

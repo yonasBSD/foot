@@ -109,12 +109,15 @@
 * Crash when compositor calls `fractional_scale::preferred_scale()`
   when there are no monitors (for example, after a monitor has been
   turned off and then back on again) ([#1498][1498]).
+* Transparency in margins (padding) not being disabled in fullscreen
+  mode ([#1503][1503]).
 
 [1436]: https://codeberg.org/dnkl/foot/issues/1436
 [1464]: https://codeberg.org/dnkl/foot/issues/1464
 [1465]: https://codeberg.org/dnkl/foot/issues/1465
 [1493]: https://codeberg.org/dnkl/foot/pulls/1493
 [1498]: https://codeberg.org/dnkl/foot/issues/1498
+[1503]: https://codeberg.org/dnkl/foot/issues/1503
 
 
 ### Security
