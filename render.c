@@ -1588,7 +1588,9 @@ render_overlay(struct terminal *term)
         break;
 
     case OVERLAY_FLASH:
-        color = (pixman_color_t){.red=0x7fff, .green=0x7fff, .blue=0, .alpha=0x7fff};
+        color = color_hex_to_pixman_with_alpha(
+                term->conf->colors.flash,
+                term->conf->colors.flash_alpha);
         break;
     }
 
@@ -2193,7 +2195,7 @@ render_csd_button_maximize_maximized(
             { x_margin + shrink, y_margin + thick, thick, width - 2 * thick - shrink },
             { x_margin + width - thick - shrink, y_margin + thick, thick, width - 2 * thick - shrink },
             { x_margin + shrink, y_margin + width - thick - shrink, width - 2 * shrink, thick }});
-    
+
     pixman_image_unref(src);
 
 }

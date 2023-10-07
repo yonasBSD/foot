@@ -508,6 +508,8 @@ struct terminal {
     struct {
         uint32_t fg;
         uint32_t bg;
+        uint32_t flash;
+        uint32_t flash_alpha;
         uint32_t table[256];
         uint16_t alpha;
         uint32_t selection_fg;

@@ -1054,6 +1054,8 @@ parse_section_bell(struct context *ctx)
         return value_to_bool(ctx, &conf->bell.urgent);
     else if (strcmp(key, "notify") == 0)
         return value_to_bool(ctx, &conf->bell.notify);
+    else if (strcmp(key, "visual") == 0)
+        return value_to_bool(ctx, &conf->bell.flash);
     else if (strcmp(key, "command") == 0)
         return value_to_spawn_template(ctx, &conf->bell.command);
     else if (strcmp(key, "command-focused") == 0)
@@ -1237,6 +1239,7 @@ parse_section_colors(struct context *ctx)
         return true;
     }
 
+    else if (strcmp(key, "flash") == 0) color = &conf->colors.flash;
     else if (strcmp(key, "foreground") == 0) color = &conf->colors.fg;
     else if (strcmp(key, "background") == 0) color = &conf->colors.bg;
     else if (strcmp(key, "selection-foreground") == 0) color = &conf->colors.selection_fg;
@@ -1319,6 +1322,21 @@ parse_section_colors(struct context *ctx)
         conf->colors.alpha = alpha * 65535.;
         return true;
     }
+
+    else if (strcmp(key, "flash-alpha") == 0) {
+        float alpha;
+        if (!value_to_float(ctx, &alpha))
+            return false;
+
+        if (alpha < 0. || alpha > 1.) {
+            LOG_CONTEXTUAL_ERR("not in range 0.0-1.0");
+            return false;
+        }
+
+        conf->colors.flash_alpha = alpha * 65535.;
+        return true;
+    }
+
 
     else {
         LOG_CONTEXTUAL_ERR("not valid option");
@@ -2980,6 +2998,7 @@ config_load(struct config *conf, const char *conf_path,
         .bell = {
             .urgent = false,
             .notify = false,
+            .flash = false,
             .command = {
                 .argv = {.args = NULL},
             },
@@ -3003,6 +3022,8 @@ config_load(struct config *conf, const char *conf_path,
         .colors = {
             .fg = default_foreground,
             .bg = default_background,
+            .flash = 0x7f7f00,
+            .flash_alpha = 0x7fff,
             .alpha = 0xffff,
             .selection_fg = 0x80000000,  /* Use default bg */
             .selection_bg = 0x80000000,  /* Use default fg */
