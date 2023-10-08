@@ -27,6 +27,12 @@
  #define MAP_UNINITIALIZED 0
 #endif
 
+#if defined(MFD_NOEXEC_SEAL)
+    #define FOOT_MFD_FLAGS (MFD_CLOEXEC | MFD_ALLOW_SEALING | MFD_NOEXEC_SEAL)
+#else
+    #define FOOT_MFD_FLAGS (MFD_CLOEXEC | MFD_ALLOW_SEALING)
+#endif
+
 #define TIME_SCROLL 0
 
 #define FORCED_DOUBLE_BUFFERING 0
@@ -330,11 +336,6 @@ get_new_buffers(struct buffer_chain *chain, size_t count,
     struct buffer_pool *pool = NULL;
 
     /* Backing memory for SHM */
-#if defined(MFD_NOEXEC_SEAL)
-    #define FOOT_MFD_FLAGS (MFD_CLOEXEC | MFD_ALLOW_SEALING | MFD_NOEXEC_SEAL)
-#else
-    #define FOOT_MFD_FLAGS (MFD_CLOEXEC | MFD_ALLOW_SEALING)
-#endif
 #if defined(MEMFD_CREATE)
     pool_fd = memfd_create("foot-wayland-shm-buffer-pool", FOOT_MFD_FLAGS);
 #elif defined(__FreeBSD__)
