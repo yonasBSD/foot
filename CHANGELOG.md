@@ -66,10 +66,14 @@
   - `extend-line-down` (shift+down)
   - `extend-backward-char` (shift+left)
   - `extend-backward-to-word-boundary` (ctrl+shift+left)
-  - `extend-backward-to-next-whitespace` (ctrl+alt+shift+left)
+  - `extend-backward-to-next-whitespace` (none)
   - `extend-line-up` (shift+up)
   - `scrollback-up-page` (shift+page-up)
+  - `scrollback-up-half-page` (none)
+  - `scrollback-up-line` (none)
   - `scrollback-down-page` (shift+page-down)
+  - `scrollback-down-half-page` (none)
+  - `scrollback-down-line` (none)
 
 [1077]: https://codeberg.org/dnkl/foot/issues/1077
 [1364]: https://codeberg.org/dnkl/foot/issues/1364
