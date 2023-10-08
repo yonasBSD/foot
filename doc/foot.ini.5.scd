@@ -945,13 +945,35 @@ scrollback search mode. The syntax is exactly the same as the regular
 	Deletes the **word after** the cursor. Default: _Mod1+d
 	Control+Delete_.
 
+*extend-char*
+	Extend current selection to the right, by one character. Default:
+	_Shift+Right_.
+
 *extend-to-word-boundary*
-	Extend current selection to the next word boundary. Default:
-	_Control+w_.
+	Extend current selection to the right, to the next word
+	boundary. Default: _Control+w Control+Shift+Right_.
 
 *extend-to-next-whitespace*
-	Extend the current selection to the next whitespace. Default:
-	_Control+Shift+w_.
+	Extend the current selection to the right, to the next
+	whitespace. Default: _Control+Shift+w_.
+
+*extend-line-down*
+	Extend current selection down one line. Default: _Shift+Down_.
+
+*extend-backward-char*
+	Extend current selection to the left, by one character. Default:
+	_Shift+Left_.
+
+*extend-backward-to-word-boundary*
+	Extend current selection to the left, to the next word
+	boundary. Default: _Control+Shift+Left_.
+
+*extend-backward-to-next-whitespace*
+	Extend the current selection to the left, to the next
+	whitespace. Default: _none_.
+
+*extend-line-up*
+	Extend current selection up one line. Default: _Shift+Up_.
 
 *clipboard-paste*
 	Paste from the _clipboard_ into the search buffer. Default:
