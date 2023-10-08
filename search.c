@@ -1071,12 +1071,54 @@ execute_binding(struct seat *seat, struct terminal *term,
         }
         return false;
 
+    case BIND_ACTION_SEARCH_SCROLLBACK_UP_HALF_PAGE:
+        if (term->grid == &term->normal) {
+            cmd_scrollback_up(term, max(term->rows / 2, 1));
+            return true;
+        }
+        break;
+
+    case BIND_ACTION_SEARCH_SCROLLBACK_UP_LINE:
+        if (term->grid == &term->normal) {
+            cmd_scrollback_up(term, 1);
+            return true;
+        }
+        break;
+
     case BIND_ACTION_SEARCH_SCROLLBACK_DOWN_PAGE:
         if (term->grid == &term->normal) {
             cmd_scrollback_down(term, term->rows);
             return true;
         }
         return false;
+
+    case BIND_ACTION_SEARCH_SCROLLBACK_DOWN_HALF_PAGE:
+        if (term->grid == &term->normal) {
+            cmd_scrollback_down(term, max(term->rows / 2, 1));
+            return true;
+        }
+        break;
+
+    case BIND_ACTION_SEARCH_SCROLLBACK_DOWN_LINE:
+        if (term->grid == &term->normal) {
+            cmd_scrollback_down(term, 1);
+            return true;
+        }
+        break;
+
+    case BIND_ACTION_SEARCH_SCROLLBACK_HOME:
+        if (term->grid == &term->normal) {
+            cmd_scrollback_up(term, term->grid->num_rows);
+            return true;
+        }
+        break;
+
+    case BIND_ACTION_SEARCH_SCROLLBACK_END:
+        if (term->grid == &term->normal) {
+            cmd_scrollback_down(term, term->grid->num_rows);
+            return true;
+        }
+        break;
 
     case BIND_ACTION_SEARCH_CANCEL:
         if (term->search.view_followed_offset)

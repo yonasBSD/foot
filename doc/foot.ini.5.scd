@@ -987,6 +987,31 @@ scrollback search mode. The syntax is exactly the same as the regular
 	Unicode input mode. See _key-bindings.unicode-input_ for
 	details. Default: _none_.
 
+*scrollback-up-page*
+	Scrolls up/back one page in history. Default: _Shift+Page\_Up_.
+
+*scrollback-up-half-page*
+	Scrolls up/back half of a page in history. Default: _none_.
+
+*scrollback-up-line*
+	Scrolls up/back a single line in history. Default: _none_.
+
+*scrollback-down-page*
+	Scroll down/forward one page in history. Default:
+	_Shift+Page\_Down_.
+
+*scrollback-down-half-page*
+	Scroll down/forward half of a page in history. Default: _none_.
+
+*scrollback-down-line*
+	Scroll down/forward a single line in history. Default: _none_.
+
+*scrollback-home*
+	Scroll to the beginning of the scrollback. Default: _none_.
+
+*scrollback-end*
+	Scroll to the end (bottom) of the scrollback. Default: _none_.
+
 # SECTION: url-bindings
 
 This section lets you override the default key bindings used in URL

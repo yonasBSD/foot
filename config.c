@@ -134,6 +134,14 @@ static const char *const binding_action_map[] = {
 
 static const char *const search_binding_action_map[] = {
     [BIND_ACTION_SEARCH_NONE] = NULL,
+    [BIND_ACTION_SEARCH_SCROLLBACK_UP_PAGE] = "scrollback-up-page",
+    [BIND_ACTION_SEARCH_SCROLLBACK_UP_HALF_PAGE] = "scrollback-up-half-page",
+    [BIND_ACTION_SEARCH_SCROLLBACK_UP_LINE] = "scrollback-up-line",
+    [BIND_ACTION_SEARCH_SCROLLBACK_DOWN_PAGE] = "scrollback-down-page",
+    [BIND_ACTION_SEARCH_SCROLLBACK_DOWN_HALF_PAGE] = "scrollback-down-half-page",
+    [BIND_ACTION_SEARCH_SCROLLBACK_DOWN_LINE] = "scrollback-down-line",
+    [BIND_ACTION_SEARCH_SCROLLBACK_HOME] = "scrollback-home",
+    [BIND_ACTION_SEARCH_SCROLLBACK_END] = "scrollback-end",
     [BIND_ACTION_SEARCH_CANCEL] = "cancel",
     [BIND_ACTION_SEARCH_COMMIT] = "commit",
     [BIND_ACTION_SEARCH_FIND_PREV] = "find-prev",
@@ -159,8 +167,6 @@ static const char *const search_binding_action_map[] = {
     [BIND_ACTION_SEARCH_CLIPBOARD_PASTE] = "clipboard-paste",
     [BIND_ACTION_SEARCH_PRIMARY_PASTE] = "primary-paste",
     [BIND_ACTION_SEARCH_UNICODE_INPUT] = "unicode-input",
-    [BIND_ACTION_SEARCH_SCROLLBACK_UP_PAGE] = "scrollback-up-page",
-    [BIND_ACTION_SEARCH_SCROLLBACK_DOWN_PAGE] = "scrollback-down-page",
 };
 
 static const char *const url_binding_action_map[] = {
