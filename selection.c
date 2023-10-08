@@ -340,16 +340,19 @@ selection_to_text(const struct terminal *term)
     return extract_finish(ctx, &text, NULL) ? text : NULL;
 }
 
+/* Coordinates are in *absolute* row numbers (NOT view local) */
 void
-selection_find_word_boundary_left(struct terminal *term, struct coord *pos,
+selection_find_word_boundary_left(const struct terminal *term, struct coord *pos,
                                   bool spaces_only)
 {
-    xassert(pos->row >= 0);
-    xassert(pos->row < term->rows);
+    const struct grid *grid = term->grid;
+
     xassert(pos->col >= 0);
     xassert(pos->col < term->cols);
+    xassert(pos->row >= 0);
+    pos->row &= grid->num_rows - 1;
 
-    const struct row *r = grid_row_in_view(term->grid, pos->row);
+    const struct row *r = grid->rows[pos->row];
     char32_t c = r->cells[pos->col].wc;
 
     while (c >= CELL_SPACER) {
@@ -373,15 +376,22 @@ selection_find_word_boundary_left(struct terminal *term, struct coord *pos,
         int next_col = pos->col - 1;
         int next_row = pos->row;
 
-        const struct row *row = grid_row_in_view(term->grid, next_row);
+        const struct row *row = grid->rows[next_row];
 
         /* Linewrap */
         if (next_col < 0) {
             next_col = term->cols - 1;
-            if (--next_row < 0)
-                break;
 
-            row = grid_row_in_view(term->grid, next_row);
+            next_row = (next_row - 1 + grid->num_rows) & (grid->num_rows - 1);
+
+            if (grid_row_abs_to_sb(grid, term->rows, next_row) == term->grid->num_rows - 1 ||
+                grid->rows[next_row] == NULL)
+            {
+                /* Scrollback wrap-around */
+                break;
+            }
+
+            row = grid->rows[next_row];
 
             if (row->linebreak) {
                 /* Hard linebreak, treat as space. I.e. break selection */
@@ -418,17 +428,20 @@ selection_find_word_boundary_left(struct terminal *term, struct coord *pos,
     }
 }
 
+/* Coordinates are in *absolute* row numbers (NOT view local) */
 void
-selection_find_word_boundary_right(struct terminal *term, struct coord *pos,
+selection_find_word_boundary_right(const struct terminal *term, struct coord *pos,
                                    bool spaces_only,
                                    bool stop_on_space_to_word_boundary)
 {
-    xassert(pos->row >= 0);
-    xassert(pos->row < term->rows);
+    const struct grid *grid = term->grid;
+
     xassert(pos->col >= 0);
     xassert(pos->col < term->cols);
+    xassert(pos->row >= 0);
+    pos->row &= grid->num_rows - 1;
 
-    const struct row *r = grid_row_in_view(term->grid, pos->row);
+    const struct row *r = grid->rows[pos->row];
     char32_t c = r->cells[pos->col].wc;
 
     while (c >= CELL_SPACER) {
@@ -453,7 +466,7 @@ selection_find_word_boundary_right(struct terminal *term, struct coord *pos,
         int next_col = pos->col + 1;
         int next_row = pos->row;
 
-        const struct row *row = grid_row_in_view(term->grid, next_row);
+        const struct row *row = term->grid->rows[next_row];
 
         /* Linewrap */
         if (next_col >= term->cols) {
@@ -463,10 +476,14 @@ selection_find_word_boundary_right(struct terminal *term, struct coord *pos,
             }
 
             next_col = 0;
-            if (++next_row >= term->rows)
-                break;
+            next_row = (next_row + 1) & (grid->num_rows - 1);
 
-            row = grid_row_in_view(term->grid, next_row);
+            if (grid_row_abs_to_sb(grid, term->rows, next_row) == 0) {
+                /* Scrollback wrap-around */
+                break;
+            }
+
+            row = grid->rows[next_row];
         }
 
         c = row->cells[next_col].wc;
@@ -659,17 +676,26 @@ selection_start(struct terminal *term, int col, int row,
         break;
 
     case SELECTION_WORD_WISE: {
-        struct coord start = {col, row}, end = {col, row};
+        struct coord start = {col, term->grid->view + row};
+        struct coord end = {col, term->grid->view + row};
         selection_find_word_boundary_left(term, &start, spaces_only);
         selection_find_word_boundary_right(term, &end, spaces_only, true);
 
-        term->selection.coords.start = (struct coord){
-            start.col, term->grid->view + start.row};
+        term->selection.coords.start = start;
 
         term->selection.pivot.start = term->selection.coords.start;
-        term->selection.pivot.end = (struct coord){end.col, term->grid->view + end.row};
+        term->selection.pivot.end = end;
 
-        selection_update(term, end.col, end.row);
+        /*
+         * FIXME: go through selection.c and make sure all public
+         * functions use the *same* coordinate system...
+         *
+         * selection_find_word_boundary*() uses absolute row numbers,
+         * while selection_update(), and pretty much all others, use
+         * view-local.
+         */
+
+        selection_update(term, end.col, end.row - term->grid->view);
         break;
     }
 
@@ -1091,15 +1117,15 @@ selection_update(struct terminal *term, int col, int row)
     if (!term->selection.ongoing)
         return;
 
-    LOG_DBG("selection updated: start = %d,%d, end = %d,%d -> %d, %d",
-            term->selection.coords.start.row, term->selection.coords.start.col,
-            term->selection.coords.end.row, term->selection.coords.end.col,
-            row, col);
-
     xassert(term->grid->view + row != -1);
 
     struct coord new_start = term->selection.coords.start;
     struct coord new_end = {col, term->grid->view + row};
+
+    LOG_DBG("selection updated: start = %d,%d, end = %d,%d -> %d, %d",
+            term->selection.coords.start.row, term->selection.coords.start.col,
+            term->selection.coords.end.row, term->selection.coords.end.col,
+            new_end.row, new_end.col);
 
     /* Adjust start point if the selection has changed 'direction' */
     if (!(new_end.row == new_start.row && new_end.col == new_start.col)) {
@@ -1160,21 +1186,17 @@ selection_update(struct terminal *term, int col, int row)
 
     case SELECTION_WORD_WISE:
         switch (term->selection.direction) {
-        case SELECTION_LEFT: {
-            struct coord end = {col, row};
+        case SELECTION_LEFT:
+            new_end = (struct coord){col, term->grid->view + row};
             selection_find_word_boundary_left(
-                term, &end, term->selection.spaces_only);
-            new_end = (struct coord){end.col, term->grid->view + end.row};
+                term, &new_end, term->selection.spaces_only);
             break;
-        }
 
-        case SELECTION_RIGHT: {
-            struct coord end = {col, row};
+        case SELECTION_RIGHT:
+            new_end = (struct coord){col, term->grid->view + row};
             selection_find_word_boundary_right(
-                term, &end, term->selection.spaces_only, true);
-            new_end = (struct coord){end.col, term->grid->view + end.row};
+                term, &new_end, term->selection.spaces_only, true);
             break;
-        }
 
         case SELECTION_UNDIR:
             break;
@@ -1346,16 +1368,14 @@ selection_extend_normal(struct terminal *term, int col, int row,
         xassert(new_kind == SELECTION_CHAR_WISE ||
                new_kind == SELECTION_WORD_WISE);
 
-        struct coord pivot_start = {new_start.col, new_start.row - term->grid->view};
+        struct coord pivot_start = {new_start.col, new_start.row};
         struct coord pivot_end = pivot_start;
 
         selection_find_word_boundary_left(term, &pivot_start, spaces_only);
         selection_find_word_boundary_right(term, &pivot_end, spaces_only, true);
 
-        term->selection.pivot.start =
-            (struct coord){pivot_start.col, term->grid->view + pivot_start.row};
-        term->selection.pivot.end =
-            (struct coord){pivot_end.col, term->grid->view + pivot_end.row};
+        term->selection.pivot.start = pivot_start;
+        term->selection.pivot.end = pivot_end;
         break;
     }
 

@@ -60,9 +60,24 @@
   row ([#1364][1364]).
 * Support for DECSET/DECRST/DECRQM 2027 (_Grapheme cluster
   processing_).
+* New search mode key bindings (along with their defaults)
+  ([#419][419]):
+  - `extend-char` (shift+right)
+  - `extend-line-down` (shift+down)
+  - `extend-backward-char` (shift+left)
+  - `extend-backward-to-word-boundary` (ctrl+shift+left)
+  - `extend-backward-to-next-whitespace` (none)
+  - `extend-line-up` (shift+up)
+  - `scrollback-up-page` (shift+page-up)
+  - `scrollback-up-half-page` (none)
+  - `scrollback-up-line` (none)
+  - `scrollback-down-page` (shift+page-down)
+  - `scrollback-down-half-page` (none)
+  - `scrollback-down-line` (none)
 
 [1077]: https://codeberg.org/dnkl/foot/issues/1077
 [1364]: https://codeberg.org/dnkl/foot/issues/1364
+[419]: https://codeberg.org/dnkl/foot/issues/419
 
 
 ### Changed
@@ -111,6 +126,8 @@
   turned off and then back on again) ([#1498][1498]).
 * Transparency in margins (padding) not being disabled in fullscreen
   mode ([#1503][1503]).
+* Crash when a scrollback search match is in the last column.
+* Scrollback search: grapheme clusters not matching correctly.
 
 [1436]: https://codeberg.org/dnkl/foot/issues/1436
 [1464]: https://codeberg.org/dnkl/foot/issues/1464

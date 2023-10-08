@@ -134,6 +134,14 @@ static const char *const binding_action_map[] = {
 
 static const char *const search_binding_action_map[] = {
     [BIND_ACTION_SEARCH_NONE] = NULL,
+    [BIND_ACTION_SEARCH_SCROLLBACK_UP_PAGE] = "scrollback-up-page",
+    [BIND_ACTION_SEARCH_SCROLLBACK_UP_HALF_PAGE] = "scrollback-up-half-page",
+    [BIND_ACTION_SEARCH_SCROLLBACK_UP_LINE] = "scrollback-up-line",
+    [BIND_ACTION_SEARCH_SCROLLBACK_DOWN_PAGE] = "scrollback-down-page",
+    [BIND_ACTION_SEARCH_SCROLLBACK_DOWN_HALF_PAGE] = "scrollback-down-half-page",
+    [BIND_ACTION_SEARCH_SCROLLBACK_DOWN_LINE] = "scrollback-down-line",
+    [BIND_ACTION_SEARCH_SCROLLBACK_HOME] = "scrollback-home",
+    [BIND_ACTION_SEARCH_SCROLLBACK_END] = "scrollback-end",
     [BIND_ACTION_SEARCH_CANCEL] = "cancel",
     [BIND_ACTION_SEARCH_COMMIT] = "commit",
     [BIND_ACTION_SEARCH_FIND_PREV] = "find-prev",
@@ -148,8 +156,14 @@ static const char *const search_binding_action_map[] = {
     [BIND_ACTION_SEARCH_DELETE_PREV_WORD] = "delete-prev-word",
     [BIND_ACTION_SEARCH_DELETE_NEXT] = "delete-next",
     [BIND_ACTION_SEARCH_DELETE_NEXT_WORD] = "delete-next-word",
+    [BIND_ACTION_SEARCH_EXTEND_CHAR] = "extend-char",
     [BIND_ACTION_SEARCH_EXTEND_WORD] = "extend-to-word-boundary",
     [BIND_ACTION_SEARCH_EXTEND_WORD_WS] = "extend-to-next-whitespace",
+    [BIND_ACTION_SEARCH_EXTEND_LINE_DOWN] = "extend-line-down",
+    [BIND_ACTION_SEARCH_EXTEND_BACKWARD_CHAR] = "extend-backward-char",
+    [BIND_ACTION_SEARCH_EXTEND_BACKWARD_WORD] = "extend-backward-to-word-boundary",
+    [BIND_ACTION_SEARCH_EXTEND_BACKWARD_WORD_WS] = "extend-backward-to-next-whitespace",
+    [BIND_ACTION_SEARCH_EXTEND_LINE_UP] = "extend-line-up",
     [BIND_ACTION_SEARCH_CLIPBOARD_PASTE] = "clipboard-paste",
     [BIND_ACTION_SEARCH_PRIMARY_PASTE] = "primary-paste",
     [BIND_ACTION_SEARCH_UNICODE_INPUT] = "unicode-input",
@@ -2774,11 +2788,12 @@ get_server_socket_path(void)
     return xasprintf("%s/foot-%s.sock", xdg_runtime, wayland_display);
 }
 
-#define m_none       {0}
-#define m_alt        {.alt = true}
-#define m_ctrl       {.ctrl = true}
-#define m_shift      {.shift = true}
-#define m_ctrl_shift {.ctrl = true, .shift = true}
+#define m_none           {0}
+#define m_alt            {.alt = true}
+#define m_ctrl           {.ctrl = true}
+#define m_shift          {.shift = true}
+#define m_ctrl_shift     {.ctrl = true, .shift = true}
+#define m_ctrl_shift_alt {.ctrl = true, .shift = true, .alt = true}
 
 static void
 add_default_key_bindings(struct config *conf)
@@ -2816,6 +2831,8 @@ static void
 add_default_search_bindings(struct config *conf)
 {
     static const struct config_key_binding bindings[] = {
+        {BIND_ACTION_SEARCH_SCROLLBACK_UP_PAGE, m_shift, {{XKB_KEY_Prior}}},
+        {BIND_ACTION_SEARCH_SCROLLBACK_DOWN_PAGE, m_shift, {{XKB_KEY_Next}}},
         {BIND_ACTION_SEARCH_CANCEL, m_ctrl, {{XKB_KEY_c}}},
         {BIND_ACTION_SEARCH_CANCEL, m_ctrl, {{XKB_KEY_g}}},
         {BIND_ACTION_SEARCH_CANCEL, m_none, {{XKB_KEY_Escape}}},
@@ -2840,8 +2857,14 @@ add_default_search_bindings(struct config *conf)
         {BIND_ACTION_SEARCH_DELETE_NEXT, m_none, {{XKB_KEY_Delete}}},
         {BIND_ACTION_SEARCH_DELETE_NEXT_WORD, m_ctrl, {{XKB_KEY_Delete}}},
         {BIND_ACTION_SEARCH_DELETE_NEXT_WORD, m_alt, {{XKB_KEY_d}}},
+        {BIND_ACTION_SEARCH_EXTEND_CHAR, m_shift, {{XKB_KEY_Right}}},
         {BIND_ACTION_SEARCH_EXTEND_WORD, m_ctrl, {{XKB_KEY_w}}},
+        {BIND_ACTION_SEARCH_EXTEND_WORD, m_ctrl_shift, {{XKB_KEY_Right}}},
         {BIND_ACTION_SEARCH_EXTEND_WORD_WS, m_ctrl_shift, {{XKB_KEY_w}}},
+        {BIND_ACTION_SEARCH_EXTEND_LINE_DOWN, m_shift, {{XKB_KEY_Down}}},
+        {BIND_ACTION_SEARCH_EXTEND_BACKWARD_CHAR, m_shift, {{XKB_KEY_Left}}},
+        {BIND_ACTION_SEARCH_EXTEND_BACKWARD_WORD, m_ctrl_shift, {{XKB_KEY_Left}}},
+        {BIND_ACTION_SEARCH_EXTEND_LINE_UP, m_shift, {{XKB_KEY_Up}}},
         {BIND_ACTION_SEARCH_CLIPBOARD_PASTE, m_ctrl, {{XKB_KEY_v}}},
         {BIND_ACTION_SEARCH_CLIPBOARD_PASTE, m_ctrl_shift, {{XKB_KEY_v}}},
         {BIND_ACTION_SEARCH_CLIPBOARD_PASTE, m_ctrl, {{XKB_KEY_y}}},
