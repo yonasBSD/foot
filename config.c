@@ -283,10 +283,19 @@ log_contextual_errno(struct context *ctx, const char *file, int lineno,
     char *formatted_msg = xvasprintf(fmt, va);
     va_end(va);
 
+    bool print_dot = ctx->key != NULL;
+    bool print_colon = ctx->value != NULL;
+
+    if (!print_dot)
+        ctx->key = "";
+
+    if (!print_colon)
+        ctx->value = "";
+
     log_and_notify_errno(
-        ctx->conf, file, lineno, "%s:%d: [%s].%s: %s: %s",
-        ctx->path, ctx->lineno, ctx->section, ctx->key, ctx->value,
-        formatted_msg);
+        ctx->conf, file, lineno, "%s:%d: [%s]%s%s%s%s: %s",
+        ctx->path, ctx->lineno, ctx->section, print_dot ? "." : "",
+        ctx->key, print_colon ? ": " : "", ctx->value, formatted_msg);
 
     free(formatted_msg);
 }
