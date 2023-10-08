@@ -701,12 +701,12 @@ coord_advance_right(const struct terminal *term, struct coord *pos,
     return true;
 }
 
-static void
+static bool
 search_extend_find_char(const struct terminal *term, struct coord *target,
                         enum extend_direction direction)
 {
     if (term->search.match_len == 0)
-        return;
+        return false;
 
     struct coord pos = direction == SEARCH_EXTEND_LEFT
         ? selection_get_start(term) : selection_get_end(term);
@@ -721,12 +721,12 @@ search_extend_find_char(const struct terminal *term, struct coord *target,
         switch (direction) {
         case SEARCH_EXTEND_LEFT:
             if (!coord_advance_left(term, &pos, &row))
-                return;
+                return false;
             break;
 
         case SEARCH_EXTEND_RIGHT:
             if (!coord_advance_right(term, &pos, &row))
-                return;
+                return false;
             break;
         }
 
@@ -736,28 +736,28 @@ search_extend_find_char(const struct terminal *term, struct coord *target,
             continue;
 
         *target = pos;
-        return;
+        return true;
     }
 }
 
-static void
+static bool
 search_extend_find_char_left(const struct terminal *term, struct coord *target)
 {
-    search_extend_find_char(term, target, SEARCH_EXTEND_LEFT);
+    return search_extend_find_char(term, target, SEARCH_EXTEND_LEFT);
 }
 
-static void
+static bool
 search_extend_find_char_right(const struct terminal *term, struct coord *target)
 {
-    search_extend_find_char(term, target, SEARCH_EXTEND_RIGHT);
+    return search_extend_find_char(term, target, SEARCH_EXTEND_RIGHT);
 }
 
-static void
+static bool
 search_extend_find_word(const struct terminal *term, bool spaces_only,
                         struct coord *target, enum extend_direction direction)
 {
     if (term->search.match_len == 0)
-        return;
+        return false;
 
     struct grid *grid = term->grid;
     struct coord pos = direction == SEARCH_EXTEND_LEFT
@@ -773,12 +773,12 @@ search_extend_find_word(const struct terminal *term, bool spaces_only,
     switch (direction) {
     case SEARCH_EXTEND_LEFT:
         if (!coord_advance_left(term, &pos, NULL))
-            return;
+            return false;
         break;
 
     case SEARCH_EXTEND_RIGHT:
         if (!coord_advance_right(term, &pos, NULL))
-            return;
+            return false;
         break;
     }
 
@@ -798,28 +798,29 @@ search_extend_find_word(const struct terminal *term, bool spaces_only,
     }
 
     *target = pos;
+    return true;
 }
 
-static void
+static bool
 search_extend_find_word_left(const struct terminal *term, bool spaces_only,
                              struct coord *target)
 {
-    search_extend_find_word(term, spaces_only, target, SEARCH_EXTEND_LEFT);
+    return search_extend_find_word(term, spaces_only, target, SEARCH_EXTEND_LEFT);
 }
 
-static void
+static bool
 search_extend_find_word_right(const struct terminal *term, bool spaces_only,
                               struct coord *target)
 {
-    search_extend_find_word(term, spaces_only, target, SEARCH_EXTEND_RIGHT);
+    return search_extend_find_word(term, spaces_only, target, SEARCH_EXTEND_RIGHT);
 }
 
-static void
+static bool
 search_extend_find_line(const struct terminal *term, struct coord *target,
                         enum extend_direction direction)
 {
     if (term->search.match_len == 0)
-        return;
+        return false;
 
     struct coord pos = direction == SEARCH_EXTEND_LEFT
         ? selection_get_start(term) : selection_get_end(term);
@@ -834,30 +835,31 @@ search_extend_find_line(const struct terminal *term, struct coord *target,
     switch (direction) {
     case SEARCH_EXTEND_LEFT:
         pos.row = (pos.row - 1 + grid->num_rows) & (grid->num_rows - 1);
-        if (has_wrapped_around_right(term, pos.row))
-            return;
+        if (has_wrapped_around_left(term, pos.row))
+            return false;
         break;
 
     case SEARCH_EXTEND_RIGHT:
         pos.row = (pos.row + 1) & (grid->num_rows - 1);
-        if (has_wrapped_around_left(term, pos.row))
-            return;
+        if (has_wrapped_around_right(term, pos.row))
+            return false;
         break;
     }
 
     *target = pos;
+    return true;
 }
 
-static void
+static bool
 search_extend_find_line_up(const struct terminal *term, struct coord *target)
 {
-    search_extend_find_line(term, target, SEARCH_EXTEND_LEFT);
+    return search_extend_find_line(term, target, SEARCH_EXTEND_LEFT);
 }
 
-static void
+static bool
 search_extend_find_line_down(const struct terminal *term, struct coord *target)
 {
-    search_extend_find_line(term, target, SEARCH_EXTEND_RIGHT);
+    return search_extend_find_line(term, target, SEARCH_EXTEND_RIGHT);
 }
 
 static void
@@ -1223,73 +1225,81 @@ execute_binding(struct seat *seat, struct terminal *term,
 
     case BIND_ACTION_SEARCH_EXTEND_CHAR: {
         struct coord target;
-        search_extend_find_char_right(term, &target);
-        search_extend_right(term, &target);
-        *update_search_result = false;
-        *redraw = true;
+        if (search_extend_find_char_right(term, &target)) {
+            search_extend_right(term, &target);
+            *update_search_result = false;
+            *redraw = true;
+        }
         return true;
     }
 
     case BIND_ACTION_SEARCH_EXTEND_WORD: {
         struct coord target;
-        search_extend_find_word_right(term, false, &target);
-        search_extend_right(term, &target);
-        *update_search_result = false;
-        *redraw = true;
+        if (search_extend_find_word_right(term, false, &target)) {
+            search_extend_right(term, &target);
+            *update_search_result = false;
+            *redraw = true;
+        }
         return true;
     }
 
     case BIND_ACTION_SEARCH_EXTEND_WORD_WS: {
         struct coord target;
-        search_extend_find_word_right(term, true, &target);
-        search_extend_right(term, &target);
-        *update_search_result = false;
-        *redraw = true;
+        if (search_extend_find_word_right(term, true, &target)) {
+            search_extend_right(term, &target);
+            *update_search_result = false;
+            *redraw = true;
+        }
         return true;
     }
 
     case BIND_ACTION_SEARCH_EXTEND_LINE_DOWN: {
         struct coord target;
-        search_extend_find_line_down(term, &target);
-        search_extend_right(term, &target);
-        *update_search_result = false;
-        *redraw = true;
+        if (search_extend_find_line_down(term, &target)) {
+            search_extend_right(term, &target);
+            *update_search_result = false;
+            *redraw = true;
+        }
         return true;
     }
 
     case BIND_ACTION_SEARCH_EXTEND_BACKWARD_CHAR: {
         struct coord target;
-        search_extend_find_char_left(term, &target);
-        search_extend_left(term, &target);
-        *update_search_result = false;
-        *redraw = true;
+        if (search_extend_find_char_left(term, &target)) {
+            search_extend_left(term, &target);
+            *update_search_result = false;
+            *redraw = true;
+        }
         return true;
     }
 
     case BIND_ACTION_SEARCH_EXTEND_BACKWARD_WORD: {
         struct coord target;
-        search_extend_find_word_left(term, false, &target);
-        search_extend_left(term, &target);
-        *update_search_result = false;
-        *redraw = true;
+        if (search_extend_find_word_left(term, false, &target)) {
+            search_extend_left(term, &target);
+            *update_search_result = false;
+            *redraw = true;
+        }
         return true;
     }
 
     case BIND_ACTION_SEARCH_EXTEND_BACKWARD_WORD_WS: {
         struct coord target;
-        search_extend_find_word_left(term, true, &target);
-        search_extend_left(term, &target);
-        *update_search_result = false;
-        *redraw = true;
+        if (search_extend_find_word_left(term, true, &target)) {
+            search_extend_left(term, &target);
+            *update_search_result = false;
+            *redraw = true;
+        }
         return true;
     }
 
     case BIND_ACTION_SEARCH_EXTEND_LINE_UP: {
         struct coord target;
-        search_extend_find_line_up(term, &target);
-        search_extend_left(term, &target);
-        *update_search_result = false;
-        *redraw = true;
+        if (search_extend_find_line_up(term, &target)) {
+            search_extend_left(term, &target);
+            *update_search_result = false;
+            *redraw = true;
+        }
         return true;
     }
 
