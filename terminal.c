@@ -1170,8 +1170,6 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
         .colors = {
             .fg = conf->colors.fg,
             .bg = conf->colors.bg,
-            .flash = conf->colors.flash,
-            .flash_alpha = conf->colors.flash_alpha,
             .alpha = conf->colors.alpha,
             .selection_fg = conf->colors.selection_fg,
             .selection_bg = conf->colors.selection_bg,
@@ -1924,9 +1922,7 @@ term_reset(struct terminal *term, bool hard)
     fdm_del(term->fdm, term->blink.fd); term->blink.fd = -1;
     term->colors.fg = term->conf->colors.fg;
     term->colors.bg = term->conf->colors.bg;
-    term->colors.flash = term->conf->colors.flash;
     term->colors.alpha = term->conf->colors.alpha;
-    term->colors.flash_alpha = term->conf->colors.flash_alpha;
     term->colors.selection_fg = term->conf->colors.selection_fg;
     term->colors.selection_bg = term->conf->colors.selection_bg;
     term->colors.use_custom_selection = term->conf->colors.use_custom.selection;
