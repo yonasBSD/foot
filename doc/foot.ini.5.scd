@@ -616,7 +616,7 @@ can configure the background transparency with the _alpha_ option.
 *flash*
 	Color to use for the terminal window flash. Default: _7f7f00_.
 
-*flash_alpha*
+*flash-alpha*
 	Flash translucency. A value in the range 0.0-1.0, where 0.0 means
 	completely transparent, and 1.0 is opaque. Default: _0.5_.
 
