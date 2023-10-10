@@ -75,12 +75,12 @@
   - `scrollback-down-half-page` (none)
   - `scrollback-down-line` (none)
 * Support for visual bell which flashes the terminal window.
-  ([#1508][1508]).
+  ([#1337][1337]).
 
 [1077]: https://codeberg.org/dnkl/foot/issues/1077
 [1364]: https://codeberg.org/dnkl/foot/issues/1364
 [419]: https://codeberg.org/dnkl/foot/issues/419
-[1508]: https://codeberg.org/dnkl/foot/issues/1508
+[1337]: https://codeberg.org/dnkl/foot/issues/1337
 
 
 ### Changed
