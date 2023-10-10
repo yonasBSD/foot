@@ -2189,7 +2189,7 @@ term_font_baseline(const struct terminal *term)
 {
     const struct fcft_font *font = term->fonts[0];
     const int line_height = term->cell_height;
-    const int font_height = max(font->height, font->ascent + font->descent);
+    const int font_height = font->ascent + font->descent;
     const int glyph_top_y = round((line_height - font_height) / 2.);
 
     return term->font_y_ofs + glyph_top_y + font->ascent;
