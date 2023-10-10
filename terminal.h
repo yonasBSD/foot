@@ -406,6 +406,7 @@ struct terminal {
     bool font_is_sized_by_dpi;
     int16_t font_x_ofs;
     int16_t font_y_ofs;
+    int16_t font_baseline;
     enum fcft_subpixel font_subpixel;
 
     struct {

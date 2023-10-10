@@ -326,7 +326,7 @@ draw_beam_cursor(const struct terminal *term, pixman_image_t *pix,
                  const struct fcft_font *font,
                  const pixman_color_t *color, int x, int y)
 {
-    int baseline = y + term_font_baseline(term) - term->fonts[0]->ascent;
+    int baseline = y + term->font_baseline - term->fonts[0]->ascent;
     pixman_image_fill_rectangles(
         PIXMAN_OP_SRC, pix, color,
         1, &(pixman_rectangle16_t){
@@ -338,7 +338,7 @@ draw_beam_cursor(const struct terminal *term, pixman_image_t *pix,
 static int
 underline_offset(const struct terminal *term, const struct fcft_font *font)
 {
-    return term_font_baseline(term) -
+    return term->font_baseline -
         (term->conf->use_custom_underline_offset
          ? -term_pt_or_px_as_pixels(term, &term->conf->underline_offset)
          : font->underline.position);
@@ -392,7 +392,7 @@ draw_strikeout(const struct terminal *term, pixman_image_t *pix,
     pixman_image_fill_rectangles(
         PIXMAN_OP_SRC, pix, color,
         1, &(pixman_rectangle16_t){
-            x, y + term_font_baseline(term) - font->strikeout.position,
+            x, y + term->font_baseline - font->strikeout.position,
             cols * term->cell_width, font->strikeout.thickness});
 }
 
@@ -776,13 +776,13 @@ render_cell(struct terminal *term, pixman_image_t *pix, pixman_region32_t *damag
             if (!(cell->attrs.blink && term->blink.state == BLINK_OFF)) {
                 pixman_image_composite32(
                     PIXMAN_OP_OVER, glyph->pix, NULL, pix, 0, 0, 0, 0,
-                    pen_x + letter_x_ofs + g_x, y + term_font_baseline(term) - g_y,
+                    pen_x + letter_x_ofs + g_x, y + term->font_baseline - g_y,
                     glyph->width, glyph->height);
             }
         } else {
             pixman_image_composite32(
                 PIXMAN_OP_OVER, clr_pix, glyph->pix, pix, 0, 0, 0, 0,
-                pen_x + letter_x_ofs + g_x, y + term_font_baseline(term) - g_y,
+                pen_x + letter_x_ofs + g_x, y + term->font_baseline - g_y,
                 glyph->width, glyph->height);
 
             /* Combining characters */
@@ -822,7 +822,7 @@ render_cell(struct terminal *term, pixman_image_t *pix, pixman_region32_t *damag
                         /* Some fonts use a negative offset, while others use a
                          * "normal" offset */
                         pen_x + x_ofs + g->x,
-                        y + term_font_baseline(term) - g->y,
+                        y + term->font_baseline - g->y,
                         g->width, g->height);
                 }
             }
@@ -3411,7 +3411,7 @@ render_search_box(struct terminal *term)
             /* Glyph surface is a pre-rendered image (typically a color emoji...) */
             pixman_image_composite32(
                 PIXMAN_OP_OVER, glyph->pix, NULL, buf->pix[0], 0, 0, 0, 0,
-                x + x_ofs + glyph->x, y + term_font_baseline(term) - glyph->y,
+                x + x_ofs + glyph->x, y + term->font_baseline - glyph->y,
                 glyph->width, glyph->height);
         } else {
             int combining_ofs = width == 0
@@ -3423,7 +3423,7 @@ render_search_box(struct terminal *term)
             pixman_image_composite32(
                 PIXMAN_OP_OVER, src, glyph->pix, buf->pix[0], 0, 0, 0, 0,
                 x + x_ofs + combining_ofs + glyph->x,
-                y + term_font_baseline(term) - glyph->y,
+                y + term->font_baseline - glyph->y,
             glyph->width, glyph->height);
             pixman_image_unref(src);
         }

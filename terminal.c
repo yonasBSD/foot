@@ -774,6 +774,8 @@ term_set_fonts(struct terminal *term, struct fcft_font *fonts[static 4],
     term->font_x_ofs = term_pt_or_px_as_pixels(term, &conf->horizontal_letter_offset);
     term->font_y_ofs = term_pt_or_px_as_pixels(term, &conf->vertical_letter_offset);
 
+    term->font_baseline = term_font_baseline(term);
+
     LOG_INFO("cell width=%d, height=%d", term->cell_width, term->cell_height);
 
     sixel_cell_size_changed(term);
