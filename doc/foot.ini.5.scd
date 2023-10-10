@@ -394,6 +394,10 @@ Note: do not set *TERM* here; use the *term* option in the main
 
 	Default: _no_
 
+*visual*
+	When set to _yes_, foot will flash the terminal window. Default:
+	_no_
+
 *command*
 	When set, foot will execute this command when *BEL* is received.
 	Default: none
@@ -641,6 +645,13 @@ can configure the background transparency with the _alpha_ option.
 *urls*
 	Color to use for the underline used to highlight URLs in URL
 	mode. Default: _regular3_.
+
+*flash*
+	Color to use for the terminal window flash. Default: _7f7f00_.
+
+*flash-alpha*
+	Flash translucency. A value in the range 0.0-1.0, where 0.0 means
+	completely transparent, and 1.0 is opaque. Default: _0.5_.
 
 # SECTION: csd
 

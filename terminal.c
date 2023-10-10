@@ -3270,6 +3270,7 @@ term_flash(struct terminal *term, unsigned duration_ms)
 void
 term_bell(struct terminal *term)
 {
+
     if (!term->bell_action_enabled)
         return;
 
@@ -3287,6 +3288,9 @@ term_bell(struct terminal *term)
 
     if (term->conf->bell.notify)
         notify_notify(term, "Bell", "Bell in terminal");
+
+    if (term->conf->bell.flash)
+        term_flash(term, 100);
 
     if ((term->conf->bell.command.argv.args != NULL) &&
         (!term->kbd_focus || term->conf->bell.command_focused))
