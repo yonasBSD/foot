@@ -529,22 +529,32 @@ render_cell(struct terminal *term, pixman_image_t *pix, pixman_region32_t *damag
                 /*
                  * Note: disable transparency when fullscreened.
                  *
-                 * This is because the wayland protocol recommends
-                 * (mandates even?) the compositor render a black
-                 * background behind fullscreened transparent windows.
+                 * This is because the wayland protocol mandates no
+                 * screen content is shown behind the fullscreened
+                 * window.
                  *
-                 * In other words, transparency does not work when
-                 * fullscreened, in the sense that you don't see
-                 * what's behind the window.
+                 * The _intent_ of the specification is that a black
+                 * (or other static color) should be used as
+                 * background.
                  *
-                 * And if we keep our alpha channel, the background
-                 * color will just look weird. For example, if the
-                 * background color is white, and alpha is 0.5, then
-                 * the window will be drawn in a shade of gray while
-                 * fullscreened.
+                 * There's a bit of gray area however, and some
+                 * compositors have chosen to interpret the
+                 * specification in a way that allows wallpapers to be
+                 * seen through a fullscreen window.
                  *
-                 * By disabling the alpha channel, the window will at
-                 * least be rendered in the intended background color.
+                 * Given that a) the intent of the specification, and
+                 * b) we don't know what the compositor will do, we
+                 * simply disable transparency while in fullscreen.
+                 *
+                 * To see why, consider what happens if we keep our
+                 * transparency. For example, if the background color
+                 * is white, and alpha is 0.5, then the window will be
+                 * drawn in a shade of gray while fullscreened.
+                 *
+                 * See
+                 * https://gitlab.freedesktop.org/wayland/wayland-protocols/-/issues/116
+                 * for a discussion on whether transparent, fullscreen
+                 * windows should be allowed in some way or not.
                  *
                  * NOTE: if changing this, also update render_margin()
                  */
