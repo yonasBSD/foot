@@ -60,7 +60,7 @@
   row ([#1364][1364]).
 * Support for DECSET/DECRST/DECRQM 2027 (_Grapheme cluster
   processing_).
-* New search mode key bindings (along with their defaults)
+* New **search mode** key bindings (along with their defaults)
   ([#419][419]):
   - `extend-char` (shift+right)
   - `extend-line-down` (shift+down)
