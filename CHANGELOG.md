@@ -63,7 +63,7 @@
 
 * Support for building with _wayland-protocols_ as a subproject.
 * Mouse wheel scrolls can now be used in `mouse-bindings`
-  ([#1077](1077)).
+  ([#1077][1077]).
 * New mouse bindings: `scrollback-up-mouse` and
   `scrollback-down-mouse`, bound to `BTN_BACK` and `BTN_FORWARD`
   respectively.
