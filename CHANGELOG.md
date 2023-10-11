@@ -1,6 +1,6 @@
 # Changelog
 
-* [Unreleased](#unreleased)
+* [1.16.0](#1-16-0)
 * [1.15.3](#1-15-3)
 * [1.15.2](#1-15-2)
 * [1.15.1](#1-15-1)
@@ -46,7 +46,8 @@
 * [1.2.0](#1-2-0)
 
 
-## Unreleased
+## 1.16.0
+
 ### Added
 
 * Support for building with _wayland-protocols_ as a subproject.
@@ -111,7 +112,6 @@
 [1495]: https://codeberg.org/dnkl/foot/pulls/1495
 
 
-### Deprecated
 ### Removed
 
 * `utempter` config option (was deprecated in 1.15.0).
@@ -144,9 +144,15 @@
 [1503]: https://codeberg.org/dnkl/foot/issues/1503
 [1511]: https://codeberg.org/dnkl/foot/issues/1511
 
-
-### Security
 ### Contributors
+
+* 6t8k
+* Alyssa Ross
+* CismonX
+* Max Gautier
+* raggedmyth
+* Raimund Sacherer
+* Sertonix
 
 
 ## 1.15.3
