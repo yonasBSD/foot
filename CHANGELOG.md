@@ -134,6 +134,7 @@
   mode ([#1503][1503]).
 * Crash when a scrollback search match is in the last column.
 * Scrollback search: grapheme clusters not matching correctly.
+* Wrong baseline offset for some fonts ([#1511][1511]).
 
 [1436]: https://codeberg.org/dnkl/foot/issues/1436
 [1464]: https://codeberg.org/dnkl/foot/issues/1464
@@ -141,6 +142,7 @@
 [1493]: https://codeberg.org/dnkl/foot/pulls/1493
 [1498]: https://codeberg.org/dnkl/foot/issues/1498
 [1503]: https://codeberg.org/dnkl/foot/issues/1503
+[1511]: https://codeberg.org/dnkl/foot/issues/1511
 
 
 ### Security

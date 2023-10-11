@@ -774,6 +774,8 @@ term_set_fonts(struct terminal *term, struct fcft_font *fonts[static 4],
     term->font_x_ofs = term_pt_or_px_as_pixels(term, &conf->horizontal_letter_offset);
     term->font_y_ofs = term_pt_or_px_as_pixels(term, &conf->vertical_letter_offset);
 
+    term->font_baseline = term_font_baseline(term);
+
     LOG_INFO("cell width=%d, height=%d", term->cell_width, term->cell_height);
 
     sixel_cell_size_changed(term);
@@ -2189,10 +2191,18 @@ term_font_baseline(const struct terminal *term)
 {
     const struct fcft_font *font = term->fonts[0];
     const int line_height = term->cell_height;
-    const int font_height = max(font->height, font->ascent + font->descent);
-    const int glyph_top_y = round((line_height - font_height) / 2.);
+    const int font_height = font->ascent + font->descent;
 
-    return term->font_y_ofs + glyph_top_y + font->ascent;
+    /*
+     * Center glyph on the line *if* using a custom line height,
+     * otherwise the baseline is simply 'descent' pixels above the
+     * bottom of the cell
+     */
+    const int glyph_top_y = term->font_line_height.px >= 0
+        ? round((line_height - font_height) / 2.)
+        : 0;
+
+    return term->font_y_ofs + line_height - glyph_top_y - font->descent;
 }
 
 void
