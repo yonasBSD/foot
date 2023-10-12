@@ -1,6 +1,6 @@
 # Changelog
 
-* [Unreleased](#unreleased)
+* [1.16.1](#1-16-1)
 * [1.16.0](#1-16-0)
 * [1.15.3](#1-15-3)
 * [1.15.2](#1-15-2)
@@ -47,11 +47,8 @@
 * [1.2.0](#1-2-0)
 
 
-## Unreleased
-### Added
-### Changed
-### Deprecated
-### Removed
+## 1.16.1
+
 ### Fixed
 
 * Foot not starting on linux kernels before 6.3 ([#1514][1514]).
@@ -59,10 +56,6 @@
 
 [1514]: https://codeberg.org/dnkl/foot/issues/1514
 [1515]: https://codeberg.org/dnkl/foot/issues/1515
-
-
-### Security
-### Contributors
 
 
 ## 1.16.0
