@@ -1199,7 +1199,8 @@ render_sixel_chunk(struct terminal *term, pixman_image_t *pix, const struct sixe
 
 static void
 render_sixel(struct terminal *term, pixman_image_t *pix,
-             const struct coord *cursor, const struct sixel *sixel)
+             pixman_region32_t *damage, const struct coord *cursor,
+             const struct sixel *sixel)
 {
     xassert(sixel->pix != NULL);
     xassert(sixel->width >= 0);
@@ -1293,8 +1294,7 @@ render_sixel(struct terminal *term, pixman_image_t *pix,
          */
         if (!sixel->opaque) {
             /* TODO: multithreading */
-            int cursor_col = cursor->row == term_row_no ? cursor->col : -1;
-            render_row(term, pix, NULL, row, term_row_no, cursor_col);
+            render_row(term, pix, damage, row, term_row_no, cursor_col);
         } else {
             for (int col = sixel->pos.col;
                  col < min(sixel->pos.col + sixel->cols, term->cols);
@@ -1309,7 +1309,7 @@ render_sixel(struct terminal *term, pixman_image_t *pix,
                     if ((last_row_needs_erase && last_row) ||
                         (last_col_needs_erase && last_col))
                     {
-                        render_cell(term, pix, NULL, row, term_row_no, col, cursor_col == col);
+                        render_cell(term, pix, damage, row, term_row_no, col, cursor_col);
                     } else {
                         cell->attrs.clean = 1;
                         cell->attrs.confined = 1;
@@ -1333,6 +1333,7 @@ render_sixel(struct terminal *term, pixman_image_t *pix,
 
 static void
 render_sixel_images(struct terminal *term, pixman_image_t *pix,
+                    pixman_region32_t *damage,
                     const struct coord *cursor)
 {
     if (likely(tll_length(term->grid->sixel_images)) == 0)
@@ -1370,7 +1371,7 @@ render_sixel_images(struct terminal *term, pixman_image_t *pix,
         }
 
         sixel_sync_cache(term, &it->item);
-        render_sixel(term, pix, cursor, &it->item);
+        render_sixel(term, pix, damage, cursor, &it->item);
     }
 }
 
@@ -2974,7 +2975,10 @@ grid_render(struct terminal *term)
         }
     }
 
-    render_sixel_images(term, buf->pix[0], &cursor);
+    pixman_region32_t damage;
+    pixman_region32_init(&damage);
+
+    render_sixel_images(term, buf->pix[0], &damage, &cursor);
 
     if (term->render.workers.count > 0) {
         mtx_lock(&term->render.workers.lock);
@@ -2984,9 +2988,6 @@ grid_render(struct terminal *term)
 
         xassert(tll_length(term->render.workers.queue) == 0);
     }
-
-    pixman_region32_t damage;
-    pixman_region32_init(&damage);
 
     for (int r = 0; r < term->rows; r++) {
         struct row *row = grid_row_in_view(term->grid, r);

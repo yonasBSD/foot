@@ -27,10 +27,8 @@
  #define MAP_UNINITIALIZED 0
 #endif
 
-#if defined(MFD_NOEXEC_SEAL)
-    #define FOOT_MFD_FLAGS (MFD_CLOEXEC | MFD_ALLOW_SEALING | MFD_NOEXEC_SEAL)
-#else
-    #define FOOT_MFD_FLAGS (MFD_CLOEXEC | MFD_ALLOW_SEALING)
+#if !defined(MFD_NOEXEC_SEAL)
+ #define MFD_NOEXEC_SEAL 0
 #endif
 
 #define TIME_SCROLL 0
@@ -339,7 +337,20 @@ get_new_buffers(struct buffer_chain *chain, size_t count,
 
     /* Backing memory for SHM */
 #if defined(MEMFD_CREATE)
-    pool_fd = memfd_create("foot-wayland-shm-buffer-pool", FOOT_MFD_FLAGS);
+    /*
+     * Older kernels reject MFD_NOEXEC_SEAL with EINVAL. Try first
+     * *with* it, and if that fails, try again *without* it.
+     */
+    errno = 0;
+    pool_fd = memfd_create(
+        "foot-wayland-shm-buffer-pool",
+        MFD_CLOEXEC | MFD_ALLOW_SEALING | MFD_NOEXEC_SEAL);
+
+    if (pool_fd < 0 && errno == EINVAL) {
+        pool_fd = memfd_create(
+            "foot-wayland-shm-buffer-pool", MFD_CLOEXEC | MFD_ALLOW_SEALING);
+    }
+
 #elif defined(__FreeBSD__)
     // memfd_create on FreeBSD 13 is SHM_ANON without sealing support
     pool_fd = shm_open(SHM_ANON, O_RDWR | O_CLOEXEC, 0600);
