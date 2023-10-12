@@ -53,6 +53,11 @@
 ### Deprecated
 ### Removed
 ### Fixed
+* Foot not starting on linux kernels before 6.3 ([#1514][1514]).
+
+[1514]: https://codeberg.org/dnkl/foot/issues/1514
+
+
 ### Security
 ### Contributors
 
