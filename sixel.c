@@ -180,7 +180,7 @@ sixel_erase(struct terminal *term, struct sixel *sixel)
 
         row->dirty = true;
 
-        for (int c = sixel->pos.col; c < min(sixel->cols, term->cols); c++)
+        for (int c = sixel->pos.col; c < min(sixel->pos.col + sixel->cols, term->cols); c++)
             row->cells[c].attrs.clean = 0;
     }
 
