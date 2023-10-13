@@ -53,6 +53,13 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* Last row and/or column of opaque sixels (not having a size that is a
+  multiple of the cell size) being the wrong color ([#1520][1520]).
+
+[1520]: https://codeberg.org/dnkl/foot/issues/1520
+
+
 ### Security
 ### Contributors
 

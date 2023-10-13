@@ -1309,7 +1309,7 @@ render_sixel(struct terminal *term, pixman_image_t *pix,
                     if ((last_row_needs_erase && last_row) ||
                         (last_col_needs_erase && last_col))
                     {
-                        render_cell(term, pix, damage, row, term_row_no, col, cursor_col);
+                        render_cell(term, pix, damage, row, term_row_no, col, cursor_col == col);
                     } else {
                         cell->attrs.clean = 1;
                         cell->attrs.confined = 1;
