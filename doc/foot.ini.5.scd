@@ -58,6 +58,7 @@ empty string to be set, but it must be quoted: *KEY=""*)
 		- Dina:weight=bold:slant=italic
 		- Courier New:size=12
 		- Fantasque Sans Mono:fontfeatures=ss01
+		- Meslo LG S:size=12, Noto Color Emoji:size=12
 	
 	For each option, the first font is the primary font. The remaining
 	fonts are fallback fonts that will be used whenever a glyph cannot
