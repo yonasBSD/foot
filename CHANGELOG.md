@@ -1,5 +1,6 @@
 # Changelog
 
+* [Unreleased](#unreleased)
 * [1.16.1](#1-16-1)
 * [1.16.0](#1-16-0)
 * [1.15.3](#1-15-3)
@@ -45,6 +46,22 @@
 * [1.2.2](#1-2-2)
 * [1.2.1](#1-2-1)
 * [1.2.0](#1-2-0)
+
+## Unreleased
+### Added
+### Changed
+### Deprecated
+### Removed
+### Fixed
+
+* Last row and/or column of opaque sixels (not having a size that is a
+  multiple of the cell size) being the wrong color ([#1520][1520]).
+
+[1520]: https://codeberg.org/dnkl/foot/issues/1520
+
+
+### Security
+### Contributors
 
 
 ## 1.16.1
