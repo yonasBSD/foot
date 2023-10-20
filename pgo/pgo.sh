@@ -82,6 +82,7 @@ set -x
 # echo "CFLAGS: ${CFLAGS}"
 
 export CFLAGS
+export CCACHE_DISABLE=1
 meson setup --buildtype=release -Db_lto=true "${@}" "${blddir}" "${srcdir}"
 
 if [ ${do_pgo} = yes ]; then
