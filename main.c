@@ -86,7 +86,7 @@ print_usage(const char *prog_name)
         "  -p,--print-pid=FILE|FD                   print PID to file or FD (only applicable in server mode)\n"
         "  -d,--log-level={info|warning|error|none} log level (warning)\n"
         "  -l,--log-colorize=[{never|always|auto}]  enable/disable colorization of log output on stderr\n"
-        "  -s,--log-no-syslog                       disable syslog logging (only applicable in server mode)\n"
+        "  -S,--log-no-syslog                       disable syslog logging (only applicable in server mode)\n"
         "  -v,--version                             show the version number and quit\n"
         "  -e                                       ignored (for compatibility with xterm -e)\n";
 
