@@ -3195,6 +3195,7 @@ config_load(struct config *conf, const char *conf_path,
                 ret = !errors_are_fatal;
 
             fclose(f);
+            conf_file.fd = -1;
         }
     }
 
