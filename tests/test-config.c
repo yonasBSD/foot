@@ -426,6 +426,10 @@ test_color(struct context *ctx, bool (*parse_fun)(struct context *ctx),
         {"ffffff", 0xffffff},
         {"ffffffff", 0xffffffff, !alpha_allowed},
         {"aabbccdd", 0xaabbccdd, !alpha_allowed},
+        {"00", 0, true},
+        {"0000", 0, true},
+        {"00000", 0, true},
+        {"000000000", 0, true},
         {"unittest-invalid-color", 0, true},
     };
 

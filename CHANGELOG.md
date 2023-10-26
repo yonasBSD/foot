@@ -52,9 +52,21 @@
 ## Unreleased
 ### Added
 ### Changed
+
+* config: ARGB color values now default to opaque, rather than
+  transparent, when the alpha component has been left out
+  ([#1526][1526]).
+
+[1526]: https://codeberg.org/dnkl/foot/issues/1526
+
+
 ### Deprecated
 ### Removed
 ### Fixed
+
+* config: improved validation of color values.
+
+
 ### Security
 ### Contributors
 

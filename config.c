@@ -618,18 +618,30 @@ value_to_enum(struct context *ctx, const char **value_map, int *res)
 }
 
 static bool NOINLINE
-value_to_color(struct context *ctx, uint32_t *color, bool allow_alpha)
+value_to_color(struct context *ctx, uint32_t *result, bool allow_alpha)
 {
-    if (!str_to_uint32(ctx->value, 16, color)) {
-        LOG_CONTEXTUAL_ERR("not a valid color value");
+    uint32_t color;
+    const size_t len = strlen(ctx->value);
+    const size_t component_count = len / 2;
+
+    if (!(len == 6 || (allow_alpha && len == 8)) ||
+        !str_to_uint32(ctx->value, 16, &color))
+    {
+        if (allow_alpha) {
+            LOG_CONTEXTUAL_ERR("color must be in either RGB or ARGB format");
+        } else {
+            LOG_CONTEXTUAL_ERR("color must be in RGB format");
+        }
+
         return false;
     }
 
-    if (!allow_alpha && (*color & 0xff000000) != 0) {
-        LOG_CONTEXTUAL_ERR("color value must not have an alpha component");
-        return false;
+    if (allow_alpha && component_count == 3) {
+        /* If user left out the alpha component, assume non-transparency */
+        color |= 0xff000000;
     }
 
+    *result = color;
     return true;
 }
 
