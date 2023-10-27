@@ -65,6 +65,10 @@
 ### Fixed
 
 * config: improved validation of color values.
+* config: double close of file descriptor, resulting in a chain of
+  errors ultimately leading to a startup failure ([#1531][1531]).
+
+[1531]: https://codeberg.org/dnkl/foot/issues/1531
 
 
 ### Security
