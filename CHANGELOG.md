@@ -51,6 +51,9 @@
 
 ## Unreleased
 ### Added
+
+* Unicode input mode now accepts input from the numpad as well, numlock is ignored.
+
 ### Changed
 
 * config: ARGB color values now default to opaque, rather than

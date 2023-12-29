@@ -90,6 +90,8 @@ unicode_mode_input(struct seat *seat, struct terminal *term,
         /* 0-9, a-f, A-F */
         if (sym >= XKB_KEY_0 && sym <= XKB_KEY_9)
             digit = sym - XKB_KEY_0;
+        else if (sym >= XKB_KEY_KP_0 && sym <= XKB_KEY_KP_9)
+            digit = sym - XKB_KEY_KP_0;
         else if (sym >= XKB_KEY_a && sym <= XKB_KEY_f)
             digit = 0xa + (sym - XKB_KEY_a);
         else if (sym >= XKB_KEY_A && sym <= XKB_KEY_F)
