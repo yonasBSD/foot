@@ -52,7 +52,9 @@
 ## Unreleased
 ### Added
 
-* Unicode input mode now accepts input from the numpad as well, numlock is ignored.
+* Unicode input mode now accepts input from the numpad as well,
+  numlock is ignored.
+
 
 ### Changed
 
