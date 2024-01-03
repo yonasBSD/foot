@@ -401,6 +401,14 @@ slave_spawn(int ptmx, int argc, const char *cwd, char *const *argv,
         break;
 
     default: {
+
+        /*
+         * Don't stay in CWD, since it may be an ephemeral path. For
+         * example, it may be a mount point of, say, a thumb drive. Us
+         * keeping it open will prevent the user from unmounting it.
+         */
+        chdir("/");
+
         close(fork_pipe[1]); /* Close write end */
         LOG_DBG("slave has PID %d", pid);
 

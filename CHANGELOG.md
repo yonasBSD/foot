@@ -61,8 +61,13 @@
 * config: ARGB color values now default to opaque, rather than
   transparent, when the alpha component has been left out
   ([#1526][1526]).
+* The `foot` process now changes CWD to `/` after spawning the shell
+  process. This ensures the terminal itself does not "lock" a
+  directory; for example, preventing a mount point from being
+  unmounted ([#1528][1528]).
 
 [1526]: https://codeberg.org/dnkl/foot/issues/1526
+[1528]: https://codeberg.org/dnkl/foot/issues/1528
 
 
 ### Deprecated
