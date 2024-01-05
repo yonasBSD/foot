@@ -407,7 +407,7 @@ slave_spawn(int ptmx, int argc, const char *cwd, char *const *argv,
          * example, it may be a mount point of, say, a thumb drive. Us
          * keeping it open will prevent the user from unmounting it.
          */
-        chdir("/");
+        (void)!!chdir("/");
 
         close(fork_pipe[1]); /* Close write end */
         LOG_DBG("slave has PID %d", pid);
