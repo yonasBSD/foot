@@ -77,8 +77,12 @@
 * config: improved validation of color values.
 * config: double close of file descriptor, resulting in a chain of
   errors ultimately leading to a startup failure ([#1531][1531]).
+* Crash when using a desktop scaling factor > 1, on compositors that
+  implements neither the `fractional-scale-v1`, nor the
+  `cursor-shape-v1` Wayland protocols ([#1573][1573]).
 
 [1531]: https://codeberg.org/dnkl/foot/issues/1531
+[1573]: https://codeberg.org/dnkl/foot/issues/1573
 
 
 ### Security

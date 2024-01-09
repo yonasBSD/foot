@@ -2024,10 +2024,19 @@ surface_scale_explicit_width_height(
                 "(width=%d, height=%d)", scale, width, height);
 
         xassert(scale == floorf(scale));
-
         const int iscale = (int)floorf(scale);
-        xassert(width % iscale == 0);
-        xassert(height % iscale == 0);
+
+        if (verify) {
+            if (width % iscale != 0) {
+                BUG("width=%d is not valid with scaling factor %.2f (%d %% %d != 0)",
+                    width, scale, width, iscale);
+            }
+
+            if (height % iscale != 0) {
+                BUG("height=%d is not valid with scaling factor %.2f (%d %% %d != 0)",
+                    height, scale, height, iscale);
+            }
+        }
 
         wl_surface_set_buffer_scale(surf->surf, iscale);
     }
