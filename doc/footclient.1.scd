@@ -73,6 +73,11 @@ terminal has terminated.
 	The child process in the new terminal instance will use
 	footclient's environment, instead of the server's.
 
+	Environment variables listed in the *Variables set in the child
+	process* section will be overwritten by the foot server. For
+	example, the new terminal will use *TERM* from the configuration,
+	not footclient's environment.
+
 *-d*,*--log-level*={*info*,*warning*,*error*,*none*}
 	Log level, used both for log output on stderr as well as
 	syslog. Default: _warning_.
@@ -163,8 +168,26 @@ fallback to the less specific path, with the following priority:
 	This variable is set to *truecolor*, to indicate to client
 	applications that 24-bit RGB colors are supported.
 
+*PWD*
+	Current working directory (at the time of launching foot)
+
+*SHELL*
+	Set to the launched shell, if the shell is valid (it is listed in
+	*/etc/shells*).
+
 In addition to the variables listed above, custom environment
 variables may be defined in *foot.ini*(5).
+
+## Variables *unset* in the child process
+
+*TERM_PROGRAM*
+*TERM_PROGRAM_VERSION*
+	These environment variables are set by certain other terminal
+	emulators. We unset them, to prevent applications from
+	misdetecting foot.
+
+In addition to the variables listed above, custom environment
+variables to unset may be defined in *foot.ini*(5).
 
 # SEE ALSO
 

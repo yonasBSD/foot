@@ -82,9 +82,12 @@
   `cursor-shape-v1` Wayland protocols ([#1573][1573]).
 * Crash in `--server` mode when one or more environment variables are
   set in `[environment]`.
+* Environment variables normally set by foot lost with `footclient
+  -E,--client-environment` ([#1568][1568]).
 
 [1531]: https://codeberg.org/dnkl/foot/issues/1531
 [1573]: https://codeberg.org/dnkl/foot/issues/1573
+[1568]: https://codeberg.org/dnkl/foot/issues/1568
 
 
 ### Security

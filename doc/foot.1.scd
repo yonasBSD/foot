@@ -554,15 +554,30 @@ In all other cases, the exit code is that of the client application
 	set according to either the *--term* command-line option or the
 	*term* config option in *foot.ini*(5).
 
-*PWD*
-	Current working directory (at the time of launching foot)
-
 *COLORTERM*
 	This variable is set to *truecolor*, to indicate to client
 	applications that 24-bit RGB colors are supported.
 
+*PWD*
+	Current working directory (at the time of launching foot)
+
+*SHELL*
+	Set to the launched shell, if the shell is valid (it is listed in
+	*/etc/shells*).
+
 In addition to the variables listed above, custom environment
 variables may be defined in *foot.ini*(5).
+
+## Variables *unset* in the child process
+
+*TERM_PROGRAM*
+*TERM_PROGRAM_VERSION*
+	These environment variables are set by certain other terminal
+	emulators. We unset them, to prevent applications from
+	misdetecting foot.
+
+In addition to the variables listed above, custom environment
+variables to unset may be defined in *foot.ini*(5).
 
 # BUGS
 
