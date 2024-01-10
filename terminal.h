@@ -743,6 +743,7 @@ bool term_paste_data_to_slave(
     struct terminal *term, const void *data, size_t len);
 
 bool term_fractional_scaling(const struct terminal *term);
+bool term_preferred_buffer_scale(const struct terminal *term);
 bool term_update_scale(struct terminal *term);
 bool term_font_size_increase(struct terminal *term);
 bool term_font_size_decrease(struct terminal *term);

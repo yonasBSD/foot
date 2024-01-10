@@ -2072,6 +2072,12 @@ term_fractional_scaling(const struct terminal *term)
 }
 
 bool
+term_preferred_buffer_scale(const struct terminal *term)
+{
+    return term->wl->has_wl_compositor_v6;
+}
+
+bool
 term_update_scale(struct terminal *term)
 {
     const struct wl_window *win = term->window;
@@ -2081,6 +2087,9 @@ term_update_scale(struct terminal *term)
      * the scale in the following order:
      *
      *  - “preferred” scale, from the fractional-scale-v1 protocol
+     *  - "preferred" scale, from wl_compositor version 6.
+          NOTE: if the compositor advertises version 6 we must use 1.0
+          until wl_surface.preferred_buffer_scale is sent
      *  - scaling factor of output we most recently were mapped on
      *  - if we're not mapped, use the last known scaling factor
      *  - if we're not mapped, and we don't have a last known scaling
@@ -2090,13 +2099,15 @@ term_update_scale(struct terminal *term)
      */
     const float new_scale = (term_fractional_scaling(term)
         ? win->scale
-        : tll_length(win->on_outputs) > 0
-            ? tll_back(win->on_outputs)->scale
-            : term->scale_before_unmap > 0.
-                ? term->scale_before_unmap
-                : tll_length(term->wl->monitors) > 0
-                    ? tll_front(term->wl->monitors).scale
-                    : 1.);
+        : term_preferred_buffer_scale(term)
+            ? win->preferred_buffer_scale
+            : tll_length(win->on_outputs) > 0
+                ? tll_back(win->on_outputs)->scale
+                : term->scale_before_unmap > 0.
+                    ? term->scale_before_unmap
+                    : tll_length(term->wl->monitors) > 0
+                        ? tll_front(term->wl->monitors).scale
+                        : 1.);
 
     if (new_scale == term->scale)
         return false;

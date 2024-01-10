@@ -363,6 +363,7 @@ struct wl_window {
 
     bool unmapped;
     float scale;
+    int preferred_buffer_scale;
 
     struct zxdg_toplevel_decoration_v1 *xdg_toplevel_decoration;
 
@@ -428,6 +429,8 @@ struct wayland {
     struct wl_compositor *compositor;
     struct wl_subcompositor *sub_compositor;
     struct wl_shm *shm;
+
+    bool has_wl_compositor_v6;
 
     struct zxdg_output_manager_v1 *xdg_output_manager;
 

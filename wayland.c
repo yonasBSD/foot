@@ -705,9 +705,37 @@ surface_leave(void *data, struct wl_surface *wl_surface,
     LOG_WARN("unmapped from unknown output");
 }
 
+#if defined(WL_SURFACE_PREFERRED_BUFFER_SCALE_SINCE_VERSION)
+static void
+surface_preferred_buffer_scale(void *data, struct wl_surface *surface,
+                               int32_t scale)
+{
+    struct wl_window *win = data;
+
+    if (win->preferred_buffer_scale == scale)
+        return;
+
+    LOG_DBG("wl_surface preferred scale: %d -> %d", win->preferred_buffer_scale, scale);
+
+    win->preferred_buffer_scale = scale;
+    update_term_for_output_change(win->term);
+}
+
+static void
+surface_preferred_buffer_transform(void *data, struct wl_surface *surface,
+                                   uint32_t transform)
+{
+
+}
+#endif
+
 static const struct wl_surface_listener surface_listener = {
     .enter = &surface_enter,
     .leave = &surface_leave,
+#if defined(WL_SURFACE_PREFERRED_BUFFER_SCALE_SINCE_VERSION)
+    .preferred_buffer_scale = &surface_preferred_buffer_scale,
+    .preferred_buffer_transform = &surface_preferred_buffer_transform,
+#endif
 };
 
 static void
@@ -1057,8 +1085,14 @@ handle_global(void *data, struct wl_registry *registry,
         if (!verify_iface_version(interface, version, required))
             return;
 
+#if defined (WL_SURFACE_PREFERRED_BUFFER_SCALE_SINCE_VERSION)
+        const uint32_t preferred = WL_SURFACE_PREFERRED_BUFFER_SCALE_SINCE_VERSION;
+        wayl->has_wl_compositor_v6 = version >= WL_SURFACE_PREFERRED_BUFFER_SCALE_SINCE_VERSION;
+#else
+        const uint32_t preferred = required;
+#endif
         wayl->compositor = wl_registry_bind(
-            wayl->registry, name, &wl_compositor_interface, required);
+            wayl->registry, name, &wl_compositor_interface, min(version, preferred));
     }
 
     else if (strcmp(interface, wl_subcompositor_interface.name) == 0) {
@@ -1700,6 +1734,10 @@ wayl_win_init(struct terminal *term, const char *token)
             win->fractional_scale, &fractional_scale_listener, win);
     }
 
+    if (wayl->has_wl_compositor_v6) {
+        win->preferred_buffer_scale = 1;
+    }
+
     win->xdg_surface = xdg_wm_base_get_xdg_surface(wayl->shell, win->surface.surf);
     xdg_surface_add_listener(win->xdg_surface, &xdg_surface_listener, win);
 
@@ -2020,8 +2058,11 @@ surface_scale_explicit_width_height(
         wp_viewport_set_destination(
             surf->viewport, roundf(width / scale), roundf(height / scale));
     } else {
-        LOG_DBG("scaling by a factor of %.2f using legacy mode "
-                "(width=%d, height=%d)", scale, width, height);
+        const char *mode = term_preferred_buffer_scale(win->term)
+            ? "wl_surface.preferred_buffer_scale"
+            : "legacy mode";
+        LOG_DBG("scaling by a factor of %.2f using %s "
+                "(width=%d, height=%d)" , scale, mode, width, height);
 
         xassert(scale == floorf(scale));
         const int iscale = (int)floorf(scale);
