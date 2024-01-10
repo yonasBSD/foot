@@ -80,6 +80,8 @@
 * Crash when using a desktop scaling factor > 1, on compositors that
   implements neither the `fractional-scale-v1`, nor the
   `cursor-shape-v1` Wayland protocols ([#1573][1573]).
+* Crash in `--server` mode when one or more environment variables are
+  set in `[environment]`.
 
 [1531]: https://codeberg.org/dnkl/foot/issues/1531
 [1573]: https://codeberg.org/dnkl/foot/issues/1573

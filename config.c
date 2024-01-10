@@ -3393,6 +3393,8 @@ config_clone(const struct config *old)
     key_binding_list_clone(&conf->bindings.url, &old->bindings.url);
     key_binding_list_clone(&conf->bindings.mouse, &old->bindings.mouse);
 
+    conf->env_vars.length = 0;
+    conf->env_vars.head = conf->env_vars.tail = NULL;
     tll_foreach(old->env_vars, it) {
         struct env_var copy = {
             .name = xstrdup(it->item.name),
