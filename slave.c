@@ -438,7 +438,7 @@ slave_spawn(int ptmx, int argc, const char *cwd, char *const *argv,
         del_from_env(&custom_env, "TERM_PROGRAM_VERSION");
 
 #if defined(FOOT_TERMINFO_PATH)
-        add_to_env(&custom_envp, "TERMINFO", FOOT_TERMINFO_PATH);
+        add_to_env(&custom_env, "TERMINFO", FOOT_TERMINFO_PATH);
 #endif
 
         if (extra_env_vars != NULL) {
