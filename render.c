@@ -3912,9 +3912,25 @@ send_dimensions_to_client(struct terminal *term)
     }
 }
 
+static void
+set_size_from_grid(struct terminal *term, int *width, int *height, int cols, int rows)
+{
+    /* Nominal grid dimensions */
+    *width = cols * term->cell_width;
+    *height = rows * term->cell_height;
+
+    /* Include any configured padding */
+    *width += 2 * term->conf->pad_x * term->scale;
+    *height += 2 * term->conf->pad_y * term->scale;
+
+    /* Round to multiples of scale */
+    *width = round(term->scale * round(*width / term->scale));
+    *height = round(term->scale * round(*height / term->scale));
+}
+
 /* Move to terminal.c? */
-static bool
-maybe_resize(struct terminal *term, int width, int height, bool force)
+bool
+render_resize(struct terminal *term, int width, int height, uint8_t opts)
 {
     if (term->shutdown.in_progress)
         return false;
@@ -3925,21 +3941,29 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
     if (term->cell_width == 0 && term->cell_height == 0)
         return false;
 
+    const bool is_floating =
+        !term->window->is_maximized &&
+        !term->window->is_fullscreen &&
+        !term->window->is_tiled;
+
+    /* Convert logical size to physical size */
     const float scale = term->scale;
     width = round(width * scale);
     height = round(height * scale);
 
+    /* If the grid should be kept, the size should be overridden */
+    if (is_floating && (opts & RESIZE_KEEP_GRID)) {
+        set_size_from_grid(term, &width, &height, term->cols, term->rows);
+    }
+
     if (width == 0 && height == 0) {
-        /*
-         * The compositor is letting us choose the size
-         *
-         * If we have a "last" used size - use that. Otherwise, use
-         * the size from the user configuration.
-         */
+        /* The compositor is letting us choose the size */
         if (term->stashed_width != 0 && term->stashed_height != 0) {
+            /* If a default size is requested, prefer the "last used" size */
             width = term->stashed_width;
             height = term->stashed_height;
         } else {
+            /* Otherwise, use a user-configured size */
             switch (term->conf->size.type) {
             case CONF_SIZE_PX:
                 width = term->conf->size.width;
@@ -3959,15 +3983,8 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
                 break;
 
             case CONF_SIZE_CELLS:
-                width = term->conf->size.width * term->cell_width;
-                height = term->conf->size.height * term->cell_height;
-
-                width += 2 * term->conf->pad_x * scale;
-                height += 2 * term->conf->pad_y * scale;
-
-                /* Ensure width/height is a valid multiple of scale */
-                width = roundf(scale * roundf(width / scale));
-                height = roundf(scale * roundf(height / scale));
+                set_size_from_grid(term, &width, &height,
+                                   term->conf->size.width, term->conf->size.height);
                 break;
             }
         }
@@ -3990,8 +4007,25 @@ maybe_resize(struct terminal *term, int width, int height, bool force)
     const int pad_x = min(max_pad_x, scale * term->conf->pad_x);
     const int pad_y = min(max_pad_y, scale * term->conf->pad_y);
 
-    if (!force && width == term->width && height == term->height && scale == term->scale)
+    if (is_floating &&
+        (opts & RESIZE_BY_CELLS) &&
+        term->conf->resize_by_cells)
+    {
+        /* If resizing in cell increments, restrict the width and height */
+        width = ((width - 2 * pad_x) / term->cell_width) * term->cell_width + 2 * pad_x;
+        width = max(min_width, roundf(scale * roundf(width / scale)));
+
+        height = ((height - 2 * pad_y) / term->cell_height) * term->cell_height + 2 * pad_y;
+        height = max(min_height, roundf(scale * roundf(height / scale)));
+    }
+
+    if (!(opts & RESIZE_FORCE) &&
+        width == term->width &&
+        height == term->height &&
+        scale == term->scale)
+    {
         return false;
+    }
 
     /* Cancel an application initiated "Synchronized Update" */
     term_disable_app_sync_updates(term);
@@ -4225,10 +4259,7 @@ damage_view:
     /* Signal TIOCSWINSZ */
     send_dimensions_to_client(term);
 
-    if (!term->window->is_maximized &&
-        !term->window->is_fullscreen &&
-        !term->window->is_tiled)
-    {
+    if (is_floating) {
         /* Stash current size, to enable us to restore it when we're
          * being un-maximized/fullscreened/tiled */
         term->stashed_width = term->width;
@@ -4289,18 +4320,6 @@ damage_view:
     render_refresh(term);
 
     return true;
-}
-
-bool
-render_resize(struct terminal *term, int width, int height)
-{
-    return maybe_resize(term, width, height, false);
-}
-
-bool
-render_resize_force(struct terminal *term, int width, int height)
-{
-    return maybe_resize(term, width, height, true);
 }
 
 static void xcursor_callback(

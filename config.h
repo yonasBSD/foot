@@ -128,6 +128,9 @@ struct config {
     unsigned pad_x;
     unsigned pad_y;
     bool center;
+
+    bool resize_by_cells;
+
     uint16_t resize_delay_ms;
 
     struct {

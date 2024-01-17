@@ -784,10 +784,11 @@ term_set_fonts(struct terminal *term, struct fcft_font *fonts[static 4],
      * render_resize() after this function */
     if (resize_grid) {
         /* Use force, since cell-width/height may have changed */
-        render_resize_force(
+        render_resize(
             term,
             (int)roundf(term->width / term->scale),
-            (int)roundf(term->height / term->scale));
+            (int)roundf(term->height / term->scale),
+            RESIZE_FORCE | RESIZE_KEEP_GRID);
     }
     return true;
 }

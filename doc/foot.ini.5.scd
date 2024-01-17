@@ -252,6 +252,21 @@ empty string to be set, but it must be quoted: *KEY=""*)
 	
 	Default: _100_.
 
+*resize-by-cells*
+	Boolean.
+
+	When set to *yes*, the window size will be constrained to multiples
+	of the cell size (plus any configured padding). When set to *no*,
+	the window size will be unconstrained, and padding may be adjusted
+	as necessary to accommodate window sizes that are not multiples of
+	the cell size.
+
+	This option only applies to floating windows. Sizes of maxmized, tiled
+	or fullscreen windows will not be constrained to multiples of the cell
+	size.
+
+	Default: _yes_
+
 *initial-window-size-pixels*
 	Initial window width and height in _pixels_ (subject to output
 	scaling), in the form _WIDTHxHEIGHT_. The height _includes_ the

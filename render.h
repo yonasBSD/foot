@@ -10,8 +10,15 @@ struct renderer;
 struct renderer *render_init(struct fdm *fdm, struct wayland *wayl);
 void render_destroy(struct renderer *renderer);
 
-bool render_resize(struct terminal *term, int width, int height);
-bool render_resize_force(struct terminal *term, int width, int height);
+enum resize_options {
+    RESIZE_NORMAL = 0,
+    RESIZE_FORCE = 1 << 0,
+    RESIZE_BY_CELLS = 1 << 1,
+    RESIZE_KEEP_GRID = 1 << 2,
+};
+
+bool render_resize(
+    struct terminal *term, int width, int height, uint8_t resize_options);
 
 void render_refresh(struct terminal *term);
 void render_refresh_csd(struct terminal *term);

@@ -392,8 +392,6 @@ static void
 update_term_for_output_change(struct terminal *term)
 {
     const float old_scale = term->scale;
-    const float logical_width = term->width / term->scale;
-    const float logical_height = term->height / term->scale;
 
     /* Note: order matters! term_update_scale() must come first */
     bool scale_updated = term_update_scale(term);
@@ -402,24 +400,37 @@ update_term_for_output_change(struct terminal *term)
 
     csd_reload_font(term->window, old_scale);
 
+    uint8_t resize_opts = RESIZE_KEEP_GRID;
+
     if (fonts_updated) {
         /*
          * If the fonts have been updated, the cell dimensions have
          * changed. This requires a “forced” resize, since the surface
          * buffer dimensions may not have been updated (in which case
-         * render_size() normally shortcuts and returns early).
+         * render_resize() normally shortcuts and returns early).
          */
-        render_resize_force(term, (int)roundf(logical_width), (int)roundf(logical_height));
+        resize_opts |= RESIZE_FORCE;
+    } else if (!scale_updated) {
+        /* No need to resize if neither scale nor fonts have changed */
+        return;
+    } else if (term->conf->dpi_aware) {
+        /*
+	 * If fonts are sized according to DPI, it is possible for the cell
+	 * size to remain the same when display scale changes. This will not
+	 * change the surface buffer dimensions, but will change the logical
+	 * size of the window. To ensure that the compositor is made aware of
+	 * the proper logical size, force a resize rather than allowing
+	 * render_resize() to shortcut the notification if the buffer
+	 * dimensions remain the same.
+	 */
+        resize_opts |= RESIZE_FORCE;
     }
 
-    else if (scale_updated) {
-        /*
-         * A scale update means the surface buffer dimensions have
-         * been updated, even though the window logical dimensions
-         * haven’t changed.
-         */
-        render_resize(term, (int)roundf(logical_width), (int)roundf(logical_height));
-    }
+    render_resize(
+        term,
+        (int)roundf(term->width / term->scale),
+        (int)roundf(term->height / term->scale),
+        resize_opts);
 }
 
 static void
@@ -976,6 +987,8 @@ xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
 
     xdg_surface_ack_configure(xdg_surface, serial);
 
+    enum resize_options opts = RESIZE_BY_CELLS;
+
 #if 1
     /*
      * TODO: decide if we should do the last “forced” call when ending
@@ -989,12 +1002,11 @@ xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
      * Note: if we also disable content centering while resizing, then
      * the last, forced, resize *is* necessary.
      */
-    bool resized = was_resizing && !win->is_resizing
-        ? render_resize_force(term, new_width, new_height)
-        : render_resize(term, new_width, new_height);
-#else
-    bool resized = render_resize(term, new_width, new_height);
+    if (was_resizing && !win->is_resizing)
+        opts |= RESIZE_FORCE;
 #endif
+
+    bool resized = render_resize(term, new_width, new_height, opts);
 
     if (win->configure.is_activated)
         term_visual_focus_in(term);

@@ -54,6 +54,8 @@
 
 * Unicode input mode now accepts input from the numpad as well,
   numlock is ignored.
+* A new `resize-by-cells` option, enabled by default, allows the size
+  of floating windows to be constrained to multiples of the cell size.
 
 
 ### Changed
@@ -68,6 +70,8 @@
 * Kitty keyboard protocol: updated behavior of modifiers bits during
   modifier key events, to match the (new [#6913][kitty-6913]) behavior
   in kitty >= 0.32.0 ([#1561][1561]).
+* When changing font sizes or display scales in floating windows, the
+  window will be resized as needed to preserve the same grid size.
 
 [1526]: https://codeberg.org/dnkl/foot/issues/1526
 [1528]: https://codeberg.org/dnkl/foot/issues/1528
