@@ -65,9 +65,14 @@
   process. This ensures the terminal itself does not "lock" a
   directory; for example, preventing a mount point from being
   unmounted ([#1528][1528]).
+* Kitty keyboard protocol: updated behavior of modifiers bits during
+  modifier key events, to match the (new [#6913][kitty-6913]) behavior
+  in kitty >= 0.32.0 ([#1561][1561]).
 
 [1526]: https://codeberg.org/dnkl/foot/issues/1526
 [1528]: https://codeberg.org/dnkl/foot/issues/1528
+[1561]: https://codeberg.org/dnkl/foot/issues/1561
+[kitty-6913]: https://github.com/kovidgoyal/kitty/issues/6913
 
 
 ### Deprecated

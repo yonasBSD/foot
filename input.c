@@ -1135,18 +1135,76 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
     if (!disambiguate && !report_all_as_escapes && pressed)
         return legacy_kbd_protocol(seat, term, ctx);
 
-    const xkb_mod_mask_t mods = ctx->mods & seat->kbd.kitty_significant;
-    const xkb_mod_mask_t consumed = xkb_state_key_get_consumed_mods2(
-        seat->kbd.xkb_state, ctx->key, XKB_CONSUMED_MODE_GTK) & seat->kbd.kitty_significant;
-    const xkb_mod_mask_t effective = mods & ~consumed;
-    const xkb_mod_mask_t caps_num =
-        (seat->kbd.mod_caps != XKB_MOD_INVALID ? 1 << seat->kbd.mod_caps : 0) |
-        (seat->kbd.mod_num != XKB_MOD_INVALID ? 1 << seat->kbd.mod_num : 0);
-
     const xkb_keysym_t sym = ctx->sym;
     const uint32_t *utf32 = ctx->utf32;
     const uint8_t *const utf8 = ctx->utf8.buf;
     const size_t count = ctx->utf8.count;
+
+    /* Lookup sym in the pre-defined keysym table */
+    const struct kitty_key_data *info = bsearch(
+        &sym, kitty_keymap, ALEN(kitty_keymap), sizeof(kitty_keymap[0]),
+        &kitty_search);
+    xassert(info == NULL || info->sym == sym);
+
+    xkb_mod_mask_t mods = 0;
+    xkb_mod_mask_t consumed = 0;
+
+    if (info != NULL && info->is_modifier) {
+        /*
+         * Special-case modifier keys.
+         *
+         * Normally, the "current" XKB state reflects the state
+         * *before* the current key event. In other words, the
+         * modifiers for key events that affect the modifier state
+         * (e.g. one of the control keys, or shift keys etc) does
+         * *not* include the key itself.
+         *
+         * Put another way, if you press "control", the modifier set
+         * is empty in the key press event, but contains "ctrl" in the
+         * release event.
+         *
+         * The kitty protocol mandates the modifier list contain the
+         * key itself, in *both* the press and release event.
+         *
+         * We handle this by updating the XKB state to *include* the
+         * current key, retrieve the set of modifiers (including the
+         * set of consumed modifiers), and then revert the XKB update.
+         */
+        xkb_state_update_key(
+            seat->kbd.xkb_state, ctx->key, pressed ? XKB_KEY_DOWN : XKB_KEY_UP);
+
+        get_current_modifiers(seat, &mods, NULL, ctx->key);
+        consumed = xkb_state_key_get_consumed_mods2(
+            seat->kbd.xkb_state, ctx->key, XKB_CONSUMED_MODE_GTK);
+
+#if 0
+        /*
+         * TODO: according to the XKB docs, state updates should
+         * always be in pairs: each press should be followed by a
+         * release. However, doing this just breaks the xkb state.
+         *
+         * *Not* pairing the above press/release with a corresponding
+         * release/press appears to do exactly what we want.
+         */
+        xkb_state_update_key(
+            seat->kbd.xkb_state, ctx->key, pressed ? XKB_KEY_UP : XKB_KEY_DOWN);
+#endif
+    } else {
+        mods = ctx->mods;
+
+        /* Re-retrieve the consumed modifiers using the GTK mode, to
+           better match kitty. */
+        consumed = xkb_state_key_get_consumed_mods2(
+            seat->kbd.xkb_state, ctx->key, XKB_CONSUMED_MODE_GTK);
+    }
+
+    mods &= seat->kbd.kitty_significant;
+    consumed &= seat->kbd.kitty_significant;
+
+    const xkb_mod_mask_t effective = mods & ~consumed;
+    const xkb_mod_mask_t caps_num =
+        (seat->kbd.mod_caps != XKB_MOD_INVALID ? 1 << seat->kbd.mod_caps : 0) |
+        (seat->kbd.mod_num != XKB_MOD_INVALID ? 1 << seat->kbd.mod_num : 0);
 
     bool is_text = count > 0 && utf32 != NULL && (effective & ~caps_num) == 0;
     for (size_t i = 0; utf32[i] != U'\0'; i++) {
@@ -1158,12 +1216,6 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
 
     const bool report_associated_text =
         (flags & KITTY_KBD_REPORT_ASSOCIATED) && is_text && !released;
-
-    /* Lookup sym in the pre-defined keysym table */
-    const struct kitty_key_data *info = bsearch(
-        &sym, kitty_keymap, ALEN(kitty_keymap), sizeof(kitty_keymap[0]),
-        &kitty_search);
-    xassert(info == NULL || info->sym == sym);
 
     if (composing) {
         /* We never emit anything while composing, *except* modifiers
