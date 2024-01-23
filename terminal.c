@@ -939,11 +939,7 @@ reload_fonts(struct terminal *term, bool resize_grid)
                 snprintf(size, sizeof(size), ":size=%.2f",
                          term->font_sizes[i][j].pt_size * scale);
 
-            size_t len = strlen(font->pattern) + strlen(size) + 1;
-            names[i][j] = xmalloc(len);
-
-            strcpy(names[i][j], font->pattern);
-            strcat(names[i][j], size);
+            names[i][j] = xstrjoin(font->pattern, size);
         }
     }
 
@@ -966,30 +962,14 @@ reload_fonts(struct terminal *term, bool resize_grid)
     const char **names_bold_italic = (const char **)(custom_bold_italic ? names[3] : names[0]);
 
     const bool use_dpi = term->font_is_sized_by_dpi;
+    char *dpi = xasprintf("dpi=%.2f", use_dpi ? term->font_dpi : 96.);
 
-    char *attrs[4] = {NULL};
-    int attr_len[4] = {-1, -1, -1, -1};  /* -1, so that +1 (below) results in 0 */
-
-    for (size_t i = 0; i < 2; i++) {
-        attr_len[0] = snprintf(
-            attrs[0], attr_len[0] + 1, "dpi=%.2f",
-            use_dpi ? term->font_dpi : 96);
-        attr_len[1] = snprintf(
-            attrs[1], attr_len[1] + 1, "dpi=%.2f:%s",
-            use_dpi ? term->font_dpi : 96, !custom_bold ? "weight=bold" : "");
-        attr_len[2] = snprintf(
-            attrs[2], attr_len[2] + 1, "dpi=%.2f:%s",
-            use_dpi ? term->font_dpi : 96, !custom_italic ? "slant=italic" : "");
-        attr_len[3] = snprintf(
-            attrs[3], attr_len[3] + 1, "dpi=%.2f:%s",
-            use_dpi ? term->font_dpi : 96, !custom_bold_italic ? "weight=bold:slant=italic" : "");
-
-        if (i > 0)
-            continue;
-
-        for (size_t i = 0; i < 4; i++)
-            attrs[i] = xmalloc(attr_len[i] + 1);
-    }
+    char *attrs[4] = {
+        [0] = dpi, /* Takes ownership */
+        [1] = xstrjoin(dpi, !custom_bold ? ":weight=bold" : ""),
+        [2] = xstrjoin(dpi, !custom_italic ? ":slant=italic" : ""),
+        [3] = xstrjoin(dpi, !custom_bold_italic ? ":weight=bold:slant=italic" : ""),
+    };
 
     struct fcft_font *fonts[4];
     struct font_load_data data[4] = {
