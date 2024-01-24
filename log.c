@@ -199,7 +199,7 @@ log_level_from_string(const char *str)
         return -1;
 
     for (int i = 0, n = map_len(); i < n; i++)
-        if (strcmp(str, log_level_map[i].name) == 0)
+        if (streq(str, log_level_map[i].name))
             return i;
 
     return -1;

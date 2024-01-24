@@ -426,7 +426,7 @@ osc_set_pwd(struct terminal *term, char *string)
         return;
     }
 
-    if (strcmp(scheme, "file") == 0 && hostname_is_localhost(host)) {
+    if (streq(scheme, "file") && hostname_is_localhost(host)) {
         LOG_DBG("OSC7: pwd: %s", path);
         free(term->cwd);
         term->cwd = path;
@@ -483,7 +483,7 @@ osc_uri(struct terminal *term, char *string)
 
         const char *value = operator + 1;
 
-        if (strcmp(key, "id") == 0)
+        if (streq(key, "id"))
             id = sdbm_hash(value);
     }
 

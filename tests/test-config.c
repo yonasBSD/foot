@@ -60,7 +60,7 @@ test_string(struct context *ctx, bool (*parse_fun)(struct context *ctx),
                 BUG("[%s].%s=%s: failed to parse",
                     ctx->section, ctx->key, ctx->value);
             }
-            if (strcmp(*ptr, input[i].value) != 0) {
+            if (!streq(*ptr, input[i].value)) {
                 BUG("[%s].%s=%s: set value (%s) not the expected one (%s)",
                     ctx->section, ctx->key, ctx->value,
                     *ptr, input[i].value);
@@ -357,9 +357,7 @@ test_spawn_template(struct context *ctx, bool (*parse_fun)(struct context *ctx),
         BUG("[%s].%s=%s: argv is NULL", ctx->section, ctx->key, ctx->value);
 
     for (size_t i = 0; i < ALEN(args); i++) {
-        if (ptr->argv.args[i] == NULL ||
-            strcmp(ptr->argv.args[i], args[i]) != 0)
-        {
+        if (ptr->argv.args[i] == NULL || !streq(ptr->argv.args[i], args[i])) {
             BUG("[%s].%s=%s: set value not the expected one: "
                 "mismatch of arg #%zu: expected=\"%s\", got=\"%s\"",
                 ctx->section, ctx->key, ctx->value, i,
@@ -879,7 +877,7 @@ test_key_binding(struct context *ctx, bool (*parse_fun)(struct context *ctx),
 
         for (size_t i = 0; i < ALEN(args); i++) {
             if (binding->aux.pipe.args[i] == NULL ||
-                strcmp(binding->aux.pipe.args[i], args[i]) != 0)
+                !streq(binding->aux.pipe.args[i], args[i]))
             {
                 BUG("[%s].%s=%s: pipe argv not the expected one: "
                     "mismatch of arg #%zu: expected=\"%s\", got=\"%s\"",
@@ -1258,26 +1256,26 @@ test_section_environment(void)
     ctx.value = "bar";
     xassert(parse_section_environment(&ctx));
     xassert(tll_length(conf.env_vars) == 1);
-    xassert(strcmp(tll_front(conf.env_vars).name, "FOO") == 0);
-    xassert(strcmp(tll_front(conf.env_vars).value, "bar") == 0);
+    xassert(streq(tll_front(conf.env_vars).name, "FOO"));
+    xassert(streq(tll_front(conf.env_vars).value, "bar"));
 
     /* Add a second variable */
     ctx.key = "BAR";
     ctx.value = "123";
     xassert(parse_section_environment(&ctx));
     xassert(tll_length(conf.env_vars) == 2);
-    xassert(strcmp(tll_back(conf.env_vars).name, "BAR") == 0);
-    xassert(strcmp(tll_back(conf.env_vars).value, "123") == 0);
+    xassert(streq(tll_back(conf.env_vars).name, "BAR"));
+    xassert(streq(tll_back(conf.env_vars).value, "123"));
 
     /* Replace the *value* of the first variable */
     ctx.key = "FOO";
     ctx.value = "456";
     xassert(parse_section_environment(&ctx));
     xassert(tll_length(conf.env_vars) == 2);
-    xassert(strcmp(tll_front(conf.env_vars).name, "FOO") == 0);
-    xassert(strcmp(tll_front(conf.env_vars).value, "456") == 0);
-    xassert(strcmp(tll_back(conf.env_vars).name, "BAR") == 0);
-    xassert(strcmp(tll_back(conf.env_vars).value, "123") == 0);
+    xassert(streq(tll_front(conf.env_vars).name, "FOO"));
+    xassert(streq(tll_front(conf.env_vars).value, "456"));
+    xassert(streq(tll_back(conf.env_vars).name, "BAR"));
+    xassert(streq(tll_back(conf.env_vars).value, "123"));
 
     config_free(&conf);
 }

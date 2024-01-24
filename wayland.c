@@ -1080,7 +1080,7 @@ handle_global(void *data, struct wl_registry *registry,
     LOG_DBG("global: 0x%08x, interface=%s, version=%u", name, interface, version);
     struct wayland *wayl = data;
 
-    if (strcmp(interface, wl_compositor_interface.name) == 0) {
+    if (streq(interface, wl_compositor_interface.name)) {
         const uint32_t required = 4;
         if (!verify_iface_version(interface, version, required))
             return;
@@ -1095,7 +1095,7 @@ handle_global(void *data, struct wl_registry *registry,
             wayl->registry, name, &wl_compositor_interface, min(version, preferred));
     }
 
-    else if (strcmp(interface, wl_subcompositor_interface.name) == 0) {
+    else if (streq(interface, wl_subcompositor_interface.name)) {
         const uint32_t required = 1;
         if (!verify_iface_version(interface, version, required))
             return;
@@ -1104,7 +1104,7 @@ handle_global(void *data, struct wl_registry *registry,
             wayl->registry, name, &wl_subcompositor_interface, required);
     }
 
-    else if (strcmp(interface, wl_shm_interface.name) == 0) {
+    else if (streq(interface, wl_shm_interface.name)) {
         const uint32_t required = 1;
         if (!verify_iface_version(interface, version, required))
             return;
@@ -1114,7 +1114,7 @@ handle_global(void *data, struct wl_registry *registry,
         wl_shm_add_listener(wayl->shm, &shm_listener, wayl);
     }
 
-    else if (strcmp(interface, xdg_wm_base_interface.name) == 0) {
+    else if (streq(interface, xdg_wm_base_interface.name)) {
         const uint32_t required = 1;
         if (!verify_iface_version(interface, version, required))
             return;
@@ -1139,7 +1139,7 @@ handle_global(void *data, struct wl_registry *registry,
         xdg_wm_base_add_listener(wayl->shell, &xdg_wm_base_listener, wayl);
     }
 
-    else if (strcmp(interface, zxdg_decoration_manager_v1_interface.name) == 0) {
+    else if (streq(interface, zxdg_decoration_manager_v1_interface.name)) {
         const uint32_t required = 1;
         if (!verify_iface_version(interface, version, required))
             return;
@@ -1148,7 +1148,7 @@ handle_global(void *data, struct wl_registry *registry,
             wayl->registry, name, &zxdg_decoration_manager_v1_interface, required);
     }
 
-    else if (strcmp(interface, wl_seat_interface.name) == 0) {
+    else if (streq(interface, wl_seat_interface.name)) {
         const uint32_t required = 5;
         if (!verify_iface_version(interface, version, required))
             return;
@@ -1188,7 +1188,7 @@ handle_global(void *data, struct wl_registry *registry,
         wl_seat_add_listener(wl_seat, &seat_listener, seat);
     }
 
-    else if (strcmp(interface, zxdg_output_manager_v1_interface.name) == 0) {
+    else if (streq(interface, zxdg_output_manager_v1_interface.name)) {
         const uint32_t required = 1;
         if (!verify_iface_version(interface, version, required))
             return;
@@ -1205,7 +1205,7 @@ handle_global(void *data, struct wl_registry *registry,
         }
     }
 
-    else if (strcmp(interface, wl_output_interface.name) == 0) {
+    else if (streq(interface, wl_output_interface.name)) {
         const uint32_t required = 2;
         if (!verify_iface_version(interface, version, required))
             return;
@@ -1237,7 +1237,7 @@ handle_global(void *data, struct wl_registry *registry,
         }
     }
 
-    else if (strcmp(interface, wl_data_device_manager_interface.name) == 0) {
+    else if (streq(interface, wl_data_device_manager_interface.name)) {
         const uint32_t required = 3;
         if (!verify_iface_version(interface, version, required))
             return;
@@ -1249,7 +1249,7 @@ handle_global(void *data, struct wl_registry *registry,
             seat_add_data_device(&it->item);
     }
 
-    else if (strcmp(interface, zwp_primary_selection_device_manager_v1_interface.name) == 0) {
+    else if (streq(interface, zwp_primary_selection_device_manager_v1_interface.name)) {
         const uint32_t required = 1;
         if (!verify_iface_version(interface, version, required))
             return;
@@ -1262,7 +1262,7 @@ handle_global(void *data, struct wl_registry *registry,
             seat_add_primary_selection(&it->item);
     }
 
-    else if (strcmp(interface, wp_presentation_interface.name) == 0) {
+    else if (streq(interface, wp_presentation_interface.name)) {
         if (wayl->presentation_timings) {
             const uint32_t required = 1;
             if (!verify_iface_version(interface, version, required))
@@ -1275,7 +1275,7 @@ handle_global(void *data, struct wl_registry *registry,
         }
     }
 
-    else if (strcmp(interface, xdg_activation_v1_interface.name) == 0) {
+    else if (streq(interface, xdg_activation_v1_interface.name)) {
         const uint32_t required = 1;
         if (!verify_iface_version(interface, version, required))
             return;
@@ -1284,7 +1284,7 @@ handle_global(void *data, struct wl_registry *registry,
             wayl->registry, name, &xdg_activation_v1_interface, required);
     }
 
-    else if (strcmp(interface, wp_viewporter_interface.name) == 0) {
+    else if (streq(interface, wp_viewporter_interface.name)) {
         const uint32_t required = 1;
         if (!verify_iface_version(interface, version, required))
             return;
@@ -1293,7 +1293,7 @@ handle_global(void *data, struct wl_registry *registry,
             wayl->registry, name, &wp_viewporter_interface, required);
     }
 
-    else if (strcmp(interface, wp_fractional_scale_manager_v1_interface.name) == 0) {
+    else if (streq(interface, wp_fractional_scale_manager_v1_interface.name)) {
         const uint32_t required = 1;
         if (!verify_iface_version(interface, version, required))
             return;
@@ -1303,7 +1303,7 @@ handle_global(void *data, struct wl_registry *registry,
             &wp_fractional_scale_manager_v1_interface, required);
     }
 
-    else if (strcmp(interface, wp_cursor_shape_manager_v1_interface.name) == 0) {
+    else if (streq(interface, wp_cursor_shape_manager_v1_interface.name)) {
         const uint32_t required = 1;
         if (!verify_iface_version(interface, version, required))
             return;
@@ -1313,7 +1313,7 @@ handle_global(void *data, struct wl_registry *registry,
     }
 
 #if defined(FOOT_IME_ENABLED) && FOOT_IME_ENABLED
-    else if (strcmp(interface, zwp_text_input_manager_v3_interface.name) == 0) {
+    else if (streq(interface, zwp_text_input_manager_v3_interface.name)) {
         const uint32_t required = 1;
         if (!verify_iface_version(interface, version, required))
             return;

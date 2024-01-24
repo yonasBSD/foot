@@ -854,7 +854,7 @@ UNITTEST
 
     const struct key_data *info = keymap_lookup(&term, XKB_KEY_ISO_Left_Tab, MOD_SHIFT | MOD_CTRL);
     xassert(info != NULL);
-    xassert(strcmp(info->seq, "\033[27;6;9~") == 0);
+    xassert(streq(info->seq, "\033[27;6;9~"));
 }
 
 UNITTEST
@@ -865,12 +865,12 @@ UNITTEST
 
     const struct key_data *info = keymap_lookup(&term, XKB_KEY_Return, MOD_ALT);
     xassert(info != NULL);
-    xassert(strcmp(info->seq, "\033\r") == 0);
+    xassert(streq(info->seq, "\033\r"));
 
     term.modify_other_keys_2 = true;
     info = keymap_lookup(&term, XKB_KEY_Return, MOD_ALT);
     xassert(info != NULL);
-    xassert(strcmp(info->seq, "\033[27;3;13~") == 0);
+    xassert(streq(info->seq, "\033[27;3;13~"));
 }
 
 void

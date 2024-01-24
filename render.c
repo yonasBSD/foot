@@ -4559,8 +4559,8 @@ render_xcursor_set(struct seat *seat, struct terminal *term,
 
     if (seat->pointer.shape == shape &&
         !(shape == CURSOR_SHAPE_CUSTOM &&
-          strcmp(seat->pointer.last_custom_xcursor,
-                 term->mouse_user_cursor) != 0))
+          !streq(seat->pointer.last_custom_xcursor,
+                 term->mouse_user_cursor)))
     {
         return true;
     }

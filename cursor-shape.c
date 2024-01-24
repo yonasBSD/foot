@@ -101,7 +101,7 @@ cursor_string_to_server_shape(const char *xcursor)
 
     for (size_t i = 0; i < ALEN(table); i++) {
         for (size_t j = 0; j < ALEN(table[i]); j++) {
-            if (table[i][j] != NULL && strcmp(xcursor, table[i][j]) == 0) {
+            if (table[i][j] != NULL && streq(xcursor, table[i][j])) {
                 return i;
             }
         }

@@ -250,7 +250,7 @@ hostname_is_localhost(const char *hostname)
         this_host[0] = '\0';
 
     return (hostname != NULL && (
-                strcmp(hostname, "") == 0 ||
-                strcmp(hostname, "localhost") == 0 ||
-                strcmp(hostname, this_host) == 0));
+                streq(hostname, "") ||
+                streq(hostname, "localhost") ||
+                streq(hostname, this_host)));
 }

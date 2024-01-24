@@ -685,7 +685,7 @@ urls_assign_key_combos(const struct config *conf, url_list_t *urls)
                 break;
 
             if (it->item.id == it2->item.id &&
-                strcmp(it->item.url, it2->item.url) == 0)
+                streq(it->item.url, it2->item.url))
             {
                 id_already_seen = true;
                 break;
@@ -704,7 +704,7 @@ urls_assign_key_combos(const struct config *conf, url_list_t *urls)
             if (&it->item == &it2->item)
                 break;
 
-            if (strcmp(it->item.url, it2->item.url) == 0) {
+            if (streq(it->item.url, it2->item.url)) {
                 it->item.key = xc32dup(it2->item.key);
                 url_already_seen = true;
                 break;

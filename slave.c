@@ -21,6 +21,7 @@
 #include "macros.h"
 #include "terminal.h"
 #include "tokenize.h"
+#include "util.h"
 #include "xmalloc.h"
 
 extern char **environ;
@@ -121,7 +122,7 @@ is_valid_shell(const char *shell)
         if (line[0] == '#')
             continue;
 
-        if (strcmp(line, shell) == 0) {
+        if (streq(line, shell)) {
             fclose(f);
             return true;
         }

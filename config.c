@@ -824,7 +824,7 @@ parse_section_main(struct context *ctx)
     const char *value = ctx->value;
     bool errors_are_fatal = ctx->errors_are_fatal;
 
-    if (strcmp(key, "include") == 0) {
+    if (streq(key, "include")) {
         char *_include_path = NULL;
         const char *include_path = NULL;
 
@@ -864,25 +864,25 @@ parse_section_main(struct context *ctx)
         return ret;
     }
 
-    else if (strcmp(key, "term") == 0)
+    else if (streq(key, "term"))
         return value_to_str(ctx, &conf->term);
 
-    else if (strcmp(key, "shell") == 0)
+    else if (streq(key, "shell"))
         return value_to_str(ctx, &conf->shell);
 
-    else if (strcmp(key, "login-shell") == 0)
+    else if (streq(key, "login-shell"))
         return value_to_bool(ctx, &conf->login_shell);
 
-    else if (strcmp(key, "title") == 0)
+    else if (streq(key, "title"))
         return value_to_str(ctx, &conf->title);
 
-    else if (strcmp(key, "locked-title") == 0)
+    else if (streq(key, "locked-title"))
         return value_to_bool(ctx, &conf->locked_title);
 
-    else if (strcmp(key, "app-id") == 0)
+    else if (streq(key, "app-id"))
         return value_to_str(ctx, &conf->app_id);
 
-    else if (strcmp(key, "initial-window-size-pixels") == 0) {
+    else if (streq(key, "initial-window-size-pixels")) {
         if (!value_to_dimensions(ctx, &conf->size.width, &conf->size.height))
             return false;
 
@@ -890,7 +890,7 @@ parse_section_main(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "initial-window-size-chars") == 0) {
+    else if (streq(key, "initial-window-size-chars")) {
         if (!value_to_dimensions(ctx, &conf->size.width, &conf->size.height))
             return false;
 
@@ -898,7 +898,7 @@ parse_section_main(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "pad") == 0) {
+    else if (streq(key, "pad")) {
         unsigned x, y;
         char mode[16] = {0};
 
@@ -918,11 +918,11 @@ parse_section_main(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "resize-delay-ms") == 0)
+    else if (streq(key, "resize-delay-ms"))
         return value_to_uint16(ctx, 10, &conf->resize_delay_ms);
 
-    else if (strcmp(key, "bold-text-in-bright") == 0) {
-        if (strcmp(value, "palette-based") == 0) {
+    else if (streq(key, "bold-text-in-bright")) {
+        if (streq(value, "palette-based")) {
             conf->bold_in_bright.enabled = true;
             conf->bold_in_bright.palette_based = true;
         } else {
@@ -933,7 +933,7 @@ parse_section_main(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "initial-window-mode") == 0) {
+    else if (streq(key, "initial-window-mode")) {
         _Static_assert(sizeof(conf->startup_mode) == sizeof(int),
             "enum is not 32-bit");
 
@@ -943,16 +943,16 @@ parse_section_main(struct context *ctx)
                 (int *)&conf->startup_mode);
     }
 
-    else if (strcmp(key, "font") == 0 ||
-             strcmp(key, "font-bold") == 0 ||
-             strcmp(key, "font-italic") == 0 ||
-             strcmp(key, "font-bold-italic") == 0)
+    else if (streq(key, "font") ||
+             streq(key, "font-bold") ||
+             streq(key, "font-italic") ||
+             streq(key, "font-bold-italic"))
 
     {
         size_t idx =
-            strcmp(key, "font") == 0 ? 0 :
-            strcmp(key, "font-bold") == 0 ? 1 :
-            strcmp(key, "font-italic") == 0 ? 2 : 3;
+            streq(key, "font") ? 0 :
+            streq(key, "font-bold") ? 1 :
+            streq(key, "font-italic") ? 2 : 3;
 
         struct config_font_list new_list = value_to_fonts(ctx);
         if (new_list.arr == NULL)
@@ -963,7 +963,7 @@ parse_section_main(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "font-size-adjustment") == 0) {
+    else if (streq(key, "font-size-adjustment")) {
         const size_t len = strlen(ctx->value);
         if (len >= 1 && ctx->value[len - 1] == '%') {
             errno = 0;
@@ -988,44 +988,44 @@ parse_section_main(struct context *ctx)
         }
     }
 
-    else if (strcmp(key, "line-height") == 0)
+    else if (streq(key, "line-height"))
         return value_to_pt_or_px(ctx, &conf->line_height);
 
-    else if (strcmp(key, "letter-spacing") == 0)
+    else if (streq(key, "letter-spacing"))
         return value_to_pt_or_px(ctx, &conf->letter_spacing);
 
-    else if (strcmp(key, "horizontal-letter-offset") == 0)
+    else if (streq(key, "horizontal-letter-offset"))
         return value_to_pt_or_px(ctx, &conf->horizontal_letter_offset);
 
-    else if (strcmp(key, "vertical-letter-offset") == 0)
+    else if (streq(key, "vertical-letter-offset"))
         return value_to_pt_or_px(ctx, &conf->vertical_letter_offset);
 
-    else if (strcmp(key, "underline-offset") == 0) {
+    else if (streq(key, "underline-offset")) {
         if (!value_to_pt_or_px(ctx, &conf->underline_offset))
             return false;
         conf->use_custom_underline_offset = true;
         return true;
     }
 
-    else if (strcmp(key, "underline-thickness") == 0)
+    else if (streq(key, "underline-thickness"))
         return value_to_pt_or_px(ctx, &conf->underline_thickness);
 
-    else if (strcmp(key, "dpi-aware") == 0)
+    else if (streq(key, "dpi-aware"))
         return value_to_bool(ctx, &conf->dpi_aware);
 
-    else if (strcmp(key, "workers") == 0)
+    else if (streq(key, "workers"))
         return value_to_uint16(ctx, 10, &conf->render_worker_count);
 
-    else if (strcmp(key, "word-delimiters") == 0)
+    else if (streq(key, "word-delimiters"))
         return value_to_wchars(ctx, &conf->word_delimiters);
 
-    else if (strcmp(key, "notify") == 0)
+    else if (streq(key, "notify"))
         return value_to_spawn_template(ctx, &conf->notify);
 
-    else if (strcmp(key, "notify-focus-inhibit") == 0)
+    else if (streq(key, "notify-focus-inhibit"))
         return value_to_bool(ctx, &conf->notify_focus_inhibit);
 
-    else if (strcmp(key, "selection-target") == 0) {
+    else if (streq(key, "selection-target")) {
         _Static_assert(sizeof(conf->selection_target) == sizeof(int),
                        "enum is not 32-bit");
 
@@ -1035,14 +1035,14 @@ parse_section_main(struct context *ctx)
             (int *)&conf->selection_target);
     }
 
-    else if (strcmp(key, "box-drawings-uses-font-glyphs") == 0)
+    else if (streq(key, "box-drawings-uses-font-glyphs"))
         return value_to_bool(ctx, &conf->box_drawings_uses_font_glyphs);
 
-    else if (strcmp(key, "utmp-helper") == 0) {
+    else if (streq(key, "utmp-helper")) {
         if (!value_to_str(ctx, &conf->utmp_helper_path))
             return false;
 
-        if (strcmp(conf->utmp_helper_path, "none") == 0) {
+        if (streq(conf->utmp_helper_path, "none")) {
             free(conf->utmp_helper_path);
             conf->utmp_helper_path = NULL;
         }
@@ -1062,15 +1062,15 @@ parse_section_bell(struct context *ctx)
     struct config *conf = ctx->conf;
     const char *key = ctx->key;
 
-    if (strcmp(key, "urgent") == 0)
+    if (streq(key, "urgent"))
         return value_to_bool(ctx, &conf->bell.urgent);
-    else if (strcmp(key, "notify") == 0)
+    else if (streq(key, "notify"))
         return value_to_bool(ctx, &conf->bell.notify);
-    else if (strcmp(key, "visual") == 0)
+    else if (streq(key, "visual"))
         return value_to_bool(ctx, &conf->bell.flash);
-    else if (strcmp(key, "command") == 0)
+    else if (streq(key, "command"))
         return value_to_spawn_template(ctx, &conf->bell.command);
-    else if (strcmp(key, "command-focused") == 0)
+    else if (streq(key, "command-focused"))
         return value_to_bool(ctx, &conf->bell.command_focused);
     else {
         LOG_CONTEXTUAL_ERR("not a valid option: %s", key);
@@ -1085,10 +1085,10 @@ parse_section_scrollback(struct context *ctx)
     const char *key = ctx->key;
     const char *value = ctx->value;
 
-    if (strcmp(key, "lines") == 0)
+    if (streq(key, "lines"))
         return value_to_uint32(ctx, 10, &conf->scrollback.lines);
 
-    else if (strcmp(key, "indicator-position") == 0) {
+    else if (streq(key, "indicator-position")) {
         _Static_assert(
             sizeof(conf->scrollback.indicator.position) == sizeof(int),
             "enum is not 32-bit");
@@ -1099,12 +1099,12 @@ parse_section_scrollback(struct context *ctx)
             (int *)&conf->scrollback.indicator.position);
     }
 
-    else if (strcmp(key, "indicator-format") == 0) {
-        if (strcmp(value, "percentage") == 0) {
+    else if (streq(key, "indicator-format")) {
+        if (streq(value, "percentage")) {
             conf->scrollback.indicator.format
                 = SCROLLBACK_INDICATOR_FORMAT_PERCENTAGE;
             return true;
-        } else if (strcmp(value, "line") == 0) {
+        } else if (streq(value, "line")) {
             conf->scrollback.indicator.format
                 = SCROLLBACK_INDICATOR_FORMAT_LINENO;
             return true;
@@ -1112,7 +1112,7 @@ parse_section_scrollback(struct context *ctx)
             return value_to_wchars(ctx, &conf->scrollback.indicator.text);
     }
 
-    else if (strcmp(key, "multiplier") == 0)
+    else if (streq(key, "multiplier"))
         return value_to_float(ctx, &conf->scrollback.multiplier);
 
     else {
@@ -1128,13 +1128,13 @@ parse_section_url(struct context *ctx)
     const char *key = ctx->key;
     const char *value = ctx->value;
 
-    if (strcmp(key, "launch") == 0)
+    if (streq(key, "launch"))
         return value_to_spawn_template(ctx, &conf->url.launch);
 
-    else if (strcmp(key, "label-letters") == 0)
+    else if (streq(key, "label-letters"))
         return value_to_wchars(ctx, &conf->url.label_letters);
 
-    else if (strcmp(key, "osc8-underline") == 0) {
+    else if (streq(key, "osc8-underline")) {
         _Static_assert(sizeof(conf->url.osc8_underline) == sizeof(int),
                        "enum is not 32-bit");
 
@@ -1144,7 +1144,7 @@ parse_section_url(struct context *ctx)
             (int *)&conf->url.osc8_underline);
     }
 
-    else if (strcmp(key, "protocols") == 0) {
+    else if (streq(key, "protocols")) {
         for (size_t i = 0; i < conf->url.prot_count; i++)
             free(conf->url.protocols[i]);
         free(conf->url.protocols);
@@ -1196,7 +1196,7 @@ parse_section_url(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "uri-characters") == 0) {
+    else if (streq(key, "uri-characters")) {
         if (!value_to_wchars(ctx, &conf->url.uri_characters))
             return false;
 
@@ -1251,13 +1251,13 @@ parse_section_colors(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "flash") == 0) color = &conf->colors.flash;
-    else if (strcmp(key, "foreground") == 0) color = &conf->colors.fg;
-    else if (strcmp(key, "background") == 0) color = &conf->colors.bg;
-    else if (strcmp(key, "selection-foreground") == 0) color = &conf->colors.selection_fg;
-    else if (strcmp(key, "selection-background") == 0) color = &conf->colors.selection_bg;
+    else if (streq(key, "flash")) color = &conf->colors.flash;
+    else if (streq(key, "foreground")) color = &conf->colors.fg;
+    else if (streq(key, "background")) color = &conf->colors.bg;
+    else if (streq(key, "selection-foreground")) color = &conf->colors.selection_fg;
+    else if (streq(key, "selection-background")) color = &conf->colors.selection_bg;
 
-    else if (strcmp(key, "jump-labels") == 0) {
+    else if (streq(key, "jump-labels")) {
         if (!value_to_two_colors(
                 ctx,
                 &conf->colors.jump_label.fg,
@@ -1271,7 +1271,7 @@ parse_section_colors(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "scrollback-indicator") == 0) {
+    else if (streq(key, "scrollback-indicator")) {
         if (!value_to_two_colors(
                 ctx,
                 &conf->colors.scrollback_indicator.fg,
@@ -1285,7 +1285,7 @@ parse_section_colors(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "search-box-no-match") == 0) {
+    else if (streq(key, "search-box-no-match")) {
         if (!value_to_two_colors(
                 ctx,
                 &conf->colors.search_box.no_match.fg,
@@ -1299,7 +1299,7 @@ parse_section_colors(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "search-box-match") == 0) {
+    else if (streq(key, "search-box-match")) {
         if (!value_to_two_colors(
                 ctx,
                 &conf->colors.search_box.match.fg,
@@ -1313,7 +1313,7 @@ parse_section_colors(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "urls") == 0) {
+    else if (streq(key, "urls")) {
         if (!value_to_color(ctx, &conf->colors.url, false))
             return false;
 
@@ -1321,7 +1321,7 @@ parse_section_colors(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "alpha") == 0) {
+    else if (streq(key, "alpha")) {
         float alpha;
         if (!value_to_float(ctx, &alpha))
             return false;
@@ -1335,7 +1335,7 @@ parse_section_colors(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "flash-alpha") == 0) {
+    else if (streq(key, "flash-alpha")) {
         float alpha;
         if (!value_to_float(ctx, &alpha))
             return false;
@@ -1369,7 +1369,7 @@ parse_section_cursor(struct context *ctx)
     struct config *conf = ctx->conf;
     const char *key = ctx->key;
 
-    if (strcmp(key, "style") == 0) {
+    if (streq(key, "style")) {
         _Static_assert(sizeof(conf->cursor.style) == sizeof(int),
                        "enum is not 32-bit");
 
@@ -1379,10 +1379,10 @@ parse_section_cursor(struct context *ctx)
             (int *)&conf->cursor.style);
     }
 
-    else if (strcmp(key, "blink") == 0)
+    else if (streq(key, "blink"))
         return value_to_bool(ctx, &conf->cursor.blink);
 
-    else if (strcmp(key, "color") == 0) {
+    else if (streq(key, "color")) {
         if (!value_to_two_colors(
                 ctx,
                 &conf->cursor.color.text,
@@ -1397,10 +1397,10 @@ parse_section_cursor(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "beam-thickness") == 0)
+    else if (streq(key, "beam-thickness"))
         return value_to_pt_or_px(ctx, &conf->cursor.beam_thickness);
 
-    else if (strcmp(key, "underline-thickness") == 0)
+    else if (streq(key, "underline-thickness"))
         return value_to_pt_or_px(ctx, &conf->cursor.underline_thickness);
 
     else {
@@ -1415,10 +1415,10 @@ parse_section_mouse(struct context *ctx)
     struct config *conf = ctx->conf;
     const char *key = ctx->key;
 
-    if (strcmp(key, "hide-when-typing") == 0)
+    if (streq(key, "hide-when-typing"))
         return value_to_bool(ctx, &conf->mouse.hide_when_typing);
 
-    else if (strcmp(key, "alternate-scroll-mode") == 0)
+    else if (streq(key, "alternate-scroll-mode"))
         return value_to_bool(ctx, &conf->mouse.alternate_scroll_mode);
 
     else {
@@ -1433,7 +1433,7 @@ parse_section_csd(struct context *ctx)
     struct config *conf = ctx->conf;
     const char *key = ctx->key;
 
-    if (strcmp(key, "preferred") == 0) {
+    if (streq(key, "preferred")) {
         _Static_assert(sizeof(conf->csd.preferred) == sizeof(int),
                        "enum is not 32-bit");
 
@@ -1443,7 +1443,7 @@ parse_section_csd(struct context *ctx)
             (int *)&conf->csd.preferred);
     }
 
-    else if (strcmp(key, "font") == 0) {
+    else if (streq(key, "font")) {
         struct config_font_list new_list = value_to_fonts(ctx);
         if (new_list.arr == NULL)
             return false;
@@ -1453,7 +1453,7 @@ parse_section_csd(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "color") == 0) {
+    else if (streq(key, "color")) {
         uint32_t color;
         if (!value_to_color(ctx, &color, true))
             return false;
@@ -1463,13 +1463,13 @@ parse_section_csd(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "size") == 0)
+    else if (streq(key, "size"))
         return value_to_uint16(ctx, 10, &conf->csd.title_height);
 
-    else if (strcmp(key, "button-width") == 0)
+    else if (streq(key, "button-width"))
         return value_to_uint16(ctx, 10, &conf->csd.button_width);
 
-    else if (strcmp(key, "button-color") == 0) {
+    else if (streq(key, "button-color")) {
         if (!value_to_color(ctx, &conf->csd.color.buttons, true))
             return false;
 
@@ -1477,7 +1477,7 @@ parse_section_csd(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "button-minimize-color") == 0) {
+    else if (streq(key, "button-minimize-color")) {
         if (!value_to_color(ctx, &conf->csd.color.minimize, true))
             return false;
 
@@ -1485,7 +1485,7 @@ parse_section_csd(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "button-maximize-color") == 0) {
+    else if (streq(key, "button-maximize-color")) {
         if (!value_to_color(ctx, &conf->csd.color.maximize, true))
             return false;
 
@@ -1493,7 +1493,7 @@ parse_section_csd(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "button-close-color") == 0) {
+    else if (streq(key, "button-close-color")) {
         if (!value_to_color(ctx, &conf->csd.color.quit, true))
             return false;
 
@@ -1501,7 +1501,7 @@ parse_section_csd(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "border-color") == 0) {
+    else if (streq(key, "border-color")) {
         if (!value_to_color(ctx, &conf->csd.color.border, true))
             return false;
 
@@ -1509,13 +1509,13 @@ parse_section_csd(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "border-width") == 0)
+    else if (streq(key, "border-width"))
         return value_to_uint16(ctx, 10, &conf->csd.border_width_visible);
 
-    else if (strcmp(key, "hide-when-maximized") == 0)
+    else if (streq(key, "hide-when-maximized"))
         return value_to_bool(ctx, &conf->csd.hide_when_maximized);
 
-    else if (strcmp(key, "double-click-to-maximize") == 0)
+    else if (streq(key, "double-click-to-maximize"))
         return value_to_bool(ctx, &conf->csd.double_click_to_maximize);
 
     else {
@@ -1574,13 +1574,13 @@ parse_modifiers(struct context *ctx, const char *text, size_t len,
          key != NULL;
          key = strtok_r(NULL, "+", &tok_ctx))
     {
-        if (strcmp(key, XKB_MOD_NAME_SHIFT) == 0)
+        if (streq(key, XKB_MOD_NAME_SHIFT))
             modifiers->shift = true;
-        else if (strcmp(key, XKB_MOD_NAME_CTRL) == 0)
+        else if (streq(key, XKB_MOD_NAME_CTRL))
             modifiers->ctrl = true;
-        else if (strcmp(key, XKB_MOD_NAME_ALT) == 0)
+        else if (streq(key, XKB_MOD_NAME_ALT))
             modifiers->alt = true;
-        else if (strcmp(key, XKB_MOD_NAME_LOGO) == 0)
+        else if (streq(key, XKB_MOD_NAME_LOGO))
             modifiers->super = true;
         else {
             LOG_CONTEXTUAL_ERR("not a valid modifier name: %s", key);
@@ -1698,7 +1698,7 @@ static int
 mouse_button_name_to_code(const char *name)
 {
     for (size_t i = 0; i < ALEN(button_map); i++) {
-        if (strcmp(button_map[i].name, name) == 0)
+        if (streq(button_map[i].name, name))
             return button_map[i].code;
     }
     return -1;
@@ -1947,7 +1947,7 @@ parse_key_binding_section(struct context *ctx,
         if (action_map[action] == NULL)
             continue;
 
-        if (strcmp(ctx->key, action_map[action]) != 0)
+        if (!streq(ctx->key, action_map[action]))
             continue;
 
         if (!value_to_key_combos(ctx, action, &aux, bindings, KEY_BINDING)) {
@@ -2248,7 +2248,7 @@ parse_section_mouse_bindings(struct context *ctx)
     const char *key = ctx->key;
     const char *value = ctx->value;
 
-    if (strcmp(key, "selection-override-modifiers") == 0) {
+    if (streq(key, "selection-override-modifiers")) {
         if (!parse_modifiers(
                 ctx, ctx->value, strlen(value),
                 &conf->mouse.selection_override_modifiers))
@@ -2275,7 +2275,7 @@ parse_section_mouse_bindings(struct context *ctx)
         if (binding_action_map[action] == NULL)
             continue;
 
-        if (strcmp(key, binding_action_map[action]) != 0)
+        if (!streq(key, binding_action_map[action]))
             continue;
 
         if (!value_to_key_combos(
@@ -2376,7 +2376,7 @@ parse_section_environment(struct context *ctx)
 
     /* Check for pre-existing env variable */
     tll_foreach(conf->env_vars, it) {
-        if (strcmp(it->item.name, key) == 0)
+        if (streq(it->item.name, key))
             return value_to_str(ctx, &it->item.value);
     }
 
@@ -2398,7 +2398,7 @@ parse_section_tweak(struct context *ctx)
     struct config *conf = ctx->conf;
     const char *key = ctx->key;
 
-    if (strcmp(key, "scaling-filter") == 0) {
+    if (streq(key, "scaling-filter")) {
         static const char *filters[] = {
             [FCFT_SCALING_FILTER_NONE] = "none",
             [FCFT_SCALING_FILTER_NEAREST] = "nearest",
@@ -2414,13 +2414,13 @@ parse_section_tweak(struct context *ctx)
         return value_to_enum(ctx, filters, (int *)&conf->tweak.fcft_filter);
     }
 
-    else if (strcmp(key, "overflowing-glyphs") == 0)
+    else if (streq(key, "overflowing-glyphs"))
         return value_to_bool(ctx, &conf->tweak.overflowing_glyphs);
 
-    else if (strcmp(key, "damage-whole-window") == 0)
+    else if (streq(key, "damage-whole-window"))
         return value_to_bool(ctx, &conf->tweak.damage_whole_window);
 
-    else if (strcmp(key, "grapheme-shaping") == 0) {
+    else if (streq(key, "grapheme-shaping")) {
         if (!value_to_bool(ctx, &conf->tweak.grapheme_shaping))
             return false;
 
@@ -2443,7 +2443,7 @@ parse_section_tweak(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "grapheme-width-method") == 0) {
+    else if (streq(key, "grapheme-width-method")) {
         _Static_assert(sizeof(conf->tweak.grapheme_width_method) == sizeof(int),
                        "enum is not 32-bit");
 
@@ -2453,7 +2453,7 @@ parse_section_tweak(struct context *ctx)
             (int *)&conf->tweak.grapheme_width_method);
     }
 
-    else if (strcmp(key, "render-timer") == 0) {
+    else if (streq(key, "render-timer")) {
         _Static_assert(sizeof(conf->tweak.render_timer) == sizeof(int),
                        "enum is not 32-bit");
 
@@ -2463,7 +2463,7 @@ parse_section_tweak(struct context *ctx)
             (int *)&conf->tweak.render_timer);
     }
 
-    else if (strcmp(key, "delayed-render-lower") == 0) {
+    else if (streq(key, "delayed-render-lower")) {
         uint32_t ns;
         if (!value_to_uint32(ctx, 10, &ns))
             return false;
@@ -2477,7 +2477,7 @@ parse_section_tweak(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "delayed-render-upper") == 0) {
+    else if (streq(key, "delayed-render-upper")) {
         uint32_t ns;
         if (!value_to_uint32(ctx, 10, &ns))
             return false;
@@ -2491,7 +2491,7 @@ parse_section_tweak(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "max-shm-pool-size-mb") == 0) {
+    else if (streq(key, "max-shm-pool-size-mb")) {
         uint32_t mb;
         if (!value_to_uint32(ctx, 10, &mb))
             return false;
@@ -2500,19 +2500,19 @@ parse_section_tweak(struct context *ctx)
         return true;
     }
 
-    else if (strcmp(key, "box-drawing-base-thickness") == 0)
+    else if (streq(key, "box-drawing-base-thickness"))
         return value_to_float(ctx, &conf->tweak.box_drawing_base_thickness);
 
-    else if (strcmp(key, "box-drawing-solid-shades") == 0)
+    else if (streq(key, "box-drawing-solid-shades"))
         return value_to_bool(ctx, &conf->tweak.box_drawing_solid_shades);
 
-    else if (strcmp(key, "font-monospace-warn") == 0)
+    else if (streq(key, "font-monospace-warn"))
         return value_to_bool(ctx, &conf->tweak.font_monospace_warn);
 
-    else if (strcmp(key, "sixel") == 0)
+    else if (streq(key, "sixel"))
         return value_to_bool(ctx, &conf->tweak.sixel);
 
-    else if (strcmp(key, "bold-text-in-bright-amount") == 0)
+    else if (streq(key, "bold-text-in-bright-amount"))
         return value_to_float(ctx, &conf->bold_in_bright.amount);
 
     else {
@@ -2526,7 +2526,7 @@ parse_section_touch(struct context *ctx) {
     struct config *conf = ctx->conf;
     const char *key = ctx->key;
 
-    if (strcmp(key, "long-press-delay") == 0)
+    if (streq(key, "long-press-delay"))
         return value_to_uint32(ctx, 10, &conf->touch.long_press_delay);
 
     else {
@@ -2649,7 +2649,7 @@ static enum section
 str_to_section(const char *str)
 {
     for (enum section section = SECTION_MAIN; section < SECTION_COUNT; ++section) {
-        if (strcmp(str, section_info[section].name) == 0)
+        if (streq(str, section_info[section].name))
             return section;
     }
     return SECTION_COUNT;

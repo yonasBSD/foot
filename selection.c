@@ -2080,7 +2080,7 @@ decode_one_uri(struct clipboard_receive *ctx, char *uri, size_t len)
         ctx->cb(" ", 1, ctx->user);
     ctx->add_space = true;
 
-    if (strcmp(scheme, "file") == 0 && hostname_is_localhost(host)) {
+    if (streq(scheme, "file") && hostname_is_localhost(host)) {
         if (ctx->quote_paths)
             ctx->cb("'", 1, ctx->user);
 
@@ -2534,7 +2534,7 @@ select_mime_type_for_offer(const char *_mime_type,
         if (mime_type_map[i] == NULL)
             continue;
 
-        if (strcmp(_mime_type, mime_type_map[i]) == 0) {
+        if (streq(_mime_type, mime_type_map[i])) {
             mime_type = i;
             break;
         }

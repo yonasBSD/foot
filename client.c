@@ -315,11 +315,11 @@ main(int argc, char *const *argv)
         }
 
         case 'l':
-            if (optarg == NULL || strcmp(optarg, "auto") == 0)
+            if (optarg == NULL || streq(optarg, "auto"))
                 log_colorize = LOG_COLORIZE_AUTO;
-            else if (strcmp(optarg, "never") == 0)
+            else if (streq(optarg, "never"))
                 log_colorize = LOG_COLORIZE_NEVER;
-            else if (strcmp(optarg, "always") == 0)
+            else if (streq(optarg, "always"))
                 log_colorize = LOG_COLORIZE_ALWAYS;
             else {
                 fprintf(stderr, "%s: argument must be one of 'never', 'always' or 'auto'\n", optarg);
@@ -419,7 +419,7 @@ main(int argc, char *const *argv)
 
         if (resolved_path_cwd != NULL &&
             resolved_path_pwd != NULL &&
-            strcmp(resolved_path_cwd, resolved_path_pwd) == 0)
+            streq(resolved_path_cwd, resolved_path_pwd))
         {
             /*
              * The resolved path of $PWD matches the resolved path of
