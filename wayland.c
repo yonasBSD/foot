@@ -2058,7 +2058,7 @@ surface_scale_explicit_width_height(
         wp_viewport_set_destination(
             surf->viewport, roundf(width / scale), roundf(height / scale));
     } else {
-        const char *mode = term_preferred_buffer_scale(win->term)
+        const char *mode UNUSED = term_preferred_buffer_scale(win->term)
             ? "wl_surface.preferred_buffer_scale"
             : "legacy mode";
         LOG_DBG("scaling by a factor of %.2f using %s "
