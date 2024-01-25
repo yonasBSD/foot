@@ -1460,7 +1460,7 @@ render_ime_preedit_for_seat(struct terminal *term, struct seat *seat,
      * from grid), and mark all cells as dirty. This ensures they are
      * re-rendered when the pre-edit text is modified or removed.
      */
-    struct cell *real_cells = malloc(cells_used * sizeof(real_cells[0]));
+    struct cell *real_cells = xmalloc(cells_used * sizeof(real_cells[0]));
     for (int i = 0; i < cells_used; i++) {
         xassert(col_idx + i < term->cols);
         real_cells[i] = row->cells[col_idx + i];

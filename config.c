@@ -3213,7 +3213,7 @@ config_load(struct config *conf, const char *conf_path,
             ret = false;
         } else {
             conf->fonts[0].count = 1;
-            conf->fonts[0].arr = malloc(sizeof(font));
+            conf->fonts[0].arr = xmalloc(sizeof(font));
             conf->fonts[0].arr[0] = font;
         }
     }

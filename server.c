@@ -301,7 +301,7 @@ fdm_client(struct fdm *fdm, int fd, int events, void *data)
 #undef CHECK_BUF_AND_NULL
 #undef CHECK_BUF
 
-    struct terminal_instance *instance = malloc(sizeof(struct terminal_instance));
+    struct terminal_instance *instance = xmalloc(sizeof(struct terminal_instance));
 
     const bool need_to_clone_conf =
         tll_length(overrides)> 0 ||

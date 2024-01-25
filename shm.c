@@ -489,7 +489,7 @@ get_new_buffers(struct buffer_chain *chain, size_t count,
         else
             tll_push_front(chain->bufs, buf);
 
-        buf->public.dirty = malloc(
+        buf->public.dirty = xmalloc(
             chain->pix_instances * sizeof(buf->public.dirty[0]));
 
         for (size_t j = 0; j < chain->pix_instances; j++)
