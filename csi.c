@@ -1081,44 +1081,29 @@ csi_dispatch(struct terminal *term, uint8_t final)
             break;
 
         case 'h':
-            /* Set mode */
-            switch (vt_param_get(term, 0, 0)) {
-            case 2:   /* Keyboard Action Mode - AM */
-                LOG_WARN("unimplemented: keyboard action mode (AM)");
-                break;
-
-            case 4:   /* Insert Mode - IRM */
-                term->insert_mode = true;
+        case 'l': {
+            /* Set/Reset Mode (SM/RM) */
+            int param = vt_param_get(term, 0, 0);
+            bool sm = final == 'h';
+            if (param == 4) {
+                /* Insertion Replacement Mode (IRM) */
+                term->insert_mode = sm;
                 term_update_ascii_printer(term);
                 break;
+            }
 
-            case 12:  /* Send/receive Mode - SRM */
-                LOG_WARN("unimplemented: send/receive mode (SRM)");
-                break;
-
-            case 20:  /* Automatic Newline Mode - LNM */
-                /* TODO: would be easy to implemented; when active
-                 * term_linefeed() would _also_ do a
-                 * term_carriage_return() */
-                LOG_WARN("unimplemented: automatic newline mode (LNM)");
-                break;
+            /*
+             * ECMA-48 defines modes 1-22, all of which were optional
+             * (§7.1; "may have one state only") and are considered
+             * deprecated (§7.1) in the latest (5th) edition. xterm only
+             * documents modes 2, 4, 12 and 20, the last of which was
+             * outright removed (§8.3.106) in 5th edition ECMA-48.
+             */
+            if (sm) {
+                LOG_WARN("SM with unimplemented mode: %d", param);
             }
             break;
-
-        case 'l':
-            /* Reset mode */
-            switch (vt_param_get(term, 0, 0)) {
-            case 4:   /* Insert Mode - IRM */
-                term->insert_mode = false;
-                term_update_ascii_printer(term);
-                break;
-
-            case 2:   /* Keyboard Action Mode - AM */
-            case 12:  /* Send/receive Mode - SRM */
-            case 20:  /* Automatic Newline Mode - LNM */
-                break;
-            }
-            break;
+        }
 
         case 'r': {
             int start = vt_param_get(term, 0, 1);
