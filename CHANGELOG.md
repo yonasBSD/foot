@@ -77,11 +77,15 @@
   in kitty >= 0.32.0 ([#1561][1561]).
 * When changing font sizes or display scales in floating windows, the
   window will be resized as needed to preserve the same grid size.
+* `smm` now disables private mode 1036 (_"send ESC when Meta modifies
+  a key"_), and enables private mode 1034 (_"8-bit Meta mode"_). `rmm`
+  does the opposite ([#1584][1584]).
 
 [1526]: https://codeberg.org/dnkl/foot/issues/1526
 [1528]: https://codeberg.org/dnkl/foot/issues/1528
 [1561]: https://codeberg.org/dnkl/foot/issues/1561
 [kitty-6913]: https://github.com/kovidgoyal/kitty/issues/6913
+[1584]: https://codeberg.org/dnkl/foot/issues/1584
 
 
 ### Deprecated
