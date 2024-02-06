@@ -404,6 +404,24 @@ sort_binding_list(key_binding_list_t *list)
     tll_sort(*list, key_cmp);
 }
 
+static xkb_mod_mask_t
+mods_to_mask(const struct seat *seat, const config_modifier_list_t *mods)
+{
+    xkb_mod_mask_t mask = 0;
+    tll_foreach(*mods, it) {
+        xkb_mod_index_t idx = xkb_keymap_mod_get_index(seat->kbd.xkb_keymap, it->item);
+
+        if (idx == XKB_MOD_INVALID) {
+            LOG_ERR("%s: invalid modifier name", it->item);
+            continue;
+        }
+
+        mask |= 1 << idx;
+    }
+
+    return mask;
+}
+
 static void NOINLINE
 convert_key_binding(struct key_set *set,
                     const struct config_key_binding *conf_binding,
@@ -411,7 +429,7 @@ convert_key_binding(struct key_set *set,
 {
     const struct seat *seat = set->seat;
 
-    xkb_mod_mask_t mods = conf_modifiers_to_mask(seat, &conf_binding->modifiers);
+    xkb_mod_mask_t mods = mods_to_mask(seat, &conf_binding->modifiers);
     xkb_keysym_t sym = maybe_repair_key_combo(seat, conf_binding->k.sym, mods);
 
     struct key_binding binding = {
@@ -469,7 +487,7 @@ convert_mouse_binding(struct key_set *set,
         .type = MOUSE_BINDING,
         .action = conf_binding->action,
         .aux = &conf_binding->aux,
-        .mods = conf_modifiers_to_mask(set->seat, &conf_binding->modifiers),
+        .mods = mods_to_mask(set->seat, &conf_binding->modifiers),
         .m = {
             .button = conf_binding->m.button,
             .count = conf_binding->m.count,
@@ -509,7 +527,7 @@ load_keymap(struct key_set *set)
     convert_url_bindings(set);
     convert_mouse_bindings(set);
 
-    set->public.selection_overrides = conf_modifiers_to_mask(
+    set->public.selection_overrides = mods_to_mask(
         set->seat, &set->conf->mouse.selection_override_modifiers);
 }
 

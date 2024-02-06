@@ -145,28 +145,22 @@ void
 urls_input(struct seat *seat, struct terminal *term,
            const struct key_binding_set *bindings, uint32_t key,
            xkb_keysym_t sym, xkb_mod_mask_t mods, xkb_mod_mask_t consumed,
-           xkb_mod_mask_t locked,
            const xkb_keysym_t *raw_syms, size_t raw_count,
            uint32_t serial)
 {
-    const xkb_mod_mask_t bind_mods =
-        mods & seat->kbd.bind_significant & ~locked;
-    const xkb_mod_mask_t bind_consumed =
-        consumed & seat->kbd.bind_significant & ~locked;
-
     /* Key bindings */
     tll_foreach(bindings->url, it) {
         const struct key_binding *bind = &it->item;
 
         /* Match translated symbol */
         if (bind->k.sym == sym &&
-            bind->mods == (bind_mods & ~bind_consumed))
+            bind->mods == (mods & ~consumed))
         {
             execute_binding(seat, term, bind, serial);
             return;
         }
 
-        if (bind->mods != bind_mods || bind_mods != (mods & ~locked))
+        if (bind->mods != mods)
             continue;
 
         for (size_t i = 0; i < raw_count; i++) {
@@ -196,7 +190,7 @@ urls_input(struct seat *seat, struct terminal *term,
         return;
     }
 
-    if (mods & ~consumed & ~locked)
+    if (mods & ~consumed)
         return;
 
     char32_t wc = xkb_state_key_get_utf32(seat->kbd.xkb_state, key);

@@ -787,6 +787,17 @@ test_section_csd(void)
     config_free(&conf);
 }
 
+static bool
+have_modifier(const config_modifier_list_t *mods, const char *mod)
+{
+    tll_foreach(*mods, it) {
+        if (strcmp(it->item, mod) == 0)
+            return true;
+    }
+
+    return false;
+}
+
 static void
 test_key_binding(struct context *ctx, bool (*parse_fun)(struct context *ctx),
                  int action, int max_action, const char *const *map,
@@ -904,17 +915,19 @@ test_key_binding(struct context *ctx, bool (*parse_fun)(struct context *ctx),
             ctx->section, ctx->key, ctx->value, binding->action, action);
     }
 
-    if (binding->modifiers.ctrl != ctrl ||
-        binding->modifiers.alt != alt ||
-        binding->modifiers.shift != shift ||
-        binding->modifiers.super != super)
+    bool have_ctrl = have_modifier(&binding->modifiers, XKB_MOD_NAME_CTRL);
+    bool have_alt = have_modifier(&binding->modifiers, XKB_MOD_NAME_ALT);
+    bool have_shift = have_modifier(&binding->modifiers, XKB_MOD_NAME_SHIFT);
+    bool have_super = have_modifier(&binding->modifiers, XKB_MOD_NAME_LOGO);
+
+    if (have_ctrl != ctrl || have_alt != alt ||
+        have_shift != shift || have_super != super)
     {
         BUG("[%s].%s=%s: modifier mismatch:\n"
             "  have:     ctrl=%d, alt=%d, shift=%d, super=%d\n"
             "  expected: ctrl=%d, alt=%d, shift=%d, super=%d",
             ctx->section, ctx->key, ctx->value,
-            binding->modifiers.ctrl, binding->modifiers.alt,
-            binding->modifiers.shift, binding->modifiers.super,
+            have_ctrl, have_alt, have_shift, have_super,
             ctrl, alt, shift, super);
     }
 
@@ -970,14 +983,17 @@ _test_binding_collisions(struct context *ctx,
     bindings.arr[0] = (struct config_key_binding){
         .action = (test_mode == FAIL_DIFFERENT_ACTION
                    ? max_action - 1 : max_action),
-        .modifiers = {.ctrl = true},
+        .modifiers = tll_init(),
         .path = "unittest",
     };
+    tll_push_back(bindings.arr[0].modifiers, xstrdup(XKB_MOD_NAME_CTRL));
+
     bindings.arr[1] = (struct config_key_binding){
         .action = max_action,
-        .modifiers = {.ctrl = true},
+        .modifiers = tll_init(),
         .path = "unittest",
     };
+    tll_push_back(bindings.arr[1].modifiers, xstrdup(XKB_MOD_NAME_CTRL));
 
     switch (type) {
     case KEY_BINDING:
@@ -998,7 +1014,8 @@ _test_binding_collisions(struct context *ctx,
         break;
 
     case FAIL_MOUSE_OVERRIDE:
-        ctx->conf->mouse.selection_override_modifiers.ctrl = true;
+        tll_free_and_free(ctx->conf->mouse.selection_override_modifiers, free);
+        tll_push_back(ctx->conf->mouse.selection_override_modifiers, xstrdup(XKB_MOD_NAME_CTRL));
         break;
 
     case FAIL_DIFFERENT_ARGV:
@@ -1237,10 +1254,13 @@ test_section_text_bindings(void)
     ctx.key = "\\y";
     xassert(!parse_section_text_bindings(&ctx));
 
+#if 0
+    /* Invalid modifier and key names are detected later, when a
+     * layout is applied */
     ctx.key = "abcd";
     ctx.value = "InvalidMod+y";
     xassert(!parse_section_text_bindings(&ctx));
-
+#endif
     config_free(&conf);
 }
 
