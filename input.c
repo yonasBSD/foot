@@ -1562,7 +1562,6 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
                 bind->mods == (mods & ~consumed) &&
                 execute_binding(seat, term, bind, serial, 1))
             {
-                LOG_WARN("matched translated symbol");
                 goto maybe_repeat;
             }
 
@@ -1574,7 +1573,6 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
                 if (bind->k.sym == raw_syms[i] &&
                     execute_binding(seat, term, bind, serial, 1))
                 {
-                    LOG_WARN("matched untranslated symbol");
                     goto maybe_repeat;
                 }
             }
@@ -1584,7 +1582,6 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
                 if (code->item == key &&
                     execute_binding(seat, term, bind, serial, 1))
                 {
-                    LOG_WARN("matched raw key code");
                     goto maybe_repeat;
                 }
             }
