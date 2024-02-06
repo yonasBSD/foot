@@ -28,6 +28,7 @@ The fast, lightweight and minimalistic Wayland terminal emulator.
 1. [Shell integration](#shell-integration)
    1. [Current working directory](#current-working-directory)
    1. [Jumping between prompts](#jumping-between-prompts)
+   1. [Piping last command's output](#piping-last-command-s-output)
 1. [Alt/meta](#alt-meta)
 1. [Backspace](#backspace)
 1. [Keypad](#keypad)
