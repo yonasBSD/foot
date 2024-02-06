@@ -917,6 +917,18 @@ osc_dispatch(struct terminal *term)
         break;
 
     case 176:
+        if (string[0] == '?' && string[1] == '\0') {
+            const char *terminator = term->vt.osc.bel ? "\a" : "\033\\";
+            char *reply = xasprintf(
+                "\033]176;%s%s",
+                term->app_id != NULL ? term->app_id : term->conf->app_id,
+                terminator);
+
+            term_to_slave(term, reply, strlen(reply));
+            free(reply);
+            break;
+        }
+
         term_set_app_id(term, string);
         break;
 
