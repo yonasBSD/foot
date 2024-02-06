@@ -359,6 +359,42 @@ See the
 [wiki](https://codeberg.org/dnkl/foot/wiki#user-content-jumping-between-prompts)
 for details, and examples for other shells.
 
+### Piping last command’s output
+
+The key binding `pipe-command-output` can pipe the last command’s
+output to an application of your choice (similar to the other `pipe-*`
+key bindings):
+
+```ini
+[key-bindings]
+pipe-command-output=[sh -c "f=$(mktemp); cat - > $f; footclient emacsclient -nw $f; rm $f"] Control+Shift+g
+```
+
+When pressing <kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>g</kbd>, the last
+command’s output is written to a temporary file, then an emacsclient
+is started in a new footclient instance. The temporary file is removed
+after the footclient instance has closed.
+
+For this to work, the shell must emit an OSC-133;C (`\E]133;C\E\\`)
+sequence before command output starts, and an OSC-133;D
+(`\E]133;D\E\\`) when the command output ends.
+
+In fish, one way to do this is to add `preexec` and `postexec` hooks:
+
+```fish
+function foot_cmd_start --on-event fish_preexec
+  echo -en "\e]133;C\e\\"
+end
+
+function foot_cmd_end --on-event fish_postexec
+  echo -en "\e]133;D\e\\"
+end
+```
+
+See the
+[wiki](https://codeberg.org/dnkl/foot/wiki#user-content-piping-last-commands-output)
+for details, and examples for other shells
+
 
 ## Alt/meta
 

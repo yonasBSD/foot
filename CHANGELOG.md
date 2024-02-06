@@ -58,6 +58,7 @@
   of floating windows to be constrained to multiples of the cell size.
 * Support for custom (i.e. other than ctrl/shift/alt/super) modifiers
   in key bindings ([#1348][1348]).
+* `pipe-command-output` key binding.
 
 [1348]: https://codeberg.org/dnkl/foot/issues/1348
 

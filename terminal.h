@@ -121,8 +121,11 @@ struct row {
     bool dirty;
     bool linebreak;
 
-    /* Shell integration */
-    bool prompt_marker;
+    struct {
+        bool prompt_marker;
+        int cmd_start;  /* Column, -1 if unset */
+        int cmd_end;    /* Column, -1 if unset */
+    } shell_integration;
 };
 
 struct sixel {
@@ -843,6 +846,8 @@ enum term_surface term_surface_kind(
 bool term_scrollback_to_text(
     const struct terminal *term, char **text, size_t *len);
 bool term_view_to_text(
+    const struct terminal *term, char **text, size_t *len);
+bool term_command_output_to_text(
     const struct terminal *term, char **text, size_t *len);
 
 bool term_ime_is_enabled(const struct terminal *term);

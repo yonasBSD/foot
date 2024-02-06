@@ -227,7 +227,8 @@ execute_binding(struct seat *seat, struct terminal *term,
             break;
         /* FALLTHROUGH */
     case BIND_ACTION_PIPE_VIEW:
-    case BIND_ACTION_PIPE_SELECTED: {
+    case BIND_ACTION_PIPE_SELECTED:
+    case BIND_ACTION_PIPE_COMMAND_OUTPUT: {
         if (binding->aux->type != BINDING_AUX_PIPE)
             return true;
 
@@ -267,6 +268,10 @@ execute_binding(struct seat *seat, struct terminal *term,
             text = selection_to_text(term);
             success = text != NULL;
             len = text != NULL ? strlen(text) : 0;
+            break;
+
+        case BIND_ACTION_PIPE_COMMAND_OUTPUT:
+            success = term_command_output_to_text(term, &text, &len);
             break;
 
         default:
@@ -377,7 +382,7 @@ execute_binding(struct seat *seat, struct terminal *term,
             const struct row *row = grid->rows[r_abs];
             xassert(row != NULL);
 
-            if (!row->prompt_marker)
+            if (!row->shell_integration.prompt_marker)
                 continue;
 
             grid->view = r_abs;
@@ -409,7 +414,7 @@ execute_binding(struct seat *seat, struct terminal *term,
             const struct row *row = grid->rows[r_abs];
             xassert(row != NULL);
 
-            if (!row->prompt_marker) {
+            if (!row->shell_integration.prompt_marker) {
                 if (r_abs == grid->offset + term->rows - 1) {
                     /* We’ve reached the bottom of the scrollback */
                     break;
