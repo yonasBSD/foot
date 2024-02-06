@@ -622,7 +622,6 @@ fdm_title_update_timeout(struct fdm *fdm, int fd, int events, void *data)
 
     struct itimerspec reset = {{0}};
     timerfd_settime(term->render.title.timer_fd, 0, &reset, NULL);
-    term->render.title.is_armed = false;
 
     render_refresh_title(term);
     return true;
@@ -1209,7 +1208,6 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
             .scrollback_lines = conf->scrollback.lines,
             .app_sync_updates.timer_fd = app_sync_updates_fd,
             .title = {
-                .is_armed = false,
                 .timer_fd = title_update_fd,
             },
             .workers = {

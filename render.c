@@ -4508,9 +4508,6 @@ fdm_hook_refresh_pending_terminals(struct fdm *fdm, void *data)
 void
 render_refresh_title(struct terminal *term)
 {
-    if (term->render.title.is_armed)
-        return;
-
     struct timespec now;
     if (clock_gettime(CLOCK_MONOTONIC, &now) < 0)
         return;
