@@ -687,6 +687,12 @@ All _OSC_ sequences begin with *\\E]*, sometimes abbreviated _OSC_.
 |  \\E] 133 ; A \\E\\ 
 :  FinalTerm
 :  Mark start of shell prompt
+|  \\E] 133 ; C \\E\\ 
+:  FinalTerm
+:  Mark start of command output
+|  \\E] 133 ; D \\E\\ 
+:  FinalTerm
+:  Mark end of command output
 |  \\E] 555 \\E\\ 
 :  foot
 :  Flash the entire terminal (foot extension)
