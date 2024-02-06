@@ -393,7 +393,7 @@ end
 ```
 
 See the
-[wiki](https://codeberg.org/dnkl/foot/wiki#user-content-piping-last-commands-output)
+[wiki](https://codeberg.org/dnkl/foot/wiki#user-content-piping-last-command-s-output)
 for details, and examples for other shells
 
 
