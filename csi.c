@@ -1536,8 +1536,8 @@ csi_dispatch(struct terminal *term, uint8_t final)
                 break;
 
             case 4:  /* modifyOtherKeys */
-                /* We don’t support fully disabling modifyOtherKeys,
-                 * but simply revert back to mode ‘1’ */
+                /* We don't support fully disabling modifyOtherKeys,
+                 * but simply revert back to mode '1' */
                 term->modify_other_keys_2 = false;
                 LOG_DBG("modifyOtherKeys=1");
                 break;
@@ -1615,7 +1615,7 @@ csi_dispatch(struct terminal *term, uint8_t final)
             break;
         }
         }
-        break; /* private[0] == ‘<’ */
+        break; /* private[0] == '<' */
     }
 
     case ' ': {
@@ -1762,7 +1762,7 @@ csi_dispatch(struct terminal *term, uint8_t final)
             break;
         }
 
-        break; /* private[0] == ‘?’ && private[1] == ‘$’ */
+        break; /* private[0] == '?' && private[1] == '$' */
 
     default:
         UNHANDLED();

@@ -243,27 +243,27 @@ maybe_repair_key_combo(const struct seat *seat,
      * modifier, and replace the shifted symbol with its unshifted
      * variant.
      *
-     * For example, the combo is “Control+Shift+U”. In this case,
-     * Shift is the modifier used to “shift” ‘u’ to ‘U’, after which
-     * ‘Shift’ will have been “consumed”. Since we filter out consumed
+     * For example, the combo is "Control+Shift+U". In this case,
+     * Shift is the modifier used to "shift" 'u' to 'U', after which
+     * 'Shift' will have been "consumed". Since we filter out consumed
      * modifiers when matching key combos, this key combo will never
-     * trigger (we will never be able to match the ‘Shift’ modifier).
+     * trigger (we will never be able to match the 'Shift' modifier).
      *
      * There are two correct variants of the above key combo:
-     *  - “Control+U”           (upper case ‘U’)
-     *  - “Control+Shift+u”     (lower case ‘u’)
+     *  - "Control+U"           (upper case 'U')
+     *  - "Control+Shift+u"     (lower case 'u')
      *
      * What we do here is, for each key *code*, check if there are any
-     * (shifted) levels where it produces ‘sym’. If there are, check
+     * (shifted) levels where it produces 'sym'. If there are, check
      * *which* sets of modifiers are needed to produce it, and compare
-     * with ‘mods’.
+     * with 'mods'.
      *
-     * If there is at least one common modifier, it means ‘sym’ is a
-     * “shifted” symbol, with the corresponding shifting modifier
+     * If there is at least one common modifier, it means 'sym' is a
+     * "shifted" symbol, with the corresponding shifting modifier
      * explicitly included in the key combo. I.e. the key combo will
      * never trigger.
      *
-     * We then proceed and “repair” the key combo by replacing ‘sym’
+     * We then proceed and "repair" the key combo by replacing 'sym'
      * with the corresponding unshifted symbol.
      *
      * To reduce the noise, we ignore all key codes where the shifted
@@ -283,7 +283,7 @@ maybe_repair_key_combo(const struct seat *seat,
             seat->kbd.xkb_keymap, code, layout_idx, 0, &base_syms);
 
         if (base_count == 0 || sym == base_syms[0]) {
-            /* No unshifted symbols, or unshifted symbol is same as ‘sym’ */
+            /* No unshifted symbols, or unshifted symbol is same as 'sym' */
             continue;
         }
 
@@ -313,7 +313,7 @@ maybe_repair_key_combo(const struct seat *seat,
                     seat->kbd.xkb_keymap, code, layout_idx, level_idx,
                     mod_masks, ALEN(mod_masks));
 
-                /* Check if key combo’s modifier set intersects */
+                /* Check if key combo's modifier set intersects */
                 for (size_t j = 0; j < mod_mask_count; j++) {
                     if ((mod_masks[j] & mods) != mod_masks[j])
                         continue;
@@ -359,19 +359,19 @@ key_cmp(struct key_binding a, struct key_binding b)
      * Sort bindings such that bindings with the same symbol are
      * sorted with the binding having the most modifiers comes first.
      *
-     * This fixes an issue where the “wrong” key binding are triggered
-     * when used with “consumed” modifiers.
+     * This fixes an issue where the "wrong" key binding are triggered
+     * when used with "consumed" modifiers.
      *
      * For example: if Control+BackSpace is bound before
      * Control+Shift+BackSpace, then the latter binding is never
      * triggered.
      *
      * Why? Because Shift is a consumed modifier. This means
-     * Control+BackSpace is “the same” as Control+Shift+BackSpace.
+     * Control+BackSpace is "the same" as Control+Shift+BackSpace.
      *
      * By sorting bindings with more modifiers first, we work around
-     * the problem. But note that it is *just* a workaround, and I’m
-     * not confident there aren’t cases where it doesn’t work.
+     * the problem. But note that it is *just* a workaround, and I'm
+     * not confident there aren't cases where it doesn't work.
      *
      * See https://codeberg.org/dnkl/foot/issues/1280
      */

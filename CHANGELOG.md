@@ -378,7 +378,7 @@
 * Kitty keyboard protocol: F3 is now encoded as `CSI 13~` instead of
   `CSI R`. The kitty keyboard protocol originally allowed F3 to be
   encoded as `CSI R`, but this was removed from the specification
-  since `CSI R` conflicts with the _”Cursor Position Report”_.
+  since `CSI R` conflicts with the _"Cursor Position Report"_.
 * `[main].utempter` renamed to `[main].utmp-helper`. The old option
   name is still recognized, but will log a deprecation warning.
 * Meson option `default-utempter-path` renamed to
@@ -386,9 +386,9 @@
 * Opaque sixels now retain the background opacity (when current
   background color is the **default** background color)
   ([#1360][1360]).
-* Text cursor’s vertical position after emitting a sixel, when sixel
+* Text cursor's vertical position after emitting a sixel, when sixel
   scrolling is **enabled** (the default) has been updated to match
-  XTerm’s, and the VT382’s behavior: the cursor is positioned **on**
+  XTerm's, and the VT382's behavior: the cursor is positioned **on**
   the last sixel row, rather than _after_ it. This allows printing
   sixels on the last row without scrolling up, but also means
   applications may have to explicitly emit a newline to ensure the
@@ -484,8 +484,8 @@
   ([#1188][1188]).
 * Bracketed paste terminfo entries (`BD`, `BE`, `PE` and `PS`, added
   to ncurses in 2022-12-24). Vim makes use of these.
-* “Report version” terminfo entries (`XR`/`xr`).
-* “Report DA2” terminfo entries (`RV`/`rv`).
+* "Report version" terminfo entries (`XR`/`xr`).
+* "Report DA2" terminfo entries (`RV`/`rv`).
 * `XF` terminfo capability (focus in/out events available).
 * `$TERM_PROGRAM` and `$TERM_PROGRAM_VERSION` environment variables
   unset in the slave process.
@@ -538,12 +538,12 @@
 * Crash when interactively resizing the window with a very large
   scrollback.
 * Crash when a sixel image exceeds the current sixel max height.
-* Crash after reverse-scrolling (`CSI Ps T`) in the ‘normal’
+* Crash after reverse-scrolling (`CSI Ps T`) in the 'normal'
   (non-alternate) screen ([#1190][1190]).
 * Background transparency being applied to the text "behind" the
   cursor. Only applies to block cursor using inversed fg/bg
   colors. ([#1205][1205]).
-* Crash when monitor’s physical size is "too small" ([#1209][1209]).
+* Crash when monitor's physical size is "too small" ([#1209][1209]).
 * Line-height adjustment when incrementing/decrementing the font size
   with a user-set line-height ([#1218][1218]).
 * Scaling factor not being correctly applied when converting pt-or-px
@@ -614,7 +614,7 @@
 * Crash on buggy compositors (GNOME) that sometimes send pointer-enter
   events with a NULL surface. Foot now ignores these events, and the
   subsequent motion and leave events.
-* Regression: “random” selected empty cells being highlighted as
+* Regression: "random" selected empty cells being highlighted as
   selected when they should not.
 * Crash when either resizing the terminal window, or scrolling in the
   scrollback history ([#1074][1074])
@@ -654,7 +654,7 @@
 
 ### Changed
 
-* Use `$HOME` instead of `getpwuid()` to retrieve the user’s home
+* Use `$HOME` instead of `getpwuid()` to retrieve the user's home
   directory when searching for `foot.ini`.
 * HT, VT and FF are no longer stripped when pasting in non-bracketed
   mode ([#1084][1084]).
@@ -718,7 +718,7 @@
 ### Added
 
 * Workaround for Sway bug [#6960][sway-6960]: scrollback search and
-  the OSC-555 (“flash”) escape sequence leaves dimmed (search) and
+  the OSC-555 ("flash") escape sequence leaves dimmed (search) and
   yellow (flash) artifacts ([#1046][1046]).
 * `Control+Shift+v` and `XF86Paste` have been added to the default set
   of key bindings that paste from the clipboard into the scrollback
@@ -731,7 +731,7 @@
 
 ### Changed
 
-* Scrollback search’s `extend-to-word-boundary` no longer stops at
+* Scrollback search's `extend-to-word-boundary` no longer stops at
   space-to-word boundaries, making selection extension feel more
   natural.
 
@@ -772,7 +772,7 @@
   ([#950][950]).
 * footclient: `-E,--client-environment` command line option. When
   used, the child process in the new terminal instance inherits the
-  environment from the footclient process instead of the server’s
+  environment from the footclient process instead of the server's
   ([#1004][1004]).
 * `[csd].hide-when-maximized=yes|no` option ([#1019][1019]).
 * Scrollback search mode now highlights all matches.
@@ -828,7 +828,7 @@
 
 * Build: missing `wayland_client` dependency in `test-config`
   ([#918][918]).
-* “(null)” being logged as font-name (for some fonts) when warning
+* "(null)" being logged as font-name (for some fonts) when warning
   about a non-monospaced primary font.
 * Rare crash when the window is resized while a mouse selection is
   ongoing ([#922][922]).
@@ -850,7 +850,7 @@
   ([#1009][1009]).
 * Window geometry when CSDs are enabled and CSD border width set to a
   non-zero value. This fixes window snapping in e.g. GNOME.
-* Window size “jumping” when starting an interactive resize when CSDs
+* Window size "jumping" when starting an interactive resize when CSDs
   are enabled, and CSD border width set to a non-zero value.
 * Key binding overrides on the command line having no effect with
   `footclient` instances ([#931][931]).
@@ -916,15 +916,15 @@
 * PaperColorDark and PaperColorLight themes renamed to
   paper-color-dark and paper-color-light, for consistency with other
   theme names.
-* `[scrollback].multiplier` is now applied in “alternate scroll” mode,
+* `[scrollback].multiplier` is now applied in "alternate scroll" mode,
   where scroll events are translated to fake arrow key presses on the
   alt screen ([#859](https://codeberg.org/dnkl/foot/issues/859)).
-* The width of the block cursor’s outline in an unfocused window is
-  now scaled by the output scaling factor (“desktop
-  scaling”). Previously, it was always 1px.
-* Foot will now try to change the locale to either “C.UTF-8” or
-  “en_US.UTF-8” if started with a non-UTF8 locale. If this fails, foot
-  will start, but only to display a window with an error (user’s shell
+* The width of the block cursor's outline in an unfocused window is
+  now scaled by the output scaling factor ("desktop
+  scaling"). Previously, it was always 1px.
+* Foot will now try to change the locale to either "C.UTF-8" or
+  "en_US.UTF-8" if started with a non-UTF8 locale. If this fails, foot
+  will start, but only to display a window with an error (user's shell
   is not executed).
 * `gettimeofday()` has been replaced with `clock_gettime()`, due to it being
   marked as obsolete by POSIX.
@@ -952,7 +952,7 @@
 
 ### Fixed
 
-* Font size adjustment (“zooming”) when font is configured with a
+* Font size adjustment ("zooming") when font is configured with a
   **pixelsize**, and `dpi-aware=no`
   ([#842](https://codeberg.org/dnkl/foot/issues/842)).
 * Key presses triggering keyboard layout switches also emitting CSI
@@ -1026,7 +1026,7 @@
 * Initial support for the [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/).
   Modes supported:
   - [Disambiguate escape codes](https://sw.kovidgoyal.net/kitty/keyboard-protocol/#disambiguate) (mode `0b1`)
-* “Window menu” (compositor provided) on right clicks on the CSD title
+* "Window menu" (compositor provided) on right clicks on the CSD title
   bar.
 
 
@@ -1063,7 +1063,7 @@
 
 ### Fixed
 
-* Regression: `letter-spacing` resulting in a “not a valid option”
+* Regression: `letter-spacing` resulting in a "not a valid option"
   error ([#795](https://codeberg.org/dnkl/foot/issues/795)).
 * Regression: bad section name in configuration error messages.
 * Regression: `pipe-*` key bindings not being parsed correctly,
@@ -1098,7 +1098,7 @@
 * `[csd].border-width` and `[csd].border-color`, allowing you to
   configure the width and color of the CSD border.
 * Support for `XTMODKEYS` with `Pp=4` and `Pv=2` (_modifyOtherKeys=2_).
-* `[colors].dim0-7` options, allowing you to configure custom “dim”
+* `[colors].dim0-7` options, allowing you to configure custom "dim"
   colors ([#776](https://codeberg.org/dnkl/foot/issues/776)).
 
 
@@ -1114,9 +1114,9 @@
   due to the compositor not implementing a recent enough version of
   the `wl_seat` interface ([#779](https://codeberg.org/dnkl/foot/issues/779)).
 * Boolean options in `foot.ini` are now limited to
-  “yes|true|on|1|no|false|off|0”, Previously, anything that did not
-  match “yes|true|on”, or a number greater than 0, was treated as
-  “false”.
+  "yes|true|on|1|no|false|off|0", Previously, anything that did not
+  match "yes|true|on", or a number greater than 0, was treated as
+  "false".
 * `[scrollback].multiplier` is no longer applied when the alternate
   screen is in use ([#787](https://codeberg.org/dnkl/foot/issues/787)).
 
@@ -1131,7 +1131,7 @@
 
 ### Fixed
 
-* ‘Sticky’ modifiers in input handling; when determining modifier
+* 'Sticky' modifiers in input handling; when determining modifier
   state, foot was looking at **depressed** modifiers, not
   **effective** modifiers, like it should.
 * Fix crashes after enabling CSD at runtime when `csd.size` is 0.
@@ -1139,7 +1139,7 @@
   ([#752](https://codeberg.org/dnkl/foot/issues/752)).
 * Clipboard occasionally ceasing to work, until window has been
   re-focused ([#753](https://codeberg.org/dnkl/foot/issues/753)).
-* Don’t propagate window title updates to the Wayland compositor
+* Don't propagate window title updates to the Wayland compositor
   unless the new title is different from the old title.
 
 
@@ -1159,7 +1159,7 @@
 ### Changed
 
 * PGO helper scripts no longer set `LC_CTYPE=en_US.UTF-8`. But, note
-  that “full” PGO builds still **require** a UTF-8 locale; you need
+  that "full" PGO builds still **require** a UTF-8 locale; you need
   to set one manually in your build script
   ([#728](https://codeberg.org/dnkl/foot/issues/728)).
 
@@ -1187,11 +1187,11 @@
   definitions when `-Dterminfo=enabled`.
 * `-Dcustom-terminfo-install-location` no longer accepts `no` as a
   special value, to disable exporting `TERMINFO`. To achieve the same
-  result, simply don’t set it at all. If it _is_ set, `TERMINFO` is
+  result, simply don't set it at all. If it _is_ set, `TERMINFO` is
   still exported, like before.
 * The default install location for the terminfo definitions have been
   changed back to `${datadir}/terminfo`.
-* `dpi-aware=auto`: fonts are now scaled using the monitor’s DPI only
+* `dpi-aware=auto`: fonts are now scaled using the monitor's DPI only
   when **all** monitors have a scaling factor of one
   ([#714](https://codeberg.org/dnkl/foot/issues/714)).
 * fcft >= 3.0.0 in now required.
@@ -1240,12 +1240,12 @@
   terminating the client application) from 4 to 60 seconds.
 * When terminating the client application, foot now sends `SIGTERM` immediately
   after closing the PTY, instead of waiting 2 seconds.
-* Foot now sends `SIGTERM`/`SIGKILL` to the client application’s process group,
-  instead of just to the client application’s process.
+* Foot now sends `SIGTERM`/`SIGKILL` to the client application's process group,
+  instead of just to the client application's process.
 * `kmous` terminfo capability from `\E[M` to `\E[<`.
 * pt-or-px values (`letter-spacing`, etc) and the line thickness
   (`tweak.box-drawing-base-thickness`) in box drawing characters are
-  now translated to pixel values using the monitor’s scaling factor
+  now translated to pixel values using the monitor's scaling factor
   when `dpi-aware=no`, or `dpi-aware=auto` and the scaling factor is
   larger than 1 ([#680](https://codeberg.org/dnkl/foot/issues/680)).
 * Spawning a new terminal with a working directory that does not exist
@@ -1255,7 +1255,7 @@
 ### Removed
 
 * `km`/`smm`/`rmm` from terminfo; foot prefixes Alt-key combinations
-  with `ESC`, and not by setting the 8:th “meta” bit, regardless of
+  with `ESC`, and not by setting the 8:th "meta" bit, regardless of
   `smm`/`rmm`. While this _can_ be disabled by, resetting private mode
   1036, the terminfo should reflect the **default** behavior
   ([#670](https://codeberg.org/dnkl/foot/issues/670)).
@@ -1422,10 +1422,10 @@ For full support, the following is required:
 
 If `tweak.grapheme-shaping` has **not** been enabled, foot will
 neither use libutf8proc to do grapheme cluster segmentation, nor will
-it use fcft’s grapheme shaping capabilities to shape combining
+it use fcft's grapheme shaping capabilities to shape combining
 characters.
 
-This feature is _experimental_ mostly due to the “wcwidth” problem;
+This feature is _experimental_ mostly due to the "wcwidth" problem;
 how many cells should foot allocate for a grapheme cluster? While the
 answer may seem simple, the problem is that, whatever the answer is,
 the client application **must** come up with the **same**
@@ -1503,9 +1503,9 @@ supported.
 * Point values in `line-height`, `letter-spacing`,
   `horizontal-letter-offset` and `vertical-letter-offset` are now
   rounded, not truncated, when translated to pixel values.
-* Foot’s exit code is now -26/230 when foot itself failed to launch
+* Foot's exit code is now -26/230 when foot itself failed to launch
   (due to invalid command line options, client application/shell not
-  found etc). Footclient’s exit code is -36/220 when it itself fails
+  found etc). Footclient's exit code is -36/220 when it itself fails
   to launch (e.g. bad command line option) and -26/230 when the foot
   server failed to instantiate a new window
   ([#466](https://codeberg.org/dnkl/foot/issues/466)).
@@ -1558,7 +1558,7 @@ supported.
   resulting in PGO build failures.
 * Wrong colors in the 256-color cube
   ([#479](https://codeberg.org/dnkl/foot/issues/479)).
-* Memory leak triggered by “opening” an OSC-8 URI and then resetting
+* Memory leak triggered by "opening" an OSC-8 URI and then resetting
   the terminal without closing the URI
   ([#495](https://codeberg.org/dnkl/foot/issues/495)).
 * Assertion when emitting a sixel occupying the entire scrollback
@@ -1567,7 +1567,7 @@ supported.
   invisible) for certain combinations of fonts and font sizes
   ([#503](https://codeberg.org/dnkl/foot/issues/503)).
 * Sixels with transparent bottom border being resized below the size
-  specified in _”Set Raster Attributes”_.
+  specified in _"Set Raster Attributes"_.
 * Fonts sometimes not being reloaded with the correct scaling factor
   when `dpi-aware=no`, or `dpi-aware=auto` with monitor(s) with a
   scaling factor > 1 ([#509](https://codeberg.org/dnkl/foot/issues/509)).
@@ -1763,7 +1763,7 @@ supported.
   background color for empty pixels instead of the default background
   color ([#391](https://codeberg.org/dnkl/foot/issues/391)).
 * Sixel decoding optimized; up to 100% faster in some cases.
-* Reported sixel “max geometry” from current window size, to the
+* Reported sixel "max geometry" from current window size, to the
   configured maximum size (defaulting to 10000x10000).
 
 
@@ -1862,7 +1862,7 @@ supported.
 * Pasting URIs from the clipboard when the source has not
   newline-terminated the last URI
   ([#291](https://codeberg.org/dnkl/foot/issues/291)).
-* Sixel “current geometry” query response not being bounded by the
+* Sixel "current geometry" query response not being bounded by the
   current window dimensions (fixes `lsix` output)
 * Crash on keyboard input when repeat rate was zero (i.e. no repeat).
 * Wrong button encoding of mouse buttons 6 and 7 in mouse events.
@@ -1939,7 +1939,7 @@ means foot can be PGO:d in e.g. sandboxed build scripts. See
   and `CSI ? 737769 l` disables it. This can be used to
   e.g. enable/disable IME when entering/leaving insert mode in vim.
 * `dpi-aware` option to `foot.ini`. The default, `auto`, sizes fonts
-  using the monitor’s DPI when output scaling has been
+  using the monitor's DPI when output scaling has been
   **disabled**. If output scaling has been **enabled**, fonts are
   sized using the scaling factor. DPI-only font sizing can be forced
   by setting `dpi-aware=yes`. Setting `dpi-aware=no` forces font
@@ -2019,7 +2019,7 @@ means foot can be PGO:d in e.g. sandboxed build scripts. See
   `\E[38:2...m`) can now be used _without_ the color space ID
   parameter.
 * SGR 21 no longer disables **bold**. According to ECMA-48, SGR 21 is
-  _”double underline_”. Foot does not (yet) implement that, but that’s
+  _"double underline_". Foot does not (yet) implement that, but that's
   no reason to implement a non-standard behavior.
 * `DECRQM` now returns actual state of the requested mode, instead of
   always returning `2`.
@@ -2067,7 +2067,7 @@ means foot can be PGO:d in e.g. sandboxed build scripts. See
   ([#194](https://codeberg.org/dnkl/foot/issues/194)).
 * Single-width characters with double-width glyphs are now allowed to
   overflow into neighboring cells by default. Set
-  **tweak.allow-overflowing-double-width-glyphs** to ‘no’ to disable
+  **tweak.allow-overflowing-double-width-glyphs** to 'no' to disable
   this.
 
 ### Fixed
@@ -2271,7 +2271,7 @@ means foot can be PGO:d in e.g. sandboxed build scripts. See
   binding has consumed it.
 * Input events from getting mixed with paste data
   ([#101](https://codeberg.org/dnkl/foot/issues/101)).
-* Missing DPI values for “some” monitors on Gnome
+* Missing DPI values for "some" monitors on Gnome
   ([#118](https://codeberg.org/dnkl/foot/issues/118)).
 * Handling of multi-column composed characters while reflowing.
 * Escape sequences sent for key combinations with `Return`, that did

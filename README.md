@@ -303,10 +303,10 @@ Foot supports URL detection. But, unlike many other terminal
 emulators, where URLs are highlighted when they are hovered and opened
 by clicking on them, foot uses a keyboard driven approach.
 
-Pressing <kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>o</kbd> enters _“URL
-mode”_, where all currently visible URLs are underlined, and is
-associated with a _“jump-label”_. The jump-label indicates the _key
-sequence_ (e.g. **”AF”**) to use to activate the URL.
+Pressing <kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>o</kbd> enters _"URL
+mode"_, where all currently visible URLs are underlined, and is
+associated with a _"jump-label"_. The jump-label indicates the _key
+sequence_ (e.g. **"AF"**) to use to activate the URL.
 
 The key binding can, of course, be customized, like all other key
 bindings in foot. See `show-urls-launch` and `show-urls-copy` in the
@@ -329,7 +329,7 @@ the jump label key sequences can be configured.
 
 New foot terminal instances (bound to
 <kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>n</kbd> by default) will open in
-the current working directory, **if** the shell in the “parent”
+the current working directory, **if** the shell in the "parent"
 terminal reports directory changes.
 
 This is done with the OSC-7 escape sequence. Most shells can be
@@ -360,9 +360,9 @@ See the
 [wiki](https://codeberg.org/dnkl/foot/wiki#user-content-jumping-between-prompts)
 for details, and examples for other shells.
 
-### Piping last command’s output
+### Piping last command's output
 
-The key binding `pipe-command-output` can pipe the last command’s
+The key binding `pipe-command-output` can pipe the last command's
 output to an application of your choice (similar to the other `pipe-*`
 key bindings):
 
@@ -372,7 +372,7 @@ pipe-command-output=[sh -c "f=$(mktemp); cat - > $f; footclient emacsclient -nw 
 ```
 
 When pressing <kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>g</kbd>, the last
-command’s output is written to a temporary file, then an emacsclient
+command's output is written to a temporary file, then an emacsclient
 is started in a new footclient instance. The temporary file is removed
 after the footclient instance has closed.
 
@@ -472,19 +472,19 @@ multiplied.
 For this reason, and because of the new _fractional scaling_ protocol
 (see below for details), and because this is how Wayland applications
 are expected to behave, foot >= 1.15 will default to scaling fonts
-using the compositor’s scaling factor, and **not** the monitor
+using the compositor's scaling factor, and **not** the monitor
 DPI.
 
 This means the (assuming the monitors are at the same viewing
 distance) the font size will appear to change when you move the foot
 window across different monitors, **unless** you have configured the
-monitors’ scaling factors correctly in the compositor.
+monitors' scaling factors correctly in the compositor.
 
 This can be changed by setting the `dpi-aware` option to `yes` in
 `foot.ini`. When enabled, fonts will **not** be sized using the
-scaling factor, but will instead be sized using the monitor’s
+scaling factor, but will instead be sized using the monitor's
 DPI. When the foot window is moved across monitors, the font size is
-updated for the current monitor’s DPI.
+updated for the current monitor's DPI.
 
 This means that, assuming the monitors are **at the same viewing
 distance**, the font size will appear to be the same, at all times.
@@ -574,7 +574,7 @@ emulator actually responded to.
 
 Starting with version 1.7.0, foot also implements `XTVERSION`, to
 which it will reply with `\EP>|foot(version)\E\\`. Version is
-e.g. “1.8.2” for a regular release, or “1.8.2-36-g7db8e06f” for a git
+e.g. "1.8.2" for a regular release, or "1.8.2-36-g7db8e06f" for a git
 build.
 
 
@@ -587,9 +587,9 @@ It allows querying the terminal for terminfo
 capabilities. Applications using this feature do not need to use the
 classic, file-based, terminfo definition. For example, if all
 applications used this feature, you would no longer have to install
-foot’s terminfo on remote hosts you SSH into.
+foot's terminfo on remote hosts you SSH into.
 
-XTerm’s implementation (as of XTerm-370) only supports querying key
+XTerm's implementation (as of XTerm-370) only supports querying key
 (as in keyboard keys) capabilities, and three custom capabilities:
 
 * `TN` - terminal name
@@ -601,7 +601,7 @@ Kitty has extended this, and also supports querying all integer and
 string capabilities.
 
 Foot supports this, and extends it even further, to also include
-boolean capabilities. This means foot’s entire terminfo can be queried
+boolean capabilities. This means foot's entire terminfo can be queried
 via `XTGETTCAP`.
 
 Note that both Kitty and foot handles **responses** to
@@ -613,7 +613,7 @@ capability/value pairs. There are a couple of issues with this:
 * The success/fail flag in the beginning of the response is always `1`
   (success), unless the very **first** queried capability is invalid.
 * XTerm will not respond **at all** to an invalid capability, unless
-  it’s the first one in the `XTGETTCAP` query.
+  it's the first one in the `XTGETTCAP` query.
 * XTerm will end the response at the first invalid capability.
 
 In other words, if you send a large multi-capability query, you will

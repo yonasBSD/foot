@@ -94,24 +94,24 @@ A note on terminfo; the terminfo database exposes terminal
 capabilities to the applications running inside the terminal. As such,
 it is important that the terminfo used reflects the actual
 terminal. Using the `xterm-256color` terminfo will, in many cases,
-work, but I still recommend using foot’s own terminfo. There are two
+work, but I still recommend using foot's own terminfo. There are two
 reasons for this:
 
-* foot’s terminfo contains a couple of non-standard capabilities,
+* foot's terminfo contains a couple of non-standard capabilities,
   used by e.g. tmux.
 * New capabilities added to the `xterm-256color` terminfo could
   potentially break foot.
-* There may be future additions or changes to foot’s terminfo.
+* There may be future additions or changes to foot's terminfo.
 
-As of ncurses 2021-07-31, ncurses includes a version of foot’s
+As of ncurses 2021-07-31, ncurses includes a version of foot's
 terminfo. **The recommendation is to use those**, and only install the
-terminfo definitions from this git repo if the system’s ncurses
+terminfo definitions from this git repo if the system's ncurses
 predates 2021-07-31.
 
-But, note that the foot terminfo definitions in ncurses’ lack the
+But, note that the foot terminfo definitions in ncurses' lack the
 non-standard capabilities. This mostly affects tmux; without them,
 `terminal-overrides` must be configured to enable truecolor
-support. For this reason, it _is_ possible to install “our” terminfo
+support. For this reason, it _is_ possible to install "our" terminfo
 definitions as well, either in a non-default location, or under a
 different name.
 
@@ -124,10 +124,10 @@ details.
 Installing them under a different name generally works well, but will
 break applications that check if `$TERM == foot`.
 
-Hence the recommendation to simply use ncurses’ terminfo definitions
+Hence the recommendation to simply use ncurses' terminfo definitions
 if available.
 
-If packaging “our” terminfo definitions, I recommend doing that as a
+If packaging "our" terminfo definitions, I recommend doing that as a
 separate package, to allow them to be installed on remote systems
 without having to install foot itself.
 
@@ -176,9 +176,9 @@ meson ... -Ddefault-terminfo=foot -Dterminfo-base-name=foot-extra
 ```
 (or just leave out `-Ddefault-terminfo`, since it defaults to `foot` anyway).
 
-Finally, `-Dcustom-terminfo-install-location` enables foot’s terminfo
-to co-exist with ncurses’ version, without changing the terminfo
-names. The idea is that you install foot’s terminfo to a non-standard
+Finally, `-Dcustom-terminfo-install-location` enables foot's terminfo
+to co-exist with ncurses' version, without changing the terminfo
+names. The idea is that you install foot's terminfo to a non-standard
 location, for example `/usr/share/foot/terminfo`. Use
 `-Dcustom-terminfo-install-location` to tell foot where the terminfo
 is. Foot will set the environment variable `TERMINFO` to this value
@@ -194,7 +194,7 @@ in the meson build. It does **not** change the default value of
 `TERM`, and it does **not** disable `TERMINFO`, if
 `-Dcustom-terminfo-install-location` has been set. Use this if
 packaging the terminfo definitions in a separate package (and the
-build script isn’t shared with the ‘foot’ package).
+build script isn't shared with the 'foot' package).
 
 Example:
 
@@ -269,7 +269,7 @@ reason there are a number of helper scripts available.
 scripts in the `pgo` directory to do a complete PGO build. This script
 is intended to be used when doing manual builds.
 
-Note that all “full” PGO builds (which `auto` will prefer, if
+Note that all "full" PGO builds (which `auto` will prefer, if
 possible) **require** `LC_CTYPE` to be set to an UTF-8 locale. This is
 **not** done automatically.
 
@@ -370,7 +370,7 @@ fail.
 
 The snippet above then creates an (empty) temporary file. Then, it
 runs a script that generates random escape sequences (if you cat
-`${tmp_file}` in a terminal, you’ll see random colored characters all
+`${tmp_file}` in a terminal, you'll see random colored characters all
 over the screen). Finally, we feed the randomly generated escape
 sequences to the PGO helper. This is what generates the profiling data
 used in the next step.
@@ -450,7 +450,7 @@ sed 's/@default_terminfo@/foot/g' foot.info | \
     tic -o <output-directory> -x -e foot,foot-direct -
 ```
 
-Where _”output-directory”_ **must** match the value passed to
+Where _"output-directory"_ **must** match the value passed to
 `-Dcustom-terminfo-install-location` in the foot build. If
 `-Dcustom-terminfo-install-location` has not been set, `-o
 <output-directory>` can simply be omitted.

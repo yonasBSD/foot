@@ -405,7 +405,7 @@ update_term_for_output_change(struct terminal *term)
     if (fonts_updated) {
         /*
          * If the fonts have been updated, the cell dimensions have
-         * changed. This requires a “forced” resize, since the surface
+         * changed. This requires a "forced" resize, since the surface
          * buffer dimensions may not have been updated (in which case
          * render_resize() normally shortcuts and returns early).
          */
@@ -921,7 +921,7 @@ xdg_toplevel_wm_capabilities(void *data,
 
 static const struct xdg_toplevel_listener xdg_toplevel_listener = {
     .configure = &xdg_toplevel_configure,
-    /*.close = */&xdg_toplevel_close,  /* epoll-shim defines a macro ‘close’... */
+    /*.close = */&xdg_toplevel_close,  /* epoll-shim defines a macro 'close'... */
 #if defined(XDG_TOPLEVEL_CONFIGURE_BOUNDS_SINCE_VERSION)
     .configure_bounds = &xdg_toplevel_configure_bounds,
 #endif
@@ -991,7 +991,7 @@ xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
 
 #if 1
     /*
-     * TODO: decide if we should do the last “forced” call when ending
+     * TODO: decide if we should do the last "forced" call when ending
      * an interactive resize.
      *
      * Without it, the last TIOCSWINSZ sent to the client will be a
@@ -2152,7 +2152,7 @@ bool
 wayl_win_set_urgent(struct wl_window *win)
 {
     if (win->urgency_token_is_pending) {
-        /* We already have a pending token. Don’t request another one,
+        /* We already have a pending token. Don't request another one,
          * to avoid flooding the Wayland socket */
         return true;
     }

@@ -98,8 +98,8 @@ if [ ${do_pgo} = yes ]; then
     ninja -C "${blddir}"
 
     # If fcft/tllist are subprojects, we need to ensure their tests
-    # have been executed, or we’ll get “profile count data file not
-    # found” errors.
+    # have been executed, or we'll get "profile count data file not
+    # found" errors.
     ninja -C "${blddir}" test
 
     # Run mode-dependent script to generate profiling data

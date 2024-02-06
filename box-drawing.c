@@ -2098,7 +2098,7 @@ draw_braille(struct buf *buf, char32_t wc)
     if (x_px_left >= 1) { x_spacing++; x_px_left--; }
     if (y_px_left >= 3) { y_spacing++; y_px_left -= 3; }
 
-    /* Fourth, margins (“spacing”, but on the sides) */
+    /* Fourth, margins ("spacing", but on the sides) */
     if (x_px_left >= 2) { x_margin++; x_px_left -= 2; }
     if (y_px_left >= 2) { y_margin++; y_px_left -= 2; }
 

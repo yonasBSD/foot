@@ -979,7 +979,7 @@ sixel_reflow_grid(struct terminal *term, struct grid *grid)
     struct grid *active_grid = term->grid;
     term->grid = grid;
 
-    /* Need the “real” list to be empty from the beginning */
+    /* Need the "real" list to be empty from the beginning */
     tll(struct sixel) copy = tll_init();
     tll_foreach(grid->sixel_images, it)
         tll_push_back(copy, it->item);
@@ -1028,7 +1028,7 @@ sixel_reflow_grid(struct terminal *term, struct grid *grid)
             continue;
         }
 
-        /* Sixels that didn’t overlap may now do so, which isn’t
+        /* Sixels that didn't overlap may now do so, which isn't
          * allowed of course */
         _sixel_overwrite_by_rectangle(
             term, six->pos.row, six->pos.col, six->rows, six->cols,
@@ -1200,8 +1200,8 @@ sixel_unhook(struct terminal *term)
                  * Position the text cursor based on the **upper**
                  * pixel, of the last sixel.
                  *
-                 * In most cases, that’ll end up being the very last
-                 * row of the sixel (which we’re already at, thanks to
+                 * In most cases, that'll end up being the very last
+                 * row of the sixel (which we're already at, thanks to
                  * the linefeeds). But for some combinations of font
                  * and image sizes, the final cursor position is
                  * higher up.
@@ -1580,8 +1580,8 @@ decsixel_generic(struct terminal *term, uint8_t c)
     case '$':
         if (likely(term->sixel.pos.col <= term->sixel.max_width)) {
             /*
-             * We set, and keep, ‘col’ outside the image boundary when
-             * we’ve reached the maximum image height, to avoid also
+             * We set, and keep, 'col' outside the image boundary when
+             * we've reached the maximum image height, to avoid also
              * having to check the row vs image height in the common
              * path in sixel_add().
              */
@@ -1775,12 +1775,12 @@ decgci(struct terminal *term, uint8_t c)
                 int sat = min(c3, 100);
 
                 /*
-                 * Sixel’s HLS use the following primary color hues:
+                 * Sixel's HLS use the following primary color hues:
                  *  blue:  0°
                  *  red:   120°
                  *  green: 240°
                  *
-                 * While “standard” HSL uses:
+                 * While "standard" HSL uses:
                  *  red:   0°
                  *  green: 120°
                  *  blue:  240°

@@ -137,12 +137,12 @@ action_execute(struct terminal *term, uint8_t c)
         /* backspace */
 #if 0
         /*
-         * This is the “correct” BS behavior. However, it doesn’t play
+         * This is the "correct" BS behavior. However, it doesn't play
          * nicely with bw/auto_left_margin, hence the alternative
          * implementation below.
          *
-         * Note that it breaks vttest “1. Test of cursor movements ->
-         * Test of autowrap”
+         * Note that it breaks vttest "1. Test of cursor movements ->
+         * Test of autowrap"
          */
         term_cursor_left(term, 1);
 #else
@@ -154,7 +154,7 @@ action_execute(struct terminal *term, uint8_t c)
                 likely(term->reverse_wrap && term->auto_margin))
             {
                 if (term->grid->cursor.point.row <= term->scroll_region.start) {
-                    /* Don’t wrap past, or inside, the scrolling region(?) */
+                    /* Don't wrap past, or inside, the scrolling region(?) */
                 } else
                     term_cursor_to(
                         term,
@@ -398,7 +398,7 @@ action_collect(struct terminal *term, uint8_t c)
      * more.
      *
      * As such, we optimize *reading* the private(s), and *resetting*
-     * them (in action_clear()). Writing is ok if it’s a bit slow.
+     * them (in action_clear()). Writing is ok if it's a bit slow.
      */
 
     if ((term->vt.private & 0xff) == 0)
@@ -783,7 +783,7 @@ action_utf8_print(struct terminal *term, char32_t wc)
 
                 /*
                  * We may have a key collisison, so need to check that
-                 * it’s a true match. If not, bump the key and try
+                 * it's a true match. If not, bump the key and try
                  * again.
                  */
 
@@ -920,8 +920,8 @@ action_utf8_33(struct terminal *term, uint8_t c)
         return;
     }
 
-    /* Note: the E0 range contains overlong encodings. We don’t try to
-       detect, as they’ll still decode to valid UTF-32. */
+    /* Note: the E0 range contains overlong encodings. We don't try to
+       detect, as they'll still decode to valid UTF-32. */
 
     action_utf8_print(term, term->vt.utf8);
 }
@@ -960,8 +960,8 @@ action_utf8_44(struct terminal *term, uint8_t c)
         return;
     }
 
-    /* Note: the F0 range contains overlong encodings. We don’t try to
-       detect, as they’ll still decode to valid UTF-32. */
+    /* Note: the F0 range contains overlong encodings. We don't try to
+       detect, as they'll still decode to valid UTF-32. */
 
     action_utf8_print(term, term->vt.utf8);
 }

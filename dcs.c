@@ -138,12 +138,12 @@ xtgettcap_reply(struct terminal *term, const char *hex_cap_name, size_t len)
     /*
      * Reply format:
      *    \EP 1 + r cap=value \E\\
-     * Where ‘cap’ and ‘value are hex encoded ascii strings
+     * Where 'cap' and 'value are hex encoded ascii strings
      */
     char *reply = xmalloc(
         5 +                           /* DCS 1 + r (\EP1+r) */
         len +                         /* capability name, hex encoded */
-        1 +                           /* ‘=’ */
+        1 +                           /* '=' */
         strlen(value) * 2 +           /* capability value, hex encoded */
         2 +                           /* ST (\E\\) */
         1);
@@ -253,8 +253,8 @@ decrqss_unhook(struct terminal *term)
     /*
      * A note on the Ps parameter in the reply: many DEC manual
      * instances (e.g. https://vt100.net/docs/vt510-rm/DECRPSS) claim
-     * that 0 means “request is valid”, and 1 means “request is
-     * invalid”.
+     * that 0 means "request is valid", and 1 means "request is
+     * invalid".
      *
      * However, this appears to be a typo; actual hardware inverts the
      * response (as does XTerm and mlterm):

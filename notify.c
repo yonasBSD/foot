@@ -20,7 +20,7 @@ notify_notify(const struct terminal *term, const char *title, const char *body)
     LOG_DBG("notify: title=\"%s\", msg=\"%s\"", title, body);
 
     if (term->conf->notify_focus_inhibit && term->kbd_focus) {
-        /* No notifications while we’re focused */
+        /* No notifications while we're focused */
         return;
     }
 

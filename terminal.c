@@ -260,8 +260,8 @@ fdm_ptmx(struct fdm *fdm, int fd, int events, void *data)
 
     if (unlikely(term->interactive_resizing.grid != NULL)) {
         /*
-         * Don’t consume PTMX while we’re doing an interactive resize,
-         * since the ‘normal’ grid we’re currently using is a
+         * Don't consume PTMX while we're doing an interactive resize,
+         * since the 'normal' grid we're currently using is a
          * temporary one - all changes done to it will be lost when
          * the interactive resize ends.
          */
@@ -817,7 +817,7 @@ get_font_dpi(const struct terminal *term)
      * downscaled by the compositor.
      *
      * With the newer fractional-scale-v1 protocol, we use the
-     * monitor’s real DPI, since we scale everything to the correct
+     * monitor's real DPI, since we scale everything to the correct
      * scaling factor (no downscaling done by the compositor).
      */
 
@@ -1092,8 +1092,8 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
         goto close_fds;
     }
 
-    /* Need to register *very* early (before the first “goto err”), to
-     * ensure term_destroy() doesn’t unref a key-binding we haven’t
+    /* Need to register *very* early (before the first "goto err"), to
+     * ensure term_destroy() doesn't unref a key-binding we haven't
      * yet ref:d */
     key_binding_new_for_conf(wayl->key_binding_manager, wayl, conf);
 
@@ -1340,11 +1340,11 @@ term_window_configured(struct terminal *term)
  *
  * A foot instance can be terminated in two ways:
  *
- *  - the client application terminates (user types ‘exit’, or pressed C-d in the
+ *  - the client application terminates (user types 'exit', or pressed C-d in the
  *    shell, etc)
  *  - the foot window is closed
  *
- * Both variants need to trigger to “other” action. I.e. if the client
+ * Both variants need to trigger to "other" action. I.e. if the client
  * application is terminated, then we need to close the window. If the window is
  * closed, we need to terminate the client application.
  *
@@ -1361,7 +1361,7 @@ term_window_configured(struct terminal *term)
  * - fdm_client_terminated(): reaper callback, called when the client
  *   application has terminated.
  *
- *     + Kills the “terminate” timeout timer
+ *     + Kills the "terminate" timeout timer
  *     + Calls shutdown_maybe_done() if the shutdown procedure has already
  *       started (i.e. the window being closed initiated the shutdown)
  *    -OR-
@@ -1369,18 +1369,18 @@ term_window_configured(struct terminal *term)
  *       application termination initiated the shutdown).
  *
  * - term_shutdown(): unregisters all FDM callbacks, sends SIGTERM to the client
- *   application and installs a “terminate” timeout timer (if it hasn’t already
+ *   application and installs a "terminate" timeout timer (if it hasn't already
  *   terminated). Finally registers an event FD with the FDM, which is
  *   immediately triggered. This is done to ensure any pending FDM events are
  *   handled before shutting down.
  *
  * - fdm_shutdown(): FDM callback, triggered by the event FD in
  *   term_shutdown(). Unmaps and destroys the window resources, and ensures the
- *   seats’ focused pointers don’t reference us. Finally calls
+ *   seats' focused pointers don't reference us. Finally calls
  *   shutdown_maybe_done().
  *
- * - fdm_terminate_timeout(): FDM callback for the “terminate” timeout
- *   timer. This function is called when the client application hasn’t
+ * - fdm_terminate_timeout(): FDM callback for the "terminate" timeout
+ *   timer. This function is called when the client application hasn't
  *   terminated after 60 seconds (after the SIGTERM). Sends SIGKILL to the
  *   client application.
  *
@@ -1391,7 +1391,7 @@ term_window_configured(struct terminal *term)
  *   It may however also be called without term_shutdown() having been called
  *   (typically in error code paths - for example, when the Wayland connection
  *   is closed by the compositor). In this case, the client application is
- *   typically still running, and we can’t assume the FDM is running. To handle
+ *   typically still running, and we can't assume the FDM is running. To handle
  *   this, we install configure a 60 second SIGALRM, send SIGTERM to the client
  *   application, and then enter a blocking waitpid().
  *
@@ -1715,7 +1715,7 @@ term_destroy(struct terminal *term)
     int ret = EXIT_SUCCESS;
 
     if (term->slave > 0) {
-        /* We’ll deal with this explicitly */
+        /* We'll deal with this explicitly */
         reaper_del(term->reaper, term->slave);
 
         int exit_status;
@@ -1729,7 +1729,7 @@ term_destroy(struct terminal *term)
             kill(-term->slave, SIGTERM);
 
             /*
-             * we’ve closed the ptxm, and sent SIGTERM to the client
+             * we've closed the ptxm, and sent SIGTERM to the client
              * application. It *should* exit...
              *
              * But, since it is possible to write clients that ignore
@@ -2086,10 +2086,10 @@ term_update_scale(struct terminal *term)
     const struct wl_window *win = term->window;
 
     /*
-     * We have a number of “sources” we can use as scale. We choose
+     * We have a number of "sources" we can use as scale. We choose
      * the scale in the following order:
      *
-     *  - “preferred” scale, from the fractional-scale-v1 protocol
+     *  - "preferred" scale, from the fractional-scale-v1 protocol
      *  - "preferred" scale, from wl_compositor version 6.
           NOTE: if the compositor advertises version 6 we must use 1.0
           until wl_surface.preferred_buffer_scale is sent
@@ -2098,7 +2098,7 @@ term_update_scale(struct terminal *term)
      *  - if we're not mapped, and we don't have a last known scaling
      *    factor, use the scaling factor from the first available
      *    output.
-     *  - if there aren’t any outputs available, use 1.0
+     *  - if there aren't any outputs available, use 1.0
      */
     const float new_scale = (term_fractional_scaling(term)
         ? win->scale
@@ -2260,7 +2260,7 @@ term_damage_scroll(struct terminal *term, enum damage_type damage_type,
                 dmg->region.start == region.start &&
                 dmg->region.end == region.end))
         {
-            /* Make sure we don’t overflow... */
+            /* Make sure we don't overflow... */
             int new_line_count = (int)dmg->lines + lines;
             if (likely(new_line_count <= UINT16_MAX)) {
                 dmg->lines = new_line_count;
@@ -2324,14 +2324,14 @@ term_erase_scrollback(struct terminal *term)
     if (sel_end >= 0) {
         /*
          * Cancel selection if it touches any of the rows in the
-         * scrollback, since we can’t have the selection reference
+         * scrollback, since we can't have the selection reference
          * soon-to-be deleted rows.
          *
          * This is done by range checking the selection range against
          * the scrollback range.
          *
          * To make this comparison simpler, the start/end absolute row
-         * numbers are “rebased” against the scrollback start, where
+         * numbers are "rebased" against the scrollback start, where
          * row 0 is the *first* row in the scrollback. A high number
          * thus means the row is further *down* in the scrollback,
          * closer to the screen bottom.
@@ -3282,7 +3282,7 @@ term_bell(struct terminal *term)
         if (!wayl_win_set_urgent(term->window)) {
             /*
              * Urgency (xdg-activation) is relatively new in
-             * Wayland. Fallback to our old, “faked”, urgency -
+             * Wayland. Fallback to our old, "faked", urgency -
              * rendering our window margins in red
              */
             term->render.urgency = true;
@@ -3728,20 +3728,20 @@ term_command_output_to_text(const struct terminal *term, char **text, size_t *le
      * column, then the *entire* previous line is part of the command
      * output. *Including* the newline, if any.
      *
-     * Since rows_to_text() doesn’t extract the column
+     * Since rows_to_text() doesn't extract the column
      * FTCS_COMMAND_FINISHED was emitted at (that would be wrong -
      * FTCS_COMMAND_FINISHED is emitted *after* the command output,
      * not at its last character), the extraction logic will not see
      * the last newline (this is true for all non-line-wise selection
      * types), and the extracted text will *not* end with a newline.
      *
-     * Here we try to compensate for that. Note that if ‘end_col’ is
+     * Here we try to compensate for that. Note that if 'end_col' is
      * not 0, then the command output only covers a partial row, and
      * thus we do *not* want to append a newline.
      */
 
     if (end_col > 0) {
-        /* Command output covers partial row - don’t append newline */
+        /* Command output covers partial row - don't append newline */
         return true;
     }
 

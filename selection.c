@@ -858,8 +858,8 @@ pixman_region_for_coords_block(const struct terminal *term,
     return region;
 }
 
-/* Returns a pixman region representing the selection between ‘start’
- * and ‘end’ (given the current selection kind), in *scrollback
+/* Returns a pixman region representing the selection between 'start'
+ * and 'end' (given the current selection kind), in *scrollback
  * relative coordinates* */
 static pixman_region32_t
 pixman_region_for_coords(const struct terminal *term,
@@ -921,17 +921,17 @@ mark_selected_region(struct terminal *term, pixman_box32_t *boxes,
                      * followed by non-empty cell(s), since this
                      * corresponds to what gets extracted when the
                      * selection is copied (that is, empty cells
-                     * “between” non-empty cells are converted to
+                     * "between" non-empty cells are converted to
                      * spaces).
                      *
                      * However, they way we handle selection updates
-                     * (diffing the “old” selection area against the
-                     * “new” one, using pixman regions), means we
-                     * can’t correctly update the state of empty
-                     * cells. The result is “random” empty cells being
-                     * rendered as selected when they shouldn’t.
+                     * (diffing the "old" selection area against the
+                     * "new" one, using pixman regions), means we
+                     * can't correctly update the state of empty
+                     * cells. The result is "random" empty cells being
+                     * rendered as selected when they shouldn't.
                      *
-                     * “Fix” by *never* highlighting selected empty
+                     * "Fix" by *never* highlighting selected empty
                      * cells (they still get converted to spaces when
                      * copied, if followed by non-empty cells).
                      */
@@ -944,8 +944,8 @@ mark_selected_region(struct terminal *term, pixman_box32_t *boxes,
                      *
                      * This is due to how the algorithm for updating
                      * the selection works; it uses regions to
-                     * calculate the difference between the “old” and
-                     * the “new” selection. This makes it impossible
+                     * calculate the difference between the "old" and
+                     * the "new" selection. This makes it impossible
                      * to tell if an empty cell is a *trailing* empty
                      * cell (that should not be highlighted), or an
                      * empty cells between non-empty cells (that
@@ -957,7 +957,7 @@ mark_selected_region(struct terminal *term, pixman_box32_t *boxes,
                      * empty cell is trailing or not.
                      *
                      * So, what we need to do is check if a
-                     * ‘selected’, and empty cell has been marked as
+                     * 'selected', and empty cell has been marked as
                      * selected, temporarily unmark (forcing it dirty,
                      * to ensure it gets re-rendered). If it is *not*
                      * a trailing empty cell, it will get re-tagged as
@@ -1042,7 +1042,7 @@ set_pivot_point_for_block_and_char_wise(struct terminal *term,
 
     *pivot_start = start;
 
-    /* First, make sure ‘start’ isn’t in the middle of a
+    /* First, make sure 'start' isn't in the middle of a
      * multi-column character */
     while (true) {
         const struct row *row = term->grid->rows[pivot_start->row & (term->grid->num_rows - 1)];
@@ -1051,7 +1051,7 @@ set_pivot_point_for_block_and_char_wise(struct terminal *term,
         if (cell->wc < CELL_SPACER)
             break;
 
-        /* Multi-column chars don’t cross rows */
+        /* Multi-column chars don't cross rows */
         xassert(pivot_start->col > 0);
         if (pivot_start->col == 0)
             break;
@@ -1876,7 +1876,7 @@ cancelled(void *data, struct wl_data_source *wl_data_source)
     clipboard->text = NULL;
 }
 
-/* We don’t support dragging *from* */
+/* We don't support dragging *from* */
 static void
 dnd_drop_performed(void *data, struct wl_data_source *wl_data_source)
 {
@@ -2218,11 +2218,11 @@ fdm_receive(struct fdm *fdm, int fd, int events, void *data)
 
             /*
              * In addition to stripping non-formatting C0 controls,
-             * XTerm has an option, “disallowedPasteControls”, that
+             * XTerm has an option, "disallowedPasteControls", that
              * defines C0 controls that will be replaced with spaces
              * when pasted.
              *
-             * It’s default value is BS,DEL,ENQ,EOT,NUL
+             * It's default value is BS,DEL,ENQ,EOT,NUL
              *
              * Instead of replacing them with spaces, we allow them in
              * bracketed paste mode, and strip them completely in
@@ -2716,7 +2716,7 @@ enter(void *data, struct wl_data_device *wl_data_device, uint32_t serial,
 
 reject_offer:
     /* Either terminal is already busy sending paste data, or mouse
-     * pointer isn’t over the grid */
+     * pointer isn't over the grid */
     seat->clipboard.window = NULL;
     wl_data_offer_accept(offer, serial, NULL);
     wl_data_offer_set_actions(
@@ -2812,7 +2812,7 @@ drop(void *data, struct wl_data_device *wl_data_device)
         term, read_fd, clipboard->mime_type,
         &receive_dnd, &receive_dnd_done, ctx);
 
-    /* data offer is now “owned” by the receive context */
+    /* data offer is now "owned" by the receive context */
     clipboard->data_offer = NULL;
     clipboard->mime_type = DATA_OFFER_MIME_UNSET;
 }

@@ -416,7 +416,7 @@ execute_binding(struct seat *seat, struct terminal *term,
 
             if (!row->shell_integration.prompt_marker) {
                 if (r_abs == grid->offset + term->rows - 1) {
-                    /* We’ve reached the bottom of the scrollback */
+                    /* We've reached the bottom of the scrollback */
                     break;
                 }
                 continue;
@@ -979,19 +979,19 @@ legacy_kbd_protocol(struct seat *seat, struct terminal *term,
 
     if (term->modify_other_keys_2) {
         /*
-         * Try to mimic XTerm’s behavior, when holding shift:
+         * Try to mimic XTerm's behavior, when holding shift:
          *
          *   - if other modifiers are pressed (e.g. Alt), emit a CSI escape
          *   - upper-case symbols A-Z are encoded as an CSI escape
-         *   - other upper-case symbols (e.g ‘Ö’) or emitted as is
+         *   - other upper-case symbols (e.g 'Ö') or emitted as is
          *   - non-upper cased symbols are _mostly_ emitted as is (foot
          *     always emits as is)
          *
          * Examples (assuming Swedish layout):
-         *   - Shift-a (‘A’) emits a CSI
-         *   - Shift-, (‘;’) emits ‘;’
+         *   - Shift-a ('A') emits a CSI
+         *   - Shift-, (';') emits ';'
          *   - Shift-Alt-, (Alt-;) emits a CSI
-         *   - Shift-ö (‘Ö’) emits ‘Ö’
+         *   - Shift-ö ('Ö') emits 'Ö'
          */
 
         /* Any modifiers, besides shift active? */
@@ -1004,9 +1004,9 @@ legacy_kbd_protocol(struct seat *seat, struct terminal *term,
                 seat->kbd.xkb_state, ctx->key);
 
             /*
-             * Get pressed key’s base symbol.
-             *   - for ‘A’ (shift-a), that’s ‘a’
-             *   - for ‘;’ (shift-,), that’s ‘,’
+             * Get pressed key's base symbol.
+             *   - for 'A' (shift-a), that's 'a'
+             *   - for ';' (shift-,), that's ','
              */
             const xkb_keysym_t *base_syms = NULL;
             size_t base_count = xkb_keymap_key_get_syms_by_level(
@@ -1142,7 +1142,7 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
     if (composed && released)
         return false;
 
-    /* TODO: should we even bother with this, or just say it’s not supported? */
+    /* TODO: should we even bother with this, or just say it's not supported? */
     if (!disambiguate && !report_all_as_escapes && pressed)
         return legacy_kbd_protocol(seat, term, ctx);
 
@@ -1287,32 +1287,32 @@ emit_escapes:
          *
          * If the keysym is shifted, use its unshifted codepoint
          * instead. In other words, ctrl+a and ctrl+shift+a should
-         * both use the same value for ‘key’ (97 - i.a. ‘a’).
+         * both use the same value for 'key' (97 - i.a. 'a').
          *
-         * However, don’t do this if a non-significant modifier was
+         * However, don't do this if a non-significant modifier was
          * used to generate the symbol. This is needed since we cannot
-         * encode non-significant modifiers, and thus the “extra”
+         * encode non-significant modifiers, and thus the "extra"
          * modifier(s) would get lost.
          *
          * Example:
          *
-         * the Swedish layout has ‘2’, QUOTATION MARK (“double
-         * quote”), ‘@’, and ‘²’ on the same key. ‘2’ is the base
+         * the Swedish layout has '2', QUOTATION MARK ("double
+         * quote"), '@', and '²' on the same key. '2' is the base
          * symbol.
          *
          * Shift+2 results in QUOTATION MARK
-         * AltGr+2 results in ‘@’
-         * AltGr+Shift+2 results in ‘²’
+         * AltGr+2 results in '@'
+         * AltGr+Shift+2 results in '²'
          *
-         * The kitty kbd protocol can’t encode AltGr. So, if we
-         * always used the base symbol (‘2’), Alt+Shift+2 would
+         * The kitty kbd protocol can't encode AltGr. So, if we
+         * always used the base symbol ('2'), Alt+Shift+2 would
          * result in the same escape sequence as
          * AltGr+Alt+Shift+2.
          *
          * (yes, this matches what kitty does, as of 0.23.1)
          */
 
-        /* Get the key’s shift level */
+        /* Get the key's shift level */
         xkb_level_index_t lvl = xkb_state_key_get_level(
             seat->kbd.xkb_state, ctx->key, ctx->layout);
 
@@ -1324,7 +1324,7 @@ emit_escapes:
             masks, ALEN(masks));
 
         /* Check modifier combinations - if a combination has
-         * modifiers not in our set of ‘significant’ modifiers,
+         * modifiers not in our set of 'significant' modifiers,
          * use key sym as-is */
         bool use_level0_sym = true;
         for (size_t i = 0; i < mask_count; i++) {
@@ -1371,7 +1371,7 @@ emit_escapes:
     char event[4];
     if (report_events /*&& !pressed*/) {
         /* Note: this deviates slightly from Kitty, which omits the
-         * “:1” subparameter for key press events */
+         * ":1" subparameter for key press events */
         event[0] = ':';
         event[1] = '0' + (pressed ? 1 : repeating ? 2 : 3);
         event[2] = '\0';
@@ -2032,7 +2032,7 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
          * event with a NULL surface - see wl_pointer_enter().
          *
          * In this case, we never set seat->mouse_focus (since we
-         * can’t map the enter event to a specific window). */
+         * can't map the enter event to a specific window). */
         return;
     }
 
@@ -2141,7 +2141,7 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
 
         if (cursor_is_on_new_cell) {
             /* Prevent multiple/different mouse bindings from
-             * triggering if the mouse has moved “too much” (to
+             * triggering if the mouse has moved "too much" (to
              * another cell) */
             seat->mouse.count = 0;
         }
@@ -2161,14 +2161,14 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
         if (!term->is_searching) {
             if (auto_scroll_direction != SELECTION_SCROLL_NOT) {
                 /*
-                 * Start ‘selection auto-scrolling’
+                 * Start 'selection auto-scrolling'
                  *
                  * The speed of the scrolling is proportional to the
                  * distance between the mouse and the grid; the
                  * further away the mouse is, the faster we scroll.
                  *
-                 * Note that the speed is measured in ‘intervals (in
-                 * ns) between each timed scroll of a single line’.
+                 * Note that the speed is measured in 'intervals (in
+                 * ns) between each timed scroll of a single line'.
                  *
                  * Thus, the further away the mouse is, the smaller
                  * interval value we use.
@@ -2375,7 +2375,7 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
          * clicking twice, waiting for the CSD timer, and finally
          * clicking once more, results in the following sequence
          * (keyboard and other irrelevant events filtered out, unless
-         * they’re needed to prove a point):
+         * they're needed to prove a point):
          *
          * dbg: input.c:1551: cancelling drag timer, moving window
          * dbg: input.c:759: keyboard_leave: keyboard=0x607000003580, serial=873, surface=0x6070000036d0
@@ -2407,12 +2407,12 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
          * - GNOME does *not* send a pointer *enter* event after the drag
          *   has stopped
          * - The second drag does *not* generate a pointer *leave* event
-         * - The missing leave event means we’re still tracking LMB as
+         * - The missing leave event means we're still tracking LMB as
          *   being held down in our seat struct.
          * - This leads to an assert (debug builds) when LMB is clicked
-         *   again (seat’s button list already contains LMB).
+         *   again (seat's button list already contains LMB).
          *
-         * Note: I’ve also observed variants of the above
+         * Note: I've also observed variants of the above
          */
         tll_foreach(seat->mouse.buttons, it) {
             if (it->item.button == button) {

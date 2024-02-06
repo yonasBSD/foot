@@ -540,7 +540,7 @@ value_to_str(struct context *ctx, char **res)
      *
      *  - key="value"              OK
      *  - key=abc "quote" def  NOT OK
-     *  - key=’value’              OK
+     *  - key='value'              OK
      *
      * Finally, we support escaping the quote character, and the
      * escape character itself:
@@ -1898,7 +1898,7 @@ modifiers_disjoint(const config_modifier_list_t *mods1,
 static char * NOINLINE
 modifiers_to_str(const config_modifier_list_t *mods)
 {
-    size_t len = tll_length(*mods);  /* ‘+’ , and NULL terminator */
+    size_t len = tll_length(*mods);  /* '+' , and NULL terminator */
     tll_foreach(*mods, it)
         len += strlen(it->item);
 
@@ -3537,7 +3537,7 @@ config_font_parse(const char *pattern, struct config_font *font)
 
     /*
      * First look for user specified {pixel}size option
-     * e.g. “font-name:size=12”
+     * e.g. "font-name:size=12"
      */
 
     double pt_size = -1.0;
@@ -3548,9 +3548,9 @@ config_font_parse(const char *pattern, struct config_font *font)
 
     if (have_pt_size != FcResultMatch && have_px_size != FcResultMatch) {
         /*
-         * Apply fontconfig config. Can’t do that until we’ve first
+         * Apply fontconfig config. Can't do that until we've first
          * checked for a user provided size, since we may end up with
-         * both “size” and “pixelsize” being set, and we don’t know
+         * both "size" and "pixelsize" being set, and we don't know
          * which one takes priority.
          */
         FcPattern *pat_copy = FcPatternDuplicate(pat);

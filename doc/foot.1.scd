@@ -313,10 +313,10 @@ Foot supports URL detection. But, unlike many other terminal
 emulators, where URLs are highlighted when they are hovered and opened
 by clicking on them, foot uses a keyboard driven approach.
 
-Pressing *ctrl*+*shift*+*o* enters _“Open URL mode”_, where all currently
+Pressing *ctrl*+*shift*+*o* enters _"Open URL mode"_, where all currently
 visible URLs are underlined, and is associated with a
-_“jump-label”_. The jump-label indicates the _key sequence_
-(e.g. *”AF”*) to use to activate the URL.
+_"jump-label"_. The jump-label indicates the _key sequence_
+(e.g. *"AF"*) to use to activate the URL.
 
 The key binding can, of course, be customized, like all other key
 bindings in foot. See *show-urls-launch* and *show-urls-copy* in
@@ -398,7 +398,7 @@ For more information, see *foot.ini*(5).
 
 New foot terminal instances (bound to *ctrl*+*shift*+*n* by default)
 will open in the current working directory, if the shell in the
-“parent” terminal reports directory changes.
+"parent" terminal reports directory changes.
 
 This is done with the OSC-7 escape sequence. Most shells can be
 scripted to do this, if they do not support it natively. See the wiki
@@ -424,16 +424,16 @@ See the wiki
 (https://codeberg.org/dnkl/foot/wiki#user-content-jumping-between-prompts)
 for details, and examples for other shells.
 
-## Piping last command’s output
+## Piping last command's output
 
-The key binding *pipe-command-output* can pipe the last command’s
+The key binding *pipe-command-output* can pipe the last command's
 output to an application of your choice (similar to the other
 *pipe-\** key bindings):
 
 	*\[key-bindings\]++
 pipe-command-output=[sh -c "f=$(mktemp); cat - > $f; footclient emacsclient -nw $f; rm $f"] Control+Shift+g*
 
-When pressing *ctrl*+*shift*+*g*, the last command’s output is written
+When pressing *ctrl*+*shift*+*g*, the last command's output is written
 to a temporary file, then an emacsclient is started in a new
 footclient instance. The temporary file is removed after the
 footclient instance has closed.
@@ -496,10 +496,10 @@ also implemented (and extended, to some degree) by Kitty.
 
 It allows querying the terminal for terminfo classic, file-based,
 terminfo definition. For example, if all applications used this
-feature, you would no longer have to install foot’s terminfo on remote
+feature, you would no longer have to install foot's terminfo on remote
 hosts you SSH into.
 
-XTerm’s implementation (as of XTerm-370) only supports querying key
+XTerm's implementation (as of XTerm-370) only supports querying key
 (as in keyboard keys) capabilities, and three custom capabilities:
 
 - TN - terminal name
@@ -511,7 +511,7 @@ Kitty has extended this, and also supports querying all integer and
 string capabilities.
 
 Foot supports this, and extends it even further, to also include
-boolean capabilities. This means foot’s entire terminfo can be queried
+boolean capabilities. This means foot's entire terminfo can be queried
 via *XTGETTCAP*.
 
 Note that both Kitty and foot handles responses to multi-capability
@@ -522,7 +522,7 @@ capability/value pairs. There are a couple of issues with this:
 
 - The success/fail flag in the beginning of the response is always 1
   (success), unless the very first queried capability is invalid.
-- XTerm will not respond at all to an invalid capability, unless it’s
+- XTerm will not respond at all to an invalid capability, unless it's
   the first one in the XTGETTCAP query.
 - XTerm will end the response at the first invalid capability.
 

@@ -353,7 +353,7 @@ parse_rgb(const char *string, uint32_t *color, bool *_have_alpha,
             return false;
     }
 
-    /* Verify prefix is “rgb:” or “rgba:” */
+    /* Verify prefix is "rgb:" or "rgba:" */
     if (have_alpha) {
         if (strncmp(string, "rgba:", 5) != 0)
             return false;
@@ -443,9 +443,9 @@ osc_uri(struct terminal *term, char *string)
     /*
      * \E]8;<params>;URI\e\\
      *
-     * Params are key=value pairs, separated by ‘:’.
+     * Params are key=value pairs, separated by ':'.
      *
-     * The only defined key (as of 2020-05-31) is ‘id’, which is used
+     * The only defined key (as of 2020-05-31) is 'id', which is used
      * to group split-up URIs:
      *
      * ╔═ file1 ════╗

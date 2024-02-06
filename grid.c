@@ -17,7 +17,7 @@
 #define TIME_REFLOW 0
 
 /*
- * “sb” (scrollback relative) coordinates
+ * "sb" (scrollback relative) coordinates
  *
  * The scrollback relative row number 0 is the *first*, and *oldest*
  * row in the scrollback history (and thus the *first* row to be
@@ -606,7 +606,7 @@ _line_wrap(struct grid *old_grid, struct row **new_grid, struct row *row,
         /*
          * TODO: detect if the reused row is covered by the
          * selection. Of so, cancel the selection. The problem: we
-         * don’t know if we’ve translated the selection coordinates
+         * don't know if we've translated the selection coordinates
          * yet.
          */
     }
@@ -616,7 +616,7 @@ _line_wrap(struct grid *old_grid, struct row **new_grid, struct row *row,
         return new_row;
 
     /*
-     * URI ranges are per row. Thus, we need to ‘close’ the still-open
+     * URI ranges are per row. Thus, we need to 'close' the still-open
      * ranges on the previous row, and re-open them on the
      * next/current row.
      */
@@ -796,7 +796,7 @@ grid_resize_and_reflow(
         }
 
         if (!old_row->linebreak && col_count > 0) {
-            /* Don’t truncate logical lines */
+            /* Don't truncate logical lines */
             col_count = old_cols;
         }
 
@@ -885,8 +885,8 @@ grid_resize_and_reflow(
                 xassert(amount > 0);
 
                 /*
-                 * If we’re going to reach the end of the new row, we
-                 * need to make sure we don’t end in the middle of a
+                 * If we're going to reach the end of the new row, we
+                 * need to make sure we don't end in the middle of a
                  * multi-column character.
                  */
                 int spacers = 0;
@@ -895,7 +895,7 @@ grid_resize_and_reflow(
                      * While the cell *after* the last cell is a CELL_SPACER
                      *
                      * This means we have a multi-column character
-                     * that doesn’t fit on the current row. We need to
+                     * that doesn't fit on the current row. We need to
                      * push it to the next row, and insert CELL_SPACER
                      * cells as padding.
                      */
@@ -1004,9 +1004,9 @@ grid_resize_and_reflow(
             {
                 /*
                  * line_wrap() "closes" still-open URIs. Since this is
-                 * the *last* row, and since we’re line-breaking due
+                 * the *last* row, and since we're line-breaking due
                  * to a hard line-break (rather than running out of
-                 * cells in the "new_row"), there shouldn’t be an open
+                 * cells in the "new_row"), there shouldn't be an open
                  * URI (it would have been closed when we reached the
                  * end of the URI while reflowing the last "old"
                  * row).
@@ -1033,7 +1033,7 @@ grid_resize_and_reflow(
     xassert(old_rows == 0 || *next_tp == &terminator);
 
 #if defined(_DEBUG)
-    /* Verify all URI ranges have been “closed” */
+    /* Verify all URI ranges have been "closed" */
     for (int r = 0; r < new_rows; r++) {
         const struct row *row = new_grid[r];
 
@@ -1077,7 +1077,7 @@ grid_resize_and_reflow(
     grid->num_cols = new_cols;
 
     /*
-     * Set new viewport, making sure it’s not too far down.
+     * Set new viewport, making sure it's not too far down.
      *
      * This is done by using scrollback-start relative cooardinates,
      * and bounding the new viewport to (grid_rows - screen_rows).
@@ -1143,7 +1143,7 @@ grid_row_uri_range_put(struct row *row, int col, const char *uri, uint64_t id)
         const bool matching_id = r->id == id;
 
         if (matching_id && r->end + 1 == col) {
-            /* Extend existing URI’s tail */
+            /* Extend existing URI's tail */
             r->end++;
             goto out;
         }
@@ -1182,7 +1182,7 @@ grid_row_uri_range_put(struct row *row, int col, const char *uri, uint64_t id)
                 uri_range_insert(extra, i + 1, col + 1, r->end, r->id, r->uri);
 
                 /* The insertion may xrealloc() the vector, making our
-                 * ‘old’ pointer invalid */
+                 * 'old' pointer invalid */
                 r = &extra->uri_ranges.v[i];
                 r->end = col - 1;
                 xassert(r->start <= r->end);
@@ -1319,7 +1319,7 @@ grid_row_uri_range_erase(struct row *row, int start, int end)
                 extra, i + 1, end + 1, old->end, old->id, old->uri);
 
             /* The insertion may xrealloc() the vector, making our
-             * ‘old’ pointer invalid */
+             * 'old' pointer invalid */
             old = &extra->uri_ranges.v[i];
             old->end = start - 1;
             return;  /* There can be no more URIs affected by the erase range */
@@ -1402,11 +1402,11 @@ UNITTEST
      * The insertion logic typically triggers an xrealloc(), which, in
      * some cases, *moves* the entire URI vector to a new base
      * address. grid_row_uri_range_erase() did not account for this,
-     * and tried to update the ‘end’ member in the URI range we just
+     * and tried to update the 'end' member in the URI range we just
      * split. This causes foot to crash when the xrealloc() has moved
      * the URI range vector.
      *
-     * (note: we’re only verifying we don’t crash here, hence the lack
+     * (note: we're only verifying we don't crash here, hence the lack
      * of assertions).
      */
     free(row_data.uri_ranges.v);

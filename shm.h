@@ -49,7 +49,7 @@ void shm_chain_free(struct buffer_chain *chain);
 /*
  * Returns a single buffer.
  *
- * May returned a cached buffer. If so, the buffer’s age indicates how
+ * May returned a cached buffer. If so, the buffer's age indicates how
  * many shm_get_buffer() calls have been made for the same
  * width/height while the buffer was still busy.
  *
@@ -57,7 +57,7 @@ void shm_chain_free(struct buffer_chain *chain);
  */
 struct buffer *shm_get_buffer(struct buffer_chain *chain, int width, int height);
 /*
- * Returns many buffers, described by ‘info’, all sharing the same SHM
+ * Returns many buffers, described by 'info', all sharing the same SHM
  * buffer pool.
  *
  * Never returns cached buffers. However, the newly created buffers

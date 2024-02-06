@@ -427,7 +427,7 @@ main(int argc, char *const *argv)
 
         /*
          * Try to force an UTF-8 locale. If we succeed, launch the
-         * user’s shell as usual, but add a user-notification saying
+         * user's shell as usual, but add a user-notification saying
          * the locale has been changed.
          */
         for (size_t i = 0; i < ALEN(fallback_locales); i++) {

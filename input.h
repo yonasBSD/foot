@@ -11,12 +11,12 @@
  * Custom defines for mouse wheel left/right buttons.
  *
  * Libinput does not define these. On Wayland, all scroll events (both
- * vertical and horizontal) are reported not as buttons, as ‘axis’
+ * vertical and horizontal) are reported not as buttons, as 'axis'
  * events.
  *
  * Libinput _does_ define BTN_BACK and BTN_FORWARD, which is
  * what we use for vertical scroll events. But for horizontal scroll
- * events, there aren’t any pre-defined mouse buttons.
+ * events, there aren't any pre-defined mouse buttons.
  *
  * Mouse buttons are in the range 0x110 - 0x11f, with joystick defines
  * starting at 0x120.

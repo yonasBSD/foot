@@ -511,7 +511,7 @@ get_new_buffers(struct buffer_chain *chain, size_t count,
 #endif
 
     if (!(bufs[0] && shm_can_scroll(bufs[0]))) {
-        /* We only need to keep the pool FD open if we’re going to SHM
+        /* We only need to keep the pool FD open if we're going to SHM
          * scroll it */
         close(pool_fd);
         pool->fd = -1;
@@ -579,7 +579,7 @@ shm_get_buffer(struct buffer_chain *chain, int width, int height)
                     cached = buf;
                 else {
                     /* We have multiple buffers eligible for
-                     * reuse. Pick the “youngest” one, and mark the
+                     * reuse. Pick the "youngest" one, and mark the
                      * other one for purging */
                     if (buf->public.age < cached->public.age) {
                         shm_unref(&cached->public);
@@ -589,8 +589,8 @@ shm_get_buffer(struct buffer_chain *chain, int width, int height)
                          * TODO: I think we _can_ use shm_unref()
                          * here...
                          *
-                         * shm_unref() may remove ‘it’, but that
-                         * should be safe; “our” tll_foreach() already
+                         * shm_unref() may remove 'it', but that
+                         * should be safe; "our" tll_foreach() already
                          * holds the next pointer.
                          */
                         if (buffer_unref_no_remove_from_chain(buf))
