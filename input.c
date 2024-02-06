@@ -597,15 +597,6 @@ keyboard_keymap(void *data, struct wl_keyboard *wl_keyboard,
         if (seat->kbd.mod_num != XKB_MOD_INVALID)
             seat->kbd.kitty_significant |= 1 << seat->kbd.mod_num;
 
-        /* Significant modifiers when handling shortcuts - use all available */
-        seat->kbd.bind_significant = 0;
-        const xkb_mod_index_t mod_count = xkb_keymap_num_mods(seat->kbd.xkb_keymap);
-        for (xkb_mod_index_t i = 0; i < mod_count; i++) {
-            LOG_DBG("significant modifier: %s",
-                    xkb_keymap_mod_get_name(seat->kbd.xkb_keymap, i));
-            seat->kbd.bind_significant |= 1 << i;
-        }
-
         seat->kbd.key_arrow_up = xkb_keymap_key_by_name(seat->kbd.xkb_keymap, "UP");
         seat->kbd.key_arrow_down = xkb_keymap_key_by_name(seat->kbd.xkb_keymap, "DOWN");
     }
@@ -887,7 +878,8 @@ UNITTEST
 void
 get_current_modifiers(const struct seat *seat,
                       xkb_mod_mask_t *effective,
-                      xkb_mod_mask_t *consumed, uint32_t key)
+                      xkb_mod_mask_t *consumed, uint32_t key,
+                      bool filter_locked)
 {
     if (unlikely(seat->kbd.xkb_state == NULL)) {
         if (effective != NULL)
@@ -897,22 +889,25 @@ get_current_modifiers(const struct seat *seat,
     }
 
     else {
+        const xkb_mod_mask_t locked =
+            xkb_state_serialize_mods(seat->kbd.xkb_state, XKB_STATE_MODS_LOCKED);
+
         if (effective != NULL) {
             *effective = xkb_state_serialize_mods(
                 seat->kbd.xkb_state, XKB_STATE_MODS_EFFECTIVE);
+
+            if (filter_locked)
+                *effective &= ~locked;
         }
 
         if (consumed != NULL) {
             *consumed = xkb_state_key_get_consumed_mods2(
                 seat->kbd.xkb_state, key, XKB_CONSUMED_MODE_XKB);
+
+            if (filter_locked)
+                *consumed &= ~locked;
         }
     }
-}
-
-static xkb_mod_mask_t
-get_locked_modifiers(const struct seat *seat)
-{
-    return xkb_state_serialize_mods(seat->kbd.xkb_state, XKB_STATE_MODS_LOCKED);
 }
 
 struct kbd_ctx {
@@ -1184,7 +1179,7 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
         xkb_state_update_key(
             seat->kbd.xkb_state, ctx->key, pressed ? XKB_KEY_DOWN : XKB_KEY_UP);
 
-        get_current_modifiers(seat, &mods, NULL, ctx->key);
+        get_current_modifiers(seat, &mods, NULL, ctx->key, false);
         consumed = xkb_state_key_get_consumed_mods2(
             seat->kbd.xkb_state, ctx->key, XKB_CONSUMED_MODE_GTK);
 
@@ -1201,7 +1196,9 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
             seat->kbd.xkb_state, ctx->key, pressed ? XKB_KEY_UP : XKB_KEY_DOWN);
 #endif
     } else {
-        mods = ctx->mods;
+        /* Same as ctx->mods, but without locked modifiers being
+           filtered out */
+        get_current_modifiers(seat, &mods, NULL, ctx->key, false);
 
         /* Re-retrieve the consumed modifiers using the GTK mode, to
            better match kitty. */
@@ -1490,13 +1487,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
     const bool composed = compose_status == XKB_COMPOSE_COMPOSED;
 
     xkb_mod_mask_t mods, consumed;
-    get_current_modifiers(seat, &mods, &consumed, key);
-
-    const xkb_mod_mask_t locked = get_locked_modifiers(seat);
-    const xkb_mod_mask_t bind_mods
-        = mods & seat->kbd.bind_significant & ~locked;
-    const xkb_mod_mask_t bind_consumed =
-        consumed & seat->kbd.bind_significant & ~locked;
+    get_current_modifiers(seat, &mods, &consumed, key, true);
 
     xkb_layout_index_t layout_idx =
         xkb_state_key_get_layout(seat->kbd.xkb_state, key);
@@ -1520,7 +1511,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
                 start_repeater(seat, key);
 
             search_input(
-                seat, term, bindings, key, sym, mods, consumed, locked,
+                seat, term, bindings, key, sym, mods, consumed,
                 raw_syms, raw_count, serial);
             return;
         }
@@ -1530,7 +1521,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
                 start_repeater(seat, key);
 
             urls_input(
-                seat, term, bindings, key, sym, mods, consumed, locked,
+                seat, term, bindings, key, sym, mods, consumed,
                 raw_syms, raw_count, serial);
             return;
         }
@@ -1563,14 +1554,14 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
 
             /* Match translated symbol */
             if (bind->k.sym == sym &&
-                bind->mods == (bind_mods & ~bind_consumed) &&
+                bind->mods == (mods & ~consumed) &&
                 execute_binding(seat, term, bind, serial, 1))
             {
                 LOG_WARN("matched translated symbol");
                 goto maybe_repeat;
             }
 
-            if (bind->mods != bind_mods || bind_mods != (mods & ~locked))
+            if (bind->mods != mods)
                 continue;
 
             /* Match untranslated symbols */
@@ -2253,8 +2244,7 @@ static const struct key_binding *
         xassert(bindings != NULL);
 
         xkb_mod_mask_t mods;
-        get_current_modifiers(seat, &mods, NULL, 0);
-        mods &= seat->kbd.bind_significant;
+        get_current_modifiers(seat, &mods, NULL, 0, true);
 
         /* Ignore selection override modifiers when
          * matching modifiers */

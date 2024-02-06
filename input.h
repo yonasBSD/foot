@@ -33,6 +33,6 @@ void input_repeat(struct seat *seat, uint32_t key);
 void get_current_modifiers(const struct seat *seat,
                            xkb_mod_mask_t *effective,
                            xkb_mod_mask_t *consumed,
-                           uint32_t key);
+                           uint32_t key, bool filter_locked);
 
 enum cursor_shape xcursor_for_csd_border(struct terminal *term, int x, int y);

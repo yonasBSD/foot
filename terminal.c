@@ -3039,7 +3039,7 @@ term_mouse_grabbed(const struct terminal *term, const struct seat *seat)
      */
 
     xkb_mod_mask_t mods;
-    get_current_modifiers(seat, &mods, NULL, 0);
+    get_current_modifiers(seat, &mods, NULL, 0, true);
 
     const struct key_binding_set *bindings =
         key_binding_for(term->wl->key_binding_manager, term->conf, seat);
