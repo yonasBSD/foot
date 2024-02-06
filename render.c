@@ -4530,6 +4530,28 @@ render_refresh_title(struct terminal *term)
 }
 
 void
+render_refresh_app_id(struct terminal *term)
+{
+    struct timespec now;
+    if (clock_gettime(CLOCK_MONOTONIC, &now) < 0)
+        return;
+
+    struct timespec diff;
+    timespec_sub(&now, &term->render.app_id.last_update, &diff);
+
+    if (diff.tv_sec == 0 && diff.tv_nsec < 8333 * 1000) {
+        const struct itimerspec timeout = {
+            .it_value = {.tv_nsec = 8333 * 1000 - diff.tv_nsec},
+        };
+
+        timerfd_settime(term->render.app_id.timer_fd, 0, &timeout, NULL);
+    } else {
+        term->render.app_id.last_update = now;
+        xdg_toplevel_set_app_id(term->window->xdg_toplevel, term->app_id ? term->app_id : term->conf->app_id);
+    }
+}
+
+void
 render_refresh(struct terminal *term)
 {
     term->render.refresh.grid = true;
