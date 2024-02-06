@@ -59,6 +59,8 @@
 * Support for custom (i.e. other than ctrl/shift/alt/super) modifiers
   in key bindings ([#1348][1348]).
 * `pipe-command-output` key binding.
+* Support for OSC-176, _"Set App-ID"_
+  (https://gist.github.com/delthas/d451e2cc1573bb2364839849c7117239).
 
 [1348]: https://codeberg.org/dnkl/foot/issues/1348
 
