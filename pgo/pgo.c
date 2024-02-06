@@ -173,7 +173,8 @@ void search_selection_cancelled(struct terminal *term) {}
 
 void get_current_modifiers(const struct seat *seat,
                            xkb_mod_mask_t *effective,
-                           xkb_mod_mask_t *consumed, uint32_t key) {}
+                           xkb_mod_mask_t *consumed, uint32_t key,
+                           bool filter_locked) {}
 
 static struct key_binding_set kbd;
 static bool kbd_initialized = false;
