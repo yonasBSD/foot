@@ -3249,6 +3249,13 @@ term_set_window_title(struct terminal *term, const char *title)
     if (term->window_title != NULL && streq(term->window_title, title))
         return;
 
+    if (mbsntoc32(NULL, title, strlen(title), 0) == (char32_t)-1) {
+        /* It's an xdg_toplevel::set_title() protocol violation to set
+           a title with an invalid UTF-8 sequence */
+        LOG_WARN("%s: title is not valid UTF-8, ignoring", title);
+        return;
+    }
+
     free(term->window_title);
     term->window_title = xstrdup(title);
     render_refresh_title(term);

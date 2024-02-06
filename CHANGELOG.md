@@ -102,10 +102,13 @@
   set in `[environment]`.
 * Environment variables normally set by foot lost with `footclient
   -E,--client-environment` ([#1568][1568]).
+* XDG toplevel protocol violation, by trying to set a title that
+  contains an invalid UTF-8 sequence ([#1552][1552]).
 
 [1531]: https://codeberg.org/dnkl/foot/issues/1531
 [1573]: https://codeberg.org/dnkl/foot/issues/1573
 [1568]: https://codeberg.org/dnkl/foot/issues/1568
+[1552]: https://codeberg.org/dnkl/foot/issues/1552
 
 
 ### Security
