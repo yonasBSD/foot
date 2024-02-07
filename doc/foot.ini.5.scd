@@ -858,16 +858,14 @@ e.g. *search-start=none*.
 	use *sh -c "command line"* if you need that.
 	
 	Example #1:
-	
 		# Extract currently visible URLs, let user choose one (via
 		fuzzel), then launch firefox with the selected URL++
-*pipe-visible=[sh -c "xurls | uniq | tac | fuzzel | xargs -r
-		firefox"] Control+Print*
+*pipe-visible=[sh -c "xurls | uniq | tac | fuzzel | xargs -r firefox"] Control+Print*
 	
 	Example #2:
-		# Write scrollback content to /tmp/foot-scrollback.txt++
-*pipe-scrollback=[sh -c "cat - > /tmp/foot-scrollback.txt"]
-		Control+Shift+Print*
+		# Open scrollback contents in Emacs running in a new foot instance++
+*pipe-scrollback=[sh -c "f=$(mktemp) && cat - > $f && foot emacsclient -t $f; rm $f"] Control+Shift+Print*
+	
 	Default: _none_
 
 *show-urls-launch*
