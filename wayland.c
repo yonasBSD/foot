@@ -392,6 +392,8 @@ static void
 update_term_for_output_change(struct terminal *term)
 {
     const float old_scale = term->scale;
+    const float logical_width = term->width / old_scale;
+    const float logical_height = term->height / old_scale;
 
     /* Note: order matters! term_update_scale() must come first */
     bool scale_updated = term_update_scale(term);
@@ -400,7 +402,7 @@ update_term_for_output_change(struct terminal *term)
 
     csd_reload_font(term->window, old_scale);
 
-    uint8_t resize_opts = RESIZE_KEEP_GRID;
+    enum resize_options resize_opts = RESIZE_KEEP_GRID;
 
     if (fonts_updated) {
         /*
@@ -428,8 +430,8 @@ update_term_for_output_change(struct terminal *term)
 
     render_resize(
         term,
-        (int)roundf(term->width / term->scale),
-        (int)roundf(term->height / term->scale),
+        (int)roundf(logical_width),
+        (int)roundf(logical_height),
         resize_opts);
 }
 
