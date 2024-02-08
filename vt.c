@@ -850,8 +850,14 @@ action_utf8_print(struct terminal *term, char32_t wc)
                 break;
 
             case GRAPHEME_WIDTH_DOUBLE:
-                if (unlikely(wc == 0xfe0f))
-                    width = 2;
+                if (unlikely(wc == 0xfe0f && new_cc->count == 2)) {
+                    /* Only emojis should be affected by VS16 */
+                    const utf8proc_property_t *props =
+                        utf8proc_get_property(new_cc->chars[0]);
+
+                    if (props->boundclass == UTF8PROC_BOUNDCLASS_EXTENDED_PICTOGRAPHIC)
+                        width = 2;
+                }
                 new_cc->width = min(grapheme_width + width, 2);
                 break;
 

@@ -116,6 +116,8 @@
   exactly 0 rows. This happens when `[scrollback].line = 0`, and the
   window size (number of rows) is a power of two (i.e. 2, 4, 8, 16
   etc) ([#1610][1610]).
+* VS16 (variation selector 16 - emoji representation) should only
+  affect emojis.
 
 [1531]: https://codeberg.org/dnkl/foot/issues/1531
 [1573]: https://codeberg.org/dnkl/foot/issues/1573
