@@ -60,7 +60,8 @@ fdm_event_del(struct fdm *fdm, int fd, int events)
 }
 
 bool
-render_resize_force(struct terminal *term, int width, int height)
+render_resize(
+    struct terminal *term, int width, int height, uint8_t resize_options)
 {
     return true;
 }
