@@ -61,6 +61,7 @@
 * `pipe-command-output` key binding.
 * Support for OSC-176, _"Set App-ID"_
   (https://gist.github.com/delthas/d451e2cc1573bb2364839849c7117239).
+* Support for `DECRQM` queries with ANSI/ECMA-48 modes (`CSI Ps $ p`).
 
 [1348]: https://codeberg.org/dnkl/foot/issues/1348
 

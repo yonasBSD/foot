@@ -1429,6 +1429,23 @@ csi_dispatch(struct terminal *term, uint8_t final)
             break;
         }
 
+        case 'p': {
+            /*
+             * Request status of ECMA-48/"ANSI" private mode (DECRQM
+             * for SM/RM modes; see private="?$" case further below for
+             * DECSET/DECRST modes)
+             */
+            unsigned param = vt_param_get(term, 0, 0);
+            unsigned status = DECRPM_NOT_RECOGNIZED;
+            if (param == 4) {
+                status = decrpm(term->insert_mode);
+            }
+            char reply[32];
+            size_t n = xsnprintf(reply, sizeof(reply), "\033[%u;%u$y", param, status);
+            term_to_slave(term, reply, n);
+            break;
+        }
+
         case 'u': {
             enum kitty_kbd_flags flags =
                 term->grid->kitty_kbd.flags[term->grid->kitty_kbd.idx];

@@ -443,13 +443,13 @@ manipulation sequences. The generic format is:
 |  \\E[ _Pm_ h
 :  SM
 :  VT100
-:  Set mode. _Pm_=4 -> enable IRM (insert mode). All other values of
-   _Pm_ are unsupported.
+:  Set mode. _Pm_=4 -> enable IRM (Insertion Replacement Mode). All
+   other values of _Pm_ are unsupported.
 |  \\E[ _Pm_ l
 :  RM
 :  VT100
-:  Reset mode. _Pm_=4 -> disable IRM (insert mode). All other values of
-   _Pm_ are unsupported.
+:  Reset mode. _Pm_=4 -> disable IRM (Insertion Replacement Mode). All
+   other values of _Pm_ are unsupported.
 |  \\E[ _Ps_ n
 :  DSR
 :  VT100
@@ -487,7 +487,14 @@ manipulation sequences. The generic format is:
 |  \\E[ ? _Ps_ $ p
 :  DECRQM
 :  VT320
-:  Request DEC private mode.
+:  Request status of DEC private mode. The _Ps_ parameter corresponds
+   to one of the values mentioned in the "Private Modes" section above
+   (as set with DECSET/DECRST).
+|  \\E[ _Ps_ $ p
+:  DECRQM
+:  VT320
+:  Request status of ECMA-48/ANSI mode. See the descriptions for SM/RM
+   above for recognized _Ps_ values.
 |  \\E[ _Ps_ T
 :  SD
 :  VT420
