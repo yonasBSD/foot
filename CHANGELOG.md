@@ -83,6 +83,8 @@
 * `smm` now disables private mode 1036 (_"send ESC when Meta modifies
   a key"_), and enables private mode 1034 (_"8-bit Meta mode"_). `rmm`
   does the opposite ([#1584][1584]).
+* Grid is now always centered in the window, when either fullscreened
+  or maximized.
 
 [1526]: https://codeberg.org/dnkl/foot/issues/1526
 [1528]: https://codeberg.org/dnkl/foot/issues/1528

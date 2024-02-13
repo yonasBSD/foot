@@ -4060,7 +4060,11 @@ render_resize(struct terminal *term, int width, int height, uint8_t opts)
     const int total_x_pad = term->width - grid_width;
     const int total_y_pad = term->height - grid_height;
 
-    if (term->conf->center && !term->window->is_resizing) {
+    const bool centered_padding = term->conf->center
+                                  || term->window->is_fullscreen
+                                  || term->window->is_maximized;
+
+    if (centered_padding && !term->window->is_resizing) {
         term->margins.left = total_x_pad / 2;
         term->margins.top = total_y_pad / 2;
     } else {
