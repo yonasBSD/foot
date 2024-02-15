@@ -85,6 +85,9 @@
   does the opposite ([#1584][1584]).
 * Grid is now always centered in the window, when either fullscreened
   or maximized.
+* Ctrl+wheel up/down bound to `font-increase` and `font-decrease`
+  respectively (in addition to the already existing default key
+  bindings `ctrl-+` and `ctrl+-`).
 
 [1526]: https://codeberg.org/dnkl/foot/issues/1526
 [1528]: https://codeberg.org/dnkl/foot/issues/1528

@@ -2989,6 +2989,8 @@ add_default_mouse_bindings(struct config *conf)
         {BIND_ACTION_SELECT_WORD_WS, m(XKB_MOD_NAME_CTRL), {.m = {BTN_LEFT, 2}}},
         {BIND_ACTION_SELECT_QUOTE, m("none"), {.m = {BTN_LEFT, 3}}},
         {BIND_ACTION_SELECT_ROW, m("none"), {.m = {BTN_LEFT, 4}}},
+        {BIND_ACTION_FONT_SIZE_UP, m("Control"), {.m = {BTN_BACK, 1}}},
+        {BIND_ACTION_FONT_SIZE_DOWN, m("Control"), {.m = {BTN_FORWARD, 1}}},
     };
 
     conf->bindings.mouse.count = ALEN(bindings);

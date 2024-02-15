@@ -821,11 +821,11 @@ e.g. *search-start=none*.
 
 *font-increase*
 	Increases the font size by 0.5pt. Default: _Control+plus
-	Control+equal Control+KP\_Add_.
+	Control+equal Control+KP\_Add_ (also defined in *mouse-bindings*).
 
 *font-decrease*
 	Decreases the font size by 0.5pt. Default: _Control+minus
-	Control+KP\_Subtract_.
+	Control+KP\_Subtract_ (also defined in *mouse-bindings*).
 
 *font-reset*
 	Resets the font size to the default. Default: _Control+0 Control+KP\_0_.
@@ -1227,6 +1227,15 @@ actions listed under *key-bindings* can be used here as well.
 
 *primary-paste*
 	Pastes from the _primary selection_. Default: _BTN\_MIDDLE_.
+
+*font-increase*
+	Increases the font size by 0.5pt. Default: _Control+BTN\_BACK_
+	(also defined in *key-bindings*).
+
+*font-decrease*
+	Decreases the font size by 0.5pt. Default: _Control+BTN\_FORWARD_
+	(also defined in *key-bindings*).
+
 
 # TWEAK
 

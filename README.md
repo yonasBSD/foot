@@ -151,10 +151,10 @@ These are the default shortcuts. See `man foot.ini` and the example
 : Start a scrollback search
 
 <kbd>ctrl</kbd>+<kbd>+</kbd>, <kbd>ctrl</kbd>+<kbd>=</kbd>
-: Increase font size by 0,5pt
+: Increase font size
 
 <kbd>ctrl</kbd>+<kbd>-</kbd>
-: Decrease font size by 0,5pt
+: Decrease font size
 
 <kbd>ctrl</kbd>+<kbd>0</kbd>
 : Reset font size
@@ -237,7 +237,11 @@ These are the default shortcuts. See `man foot.ini` and the example
   under the pointer up to, and until, the next space characters.
 
 <kbd>left</kbd> - **triple-click**
-: Selects the entire row
+: Selects the everything between enclosing quotes, or the entire row
+  if not inside a quote.
+
+<kbd>left</kbd> - **quad-click**
+: Selects the entire row.
 
 <kbd>middle</kbd>
 : Paste from _primary_ selection
@@ -247,8 +251,15 @@ These are the default shortcuts. See `man foot.ini` and the example
   selection, while hold-and-drag allows you to interactively resize
   the selection.
 
+<kbd>ctrl</kbd>+<kbd>right</kbd>
+: Extend the current selection, but force it to be character wise,
+  rather than depending on the original selection mode.
+
 <kbd>wheel</kbd>
 : Scroll up/down in history
+
+<kbd>ctrl</kbd>+<kbd>wheel</kbd>
+: Increase/decrease font size
 
 
 ### Touchscreen
