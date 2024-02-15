@@ -2350,6 +2350,10 @@ term_erase_scrollback(struct terminal *term)
     const int num_rows = grid->num_rows;
     const int mask = num_rows - 1;
 
+    const int scrollback_history_size = num_rows - term->rows;
+    if (scrollback_history_size == 0)
+        return;
+
     const int start = (grid->offset + term->rows) & mask;
     const int end = (grid->offset - 1) & mask;
 
@@ -2416,6 +2420,13 @@ term_erase_scrollback(struct terminal *term)
     }
 
     term->grid->view = term->grid->offset;
+
+#if defined(_DEBUG)
+    for (int i = 0; i < term->rows; i++) {
+        xassert(grid_row_in_view(term->grid, i) != NULL);
+    }
+#endif
+
     term_damage_view(term);
 }
 

@@ -109,11 +109,16 @@
   -E,--client-environment` ([#1568][1568]).
 * XDG toplevel protocol violation, by trying to set a title that
   contains an invalid UTF-8 sequence ([#1552][1552]).
+* Crash when erasing the scrollback, when scrollback history is
+  exactly 0 rows. This happens when `[scrollback].line = 0`, and the
+  window size (number of rows) is a power of two (i.e. 2, 4, 8, 16
+  etc) ([#1610][1610]).
 
 [1531]: https://codeberg.org/dnkl/foot/issues/1531
 [1573]: https://codeberg.org/dnkl/foot/issues/1573
 [1568]: https://codeberg.org/dnkl/foot/issues/1568
 [1552]: https://codeberg.org/dnkl/foot/issues/1552
+[1610]: https://codeberg.org/dnkl/foot/issues/1610
 
 
 ### Security
