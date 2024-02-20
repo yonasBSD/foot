@@ -969,8 +969,8 @@ legacy_kbd_protocol(struct seat *seat, struct terminal *term,
 #define is_control_key(x) ((x) >= 0x40 && (x) <= 0x7f)
 #define IS_CTRL(x) ((x) < 0x20 || ((x) >= 0x7f && (x) <= 0x9f))
 
-    LOG_DBG("term->modify_other_keys=%d, count=%zu, is_ctrl=%d (utf8=0x%02x), sym=%d",
-            term->modify_other_keys_2, count, IS_CTRL(utf8[0]), utf8[0], sym);
+    //LOG_DBG("term->modify_other_keys=%d, count=%zu, is_ctrl=%d (utf8=0x%02x), sym=%d",
+    //term->modify_other_keys_2, count, IS_CTRL(utf8[0]), utf8[0], sym);
 
     bool ctrl_is_in_effect = (keymap_mods & MOD_CTRL) != 0;
     bool ctrl_seq = is_control_key(sym) || (count == 1 && IS_CTRL(utf8[0]));
@@ -1449,6 +1449,34 @@ keysym_is_modifier(xkb_keysym_t keysym)
         keysym == XKB_KEY_Num_Lock;
 }
 
+#if defined(_DEBUG)
+static void
+modifier_string(xkb_mod_mask_t mods, size_t sz, char mod_str[static sz], const struct seat *seat)
+{
+    if (sz == 0)
+        return;
+
+    mod_str[0] = '\0';
+
+    for (size_t i = 0; i < sizeof(xkb_mod_mask_t) * 8; i++) {
+        if (!(mods & (1u << i)))
+            continue;
+
+        strcat(mod_str, xkb_keymap_mod_get_name(seat->kbd.xkb_keymap, i));
+        strcat(mod_str, "+");
+    }
+
+    if (mod_str[0] != '\0') {
+        /* Strip the last '+' */
+        mod_str[strlen(mod_str) - 1] = '\0';
+    }
+
+    if (mod_str[0] == '\0') {
+        strcpy(mod_str, "<none>");
+    }
+}
+#endif
+
 static void
 key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
                   uint32_t key, uint32_t state)
@@ -1532,22 +1560,28 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
         }
     }
 
-#if 0
-    for (size_t i = 0; i < 32; i++) {
-        if (mods & (1u << i)) {
-            LOG_INFO("%s", xkb_keymap_mod_get_name(seat->kbd.xkb_keymap, i));
-        }
-    }
-#endif
-
 #if defined(_DEBUG) && defined(LOG_ENABLE_DBG) && LOG_ENABLE_DBG
     char sym_name[100];
     xkb_keysym_get_name(sym, sym_name, sizeof(sym_name));
 
-    LOG_DBG("%s (%u/0x%x): seat=%s, term=%p, serial=%u, "
-            "mods=0x%08x, consumed=0x%08x, repeats=%d",
-            sym_name, sym, sym, seat->name, (void *)term, serial,
-            mods, consumed, should_repeat);
+    char active_mods_str[256] = {0};
+    char consumed_mods_str[256] = {0};
+    char locked_mods_str[256] = {0};
+
+    const xkb_mod_mask_t locked =
+        xkb_state_serialize_mods(seat->kbd.xkb_state, XKB_STATE_MODS_LOCKED);
+
+    modifier_string(mods, sizeof(active_mods_str), active_mods_str, seat);
+    modifier_string(consumed, sizeof(consumed_mods_str), consumed_mods_str, seat);
+    modifier_string(locked, sizeof(locked_mods_str), locked_mods_str, seat);
+
+    LOG_DBG("%s: %s (%u/0x%x), seat=%s, term=%p, serial=%u, "
+            "mods=%s (0x%08x), consumed=%s (0x%08x), locked=%s (0x%08x), "
+            "repeats=%d",
+            pressed ? "pressed" : "released", sym_name, sym, sym,
+            seat->name, (void *)term, serial,
+            active_mods_str, mods, consumed_mods_str, consumed,
+            locked_mods_str, locked, should_repeat);
 #endif
 
     /*
@@ -1685,8 +1719,21 @@ keyboard_modifiers(void *data, struct wl_keyboard *wl_keyboard, uint32_t serial,
 {
     struct seat *seat = data;
 
-    LOG_DBG("modifiers: depressed=0x%x, latched=0x%x, locked=0x%x, group=%u",
-            mods_depressed, mods_latched, mods_locked, group);
+#if defined(_DEBUG)
+    char depressed[256];
+    char latched[256];
+    char locked[256];
+
+    modifier_string(mods_depressed, sizeof(depressed), depressed, seat);
+    modifier_string(mods_latched, sizeof(latched), latched, seat);
+    modifier_string(mods_locked, sizeof(locked), locked, seat);
+
+    LOG_DBG(
+        "modifiers: depressed=%s (0x%x), latched=%s (0x%x), locked=%s (0x%x), "
+        "group=%u",
+        depressed, mods_depressed, latched, mods_latched, locked, mods_locked,
+        group);
+#endif
 
     if (seat->kbd.xkb_state != NULL) {
         xkb_state_update_mask(
