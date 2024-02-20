@@ -1716,7 +1716,7 @@ value_to_key_combos(struct context *ctx, int action,
 
     /* Count number of combinations */
     size_t combo_count = 1;
-    size_t used_combos = 0;  /* For error handling */
+    size_t used_combos = 1;  /* For error handling */
     for (const char *p = strchr(ctx->value, ' ');
          p != NULL;
          p = strchr(p + 1, ' '))
@@ -1764,7 +1764,6 @@ value_to_key_combos(struct context *ctx, int action,
             new_combo->k.sym = xkb_keysym_from_name(key, 0);
             if (new_combo->k.sym == XKB_KEY_NoSymbol) {
                 LOG_CONTEXTUAL_ERR("not a valid XKB key name: %s", key);
-                free_key_binding(new_combo);
                 goto err;
             }
             break;
@@ -1785,7 +1784,6 @@ value_to_key_combos(struct context *ctx, int action,
                         LOG_CONTEXTUAL_ERRNO("invalid click count: %s", _count);
                     else
                         LOG_CONTEXTUAL_ERR("invalid click count: %s", _count);
-                    free_key_binding(new_combo);
                     goto err;
                 }
 
@@ -1795,7 +1793,6 @@ value_to_key_combos(struct context *ctx, int action,
             new_combo->m.button = mouse_button_name_to_code(key);
             if (new_combo->m.button < 0) {
                 LOG_CONTEXTUAL_ERR("invalid mouse button name: %s", key);
-                free_key_binding(new_combo);
                 goto err;
             }
 
@@ -2390,7 +2387,7 @@ parse_section_text_bindings(struct context *ctx)
     struct binding_aux aux = {
         .type = BINDING_AUX_TEXT,
         .text = {
-            .data = data,
+            .data = data,  /* data is now owned by value_to_key_combos() */
             .len = data_len,
         },
     };
@@ -2398,7 +2395,8 @@ parse_section_text_bindings(struct context *ctx)
     if (!value_to_key_combos(ctx, BIND_ACTION_TEXT_BINDING, &aux,
                              &conf->bindings.key, KEY_BINDING))
     {
-        goto err;
+        /* Do *not* free(data) - it is handled by value_to_key_combos() */
+        return false;
     }
 
     return true;
