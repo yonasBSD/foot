@@ -1583,7 +1583,7 @@ render_overlay(struct terminal *term)
     }
 
     struct buffer *buf = shm_get_buffer(
-        term->render.chains.overlay, term->width, term->height);
+        term->render.chains.overlay, term->width, term->height, true);
 
     pixman_image_set_clip_region32(buf->pix[0], NULL);
 
@@ -2454,7 +2454,7 @@ render_csd(struct terminal *term)
     }
 
     struct buffer *bufs[CSD_SURF_COUNT];
-    shm_get_many(term->render.chains.csd, CSD_SURF_COUNT, widths, heights, bufs);
+    shm_get_many(term->render.chains.csd, CSD_SURF_COUNT, widths, heights, bufs, true);
 
     for (size_t i = CSD_SURF_LEFT; i <= CSD_SURF_BOTTOM; i++)
         render_csd_border(term, i, &infos[i], bufs[i]);
@@ -2599,7 +2599,7 @@ render_scrollback_position(struct terminal *term)
     }
 
     struct buffer_chain *chain = term->render.chains.scrollback_indicator;
-    struct buffer *buf = shm_get_buffer(chain, width, height);
+    struct buffer *buf = shm_get_buffer(chain, width, height, false);
 
     wl_subsurface_set_position(
         win->scrollback_indicator.sub, roundf(x / scale), roundf(y / scale));
@@ -2642,7 +2642,7 @@ render_render_timer(struct terminal *term, struct timespec render_time)
     height = roundf(scale * ceilf(height / scale));
 
     struct buffer_chain *chain = term->render.chains.render_timer;
-    struct buffer *buf = shm_get_buffer(chain, width, height);
+    struct buffer *buf = shm_get_buffer(chain, width, height, false);
 
     wl_subsurface_set_position(
         win->render_timer.sub,
@@ -2817,7 +2817,10 @@ grid_render(struct terminal *term)
     xassert(term->height > 0);
 
     struct buffer_chain *chain = term->render.chains.grid;
-    struct buffer *buf = shm_get_buffer(chain, term->width, term->height);
+    bool use_alpha = !term->window->is_fullscreen &&
+                     term->colors.alpha != 0xffff;
+    struct buffer *buf = shm_get_buffer(
+        chain, term->width, term->height, use_alpha);
 
     /* Dirty old and current cursor cell, to ensure they're repainted */
     dirty_old_cursor(term);
@@ -3208,7 +3211,7 @@ render_search_box(struct terminal *term)
     size_t glyph_offset = term->render.search_glyph_offset;
 
     struct buffer_chain *chain = term->render.chains.search;
-    struct buffer *buf = shm_get_buffer(chain, width, height);
+    struct buffer *buf = shm_get_buffer(chain, width, height, true);
 
     pixman_region32_t clip;
     pixman_region32_init_rect(&clip, 0, 0, width, height);
@@ -3670,7 +3673,7 @@ render_urls(struct terminal *term)
 
     struct buffer_chain *chain = term->render.chains.url;
     struct buffer *bufs[render_count];
-    shm_get_many(chain, render_count, widths, heights, bufs);
+    shm_get_many(chain, render_count, widths, heights, bufs, false);
 
     uint32_t fg = term->conf->colors.use_custom.jump_label
         ? term->conf->colors.jump_label.fg

@@ -455,7 +455,6 @@ struct wayland {
     struct zwp_text_input_manager_v3 *text_input_manager;
 #endif
 
-    bool have_argb8888;
     tll(struct monitor) monitors;  /* All available outputs */
     tll(struct seat) seats;
 

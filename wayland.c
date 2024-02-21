@@ -234,8 +234,6 @@ seat_destroy(struct seat *seat)
 static void
 shm_format(void *data, struct wl_shm *wl_shm, uint32_t format)
 {
-    struct wayland *wayl = data;
-
 #if defined(_DEBUG)
     bool have_description = false;
 
@@ -250,9 +248,6 @@ shm_format(void *data, struct wl_shm *wl_shm, uint32_t format)
     if (!have_description)
         LOG_DBG("shm: 0x%08x: unknown", format);
 #endif
-
-    if (format == WL_SHM_FORMAT_ARGB8888)
-        wayl->have_argb8888 = true;
 }
 
 static const struct wl_shm_listener shm_listener = {
@@ -1575,11 +1570,6 @@ wayl_init(struct fdm *fdm, struct key_binding_manager *key_binding_manager,
 
     /* Trigger listeners registered when handling globals */
     wl_display_roundtrip(wayl->display);
-
-    if (!wayl->have_argb8888) {
-        LOG_ERR("compositor does not support ARGB surfaces");
-        goto out;
-    }
 
     tll_foreach(wayl->monitors, it) {
         LOG_INFO(
