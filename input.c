@@ -434,7 +434,7 @@ execute_binding(struct seat *seat, struct terminal *term,
 
             term_damage_view(term);
             render_refresh(term);
-            break; 
+            break;
         }
 
         return true;
@@ -1689,7 +1689,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
     if (utf8 != buf)
         free(utf8);
 
-    if (handled) {
+    if (handled && !keysym_is_modifier(sym)) {
         term_reset_view(term);
         selection_cancel(term);
     }
