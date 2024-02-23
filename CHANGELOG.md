@@ -120,6 +120,8 @@
   etc) ([#1610][1610]).
 * VS16 (variation selector 16 - emoji representation) should only
   affect emojis.
+* Pressing a modifier key while the kitty keyboard protocol is enabled
+  no longer resets the viewport, or clears the selection.
 
 [1531]: https://codeberg.org/dnkl/foot/issues/1531
 [1573]: https://codeberg.org/dnkl/foot/issues/1573
