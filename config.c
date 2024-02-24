@@ -1823,8 +1823,10 @@ value_to_key_combos(struct context *ctx, int action,
     return true;
 
 err:
-    for (size_t i = 0; i < used_combos; i++)
-        free_key_binding(&new_combos[i]);
+    if (idx > 0) {
+        for (size_t i = 0; i < used_combos; i++)
+            free_key_binding(&new_combos[i]);
+    }
     free(copy);
     return false;
 }
