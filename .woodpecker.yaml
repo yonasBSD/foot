@@ -32,7 +32,6 @@ steps:
       branch:
         - master
         - releases/*
-    group: build
     image: alpine:edge
     commands:
       - apk update
@@ -89,7 +88,6 @@ steps:
       branch:
         - master
         - releases/*
-    group: build
     image: i386/alpine:edge
     commands:
       - apk update
