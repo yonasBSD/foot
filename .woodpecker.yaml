@@ -32,6 +32,7 @@ steps:
       branch:
         - master
         - releases/*
+    depends_on: [subprojects]
     image: alpine:edge
     commands:
       - apk update
@@ -88,6 +89,7 @@ steps:
       branch:
         - master
         - releases/*
+    depends_on: [subprojects]
     image: i386/alpine:edge
     commands:
       - apk update
