@@ -90,6 +90,7 @@
   bindings `ctrl-+` and `ctrl+-`).
 * Use XRGB pixel format (instead of ARGB) when there is no
   transparency.
+* Prefer CSS xcursor names, and fallback to legacy X11 names.
 
 [1526]: https://codeberg.org/dnkl/foot/issues/1526
 [1528]: https://codeberg.org/dnkl/foot/issues/1528

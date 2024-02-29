@@ -4625,36 +4625,46 @@ render_xcursor_set(struct seat *seat, struct terminal *term,
         return true;
     }
 
-    /* TODO: skip this when using server-side cursors */
-    if (shape != CURSOR_SHAPE_HIDDEN) {
-        const char *const xcursor = shape == CURSOR_SHAPE_CUSTOM
-            ? term->mouse_user_cursor
-            : cursor_shape_to_string(shape);
-        const char *const fallback =
-            cursor_shape_to_string(CURSOR_SHAPE_TEXT_FALLBACK);
-
-        seat->pointer.cursor = wl_cursor_theme_get_cursor(
-            seat->pointer.theme, xcursor);
-
-        if (seat->pointer.cursor == NULL) {
-            seat->pointer.cursor = wl_cursor_theme_get_cursor(
-                seat->pointer.theme, fallback);
-
-            if (seat->pointer.cursor == NULL) {
-                LOG_ERR("failed to load xcursor pointer "
-                        "'%s', and fallback '%s'", xcursor, fallback);
-                return false;
-            }
-        }
-
-        if (shape == CURSOR_SHAPE_CUSTOM) {
-            free(seat->pointer.last_custom_xcursor);
-            seat->pointer.last_custom_xcursor = xstrdup(term->mouse_user_cursor);
-        }
-    } else {
+    if (shape == CURSOR_SHAPE_HIDDEN) {
         seat->pointer.cursor = NULL;
         free(seat->pointer.last_custom_xcursor);
         seat->pointer.last_custom_xcursor = NULL;
+    }
+
+    else if (seat->pointer.shape_device == NULL) {
+        const char *const custom_xcursors[] = {term->mouse_user_cursor, NULL};
+        const char *const *xcursors = shape == CURSOR_SHAPE_CUSTOM
+            ? custom_xcursors
+            : cursor_shape_to_string(shape);
+
+        xassert(xcursors[0] != NULL);
+
+        seat->pointer.cursor = NULL;
+
+        for (size_t i = 0; xcursors[i] != NULL; i++) {
+            seat->pointer.cursor =
+                wl_cursor_theme_get_cursor(seat->pointer.theme, xcursors[i]);
+
+            if (seat->pointer.cursor != NULL) {
+                LOG_DBG("loaded xcursor %s", xcursors[i]);
+                break;
+            }
+        }
+
+        if (seat->pointer.cursor == NULL) {
+            LOG_ERR(
+                "failed to load xcursor pointer '%s', and all of its fallbacks",
+                xcursors[0]);
+            return false;
+        }
+    } else {
+        /* Server-side cursors - no need to load anything */
+    }
+
+    if (shape == CURSOR_SHAPE_CUSTOM) {
+        free(seat->pointer.last_custom_xcursor);
+        seat->pointer.last_custom_xcursor =
+            xstrdup(term->mouse_user_cursor);
     }
 
     /* FDM hook takes care of actual rendering */
