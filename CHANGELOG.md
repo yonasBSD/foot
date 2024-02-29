@@ -122,12 +122,14 @@
   affect emojis.
 * Pressing a modifier key while the kitty keyboard protocol is enabled
   no longer resets the viewport, or clears the selection.
+* Crash when failing to load an xcursor image ([#1624][1624]).
 
 [1531]: https://codeberg.org/dnkl/foot/issues/1531
 [1573]: https://codeberg.org/dnkl/foot/issues/1573
 [1568]: https://codeberg.org/dnkl/foot/issues/1568
 [1552]: https://codeberg.org/dnkl/foot/issues/1552
 [1610]: https://codeberg.org/dnkl/foot/issues/1610
+[1624]: https://codeberg.org/dnkl/foot/issues/1624
 
 
 ### Security

@@ -4363,8 +4363,6 @@ render_xcursor_update(struct seat *seat)
         return;
     }
 
-    xassert(seat->pointer.cursor != NULL);
-
     const enum cursor_shape shape = seat->pointer.shape;
     const char *const xcursor = seat->pointer.last_custom_xcursor;
 
@@ -4397,6 +4395,23 @@ render_xcursor_update(struct seat *seat)
 
     LOG_DBG("setting %scursor shape using a client-side cursor surface",
             seat->pointer.shape == CURSOR_SHAPE_CUSTOM ? "custom " : "");
+
+    if (seat->pointer.cursor == NULL) {
+        /*
+         * Normally, we never get here with a NULL-cursor, because we
+         * only schedule a cursor update when we succeed to load the
+         * cursor image.
+         *
+         * However, it is possible that we did succeed to load an
+         * image, and scheduled an update. But, *before* the scheduled
+         * update triggers, the user mvoes the pointer, and we try to
+         * load a new cursor image. This time failing.
+         *
+         * In this case, we have a NULL cursor, but the scheduled
+         * update is still scheduled.
+         */
+        return;
+    }
 
     const float scale = seat->pointer.scale;
     struct wl_cursor_image *image = seat->pointer.cursor->images[0];
