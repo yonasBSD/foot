@@ -91,6 +91,13 @@
 * Use XRGB pixel format (instead of ARGB) when there is no
   transparency.
 * Prefer CSS xcursor names, and fallback to legacy X11 names.
+* Kitty keyboard protocol: use the `XKB` mode when retrieving locked
+  modifiers, instead of the `GTK` mode. This fixes an issue where some
+  key combinations (e.g. Shift+space) produces different results
+  depending on the state of e.g. the NumLock key.
+* Kitty keyboard protocol: filter out **all** locked modifiers (as
+  reported by XKB), rather than hardcoding it to CapsLock only, when
+  determining whether a key combination produces text or not.
 
 [1526]: https://codeberg.org/dnkl/foot/issues/1526
 [1528]: https://codeberg.org/dnkl/foot/issues/1528

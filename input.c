@@ -1158,7 +1158,7 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
     xassert(info == NULL || info->sym == sym);
 
     xkb_mod_mask_t mods = 0;
-    xkb_mod_mask_t consumed = 0;
+    xkb_mod_mask_t consumed = ctx->consumed;
 
     if (info != NULL && info->is_modifier) {
         /*
@@ -1186,7 +1186,7 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
 
         get_current_modifiers(seat, &mods, NULL, ctx->key, false);
         consumed = xkb_state_key_get_consumed_mods2(
-            seat->kbd.xkb_state, ctx->key, XKB_CONSUMED_MODE_GTK);
+            seat->kbd.xkb_state, ctx->key, XKB_CONSUMED_MODE_XKB);
 
 #if 0
         /*
@@ -1204,22 +1204,14 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
         /* Same as ctx->mods, but without locked modifiers being
            filtered out */
         get_current_modifiers(seat, &mods, NULL, ctx->key, false);
-
-        /* Re-retrieve the consumed modifiers using the GTK mode, to
-           better match kitty. */
-        consumed = xkb_state_key_get_consumed_mods2(
-            seat->kbd.xkb_state, ctx->key, XKB_CONSUMED_MODE_GTK);
     }
 
     mods &= seat->kbd.kitty_significant;
     consumed &= seat->kbd.kitty_significant;
 
-    const xkb_mod_mask_t effective = mods & ~consumed;
-    const xkb_mod_mask_t caps_num =
-        (seat->kbd.mod_caps != XKB_MOD_INVALID ? 1 << seat->kbd.mod_caps : 0) |
-        (seat->kbd.mod_num != XKB_MOD_INVALID ? 1 << seat->kbd.mod_num : 0);
-
-    bool is_text = count > 0 && utf32 != NULL && (effective & ~caps_num) == 0;
+    /* Use ctx->mods, rather than 'mods', since we *do* want locked
+       modifiers filtered here */
+    bool is_text = count > 0 && utf32 != NULL && (ctx->mods & ~consumed) == 0;
     for (size_t i = 0; utf32[i] != U'\0'; i++) {
         if (!iswprint(utf32[i])) {
             is_text = false;
@@ -1242,7 +1234,9 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
     if (report_all_as_escapes)
         goto emit_escapes;
 
-    if (effective == 0) {
+    /* Use ctx->mods rather than 'mods', since we *do* want locked
+       modifiers filtered here */
+    if ((ctx->mods & ~consumed) == 0) {
         switch (sym) {
         case XKB_KEY_Return:    term_to_slave(term, "\r", 1); return  true;
         case XKB_KEY_BackSpace: term_to_slave(term, "\x7f", 1); return true;
