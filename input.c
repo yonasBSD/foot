@@ -1158,6 +1158,7 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
     xassert(info == NULL || info->sym == sym);
 
     xkb_mod_mask_t mods = 0;
+    xkb_mod_mask_t locked = 0;
     xkb_mod_mask_t consumed = ctx->consumed;
 
     if (info != NULL && info->is_modifier) {
@@ -1184,7 +1185,10 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
         xkb_state_update_key(
             seat->kbd.xkb_state, ctx->key, pressed ? XKB_KEY_DOWN : XKB_KEY_UP);
 
-        get_current_modifiers(seat, &mods, NULL, ctx->key, false);
+        get_current_modifiers(seat, &mods, NULL, 0, false);
+
+        locked = xkb_state_serialize_mods(
+            seat->kbd.xkb_state, XKB_STATE_MODS_LOCKED);
         consumed = xkb_state_key_get_consumed_mods2(
             seat->kbd.xkb_state, ctx->key, XKB_CONSUMED_MODE_XKB);
 
@@ -1201,17 +1205,33 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
             seat->kbd.xkb_state, ctx->key, pressed ? XKB_KEY_UP : XKB_KEY_DOWN);
 #endif
     } else {
-        /* Same as ctx->mods, but without locked modifiers being
-           filtered out */
-        get_current_modifiers(seat, &mods, NULL, ctx->key, false);
+        /* Same as ctx->mods, but *without* filtering locked modifiers */
+        get_current_modifiers(seat, &mods, NULL, 0, false);
+        locked = xkb_state_serialize_mods(
+            seat->kbd.xkb_state, XKB_STATE_MODS_LOCKED);
     }
 
     mods &= seat->kbd.kitty_significant;
     consumed &= seat->kbd.kitty_significant;
 
-    /* Use ctx->mods, rather than 'mods', since we *do* want locked
-       modifiers filtered here */
-    bool is_text = count > 0 && utf32 != NULL && (ctx->mods & ~consumed) == 0;
+    /*
+     * A note on locked modifiers; they *are* a part of the protocol,
+     * and *should* be included in the modifier set reported in the
+     * key event.
+     *
+     * However, *only* if the key would result in a CSIu *without* the
+     * locked modifier being enabled
+     *
+     * Translated: if *another* modifier is active, or if
+     * report-all-keys-as-escapes is enabled, then we include the
+     * locked modifier in the key event.
+     *
+     * But, if the key event would result in plain text output without
+     * the locked modifier, then we "ignore" the locked modifier and
+     * emit plain text anyway.
+     */
+
+    bool is_text = count > 0 && utf32 != NULL && (mods & ~locked & ~consumed) == 0;
     for (size_t i = 0; utf32[i] != U'\0'; i++) {
         if (!iswprint(utf32[i])) {
             is_text = false;
@@ -1234,9 +1254,7 @@ kitty_kbd_protocol(struct seat *seat, struct terminal *term,
     if (report_all_as_escapes)
         goto emit_escapes;
 
-    /* Use ctx->mods rather than 'mods', since we *do* want locked
-       modifiers filtered here */
-    if ((ctx->mods & ~consumed) == 0) {
+    if ((mods & ~locked & ~consumed) == 0) {
         switch (sym) {
         case XKB_KEY_Return:    term_to_slave(term, "\r", 1); return  true;
         case XKB_KEY_BackSpace: term_to_slave(term, "\x7f", 1); return true;
