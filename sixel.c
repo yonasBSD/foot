@@ -1230,19 +1230,11 @@ sixel_unhook(struct terminal *term)
                 int row = term->grid->cursor.point.row;
 
                 /*
-                 * Position the text cursor based on the **upper**
-                 * pixel, of the last sixel.
-                 *
-                 * In most cases, that'll end up being the very last
-                 * row of the sixel (which we're already at, thanks to
-                 * the linefeeds). But for some combinations of font
-                 * and image sizes, the final cursor position is
-                 * higher up.
+                 * Position the text cursor based on the text row
+                 * touched by the last sixel
                  */
-                const int sixel_row_height = 6 * term->sixel.pan;
-                const int sixel_rows = (image.original.height + sixel_row_height - 1) / sixel_row_height;
-                const int upper_pixel_last_sixel = (sixel_rows - 1) * sixel_row_height;
-                const int term_rows = (upper_pixel_last_sixel + term->cell_height - 1) / term->cell_height;
+                const int term_rows =
+                    (image.original.height + term->cell_height - 1) / term->cell_height;
 
                 xassert(term_rows <= image.rows);
 
