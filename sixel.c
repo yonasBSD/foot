@@ -56,7 +56,6 @@ sixel_init(struct terminal *term, int p1, int p2, int p3)
 
     term->sixel.state = SIXEL_DECSIXEL;
     term->sixel.pos = (struct coord){0, 0};
-    term->sixel.row_byte_ofs = 0;
     term->sixel.color_idx = 0;
     term->sixel.pan = pan;
     term->sixel.pad = pad;
@@ -65,6 +64,7 @@ sixel_init(struct terminal *term, int p1, int p2, int p3)
     memset(term->sixel.params, 0, sizeof(term->sixel.params));
     term->sixel.transparent_bg = p2 == 1;
     term->sixel.image.data = NULL;
+    term->sixel.image.p = NULL;
     term->sixel.image.width = 0;
     term->sixel.image.height = 0;
 
@@ -1263,6 +1263,7 @@ sixel_unhook(struct terminal *term)
         free(term->sixel.image.data);
 
     term->sixel.image.data = NULL;
+    term->sixel.image.p = NULL;
     term->sixel.image.width = 0;
     term->sixel.image.height = 0;
     term->sixel.pos = (struct coord){0, 0};
@@ -1329,7 +1330,9 @@ resize_horizontally(struct terminal *term, int new_width)
 
     term->sixel.image.data = new_data;
     term->sixel.image.width = new_width;
-    term->sixel.row_byte_ofs = term->sixel.pos.row * new_width;
+
+    const int ofs = term->sixel.pos.row * new_width + term->sixel.pos.col;
+    term->sixel.image.p = &term->sixel.image.data[ofs];
 }
 
 static bool
@@ -1375,8 +1378,14 @@ resize_vertically(struct terminal *term, int new_height)
             new_data[r * width + c] = bg;
     }
 
-    term->sixel.image.data = new_data;
     term->sixel.image.height = new_height;
+
+    const int ofs =
+        term->sixel.pos.row * term->sixel.image.width + term->sixel.pos.col;
+
+    term->sixel.image.data = new_data;
+    term->sixel.image.p = &term->sixel.image.data[ofs];
+
     return true;
 }
 
@@ -1450,59 +1459,54 @@ resize(struct terminal *term, int new_width, int new_height)
     term->sixel.image.data = new_data;
     term->sixel.image.width = new_width;
     term->sixel.image.height = new_height;
-    term->sixel.row_byte_ofs = term->sixel.pos.row * new_width;
+    term->sixel.image.p = &term->sixel.image.data[term->sixel.pos.row * new_width + term->sixel.pos.col];
 
     return true;
 }
 
 static void
-sixel_add_generic(struct terminal *term, int col, int width, uint32_t color,
+sixel_add_generic(struct terminal *term, uint32_t *data, int stride, uint32_t color,
                   uint8_t sixel)
 {
     xassert(term->sixel.pos.col < term->sixel.image.width);
     xassert(term->sixel.pos.row < term->sixel.image.height);
 
     const int pan = term->sixel.pan;
-    size_t ofs = term->sixel.row_byte_ofs + col;
-    uint32_t *data = &term->sixel.image.data[ofs];
 
     for (int i = 0; i < 6; i++, sixel >>= 1) {
         if (sixel & 1) {
-            for (int r = 0; r < pan; r++, data += width)
+            for (int r = 0; r < pan; r++, data += stride)
                 *data = color;
         } else
-            data += width * pan;
+            data += stride * pan;
     }
 
     xassert(sixel == 0);
 }
 
-static void
-sixel_add_ar_11(struct terminal *term, int col, int width, uint32_t color,
+static void ALWAYS_INLINE inline
+sixel_add_ar_11(struct terminal *term, uint32_t *data, int stride, uint32_t color,
                 uint8_t sixel)
 {
     xassert(term->sixel.pos.col < term->sixel.image.width);
     xassert(term->sixel.pos.row < term->sixel.image.height);
     xassert(term->sixel.pan == 1);
 
-    const size_t ofs = term->sixel.row_byte_ofs + col;
-    uint32_t *data = &term->sixel.image.data[ofs];
-
     if (sixel & 0x01)
         *data = color;
-    data += width;
+    data += stride;
     if (sixel & 0x02)
         *data = color;
-    data += width;
+    data += stride;
     if (sixel & 0x04)
         *data = color;
-    data += width;
+    data += stride;
     if (sixel & 0x08)
         *data = color;
-    data += width;
+    data += stride;
     if (sixel & 0x10)
         *data = color;
-    data += width;
+    data += stride;
     if (sixel & 0x20)
         *data = color;
 }
@@ -1522,12 +1526,35 @@ sixel_add_many_generic(struct terminal *term, uint8_t c, unsigned count)
     }
 
     uint32_t color = term->sixel.color;
-    for (unsigned i = 0; i < count; i++, col++) {
-        /* TODO: is it worth dynamically dispatching to either generic or AR-11? */
-        sixel_add_generic(term, col, width, color, c);
+    uint32_t *data = term->sixel.image.p;
+    uint32_t *end = data + count;
+
+    for (; data < end; data++)
+        sixel_add_generic(term, data, width, color, c);
+
+    term->sixel.pos.col = col + count;
+    term->sixel.image.p = end;
+}
+
+static void ALWAYS_INLINE inline
+sixel_add_one_ar_11(struct terminal *term, uint8_t c)
+{
+    xassert(term->sixel.pan == 1);
+    xassert(term->sixel.pad == 1);
+
+    int col = term->sixel.pos.col;
+    int width = term->sixel.image.width;
+
+    if (unlikely(col >= width)) {
+        resize_horizontally(term, col + count);
+        width = term->sixel.image.width;
+        count = min(count, max(width - col, 0));
     }
 
-    term->sixel.pos.col = col;
+    sixel_add_ar_11(term, term->sixel.image.p, width, term->sixel.color, c);
+
+    term->sixel.pos.col += 1;
+    term->sixel.image.p += 1;
 }
 
 static void
@@ -1546,10 +1573,14 @@ sixel_add_many_ar_11(struct terminal *term, uint8_t c, unsigned count)
     }
 
     uint32_t color = term->sixel.color;
-    for (unsigned i = 0; i < count; i++, col++)
-        sixel_add_ar_11(term, col, width, color, c);
+    uint32_t *data = term->sixel.image.p;
+    uint32_t *end = data + count;
 
-    term->sixel.pos.col = col;
+    for (; data < end; data++)
+        sixel_add_ar_11(term, data, width, color, c);
+
+    term->sixel.pos.col += count;
+    term->sixel.image.p = end;
 }
 
 IGNORE_WARNING("-Wpedantic")
@@ -1587,13 +1618,14 @@ decsixel_generic(struct terminal *term, uint8_t c)
              * path in sixel_add().
              */
             term->sixel.pos.col = 0;
+            term->sixel.image.p = &term->sixel.image.data[term->sixel.pos.row * term->sixel.image.width];
         }
         break;
 
     case '-':
         term->sixel.pos.row += 6 * term->sixel.pan;
         term->sixel.pos.col = 0;
-        term->sixel.row_byte_ofs += term->sixel.image.width * 6 * term->sixel.pan;
+        term->sixel.image.p = &term->sixel.image.data[term->sixel.pos.row * term->sixel.image.width];
 
         if (term->sixel.pos.row >= term->sixel.image.height) {
             if (!resize_vertically(term, term->sixel.pos.row + 6 * term->sixel.pan))
@@ -1622,7 +1654,7 @@ static void
 decsixel_ar_11(struct terminal *term, uint8_t c)
 {
     if (likely(c >= '?' && c <= '~'))
-        sixel_add_many_ar_11(term, c - 63, 1);
+        sixel_add_one_ar_11(term, c - 63);
     else
         decsixel_generic(term, c);
 }

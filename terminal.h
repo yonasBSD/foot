@@ -666,7 +666,6 @@ struct terminal {
         } state;
 
         struct coord pos;    /* Current sixel coordinate */
-        size_t row_byte_ofs; /* Byte position into image, for current row */
         int color_idx;       /* Current palette index */
         uint32_t *private_palette;   /* Private palette, used when private mode 1070 is enabled */
         uint32_t *shared_palette;    /* Shared palette, used when private mode 1070 is disabled */
@@ -675,6 +674,7 @@ struct terminal {
 
         struct {
             uint32_t *data;  /* Raw image data, in ARGB */
+            uint32_t *p;     /* Pointer into data, for current position */
             int width;       /* Image width, in pixels */
             int height;      /* Image height, in pixels */
         } image;
