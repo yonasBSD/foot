@@ -1347,8 +1347,9 @@ resize_vertically(struct terminal *term, int new_height)
     uint32_t *old_data = term->sixel.image.data;
     const int width = term->sixel.image.width;
     const int old_height = term->sixel.image.height;
+    const int sixel_row_height = 6 * term->sixel.pan;
 
-    int alloc_height = (new_height + 6 - 1) / 6 * 6;
+    int alloc_height = (new_height + sixel_row_height - 1) / sixel_row_height * sixel_row_height;
 
     xassert(new_height > 0);
 

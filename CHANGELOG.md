@@ -131,6 +131,8 @@
 * Pressing a modifier key while the kitty keyboard protocol is enabled
   no longer resets the viewport, or clears the selection.
 * Crash when failing to load an xcursor image ([#1624][1624]).
+* Crash when resizing a dynamically sized sixel (no raster
+  attributes), with a non-1:1 aspect ratio.
 
 [1531]: https://codeberg.org/dnkl/foot/issues/1531
 [1573]: https://codeberg.org/dnkl/foot/issues/1573
