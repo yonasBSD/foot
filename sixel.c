@@ -1549,6 +1549,9 @@ sixel_add_one_ar_11(struct terminal *term, uint8_t c)
         resize_horizontally(term, col + count);
         width = term->sixel.image.width;
         count = min(count, max(width - col, 0));
+
+        if (unlikely(count == 0))
+            return;
     }
 
     sixel_add_ar_11(term, term->sixel.image.p, width, term->sixel.color, c);
