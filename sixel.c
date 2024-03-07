@@ -613,7 +613,8 @@ sixel_overwrite(struct terminal *term, struct sixel *six,
     pixman_region32_t cell_intersection;
     pixman_region32_init(&cell_intersection);
     pixman_region32_intersect(&cell_intersection, &six_rect, &overwrite_rect);
-    xassert(pixman_region32_not_empty(&cell_intersection));
+    xassert(!pixman_region32_not_empty(&six_rect) ||
+            pixman_region32_not_empty(&cell_intersection));
     pixman_region32_fini(&cell_intersection);
 #endif
 
