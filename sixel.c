@@ -1096,10 +1096,9 @@ sixel_unhook(struct terminal *term)
     int start_row = do_scroll ? term->grid->cursor.point.row : 0;
     const int start_col = do_scroll ? term->grid->cursor.point.col : 0;
 
-    /* Total number of rows needed by image (+ optional newline at the end) */
+    /* Total number of rows needed by image */
     const int rows_needed =
-        (term->sixel.image.height + term->cell_height - 1) / term->cell_height +
-        (term->sixel.cursor_right_of_graphics ? 0 : 1);
+        (term->sixel.image.height + term->cell_height - 1) / term->cell_height;
 
     bool free_image_data = true;
 
