@@ -1162,7 +1162,7 @@ sixel_unhook(struct terminal *term)
 
         LOG_DBG("generating %s %dx%d pixman image at %d-%d",
                 image.opaque ? "opaque" : "transparent",
-                image.width, image.height,
+                image.original.width, image.original.height,
                 image.pos.row, image.pos.row + image.rows);
 
         image.original.pix = pixman_image_create_bits_no_clear(
