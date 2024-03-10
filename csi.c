@@ -678,15 +678,16 @@ params_to_rectangular_area(const struct terminal *term, int first_idx,
                            int *top, int *left, int *bottom, int *right)
 {
     int rel_top = vt_param_get(term, first_idx + 0, 1) - 1;
-    *left = vt_param_get(term, first_idx + 1, 1) - 1;
+    *left = min(vt_param_get(term, first_idx + 1, 1) - 1, term->cols - 1);
     int rel_bottom = vt_param_get(term, first_idx + 2, term->rows) - 1;
-    *right = vt_param_get(term, first_idx + 3, term->cols) - 1;
+    *right = min(vt_param_get(term, first_idx + 3, term->cols) - 1, term->cols - 1);
 
     if (rel_top > rel_bottom || *left > *right)
         return false;
 
     *top = term_row_rel_to_abs(term, rel_top);
     *bottom = term_row_rel_to_abs(term, rel_bottom);
+
     return true;
 }
 
