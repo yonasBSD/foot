@@ -90,6 +90,7 @@ sixel_init(struct terminal *term, int p1, int p2, int p3)
     term->sixel.image.p = NULL;
     term->sixel.image.width = 0;
     term->sixel.image.height = 0;
+    term->sixel.image.bottom_pixel = 0;
 
     if (term->sixel.use_private_palette) {
         xassert(term->sixel.private_palette == NULL);
@@ -1096,6 +1097,23 @@ sixel_reflow(struct terminal *term)
 void
 sixel_unhook(struct terminal *term)
 {
+    /* Strip trailing fully transparent rows, *unless* we *ended* with
+     * a trailing GNL, in which case we do *not* want to strip all 6
+     * pixel rows */
+    if (term->sixel.pos.col > 0) {
+        const int bits = sizeof(term->sixel.image.bottom_pixel) * 8;
+        const int leading_zeroes = term->sixel.image.bottom_pixel == 0
+            ? bits
+            : __builtin_clz(term->sixel.image.bottom_pixel);
+        const int rows_to_trim = leading_zeroes + 6 - bits;
+
+        LOG_DBG("bottom-pixel: 0x%02x, bits=%d, leading-zeroes=%d, "
+                "rows-to-trim=%d*%d", term->sixel.image.bottom_pixel,
+                bits, leading_zeroes, rows_to_trim, term->sixel.pan);
+
+        term->sixel.image.height -= rows_to_trim * term->sixel.pan;
+    }
+
     int pixel_row_idx = 0;
     int pixel_rows_left = term->sixel.image.height;
     const int stride = term->sixel.image.width * sizeof(uint32_t);
@@ -1493,9 +1511,6 @@ static void
 sixel_add_generic(struct terminal *term, uint32_t *data, int stride, uint32_t color,
                   uint8_t sixel)
 {
-    xassert(term->sixel.pos.col < term->sixel.image.width);
-    xassert(term->sixel.pos.row < term->sixel.image.height);
-
     const int pan = term->sixel.pan;
 
     for (int i = 0; i < 6; i++, sixel >>= 1) {
@@ -1513,8 +1528,6 @@ static void ALWAYS_INLINE inline
 sixel_add_ar_11(struct terminal *term, uint32_t *data, int stride, uint32_t color,
                 uint8_t sixel)
 {
-    xassert(term->sixel.pos.col < term->sixel.image.width);
-    xassert(term->sixel.pos.row < term->sixel.image.height);
     xassert(term->sixel.pan == 1);
 
     if (sixel & 0x01)
@@ -1548,17 +1561,22 @@ sixel_add_many_generic(struct terminal *term, uint8_t c, unsigned count)
         resize_horizontally(term, col + count);
         width = term->sixel.image.width;
         count = min(count, max(width - col, 0));
+
+        if (unlikely(count == 0))
+            return;
     }
 
     uint32_t color = term->sixel.color;
     uint32_t *data = term->sixel.image.p;
     uint32_t *end = data + count;
 
+    term->sixel.pos.col = col + count;
+    term->sixel.image.p = end;
+    term->sixel.image.bottom_pixel |= c;
+
     for (; data < end; data++)
         sixel_add_generic(term, data, width, color, c);
 
-    term->sixel.pos.col = col + count;
-    term->sixel.image.p = end;
 }
 
 static void ALWAYS_INLINE inline
@@ -1579,10 +1597,13 @@ sixel_add_one_ar_11(struct terminal *term, uint8_t c)
             return;
     }
 
-    sixel_add_ar_11(term, term->sixel.image.p, width, term->sixel.color, c);
+    uint32_t *data = term->sixel.image.p;
 
     term->sixel.pos.col += 1;
     term->sixel.image.p += 1;
+    term->sixel.image.bottom_pixel |= c;
+
+    sixel_add_ar_11(term, data, width, term->sixel.color, c);
 }
 
 static void
@@ -1598,17 +1619,22 @@ sixel_add_many_ar_11(struct terminal *term, uint8_t c, unsigned count)
         resize_horizontally(term, col + count);
         width = term->sixel.image.width;
         count = min(count, max(width - col, 0));
+
+        if (unlikely(count == 0))
+            return;
     }
 
     uint32_t color = term->sixel.color;
     uint32_t *data = term->sixel.image.p;
     uint32_t *end = data + count;
 
+    term->sixel.pos.col += count;
+    term->sixel.image.p = end;
+    term->sixel.image.bottom_pixel |= c;
+
     for (; data < end; data++)
         sixel_add_ar_11(term, data, width, color, c);
 
-    term->sixel.pos.col += count;
-    term->sixel.image.p = end;
 }
 
 IGNORE_WARNING("-Wpedantic")
@@ -1650,9 +1676,10 @@ decsixel_generic(struct terminal *term, uint8_t c)
         }
         break;
 
-    case '-':
+    case '-':  /* GNL - Graphical New Line */
         term->sixel.pos.row += 6 * term->sixel.pan;
         term->sixel.pos.col = 0;
+        term->sixel.image.bottom_pixel = 0;
         term->sixel.image.p = &term->sixel.image.data[term->sixel.pos.row * term->sixel.image.width];
 
         if (term->sixel.pos.row >= term->sixel.image.height) {

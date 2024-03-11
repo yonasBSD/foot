@@ -677,6 +677,7 @@ struct terminal {
             uint32_t *p;     /* Pointer into data, for current position */
             int width;       /* Image width, in pixels */
             int height;      /* Image height, in pixels */
+            unsigned int bottom_pixel;
         } image;
 
         /*

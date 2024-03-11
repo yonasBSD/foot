@@ -112,6 +112,8 @@
 * Sixel: text cursor is now placed on the last text row touched by the
   sixel, instead of the text row touched by the _upper_ pixel of the
   last sixel ([#chafa-192][chafa-192]).
+* Sixel: trailing, fully transparent rows are now trimmed
+  ([#chafa-192][chafa-192]).
 
 [1526]: https://codeberg.org/dnkl/foot/issues/1526
 [1528]: https://codeberg.org/dnkl/foot/issues/1528
