@@ -1219,9 +1219,7 @@ csi_dispatch(struct terminal *term, uint8_t final)
                 if (width >= 0 && height >= 0) {
                     char reply[64];
                     size_t n = xsnprintf(
-                        reply, sizeof(reply), "\033[4;%d;%dt",
-                        (int)roundf(height / term->scale),
-                        (int)roundf((width / term->scale)));
+                        reply, sizeof(reply), "\033[4;%d;%dt", height, width);
                     term_to_slave(term, reply, n);
                 }
                 break;
@@ -1231,8 +1229,8 @@ csi_dispatch(struct terminal *term, uint8_t final)
                 tll_foreach(term->window->on_outputs, it) {
                     char reply[64];
                     size_t n = xsnprintf(reply, sizeof(reply), "\033[5;%d;%dt",
-                             it->item->dim.px_scaled.height,
-                             it->item->dim.px_scaled.width);
+                             it->item->dim.px_real.height,
+                             it->item->dim.px_real.width);
                     term_to_slave(term, reply, n);
                     break;
                 }
@@ -1245,8 +1243,7 @@ csi_dispatch(struct terminal *term, uint8_t final)
                 char reply[64];
                 size_t n = xsnprintf(
                     reply, sizeof(reply), "\033[6;%d;%dt",
-                    (int)roundf(term->cell_height / term->scale),
-                    (int)roundf(term->cell_width / term->scale));
+                    term->cell_height, term->cell_width);
                 term_to_slave(term, reply, n);
                 break;
             }
@@ -1264,8 +1261,8 @@ csi_dispatch(struct terminal *term, uint8_t final)
                     char reply[64];
                     size_t n = xsnprintf(
                         reply, sizeof(reply), "\033[9;%d;%dt",
-                        (int)roundf(it->item->dim.px_real.height / term->cell_height / term->scale),
-                        (int)roundf(it->item->dim.px_real.width / term->cell_width / term->scale));
+                        it->item->dim.px_real.height / term->cell_height,
+                        it->item->dim.px_real.width / term->cell_width);
                     term_to_slave(term, reply, n);
                     break;
                 }

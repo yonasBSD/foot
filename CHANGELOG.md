@@ -102,12 +102,15 @@
 * Kitty keyboard protocol: filter out **all** locked modifiers (as
   reported by XKB), rather than hardcoding it to CapsLock only, when
   determining whether a key combination produces text or not.
+* CSI-t queries now report pixel values **unscaled**, instead of
+  **scaled** ([#1643][1643]).
 
 [1526]: https://codeberg.org/dnkl/foot/issues/1526
 [1528]: https://codeberg.org/dnkl/foot/issues/1528
 [1561]: https://codeberg.org/dnkl/foot/issues/1561
 [kitty-6913]: https://github.com/kovidgoyal/kitty/issues/6913
 [1584]: https://codeberg.org/dnkl/foot/issues/1584
+[1643]: https://codeberg.org/dnkl/foot/issues/1643
 
 
 ### Deprecated
