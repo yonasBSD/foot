@@ -495,6 +495,31 @@ manipulation sequences. The generic format is:
 :  VT320
 :  Request status of ECMA-48/ANSI mode. See the descriptions for SM/RM
    above for recognized _Ps_ values.
+|  \\E[ _Pt_ ; _Pl_ ; _Pb_ ; _Pr_ ; _Pm_ $ r
+:  DECCARA
+:  VT400
+:  Change attributes in rectangular area. _Pt_, _Pl_, _Pb_ and _Pr_
+   denotes the rectangle, _Pm_ denotes the SGR attributes.
+|  \\E[ _Pt_ ; _Pl_ ; _Pb_ ; _Pr_ ; _Pm_ $ t
+:  DECRARA
+:  VT400
+:  Invert attributes in rectangular area. _Pt_, _Pl_, _Pb_ and _Pr_
+   denotes the rectangle, _Pm_ denotes the SGR attributes.
+|  \\E[ _Pt_ ; _Pl_ ; _Pb_ ; _Pr_ ; _Pp_ ; _Pt_ ; _Pl_ ; _Pp_ $ v
+:  DECCRA
+:  VT400
+:  Copy rectangular area.  _Pt_, _Pl_, _Pb_ and _Pr_ denotes the
+   rectangle, _Pt_ and _Pl_ denotes the target location.
+|  \\E[ _Pc_ ; _Pt_ ; _Pl_ ; _Pb_ ; _Pr_ $ x
+:  DECFRA
+:  VT420
+:  Fill rectangular area. _Pc_ is the character to use, _Pt_, _Pl_,
+   _Pb_ and _Pr_ denotes the rectangle.
+|  \\E[ _Pt_ ; _Pl_ ; _Pb_ ; _Pr_ $ z
+:  DECERA
+:  VT400
+:  Erase rectangular area. _Pt_, _Pl_, _Pb_ and _Pr_ denotes the
+   rectangle.
 |  \\E[ _Ps_ T
 :  SD
 :  VT420

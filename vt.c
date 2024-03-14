@@ -18,6 +18,7 @@
 #include "debug.h"
 #include "grid.h"
 #include "osc.h"
+#include "sixel.h"
 #include "util.h"
 #include "xmalloc.h"
 
@@ -560,15 +561,16 @@ action_esc_dispatch(struct terminal *term, uint8_t final)
 
     case '#':
         switch (final) {
-        case '8':
-            for (int r = 0; r < term->rows; r++) {
-                struct row *row = grid_row(term->grid, r);
-                for (int c = 0; c < term->cols; c++) {
-                    row->cells[c].wc = U'E';
-                    row->cells[c].attrs = (struct attributes){0};
-                }
-                row->dirty = true;
-            }
+        case '8':  /* DECALN */
+            sixel_overwrite_by_rectangle(term, 0, 0, term->rows, term->cols);
+
+            term->scroll_region.start = 0;
+            term->scroll_region.end = term->rows;
+
+            for (int r = 0; r < term->rows; r++)
+                term_fill(term, r, 0, 'E', term->cols, false);
+
+            term_cursor_home(term);
             break;
         }
         break;  /* private[0] == '#' */

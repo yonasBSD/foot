@@ -62,8 +62,12 @@
 * Support for OSC-176, _"Set App-ID"_
   (https://gist.github.com/delthas/d451e2cc1573bb2364839849c7117239).
 * Support for `DECRQM` queries with ANSI/ECMA-48 modes (`CSI Ps $ p`).
+* Rectangular edit functions: `DECCARA`, `DECRARA`, `DECCRA`, `DECFRA`
+  and `DECERA` ([#1633][1633]).
+* `Rect` capability to terminfo.
 
 [1348]: https://codeberg.org/dnkl/foot/issues/1348
+[1633]: https://codeberg.org/dnkl/foot/issues/1633
 
 
 ### Changed

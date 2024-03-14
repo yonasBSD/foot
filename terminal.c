@@ -3498,6 +3498,54 @@ print_spacer(struct terminal *term, int col, int remaining)
     cell->attrs = term->vt.attrs;
 }
 
+/*
+ * Puts a character on the grid. Coordinates are in screen coordinates
+ * (i.e. ‘cursor’ coordinates).
+ *
+ * Does NOT:
+ *  - update the cursor
+ *  - linewrap
+ *  - erase sixels
+ *
+ * Limitations:
+ *   - double width characters not supported
+ */
+void
+term_fill(struct terminal *term, int r, int c, uint8_t data, size_t count,
+    bool use_sgr_attrs)
+{
+    struct row *row = grid_row(term->grid, r);
+    row->dirty = true;
+
+    xassert(c + count <= term->cols);
+
+    struct attributes attrs = use_sgr_attrs
+        ? term->vt.attrs
+        : (struct attributes){0};
+
+    const struct cell *last = &row->cells[c + count];
+    for (struct cell *cell = &row->cells[c]; cell < last; cell++) {
+        cell->wc = data;
+        cell->attrs = attrs;
+
+        if (unlikely(term->vt.osc8.uri != NULL)) {
+            grid_row_uri_range_put(row, c, term->vt.osc8.uri, term->vt.osc8.id);
+
+            switch (term->conf->url.osc8_underline) {
+            case OSC8_UNDERLINE_ALWAYS:
+                cell->attrs.url = true;
+                break;
+
+            case OSC8_UNDERLINE_URL_MODE:
+                break;
+            }
+        }
+    }
+
+    if (unlikely(row->extra != NULL))
+        grid_row_uri_range_erase(row, c, c + count - 1);
+}
+
 void
 term_print(struct terminal *term, char32_t wc, int width)
 {
@@ -3566,7 +3614,7 @@ term_print(struct terminal *term, char32_t wc, int width)
         grid_row_uri_range_erase(row, col, col + width - 1);
 
     /* Advance cursor the 'additional' columns while dirty:ing the cells */
-    for (int i = 1; i < width && col < term->cols - 1; i++) {
+    for (int i = 1; i < width && col < term->cols; i++) {
         col++;
         print_spacer(term, col, width - i);
     }
