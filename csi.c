@@ -324,6 +324,11 @@ decset_decrst(struct terminal *term, unsigned param, bool enable)
         term->keypad_keys_mode = enable ? KEYPAD_APPLICATION : KEYPAD_NUMERICAL;
         break;
 
+    case 67:
+        if (enable)
+            LOG_WARN("unimplemented: DECBKM");
+        break;
+
     case 80:
         term->sixel.scrolling = !enable;
         break;
@@ -555,6 +560,7 @@ decrqm(const struct terminal *term, unsigned param)
     case 25: return decrpm(!term->hide_cursor);
     case 45: return decrpm(term->reverse_wrap);
     case 66: return decrpm(term->keypad_keys_mode == KEYPAD_APPLICATION);
+    case 67: return DECRPM_PERMANENTLY_RESET; /* https://vt100.net/docs/vt510-rm/DECBKM */
     case 80: return decrpm(!term->sixel.scrolling);
     case 1000: return decrpm(term->mouse_tracking == MOUSE_CLICK);
     case 1001: return DECRPM_PERMANENTLY_RESET;
@@ -600,6 +606,7 @@ xtsave(struct terminal *term, unsigned param)
     case 45: term->xtsave.reverse_wrap = term->reverse_wrap; break;
     case 47: term->xtsave.alt_screen = term->grid == &term->alt; break;
     case 66: term->xtsave.application_keypad_keys = term->keypad_keys_mode == KEYPAD_APPLICATION; break;
+    case 67: break;
     case 80: term->xtsave.sixel_display_mode = !term->sixel.scrolling; break;
     case 1000: term->xtsave.mouse_click = term->mouse_tracking == MOUSE_CLICK; break;
     case 1001: break;
@@ -642,6 +649,7 @@ xtrestore(struct terminal *term, unsigned param)
     case 45: enable = term->xtsave.reverse_wrap; break;
     case 47: enable = term->xtsave.alt_screen; break;
     case 66: enable = term->xtsave.application_keypad_keys; break;
+    case 67: return;
     case 80: enable = term->xtsave.sixel_display_mode; break;
     case 1000: enable = term->xtsave.mouse_click; break;
     case 1001: return;

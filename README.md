@@ -428,13 +428,13 @@ mode_, `\E[?1034l`), and enabled again with `smm` (_set meta mode_,
 ## Backspace
 
 Foot transmits DEL (`^?`) on <kbd>backspace</kbd>. This corresponds to
-XTerm's `backarrowKey` option set to `false`, and to DECBKM being
-_reset_.
+XTerm's `backarrowKey` option set to `false`, and to
+[`DECBKM`](https://vt100.net/docs/vt510-rm/DECBKM.html) being _reset_.
 
 To instead transmit BS (`^H`), press
 <kbd>ctrl</kbd>+<kbd>backspace</kbd>.
 
-Note that foot does **not** implement DECBKM, and that the behavior
+Note that foot does **not** implement `DECBKM`, and that the behavior
 described above **cannot** be changed.
 
 Finally, pressing <kbd>alt</kbd> will prefix the transmitted byte with
