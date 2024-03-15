@@ -1310,8 +1310,11 @@ sixel_unhook(struct terminal *term)
                  * Position the text cursor based on the text row
                  * touched by the last sixel
                  */
+                const int pixel_rows = pixel_rows_left > 0
+                    ? image.original.height
+                    : term->sixel.pos.row;
                 const int term_rows =
-                    (image.original.height + term->cell_height - 1) / term->cell_height;
+                    (pixel_rows + term->cell_height - 1) / term->cell_height;
 
                 xassert(term_rows <= image.rows);
 
@@ -1324,6 +1327,8 @@ sixel_unhook(struct terminal *term)
                      ? min(image.pos.col + image.cols, term->cols - 1)
                      : image.pos.col));
             }
+
+            term->sixel.pos.row -= image.original.height;
         }
 
         /* Dirty touched cells, and scroll terminal content if necessary */
