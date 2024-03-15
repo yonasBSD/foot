@@ -1148,11 +1148,23 @@ sixel_unhook(struct terminal *term)
          *
          * See https://raw.githubusercontent.com/hackerb9/vt340test/main/sixeltests/p2effect.sh
          */
-        if (term->sixel.pos.row + 6 * term->sixel.pan >= term->sixel.image.alloc_height &&
-            term->sixel.transparent_bg)
-        {
+        if (term->sixel.pos.row + 6 * term->sixel.pan >= term->sixel.image.alloc_height) {
             LOG_DBG("trimming image");
-            term->sixel.image.height = term->sixel.image.alloc_height - rows_to_trim * term->sixel.pan;
+            const int trimmed_height =
+                term->sixel.image.alloc_height - rows_to_trim * term->sixel.pan;
+
+            if (term->sixel.transparent_bg) {
+                /* Image is transparent - trim as much as possible */
+                term->sixel.image.height = trimmed_height;
+            } else  {
+                /* Image is opaque. We can't trim anything "inside"
+                   the RA region */
+                if (trimmed_height > term->sixel.image.height) {
+                    /* There are non-empty pixels *outside* the RA
+                       region - trim up to that point */
+                    term->sixel.image.height = trimmed_height;
+                }
+            }
         } else {
             LOG_DBG("only adjusting cursor position");
         }
