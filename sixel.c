@@ -90,6 +90,7 @@ sixel_init(struct terminal *term, int p1, int p2, int p3)
     term->sixel.image.p = NULL;
     term->sixel.image.width = 0;
     term->sixel.image.height = 0;
+    term->sixel.image.alloc_height = 0;
     term->sixel.image.bottom_pixel = 0;
 
     if (term->sixel.use_private_palette) {
@@ -1097,6 +1098,27 @@ sixel_reflow(struct terminal *term)
 void
 sixel_unhook(struct terminal *term)
 {
+    if (term->sixel.pos.row < term->sixel.image.height &&
+        term->sixel.pos.row + 6 * term->sixel.pan >= term->sixel.image.height)
+    {
+        /*
+         * Handle case where image has had its size set by raster
+         * attributes, and then one or more sixels were printed on the
+         * last row of the RA area.
+         *
+         * In this case, the image height may not be a multiple of
+         * 6*pan. But the printed sixels may still be outside the RA
+         * area. In this case, using the size from the RA would
+         * truncate the image.
+         *
+         * So, extend the image to a multiple of 6*pan.
+         *
+         * If this is a transparent image, the image may get trimmed
+         * below (most likely back the size set by RA).
+         */
+        term->sixel.image.height = term->sixel.image.alloc_height;
+    }
+
     /* Strip trailing fully transparent rows, *unless* we *ended* with
      * a trailing GNL, in which case we do *not* want to strip all 6
      * pixel rows */
@@ -1111,7 +1133,32 @@ sixel_unhook(struct terminal *term)
                 "rows-to-trim=%d*%d", term->sixel.image.bottom_pixel,
                 bits, leading_zeroes, rows_to_trim, term->sixel.pan);
 
-        term->sixel.image.height -= rows_to_trim * term->sixel.pan;
+        /*
+         * If the current graphical cursor position is at the last row
+         * of the image, *and* the image is transparent (P2=1), trim
+         * the entire image.
+         *
+         * If the image is not transparent, then we can't trim the RA
+         * region (it is supposed to "erase", with the current
+         * background color.)
+         *
+         * We *do* "trim" transparent rows from the graphical cursor
+         * position, as this affects the positioning of the text
+         * cursor.
+         *
+         * See https://raw.githubusercontent.com/hackerb9/vt340test/main/sixeltests/p2effect.sh
+         */
+        if (term->sixel.pos.row + 6 * term->sixel.pan >= term->sixel.image.alloc_height &&
+            term->sixel.transparent_bg)
+        {
+            LOG_DBG("trimming image");
+            term->sixel.image.height = term->sixel.image.alloc_height - rows_to_trim * term->sixel.pan;
+        } else {
+            LOG_DBG("only adjusting cursor position");
+        }
+
+        term->sixel.pos.row += 6 * term->sixel.pan;
+        term->sixel.pos.row -= rows_to_trim * term->sixel.pan;
     }
 
     int pixel_row_idx = 0;
@@ -1422,6 +1469,7 @@ resize_vertically(struct terminal *term, int new_height)
     }
 
     term->sixel.image.height = new_height;
+    term->sixel.image.alloc_height = alloc_height;
 
     const int ofs =
         term->sixel.pos.row * term->sixel.image.width + term->sixel.pos.col;
@@ -1502,6 +1550,7 @@ resize(struct terminal *term, int new_width, int new_height)
     term->sixel.image.data = new_data;
     term->sixel.image.width = new_width;
     term->sixel.image.height = new_height;
+    term->sixel.image.alloc_height = alloc_new_height;
     term->sixel.image.p = &term->sixel.image.data[term->sixel.pos.row * new_width + term->sixel.pos.col];
 
     return true;
@@ -1682,7 +1731,7 @@ decsixel_generic(struct terminal *term, uint8_t c)
         term->sixel.image.bottom_pixel = 0;
         term->sixel.image.p = &term->sixel.image.data[term->sixel.pos.row * term->sixel.image.width];
 
-        if (term->sixel.pos.row >= term->sixel.image.height) {
+        if (term->sixel.pos.row >= term->sixel.image.alloc_height) {
             if (!resize_vertically(term, term->sixel.pos.row + 6 * term->sixel.pan))
                 term->sixel.pos.col = term->sixel.max_width + 1 * term->sixel.pad;
         }
@@ -1752,9 +1801,42 @@ decgra(struct terminal *term, uint8_t c)
         LOG_DBG("pan=%u, pad=%u (aspect ratio = %d:%d), size=%ux%u",
                 pan, pad, pan, pad, ph, pv);
 
+        /*
+         * RA really only acts as a rectangular erase - it fills the
+         * specified area with the sixel background color[^1]. Nothing
+         * else. It does *not* affect cursor positioning.
+         *
+         * This means that if the emitted sixel is *smaller* than the
+         * RA, the text cursor will be placed "inside" the RA area.
+         *
+         * This means it would be more correct to view the RA area as
+         * a *separate* sixel image, that is then overlaid with the
+         * actual sixel.
+         *
+         * Still, RA _is_ a hint - the final image is _likely_ going
+         * to be this large. And, treating RA as a separate image
+         * prevents us from pre-allocating the final sixel image.
+         *
+         * So we don't. We use the RA as a hint, and pre-allocates the
+         * backing image buffer.
+         *
+         * [^1]: i.e. it's a NOP if the sixel is transparent
+         */
         if (ph >= term->sixel.image.height && pv >= term->sixel.image.width &&
             ph <= term->sixel.max_height && pv <= term->sixel.max_width)
         {
+            /*
+             * TODO: always resize to a multiple of 6*pan?
+             *
+             * We're effectively doing that already, except
+             * sixel.image.height is set to ph, instead of the
+             * allocated height (which is always a multiple of 6*pan).
+             *
+             * If the user wants to emit a sixel that isn't a multiple
+             * of 6 pixels, the bottom sixel rows should all be empty,
+             * and (assuming a transparent sixel), trimmed when the
+             * final image is generated.
+             */
             resize(term, ph, pv);
         }
 
