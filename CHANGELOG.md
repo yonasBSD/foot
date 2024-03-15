@@ -143,6 +143,10 @@
 * Crash when failing to load an xcursor image ([#1624][1624]).
 * Crash when resizing a dynamically sized sixel (no raster
   attributes), with a non-1:1 aspect ratio.
+* The default sixel color table is now initialized to the colors used
+  by the VT340, instead of not being initialized at all (thus
+  requiring the sixel escape sequence to explicitly set all colors it
+  used).
 
 [1531]: https://codeberg.org/dnkl/foot/issues/1531
 [1573]: https://codeberg.org/dnkl/foot/issues/1573

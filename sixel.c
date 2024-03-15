@@ -4,7 +4,7 @@
 #include <limits.h>
 
 #define LOG_MODULE "sixel"
-#define LOG_ENABLE_DBG 0
+#define LOG_ENABLE_DBG 1
 #include "log.h"
 #include "debug.h"
 #include "grid.h"
@@ -18,6 +18,29 @@ static size_t count;
 
 static void sixel_put_generic(struct terminal *term, uint8_t c);
 static void sixel_put_ar_11(struct terminal *term, uint8_t c);
+
+/* VT330/VT340 Programmer Reference Manual  - Table 2-3 VT340 Default Color Map */
+static const uint32_t vt340_default_colors[16] = {
+    0xff000000,
+    0xff3333cc,
+    0xffcc2121,
+    0xff33cc33,
+    0xffcc33cc,
+    0xff33cccc,
+    0xffcccc33,
+    0xff878787,
+    0xff424242,
+    0xff545499,
+    0xff994242,
+    0xff549954,
+    0xff995499,
+    0xff549999,
+    0xff999954,
+    0xffcccccc,
+};
+
+_Static_assert(sizeof(vt340_default_colors) / sizeof(vt340_default_colors[0]) == 16,
+               "wrong number of elements");
 
 void
 sixel_fini(struct terminal *term)
@@ -68,17 +91,27 @@ sixel_init(struct terminal *term, int p1, int p2, int p3)
     term->sixel.image.width = 0;
     term->sixel.image.height = 0;
 
-    /* TODO: default palette */
-
     if (term->sixel.use_private_palette) {
         xassert(term->sixel.private_palette == NULL);
         term->sixel.private_palette = xcalloc(
             term->sixel.palette_size, sizeof(term->sixel.private_palette[0]));
+
+        memcpy(
+            term->sixel.private_palette, vt340_default_colors,
+            min(sizeof(vt340_default_colors),
+                term->sixel.palette_size * sizeof(term->sixel.private_palette[0])));
+
         term->sixel.palette = term->sixel.private_palette;
+
     } else {
         if (term->sixel.shared_palette == NULL) {
             term->sixel.shared_palette = xcalloc(
                 term->sixel.palette_size, sizeof(term->sixel.shared_palette[0]));
+
+            memcpy(
+                term->sixel.shared_palette, vt340_default_colors,
+                min(sizeof(vt340_default_colors),
+                    term->sixel.palette_size * sizeof(term->sixel.shared_palette[0])));
         } else {
             /* Shared palette - do *not* reset palette for new sixels */
         }
