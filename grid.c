@@ -263,8 +263,7 @@ grid_snapshot(const struct grid *grid)
         int original_stride = stride_for_format_and_width(original_pix_fmt, original_width);
 
         size_t original_size = original_stride * original_height;
-        void *new_original_data = xmalloc(original_size);
-        memcpy(new_original_data, it->item.original.data, original_size);
+        void *new_original_data = xmemdup(it->item.original.data, original_size);
 
         pixman_image_t *new_original_pix = pixman_image_create_bits_no_clear(
             original_pix_fmt, original_width, original_height,
@@ -284,8 +283,7 @@ grid_snapshot(const struct grid *grid)
             int scaled_stride = stride_for_format_and_width(scaled_pix_fmt, scaled_width);
 
             size_t scaled_size = scaled_stride * scaled_height;
-            new_scaled_data = xmalloc(scaled_size);
-            memcpy(new_scaled_data, it->item.scaled.data, scaled_size);
+            new_scaled_data = xmemdup(it->item.scaled.data, scaled_size);
 
             new_scaled_pix = pixman_image_create_bits_no_clear(
                 scaled_pix_fmt, scaled_width, scaled_height, new_scaled_data,

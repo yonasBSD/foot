@@ -2902,8 +2902,7 @@ add_default_key_bindings(struct config *conf)
     };
 
     conf->bindings.key.count = ALEN(bindings);
-    conf->bindings.key.arr = xmalloc(sizeof(bindings));
-    memcpy(conf->bindings.key.arr, bindings, sizeof(bindings));
+    conf->bindings.key.arr = xmemdup(bindings, sizeof(bindings));
 }
 
 
@@ -2954,8 +2953,7 @@ add_default_search_bindings(struct config *conf)
     };
 
     conf->bindings.search.count = ALEN(bindings);
-    conf->bindings.search.arr = xmalloc(sizeof(bindings));
-    memcpy(conf->bindings.search.arr, bindings, sizeof(bindings));
+    conf->bindings.search.arr = xmemdup(bindings, sizeof(bindings));
 }
 
 static void
@@ -2970,8 +2968,7 @@ add_default_url_bindings(struct config *conf)
     };
 
     conf->bindings.url.count = ALEN(bindings);
-    conf->bindings.url.arr = xmalloc(sizeof(bindings));
-    memcpy(conf->bindings.url.arr, bindings, sizeof(bindings));
+    conf->bindings.url.arr = xmemdup(bindings, sizeof(bindings));
 }
 
 static void
@@ -2994,8 +2991,7 @@ add_default_mouse_bindings(struct config *conf)
     };
 
     conf->bindings.mouse.count = ALEN(bindings);
-    conf->bindings.mouse.arr = xmalloc(sizeof(bindings));
-    memcpy(conf->bindings.mouse.arr, bindings, sizeof(bindings));
+    conf->bindings.mouse.arr = xmemdup(bindings, sizeof(bindings));
 }
 
 static void NOINLINE
@@ -3388,8 +3384,7 @@ key_binding_list_clone(struct config_key_binding_list *dst,
             if (old->aux.master_copy) {
                 const size_t len = old->aux.text.len;
                 new->aux.text.len = len;
-                new->aux.text.data = xmalloc(len);
-                memcpy(new->aux.text.data, old->aux.text.data, len);
+                new->aux.text.data = xmemdup(old->aux.text.data, len);
 
                 last_master_text_len = len;
                 last_master_text_data = new->aux.text.data;

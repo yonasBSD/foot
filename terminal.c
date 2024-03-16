@@ -51,11 +51,8 @@ static void
 enqueue_data_for_slave(const void *data, size_t len, size_t offset,
                        ptmx_buffer_list_t *buffer_list)
 {
-    void *copy = xmalloc(len);
-    memcpy(copy, data, len);
-
     struct ptmx_buffer queued = {
-        .data = copy,
+        .data = xmemdup(data, len),
         .len = len,
         .idx = offset,
     };

@@ -18,6 +18,12 @@ char *xasprintf(const char *format, ...) PRINTF(1) XMALLOC;
 char *xvasprintf(const char *format, va_list va) VPRINTF(1) XMALLOC;
 char32_t *xc32dup(const char32_t *str) XSTRDUP;
 
+static inline void *
+xmemdup(const void *ptr, size_t size)
+{
+    return memcpy(xmalloc(size), ptr, size);
+}
+
 static inline char *
 xstrjoin(const char *s1, const char *s2)
 {
