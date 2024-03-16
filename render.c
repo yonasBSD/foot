@@ -4604,7 +4604,7 @@ bool
 render_xcursor_set(struct seat *seat, struct terminal *term,
                    enum cursor_shape shape)
 {
-    if (seat->pointer.theme == NULL)
+    if (seat->pointer.theme == NULL && seat->pointer.shape_device == NULL)
         return false;
 
     if (seat->mouse_focus == NULL) {

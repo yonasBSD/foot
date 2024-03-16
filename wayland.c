@@ -1930,6 +1930,11 @@ wayl_reload_xcursor_theme(struct seat *seat, float new_scale)
         seat->pointer.cursor = NULL;
     }
 
+    if (seat->pointer.shape_device != NULL) {
+        /* Using server side cursors */
+        return true;
+    }
+
     int xcursor_size = 24;
 
     {
