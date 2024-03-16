@@ -355,9 +355,9 @@ open_config(void)
 
     /* First, check XDG_CONFIG_HOME (or .config, if unset) */
     if (xdg_config_home != NULL && xdg_config_home[0] != '\0')
-        path = xasprintf("%s/foot/foot.ini", xdg_config_home);
+        path = xstrjoin(xdg_config_home, "/foot/foot.ini");
     else if (home_dir != NULL)
-        path = xasprintf("%s/.config/foot/foot.ini", home_dir);
+        path = xstrjoin(home_dir, "/.config/foot/foot.ini");
 
     if (path != NULL) {
         LOG_DBG("checking for %s", path);
@@ -382,7 +382,7 @@ open_config(void)
          conf_dir = strtok(NULL, ":"))
     {
         free(path);
-        path = xasprintf("%s/foot/foot.ini", conf_dir);
+        path = xstrjoin(conf_dir, "/foot/foot.ini");
 
         LOG_DBG("checking for %s", path);
         int fd = open(path, O_RDONLY | O_CLOEXEC);
@@ -2861,7 +2861,7 @@ get_server_socket_path(void)
 
     const char *wayland_display = getenv("WAYLAND_DISPLAY");
     if (wayland_display == NULL) {
-        return xasprintf("%s/foot.sock", xdg_runtime);
+        return xstrjoin(xdg_runtime, "/foot.sock");
     }
 
     return xasprintf("%s/foot-%s.sock", xdg_runtime, wayland_display);

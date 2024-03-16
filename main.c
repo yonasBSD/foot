@@ -261,7 +261,7 @@ main(int argc, char *const *argv)
             break;
 
         case 't':
-            tll_push_back(overrides, xasprintf("term=%s", optarg));
+            tll_push_back(overrides, xstrjoin("term=", optarg));
             break;
 
         case 'L':
@@ -269,11 +269,11 @@ main(int argc, char *const *argv)
             break;
 
         case 'T':
-            tll_push_back(overrides, xasprintf("title=%s", optarg));
+            tll_push_back(overrides, xstrjoin("title=", optarg));
             break;
 
         case 'a':
-            tll_push_back(overrides, xasprintf("app-id=%s", optarg));
+            tll_push_back(overrides, xstrjoin("app-id=", optarg));
             break;
 
         case 'D': {
@@ -287,7 +287,7 @@ main(int argc, char *const *argv)
         }
 
         case 'f': {
-            char *font_override = xasprintf("font=%s", optarg);
+            char *font_override = xstrjoin("font=", optarg);
             tll_push_back(overrides, font_override);
             break;
         }
