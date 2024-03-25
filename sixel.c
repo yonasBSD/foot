@@ -1385,21 +1385,29 @@ sixel_unhook(struct terminal *term)
     render_refresh(term);
 }
 
-static void
-resize_horizontally(struct terminal *term, int new_width)
+static void ALWAYS_INLINE inline
+memset_u32(uint32_t *data, uint32_t value, size_t count)
 {
-    if (unlikely(new_width > term->sixel.max_width)) {
+    static_assert(sizeof(wchar_t) == 4, "wchar_t is not 4 bytes");
+    wmemset((wchar_t *)data, (wchar_t)value, count);
+}
+
+static void
+resize_horizontally(struct terminal *term, int new_width_mutable)
+{
+    if (unlikely(new_width_mutable > term->sixel.max_width)) {
         LOG_WARN("maximum image dimensions exceeded, truncating");
-        new_width = term->sixel.max_width;
+        new_width_mutable = term->sixel.max_width;
     }
 
-    if (unlikely(term->sixel.image.width == new_width))
+    if (unlikely(term->sixel.image.width == new_width_mutable))
         return;
 
     const int sixel_row_height = 6 * term->sixel.pan;
 
     uint32_t *old_data = term->sixel.image.data;
     const int old_width = term->sixel.image.width;
+    const int new_width = new_width_mutable;
 
     int height;
     if (unlikely(term->sixel.image.height == 0)) {
@@ -1424,13 +1432,13 @@ resize_horizontally(struct terminal *term, int new_width)
     uint32_t bg = term->sixel.default_bg;
 
     /* Copy old rows, and initialize new columns to background color */
-    for (int r = 0; r < height; r++) {
-        memcpy(&new_data[r * new_width],
-               &old_data[r * old_width],
-               old_width * sizeof(uint32_t));
-
-        for (int c = old_width; c < new_width; c++)
-            new_data[r * new_width + c] = bg;
+    const uint32_t *end = &new_data[alloc_height * new_width];
+    for (uint32_t *n = new_data, *o = old_data;
+         n < end;
+         n += new_width, o += old_width)
+    {
+        memcpy(n, o, old_width * sizeof(uint32_t));
+        memset_u32(&n[old_width], bg, new_width - old_width);
     }
 
     free(old_data);
@@ -1443,7 +1451,7 @@ resize_horizontally(struct terminal *term, int new_width)
 }
 
 static bool
-resize_vertically(struct terminal *term, int new_height)
+resize_vertically(struct terminal *term, const int new_height)
 {
     LOG_DBG("resizing image vertically: (%d)x%d -> (%d)x%d",
             term->sixel.image.width, term->sixel.image.height,
@@ -1477,13 +1485,11 @@ resize_vertically(struct terminal *term, int new_height)
         return false;
     }
 
-    uint32_t bg = term->sixel.default_bg;
+    const uint32_t bg = term->sixel.default_bg;
 
-    /* Initialize new rows to background color */
-    for (int r = old_height; r < new_height; r++) {
-        for (int c = 0; c < width; c++)
-            new_data[r * width + c] = bg;
-    }
+    memset_u32(&new_data[old_height * width],
+               bg,
+               (alloc_height - old_height) * width);
 
     term->sixel.image.height = new_height;
     term->sixel.image.alloc_height = alloc_height;
@@ -1498,43 +1504,69 @@ resize_vertically(struct terminal *term, int new_height)
 }
 
 static bool
-resize(struct terminal *term, int new_width, int new_height)
+resize(struct terminal *term, int new_width_mutable, int new_height_mutable)
 {
     LOG_DBG("resizing image: %dx%d -> %dx%d",
             term->sixel.image.width, term->sixel.image.height,
             new_width, new_height);
 
-    if (unlikely(new_width > term->sixel.max_width)) {
+    if (unlikely(new_width_mutable > term->sixel.max_width)) {
         LOG_WARN("maximum image width exceeded, truncating");
-        new_width = term->sixel.max_width;
+        new_width_mutable = term->sixel.max_width;
     }
 
-    if (unlikely(new_height > term->sixel.max_height)) {
+    if (unlikely(new_height_mutable > term->sixel.max_height)) {
         LOG_WARN("maximum image height exceeded, truncating");
-        new_height = term->sixel.max_height;
+        new_height_mutable = term->sixel.max_height;
     }
+
 
     uint32_t *old_data = term->sixel.image.data;
     const int old_width = term->sixel.image.width;
     const int old_height = term->sixel.image.height;
+    const int new_width = new_width_mutable;
+    const int new_height = new_height_mutable;
 
     if (unlikely(old_width == new_width && old_height == new_height))
         return true;
 
     const int sixel_row_height = 6 * term->sixel.pan;
-    int alloc_new_width = new_width;
-    int alloc_new_height = (new_height + sixel_row_height - 1) / sixel_row_height * sixel_row_height;
+    const int alloc_new_height =
+        (new_height + sixel_row_height - 1) / sixel_row_height * sixel_row_height;
+
     xassert(alloc_new_height >= new_height);
     xassert(alloc_new_height - new_height < sixel_row_height);
 
     uint32_t *new_data = NULL;
-    uint32_t bg = term->sixel.default_bg;
+    const uint32_t bg = term->sixel.default_bg;
+
+    /*
+     * If the image is resized horizontally, or if it's opaque, we
+     * need to explicitly initialize the "new" pixels.
+     *
+     * When the image is *not* resized horizontally, we simply do a
+     * realloc(). In this case, there's no need to manually copy the
+     * old pixels. We do however need to initialize the new pixels
+     * since realloc() returns uninitialized memory.
+     *
+     * When the image *is* resized horizontally, we need to allocate
+     * new memory (when the width changes, the stride changes, and
+     * thus we cannot simply realloc())
+     *
+     * If the default background is transparent, the new pixels need
+     * to be initialized to 0x0. We do this by using calloc().
+     *
+     * If the default background is opaque, then we need to manually
+     * initialize the new pixels.
+     */
+    const bool initialize_bg =
+        !term->sixel.transparent_bg || new_width == old_width;
 
     if (new_width == old_width) {
         /* Width (and thus stride) is the same, so we can simply
          * re-alloc the existing buffer */
 
-        new_data = realloc(old_data, alloc_new_width * alloc_new_height * sizeof(uint32_t));
+        new_data = realloc(old_data, new_width * alloc_new_height * sizeof(uint32_t));
         if (new_data == NULL) {
             LOG_ERRNO("failed to reallocate sixel image buffer");
             return false;
@@ -1545,22 +1577,30 @@ resize(struct terminal *term, int new_width, int new_height)
     } else {
         /* Width (and thus stride) change - need to allocate a new buffer */
         xassert(new_width > old_width);
-        new_data = xmalloc(alloc_new_width * alloc_new_height * sizeof(uint32_t));
+        const size_t pixels = new_width * alloc_new_height;
+
+        new_data = !initialize_bg
+            ? xcalloc(pixels, sizeof(uint32_t))
+            : xmalloc(pixels * sizeof(uint32_t));
 
         /* Copy old rows, and initialize new columns to background color */
-        for (int r = 0; r < min(old_height, new_height); r++) {
-            memcpy(&new_data[r * new_width], &old_data[r * old_width], old_width * sizeof(uint32_t));
+        const int row_copy_count = min(old_height, alloc_new_height);
+        const uint32_t *end = &new_data[row_copy_count * new_width];
 
-            for (int c = old_width; c < new_width; c++)
-                new_data[r * new_width + c] = bg;
+        for (uint32_t *n = new_data, *o = old_data;
+             n < end;
+             n += new_width, o += old_width)
+        {
+            memcpy(n, o, old_width * sizeof(uint32_t));
+            memset_u32(&n[old_width], bg, new_width - old_width);
         }
         free(old_data);
     }
 
-    /* Initialize new rows to background color */
-    for (int r = old_height; r < new_height; r++) {
-        for (int c = 0; c < new_width; c++)
-            new_data[r * new_width + c] = bg;
+    if (initialize_bg) {
+        memset_u32(&new_data[old_height * new_width],
+                   bg,
+                   (alloc_new_height - old_height) * new_width);
     }
 
     xassert(new_data != NULL);
