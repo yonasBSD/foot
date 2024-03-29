@@ -120,6 +120,8 @@
 * `1004` (enable focus in/out events) removed from the `XM` terminfo
   capability. To enable focus in/out, use the `fe` and `fd`
   capabilities instead.
+* Tightened the regular expression in the `rv` terminfo capability.
+* Tightened the regular expression in the `xr` terminfo capability.
 
 [1526]: https://codeberg.org/dnkl/foot/issues/1526
 [1528]: https://codeberg.org/dnkl/foot/issues/1528
