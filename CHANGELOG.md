@@ -69,6 +69,8 @@
 * Rectangular edit functions: `DECCARA`, `DECRARA`, `DECCRA`, `DECFRA`
   and `DECERA` ([#1633][1633]).
 * `Rect` capability to terminfo.
+* `fe` and `fd` (focus in/out enable/disable) capabilities to
+  terminfo.
 
 [1348]: https://codeberg.org/dnkl/foot/issues/1348
 [1633]: https://codeberg.org/dnkl/foot/issues/1633
@@ -114,6 +116,9 @@
   last sixel ([#chafa-192][chafa-192]).
 * Sixel: trailing, fully transparent rows are now trimmed
   ([#chafa-192][chafa-192]).
+* `1004` (enable focus in/out events) removed from the `XM` terminfo
+  capability. To enable focus in/out, use the `fe` and `fd`
+  capabilities instead.
 
 [1526]: https://codeberg.org/dnkl/foot/issues/1526
 [1528]: https://codeberg.org/dnkl/foot/issues/1528
