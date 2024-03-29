@@ -71,6 +71,7 @@
 * `Rect` capability to terminfo.
 * `fe` and `fd` (focus in/out enable/disable) capabilities to
   terminfo.
+* `nel` capability to terminfo.
 
 [1348]: https://codeberg.org/dnkl/foot/issues/1348
 [1633]: https://codeberg.org/dnkl/foot/issues/1633
