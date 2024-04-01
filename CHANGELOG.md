@@ -64,8 +64,6 @@
 * Support for OSC-176, _"Set App-ID"_
   (https://gist.github.com/delthas/d451e2cc1573bb2364839849c7117239).
 * Support for `DECRQM` queries with ANSI/ECMA-48 modes (`CSI Ps $ p`).
-* `DECRQM` queries for private mode 67 ([`DECBKM`]) now reply with mode
-  value 4 ("permanently reset") instead of 0 ("not recognized").
 * Rectangular edit functions: `DECCARA`, `DECRARA`, `DECCRA`, `DECFRA`
   and `DECERA` ([#1633][1633]).
 * `Rect` capability to terminfo.
@@ -122,6 +120,8 @@
   capabilities instead.
 * Tightened the regular expression in the `rv` terminfo capability.
 * Tightened the regular expression in the `xr` terminfo capability.
+* `DECRQM` queries for private mode 67 ([`DECBKM`]) now reply with mode
+  value 4 ("permanently reset") instead of 0 ("not recognized").
 
 [1526]: https://codeberg.org/dnkl/foot/issues/1526
 [1528]: https://codeberg.org/dnkl/foot/issues/1528
