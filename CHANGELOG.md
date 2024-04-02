@@ -1,6 +1,6 @@
 # Changelog
 
-* [Unreleased](#unreleased)
+* [1.17.0](#1-17-0)
 * [1.16.2](#1-16-2)
 * [1.16.1](#1-16-1)
 * [1.16.0](#1-16-0)
@@ -49,7 +49,8 @@
 * [1.2.0](#1-2-0)
 
 
-## Unreleased
+## 1.17.0
+
 ### Added
 
 - Support for opening an existing PTY, e.g. a VM console.
@@ -75,6 +76,7 @@
 [1633]: https://codeberg.org/dnkl/foot/issues/1633
 [1564]: https://codeberg.org/dnkl/foot/pulls/1564
 [`DECBKM`]: https://vt100.net/docs/vt510-rm/DECBKM.html
+
 
 ### Changed
 
@@ -132,8 +134,6 @@
 [chafa-192]: https://github.com/hpjansson/chafa/issues/192
 
 
-### Deprecated
-### Removed
 ### Fixed
 
 * config: improved validation of color values.
@@ -172,8 +172,23 @@
 [1624]: https://codeberg.org/dnkl/foot/issues/1624
 
 
-### Security
 ### Contributors
+
+* Alyssa Ross
+* Andrew J. Hesford
+* Artturin
+* Craig Barnes
+* delthas
+* eugenrh
+* Fazzi
+* Gregory Anders
+* Jan Palus
+* Leonardo Hernández Hernández
+* LmbMaxim
+* Matheus Afonso Martins Moreira
+* Sivecano
+* Tim Culverhouse
+* xnuk
 
 
 ## 1.16.2
