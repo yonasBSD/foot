@@ -1539,10 +1539,36 @@ fdm_terminate_timeout(struct fdm *fdm, int fd, int events, void *data)
     struct terminal *term = data;
     xassert(!term->shutdown.client_has_terminated);
 
-    LOG_DBG("slave (PID=%u) has not terminated, sending SIGKILL (%d)",
-            term->slave, SIGKILL);
+    LOG_DBG("slave (PID=%u) has not terminated, sending %s (%d)",
+            term->slave,
+            term->shutdown.next_signal == SIGTERM ? "SIGTERM"
+                : term->shutdown.next_signal == SIGKILL ? "SIGKILL"
+                    : "<unknown>",
+            term->shutdown.next_signal);
 
-    kill(-term->slave, SIGKILL);
+    kill(-term->slave, term->shutdown.next_signal);
+
+    switch (term->shutdown.next_signal) {
+    case SIGTERM:
+        term->shutdown.next_signal = SIGKILL;
+        break;
+
+    case SIGKILL:
+        /* Disarm. Shouldn't be necessary, as we should be able to
+           shutdown completely after sending SIGKILL, before the next
+           timeout occurs). But lets play it safe... */
+        if (term->shutdown.terminate_timeout_fd >= 0) {
+            timerfd_settime(
+                term->shutdown.terminate_timeout_fd, 0,
+                &(const struct itimerspec){0}, NULL);
+        }
+        break;
+
+    default:
+        BUG("can only handle SIGTERM and SIGKILL");
+        return false;
+    }
+
     return true;
 }
 
@@ -1583,11 +1609,18 @@ term_shutdown(struct terminal *term)
             term->shutdown.client_has_terminated = true;
         } else {
             LOG_DBG("initiating asynchronous terminate of slave; "
-                    "sending SIGTERM to PID=%u", term->slave);
+                    "sending SIGHUP to PID=%u", term->slave);
 
-            kill(-term->slave, SIGTERM);
+            kill(-term->slave, SIGHUP);
 
-            const struct itimerspec timeout = {.it_value = {.tv_sec = 60}};
+            /*
+             * Set up a timer, with an interval - on the first timeout
+             * we'll send SIGTERM. If the the client application still
+             * isn't terminating, we'll wait an additional interval,
+             * and then send SIGKILL.
+             */
+            const struct itimerspec timeout = {.it_value = {.tv_sec = 30},
+                                               .it_interval = {.tv_sec = 30}};
 
             int timeout_fd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC | TFD_NONBLOCK);
             if (timeout_fd < 0 ||
@@ -1602,6 +1635,7 @@ term_shutdown(struct terminal *term)
 
             xassert(term->shutdown.terminate_timeout_fd < 0);
             term->shutdown.terminate_timeout_fd = timeout_fd;
+            term->shutdown.next_signal = SIGTERM;
         }
     }
 
@@ -1784,9 +1818,9 @@ term_destroy(struct terminal *term)
             exit_status = term->shutdown.exit_status;
         else {
             LOG_DBG("initiating blocking terminate of slave; "
-                    "sending SIGTERM to PID=%u", term->slave);
+                    "sending SIGHUP to PID=%u", term->slave);
 
-            kill(-term->slave, SIGTERM);
+            kill(-term->slave, SIGHUP);
 
             /*
              * we've closed the ptxm, and sent SIGTERM to the client
@@ -1807,7 +1841,12 @@ term_destroy(struct terminal *term)
             struct sigaction action = {.sa_handler = &sig_alarm};
             sigemptyset(&action.sa_mask);
             sigaction(SIGALRM, &action, NULL);
-            alarm(60);
+
+            /* Wait, then send SIGTERM, wait again, then send SIGKILL */
+            int next_signal = SIGTERM;
+
+            alarm_raised = 0;
+            alarm(30);
 
             while (true) {
                 int r = waitpid(term->slave, &exit_status, 0);
@@ -1819,11 +1858,16 @@ term_destroy(struct terminal *term)
                     xassert(errno == EINTR);
 
                     if (alarm_raised) {
-                        LOG_DBG(
-                            "slave (PID=%u) has not terminate yet, "
-                            "sending: SIGKILL (%d)", term->slave, SIGKILL);
+                        LOG_DBG("slave (PID=%u) has not terminated yet, "
+                                "sending: %s (%d)", term->slave,
+                                next_signal == SIGTERM ? "SIGTERM" : "SIGKILL",
+                                next_signal);
 
-                        kill(-term->slave, SIGKILL);
+                        kill(-term->slave, next_signal);
+                        next_signal = SIGKILL;
+
+                        alarm_raised = 0;
+                        alarm(30);
                     }
                 }
             }

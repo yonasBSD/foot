@@ -723,6 +723,7 @@ struct terminal {
         bool client_has_terminated;
         int terminate_timeout_fd;
         int exit_status;
+        int next_signal;
 
         void (*cb)(void *data, int exit_code);
         void *cb_data;

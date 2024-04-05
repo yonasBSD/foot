@@ -61,6 +61,9 @@
 * Regression: terminal shutting down when the PTY is closed by the
   client application, which may be earlier than when the client
   application exits ([#1666][1666]).
+* When closing the window, send `SIGHUP` to the client application,
+  before sending `SIGTERM`. The signal sequence is now `SIGHUP`, wait,
+  `SIGTERM`, wait `SIGKILL`.
 
 [1666]: https://codeberg.org/dnkl/foot/issues/1666
 
