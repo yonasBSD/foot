@@ -56,6 +56,10 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* Log-level not respected by syslog.
+
+
 ### Security
 ### Contributors
 
