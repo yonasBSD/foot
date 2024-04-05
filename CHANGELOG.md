@@ -58,6 +58,11 @@
 ### Fixed
 
 * Log-level not respected by syslog.
+* Regression: terminal shutting down when the PTY is closed by the
+  client application, which may be earlier than when the client
+  application exits ([#1666][1666]).
+
+[1666]: https://codeberg.org/dnkl/foot/issues/1666
 
 
 ### Security

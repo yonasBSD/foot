@@ -364,8 +364,20 @@ fdm_ptmx(struct fdm *fdm, int fd, int events, void *data)
         del_utmp_record(term->conf, term->reaper, term->ptmx);
         fdm_del(fdm, fd);
         term->ptmx = -1;
-        if (!term->conf->hold_at_exit)
+
+        /*
+         * Normally, we do *not* want to shutdown when the PTY is
+         * closed. Instead, we want to wait for the client application
+         * to exit.
+         *
+         * However, when we're using a pre-existing PTY (the --pty
+         * option), there _is_ no client application. That is, foot
+         * does *not* fork+exec anything, and thus the only way to
+         * shutdown is to wait for the PTY to be closed.
+         */
+        if (term->slave < 0 && !term->conf->hold_at_exit) {
             term_shutdown(term);
+        }
     }
 
     return true;
