@@ -304,7 +304,7 @@ when starting your Wayland compositor (i.e. logging in to your
 desktop), and then run `footclient` instead of `foot` whenever you
 want to launch a new terminal.
 
-Foot support socket activation, which means `foot --server` will only be
+Foot supports socket activation, which means `foot --server` will only be
 started the first time you'll run `footclient`. (systemd user units are
 included, but it can work with other supervision suites).
 
