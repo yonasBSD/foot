@@ -2125,7 +2125,7 @@ term_fractional_scaling(const struct terminal *term)
 bool
 term_preferred_buffer_scale(const struct terminal *term)
 {
-    return term->wl->has_wl_compositor_v6;
+    return term->wl->has_wl_compositor_v6 && term->window->preferred_buffer_scale > 0;
 }
 
 bool
