@@ -52,6 +52,13 @@
 
 ## Unreleased
 ### Added
+
+* `cursor.unfocused-style=unchanged|hollow|none` to `foot.ini`. The
+  default is `hollow` ([#1582][1582]).
+
+[1582]: https://codeberg.org/dnkl/foot/issues/1582
+
+
 ### Changed
 ### Deprecated
 ### Removed

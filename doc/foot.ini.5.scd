@@ -500,6 +500,15 @@ applications can change these at runtime.
 	*beam* or *underline*. Note that this can be overridden by
 	applications. Default: _block_.
 
+*unfocused-style*
+	Configures how the cursor is rendered when the terminal window is
+	unfocused. Possible values are:
+	
+	- unchanged: render cursor in exactly the same way as when the
+	  window has focus.
+	- hollow: render a block cursor, but hollowed out.
+	- none: do not display any cursor at all.
+
 *blink*
 	Boolean. Enables blinking cursor. Note that this can be overridden
 	by applications. Default: _no_.

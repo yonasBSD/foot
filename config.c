@@ -1383,6 +1383,16 @@ parse_section_cursor(struct context *ctx)
             (int *)&conf->cursor.style);
     }
 
+    else if (streq(key, "unfocused-style")) {
+        _Static_assert(sizeof(conf->cursor.unfocused_style) == sizeof(int),
+                       "enum is not 32-bit");
+
+        return value_to_enum(
+            ctx,
+            (const char *[]){"unchanged", "hollow", "none", NULL},
+            (int *)&conf->cursor.unfocused_style);
+    }
+
     else if (streq(key, "blink"))
         return value_to_bool(ctx, &conf->cursor.blink);
 
@@ -3090,6 +3100,7 @@ config_load(struct config *conf, const char *conf_path,
 
         .cursor = {
             .style = CURSOR_BLOCK,
+            .unfocused_style = CURSOR_UNFOCUSED_HOLLOW,
             .blink = false,
             .color = {
                 .text = 0,
