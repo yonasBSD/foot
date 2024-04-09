@@ -37,6 +37,7 @@ The fast, lightweight and minimalistic Wayland terminal emulator.
 1. [Programmatically checking if running in foot](#programmatically-checking-if-running-in-foot)
 1. [XTGETTCAP](#xtgettcap)
 1. [Credits](#Credits)
+1. [Code of Conduct](#code-of-conduct)
 1. [Bugs](#bugs)
 1. [Contact](#contact)
    1. [IRC](#irc)
@@ -642,6 +643,11 @@ queried capabilities are **always** sent. No queries are ever dropped.
 
 * [Ordoviz](https://codeberg.org/Ordoviz), for designing and
 contributing foot's [logo](icons/hicolor/48x48/apps/foot.png).
+
+
+# Code of Conduct
+
+See [Code of Conduct](CODE_OF_CONDUCT.md)
 
 
 # Bugs
