@@ -239,7 +239,7 @@ decrqss_put(struct terminal *term, uint8_t c)
         return;
 
     struct vt *vt = &term->vt;
-    if (vt->dcs.idx > 2)
+    if (vt->dcs.idx >= 2)
         return;
     vt->dcs.data[vt->dcs.idx++] = c;
 }

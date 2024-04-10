@@ -64,6 +64,8 @@
 * When closing the window, send `SIGHUP` to the client application,
   before sending `SIGTERM`. The signal sequence is now `SIGHUP`, wait,
   `SIGTERM`, wait `SIGKILL`.
+* Crash when receiving a `DECRQSS` request with more than 2 bytes in
+  the `q` parameter.
 
 [1666]: https://codeberg.org/dnkl/foot/issues/1666
 
