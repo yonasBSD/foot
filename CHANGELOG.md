@@ -55,8 +55,10 @@
 
 * `cursor.unfocused-style=unchanged|hollow|none` to `foot.ini`. The
   default is `hollow` ([#1582][1582]).
+* New key binding: `quit` ([#1475][1475]).
 
 [1582]: https://codeberg.org/dnkl/foot/issues/1582
+[1475]: https://codeberg.org/dnkl/foot/issues/1475
 
 
 ### Changed

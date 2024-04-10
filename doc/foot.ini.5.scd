@@ -925,6 +925,9 @@ e.g. *search-start=none*.
 	
 	Default: _Control+Shift+u_.
 
+*quit*
+	Quit foot. Default: _none_.
+
 # SECTION: search-bindings
 
 This section lets you override the default key bindings used in

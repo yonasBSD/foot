@@ -444,6 +444,10 @@ execute_binding(struct seat *seat, struct terminal *term,
         unicode_mode_activate(seat);
         return true;
 
+    case BIND_ACTION_QUIT:
+        term_shutdown(term);
+        return true;
+
     case BIND_ACTION_SELECT_BEGIN:
         selection_start(
             term, seat->mouse.col, seat->mouse.row, SELECTION_CHAR_WISE, false);

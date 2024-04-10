@@ -119,6 +119,7 @@ static const char *const binding_action_map[] = {
     [BIND_ACTION_PROMPT_PREV] = "prompt-prev",
     [BIND_ACTION_PROMPT_NEXT] = "prompt-next",
     [BIND_ACTION_UNICODE_INPUT] = "unicode-input",
+    [BIND_ACTION_QUIT] = "quit",
 
     /* Mouse-specific actions */
     [BIND_ACTION_SCROLLBACK_UP_MOUSE] = "scrollback-up-mouse",
