@@ -305,8 +305,8 @@ color_brighten(const struct terminal *term, uint32_t color)
 }
 
 static void
-draw_unfocused_block(const struct terminal *term, pixman_image_t *pix,
-                     const pixman_color_t *color, int x, int y, int cell_cols)
+draw_hollow_block(const struct terminal *term, pixman_image_t *pix,
+                  const pixman_color_t *color, int x, int y, int cell_cols)
 {
     const int scale = (int)roundf(term->scale);
     const int width = min(min(scale, term->cell_width), term->cell_height);
@@ -429,10 +429,23 @@ draw_cursor(const struct terminal *term, const struct cell *cell,
 
     switch (term->cursor_style) {
     case CURSOR_BLOCK:
-        if (unlikely(!term->kbd_focus))
-            draw_unfocused_block(term, pix, &cursor_color, x, y, cols);
+        if (unlikely(!term->kbd_focus)) {
+            switch (term->conf->cursor.unfocused_style) {
+            case CURSOR_UNFOCUSED_UNCHANGED:
+                break;
 
-        else if (likely(term->cursor_blink.state == CURSOR_BLINK_ON)) {
+            case CURSOR_UNFOCUSED_HOLLOW:
+                draw_hollow_block(term, pix, fg, x, y, cols);
+                return;
+
+            case CURSOR_UNFOCUSED_NONE:
+                return;
+            }
+        }
+
+        if (likely(term->cursor_blink.state == CURSOR_BLINK_ON) ||
+            !term->kbd_focus)
+        {
             *fg = text_color;
             pixman_image_fill_rectangles(
                 PIXMAN_OP_SRC, pix, &cursor_color, 1,
@@ -1513,7 +1526,7 @@ render_ime_preedit_for_seat(struct terminal *term, struct seat *seat,
             /* Hollow cursor */
             if (start >= 0 && end <= term->cols) {
                 int cols = end - start;
-                draw_unfocused_block(term, buf->pix[0], &cursor_color, x, y, cols);
+                draw_hollow_block(term, buf->pix[0], &cursor_color, x, y, cols);
             }
 
             term_ime_set_cursor_rect(
@@ -3373,7 +3386,7 @@ render_search_box(struct terminal *term)
 
                     /* TODO: how do we handle a partially hidden rectangle? */
                     if (start >= 0 && end <= visible_cells) {
-                        draw_unfocused_block(
+                        draw_hollow_block(
                             term, buf->pix[0], &fg, x + start * term->cell_width, y, end - start);
                     }
                     term_ime_set_cursor_rect(term,

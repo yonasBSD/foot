@@ -1,5 +1,6 @@
 # Changelog
 
+* [Unreleased](#unreleased)
 * [1.17.0](#1-17-0)
 * [1.16.2](#1-16-2)
 * [1.16.1](#1-16-1)
@@ -47,6 +48,39 @@
 * [1.2.2](#1-2-2)
 * [1.2.1](#1-2-1)
 * [1.2.0](#1-2-0)
+
+
+## Unreleased
+### Added
+
+* `cursor.unfocused-style=unchanged|hollow|none` to `foot.ini`. The
+  default is `hollow` ([#1582][1582]).
+* New key binding: `quit` ([#1475][1475]).
+
+[1582]: https://codeberg.org/dnkl/foot/issues/1582
+[1475]: https://codeberg.org/dnkl/foot/issues/1475
+
+
+### Changed
+### Deprecated
+### Removed
+### Fixed
+
+* Log-level not respected by syslog.
+* Regression: terminal shutting down when the PTY is closed by the
+  client application, which may be earlier than when the client
+  application exits ([#1666][1666]).
+* When closing the window, send `SIGHUP` to the client application,
+  before sending `SIGTERM`. The signal sequence is now `SIGHUP`, wait,
+  `SIGTERM`, wait `SIGKILL`.
+* Crash when receiving a `DECRQSS` request with more than 2 bytes in
+  the `q` parameter.
+
+[1666]: https://codeberg.org/dnkl/foot/issues/1666
+
+
+### Security
+### Contributors
 
 
 ## 1.17.0

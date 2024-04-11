@@ -1738,10 +1738,6 @@ wayl_win_init(struct terminal *term, const char *token)
             win->fractional_scale, &fractional_scale_listener, win);
     }
 
-    if (wayl->has_wl_compositor_v6) {
-        win->preferred_buffer_scale = 1;
-    }
-
     win->xdg_surface = xdg_wm_base_get_xdg_surface(wayl->shell, win->surface.surf);
     xdg_surface_add_listener(win->xdg_surface, &xdg_surface_listener, win);
 

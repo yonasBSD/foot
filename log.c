@@ -105,6 +105,9 @@ _sys_log(enum log_class log_class, const char *module,
     if (!do_syslog)
         return;
 
+    if (log_class > log_level)
+        return;
+
     /* Map our log level to syslog's level */
     int level = log_level_map[log_class].syslog_equivalent;
 

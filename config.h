@@ -28,6 +28,11 @@ struct font_size_adjustment {
 };
 
 enum cursor_style { CURSOR_BLOCK, CURSOR_UNDERLINE, CURSOR_BEAM };
+enum cursor_unfocused_style {
+    CURSOR_UNFOCUSED_UNCHANGED,
+    CURSOR_UNFOCUSED_HOLLOW,
+    CURSOR_UNFOCUSED_NONE
+};
 
 enum conf_size_type {CONF_SIZE_PX, CONF_SIZE_CELLS};
 
@@ -256,6 +261,7 @@ struct config {
 
     struct {
         enum cursor_style style;
+        enum cursor_unfocused_style unfocused_style;
         bool blink;
         struct {
             uint32_t text;

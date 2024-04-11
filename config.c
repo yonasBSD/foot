@@ -119,6 +119,7 @@ static const char *const binding_action_map[] = {
     [BIND_ACTION_PROMPT_PREV] = "prompt-prev",
     [BIND_ACTION_PROMPT_NEXT] = "prompt-next",
     [BIND_ACTION_UNICODE_INPUT] = "unicode-input",
+    [BIND_ACTION_QUIT] = "quit",
 
     /* Mouse-specific actions */
     [BIND_ACTION_SCROLLBACK_UP_MOUSE] = "scrollback-up-mouse",
@@ -1381,6 +1382,16 @@ parse_section_cursor(struct context *ctx)
             ctx,
             (const char *[]){"block", "underline", "beam", NULL},
             (int *)&conf->cursor.style);
+    }
+
+    else if (streq(key, "unfocused-style")) {
+        _Static_assert(sizeof(conf->cursor.unfocused_style) == sizeof(int),
+                       "enum is not 32-bit");
+
+        return value_to_enum(
+            ctx,
+            (const char *[]){"unchanged", "hollow", "none", NULL},
+            (int *)&conf->cursor.unfocused_style);
     }
 
     else if (streq(key, "blink"))
@@ -3090,6 +3101,7 @@ config_load(struct config *conf, const char *conf_path,
 
         .cursor = {
             .style = CURSOR_BLOCK,
+            .unfocused_style = CURSOR_UNFOCUSED_HOLLOW,
             .blink = false,
             .color = {
                 .text = 0,
