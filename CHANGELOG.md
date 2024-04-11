@@ -1,6 +1,6 @@
 # Changelog
 
-* [Unreleased](#unreleased)
+* [1.17.1](#1-17-1)
 * [1.17.0](#1-17-0)
 * [1.16.2](#1-16-2)
 * [1.16.1](#1-16-1)
@@ -50,7 +50,8 @@
 * [1.2.0](#1-2-0)
 
 
-## Unreleased
+## 1.17.1
+
 ### Added
 
 * `cursor.unfocused-style=unchanged|hollow|none` to `foot.ini`. The
@@ -61,9 +62,6 @@
 [1475]: https://codeberg.org/dnkl/foot/issues/1475
 
 
-### Changed
-### Deprecated
-### Removed
 ### Fixed
 
 * Log-level not respected by syslog.
@@ -79,8 +77,12 @@
 [1666]: https://codeberg.org/dnkl/foot/issues/1666
 
 
-### Security
 ### Contributors
+
+* Holger Weiß
+* izmyname
+* Marcin Puc
+* tunjan
 
 
 ## 1.17.0
