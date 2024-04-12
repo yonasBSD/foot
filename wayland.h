@@ -430,8 +430,6 @@ struct wayland {
     struct wl_subcompositor *sub_compositor;
     struct wl_shm *shm;
 
-    bool has_wl_compositor_v6;
-
     struct zxdg_output_manager_v1 *xdg_output_manager;
 
     struct xdg_wm_base *shell;
