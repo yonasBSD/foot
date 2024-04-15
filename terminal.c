@@ -3680,10 +3680,12 @@ term_print(struct terminal *term, char32_t wc, int width)
         grid_row_uri_range_erase(row, col, col + width - 1);
 
     /* Advance cursor the 'additional' columns while dirty:ing the cells */
-    for (int i = 1; i < width && col < term->cols; i++) {
+    for (int i = 1; i < width && (col + 1) < term->cols; i++) {
         col++;
         print_spacer(term, col, width - i);
     }
+
+    xassert(col < term->cols);
 
     /* Advance cursor */
     if (unlikely(++col >= term->cols)) {
@@ -3726,6 +3728,7 @@ ascii_printer_fast(struct terminal *term, char32_t wc)
 
     /* Advance cursor */
     if (unlikely(++col >= term->cols)) {
+        xassert(col == term->cols);
         grid->cursor.lcf = true;
         col--;
     } else
