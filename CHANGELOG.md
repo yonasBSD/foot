@@ -62,6 +62,9 @@
 ### Removed
 ### Fixed
 
+* Crash when changing aspect ratio of a sixel, in the middle of the
+  sixel data (this is unsupported in foot, but should of course not
+  result in a crash).
 * Crash when printing double-width (or longer) characters to, or near,
   the last column, when auto-wrap (private mode 7) has been disabled.
 * Dynamically sized sixel being trimmed to nothing.
