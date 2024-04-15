@@ -524,6 +524,19 @@ osc_notify(struct terminal *term, char *string)
     const char *title = strtok_r(string, ";", &ctx);
     const char *msg = strtok_r(NULL, "\x00", &ctx);
 
+    if (title == NULL)
+        return;
+
+    if (mbsntoc32(NULL, title, strlen(title), 0) == (char32_t)-1) {
+        LOG_WARN("%s: notification title is not valid UTF-8, ignoring", title);
+        return;
+    }
+
+    if (msg != NULL && mbsntoc32(NULL, msg, strlen(msg), 0) == (char32_t)-1) {
+        LOG_WARN("%s: notification message is not valid UTF-8, ignoring", msg);
+        return;
+    }
+
     notify_notify(term, title, msg != NULL ? msg : "");
 }
 

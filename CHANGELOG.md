@@ -54,6 +54,10 @@
 ## Unreleased
 ### Added
 ### Changed
+
+* Notifications with invalid UTF-8 strings are now ignored.
+
+
 ### Deprecated
 ### Removed
 ### Fixed
