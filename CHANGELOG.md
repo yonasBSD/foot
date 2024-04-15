@@ -64,6 +64,9 @@
 
 * Crash when printing double-width (or longer) characters to, or near,
   the last column, when auto-wrap (private mode 7) has been disabled.
+* Dynamically sized sixel being trimmed to nothing.
+
+
 ### Security
 ### Contributors
 
