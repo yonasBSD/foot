@@ -1096,7 +1096,6 @@ handle_global(void *data, struct wl_registry *registry,
 
 #if defined (WL_SURFACE_PREFERRED_BUFFER_SCALE_SINCE_VERSION)
         const uint32_t preferred = WL_SURFACE_PREFERRED_BUFFER_SCALE_SINCE_VERSION;
-        wayl->has_wl_compositor_v6 = version >= WL_SURFACE_PREFERRED_BUFFER_SCALE_SINCE_VERSION;
 #else
         const uint32_t preferred = required;
 #endif

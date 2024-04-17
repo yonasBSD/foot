@@ -1,5 +1,6 @@
 # Changelog
 
+* [Unreleased](#unreleased)
 * [1.17.1](#1-17-1)
 * [1.17.0](#1-17-0)
 * [1.16.2](#1-16-2)
@@ -48,6 +49,32 @@
 * [1.2.2](#1-2-2)
 * [1.2.1](#1-2-1)
 * [1.2.0](#1-2-0)
+
+
+## Unreleased
+### Added
+### Changed
+
+* Notifications with invalid UTF-8 strings are now ignored.
+
+
+### Deprecated
+### Removed
+### Fixed
+
+* Crash when changing aspect ratio of a sixel, in the middle of the
+  sixel data (this is unsupported in foot, but should of course not
+  result in a crash).
+* Crash when printing double-width (or longer) characters to, or near,
+  the last column, when auto-wrap (private mode 7) has been disabled.
+* Dynamically sized sixel being trimmed to nothing.
+* Flickering with `dpi-aware=yes` and window is unmapped/remapped
+  (some compositors do this when window is minimized), in a
+  multi-monitor setup with different monitor DPIs.
+
+
+### Security
+### Contributors
 
 
 ## 1.17.1

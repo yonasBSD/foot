@@ -1,11 +1,14 @@
+# -*- yaml -*-
+
 steps:
   - name: codespell
     when:
-      branch:
-        - master
-        - releases/*
+      - event: [manual, pull_request]
+      - event: [push, tag]
+        branch: [master, releases/*]
     image: alpine:edge
     commands:
+      - apk add openssl
       - apk add python3
       - apk add py3-pip
       - python3 -m venv codespell-venv
@@ -16,9 +19,9 @@ steps:
 
   - name: subprojects
     when:
-      branch:
-        - master
-        - releases/*
+      - event: [manual, pull_request]
+      - event: [push, tag]
+        branch: [master, releases/*]
     image: alpine:edge
     commands:
       - apk add git
@@ -29,9 +32,9 @@ steps:
 
   - name: x64
     when:
-      branch:
-        - master
-        - releases/*
+      - event: [manual, pull_request]
+      - event: [push, tag]
+        branch: [master, releases/*]
     depends_on: [subprojects]
     image: alpine:edge
     commands:
@@ -86,9 +89,9 @@ steps:
 
   - name: x86
     when:
-      branch:
-        - master
-        - releases/*
+      - event: [manual, pull_request]
+      - event: [push, tag]
+        branch: [master, releases/*]
     depends_on: [subprojects]
     image: i386/alpine:edge
     commands:

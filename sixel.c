@@ -1400,7 +1400,7 @@ resize_horizontally(struct terminal *term, int new_width_mutable)
         new_width_mutable = term->sixel.max_width;
     }
 
-    if (unlikely(term->sixel.image.width == new_width_mutable))
+    if (unlikely(term->sixel.image.width >= new_width_mutable))
         return;
 
     const int sixel_row_height = 6 * term->sixel.pan;
@@ -1414,6 +1414,7 @@ resize_horizontally(struct terminal *term, int new_width_mutable)
         /* Lazy initialize height on first printed sixel */
         xassert(old_width == 0);
         term->sixel.image.height = height = sixel_row_height;
+        term->sixel.image.alloc_height = sixel_row_height;
     } else
         height = term->sixel.image.height;
 
@@ -1423,6 +1424,7 @@ resize_horizontally(struct terminal *term, int new_width_mutable)
 
     int alloc_height = (height + sixel_row_height - 1) / sixel_row_height * sixel_row_height;
 
+    xassert(new_width >= old_width);
     xassert(new_width > 0);
     xassert(alloc_height > 0);
 
@@ -1474,6 +1476,7 @@ resize_vertically(struct terminal *term, const int new_height)
     if (unlikely(width == 0)) {
         xassert(term->sixel.image.data == NULL);
         term->sixel.image.height = new_height;
+        term->sixel.image.alloc_height = alloc_height;
         return true;
     }
 
@@ -1508,7 +1511,7 @@ resize(struct terminal *term, int new_width_mutable, int new_height_mutable)
 {
     LOG_DBG("resizing image: %dx%d -> %dx%d",
             term->sixel.image.width, term->sixel.image.height,
-            new_width, new_height);
+            new_width_mutable, new_height_mutable);
 
     if (unlikely(new_width_mutable > term->sixel.max_width)) {
         LOG_WARN("maximum image width exceeded, truncating");
@@ -1849,11 +1852,31 @@ decgra(struct terminal *term, uint8_t c)
         pan = pan > 0 ? pan : 1;
         pad = pad > 0 ? pad : 1;
 
+        if (likely(term->sixel.image.width == 0 &&
+                   term->sixel.image.height == 0))
+        {
+            term->sixel.pan = pan;
+            term->sixel.pad = pad;
+        } else {
+            /*
+             * Unsure what the VT340 does...
+             *
+             * We currently do *not* handle changing pan/pad in the
+             * middle of a sixel, since that means resizing/stretching
+             * the existing image.
+             *
+             * I'm *guessing* the VT340 simply changes the aspect
+             * ratio of all subsequent sixels. But, given the design
+             * of our implementation (the entire sixel is written to a
+             * single pixman image), we can't easily do that.
+             */
+            LOG_WARN("sixel: unsupported: pan/pad changed after printing sixels");
+            pan = term->sixel.pan;
+            pad = term->sixel.pad;
+        }
+
         pv *= pan;
         ph *= pad;
-
-        term->sixel.pan = pan;
-        term->sixel.pad = pad;
 
         LOG_DBG("pan=%u, pad=%u (aspect ratio = %d:%d), size=%ux%u",
                 pan, pad, pan, pad, ph, pv);
