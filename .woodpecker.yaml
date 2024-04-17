@@ -1,3 +1,5 @@
+# -*- yaml -*-
+
 steps:
   - name: codespell
     when:
@@ -6,6 +8,7 @@ steps:
         - releases/*
     image: alpine:edge
     commands:
+      - apk add openssl
       - apk add python3
       - apk add py3-pip
       - python3 -m venv codespell-venv
