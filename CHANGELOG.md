@@ -68,6 +68,9 @@
 * Crash when printing double-width (or longer) characters to, or near,
   the last column, when auto-wrap (private mode 7) has been disabled.
 * Dynamically sized sixel being trimmed to nothing.
+* Flickering with `dpi-aware=yes` and window is unmapped/remapped
+  (some compositors do this when window is minimized), in a
+  multi-monitor setup with different monitor DPIs.
 
 
 ### Security

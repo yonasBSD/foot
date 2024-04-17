@@ -406,6 +406,7 @@ struct terminal {
     struct config_font *font_sizes[4];
     struct pt_or_px font_line_height;
     float font_dpi;
+    float font_dpi_before_unmap;
     bool font_is_sized_by_dpi;
     int16_t font_x_ofs;
     int16_t font_y_ofs;

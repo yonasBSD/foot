@@ -858,9 +858,25 @@ get_font_dpi(const struct terminal *term)
     xassert(tll_length(term->wl->monitors) > 0);
 
     const struct wl_window *win = term->window;
-    const struct monitor *mon = tll_length(win->on_outputs) > 0
-        ? tll_back(win->on_outputs)
-        : &tll_front(term->wl->monitors);
+    const struct monitor *mon = NULL;
+
+    if (tll_length(win->on_outputs) > 0)
+        mon = tll_back(win->on_outputs);
+    else {
+        if (term->font_dpi_before_unmap > 0.) {
+            /*
+             * Use last known "good" DPI
+             *
+             * This avoids flickering when window is unmapped/mapped
+             * (some compositors do this when a window is minimized),
+             * on a multi-monitor setup with different monitor DPIs.
+             */
+            return term->font_dpi_before_unmap;
+        }
+
+        if (tll_length(term->wl->monitors) > 0)
+            mon = &tll_front(term->wl->monitors);
+    }
 
     if (term_fractional_scaling(term))
         return mon != NULL ? mon->dpi.physical : 96.;
@@ -1182,6 +1198,7 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
             xmalloc(sizeof(term->font_sizes[3][0]) * conf->fonts[3].count),
         },
         .font_dpi = 0.,
+        .font_dpi_before_unmap = -1.,
         .font_subpixel = (conf->colors.alpha == 0xffff  /* Can't do subpixel rendering on transparent background */
                           ? FCFT_SUBPIXEL_DEFAULT
                           : FCFT_SUBPIXEL_NONE),
@@ -2250,6 +2267,7 @@ term_font_dpi_changed(struct terminal *term, float old_scale)
     }
 
     term->font_dpi = dpi;
+    term->font_dpi_before_unmap = dpi;
     term->font_is_sized_by_dpi = will_scale_using_dpi;
 
     if (!need_font_reload)
