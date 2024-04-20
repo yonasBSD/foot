@@ -58,6 +58,12 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* Crash when zooming in or out, with `dpi-aware=yes`, and the
+  monitor's DPI is 0 (this is true for, for example, nested Wayland
+  sessions, or in virtualized environments).
+
+
 ### Security
 ### Contributors
 
