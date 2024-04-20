@@ -62,6 +62,9 @@
 * Crash when zooming in or out, with `dpi-aware=yes`, and the
   monitor's DPI is 0 (this is true for, for example, nested Wayland
   sessions, or in virtualized environments).
+* No error response for empty `XTGETTCAP` request ([#1694][1694]).
+
+[1694]: https://codeberg.org/dnkl/foot/issues/1694
 
 
 ### Security

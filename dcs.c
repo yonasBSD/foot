@@ -200,6 +200,12 @@ xtgettcap_unhook(struct terminal *term)
     const char *const end = (const char *)&term->vt.dcs.data[left];
     const char *p = (const char *)term->vt.dcs.data;
 
+    if (p == NULL) {
+        /* Request is empty; send an error reply, without any capabilities */
+        term_to_slave(term, "\033P0+r\033\\", 7);
+        return;
+    }
+
     while (true) {
         const char *sep = memchr(p, ';', left);
         size_t cap_len;
