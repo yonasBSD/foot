@@ -55,6 +55,21 @@
 ## Unreleased
 ### Added
 ### Changed
+
+* All `XTGETTCAP` capabilities are now in the `tigetstr()` format:
+
+  - parameterized string capabilities were previously "source
+    encoded", meaning e.g. `\E` where not "decoded" into `\x1b`.
+  - Control characters were also "source encoded", meaning they were
+    returned as e.g. "^G" instead of `\x07` ([#1701][1701]).
+
+  In other words, if, after this change, `XTGETTCAP` returns a string
+  that is different compared to `tigetstr()`, then it is likely a bug
+  in foot's implementation of `XTGETTCAP`.
+
+[1701]: https://codeberg.org/dnkl/foot/issues/1701
+
+
 ### Deprecated
 ### Removed
 ### Fixed
