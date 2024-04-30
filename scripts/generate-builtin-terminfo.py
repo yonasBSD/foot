@@ -56,9 +56,9 @@ class StringCapability(Capability):
         def translate_ctrl_chr(m):
             ctrl = m.group(1)
             if ctrl == '?':
-                return chr(0x7f)
-            return chr(ord(ctrl) - ord('@'))
-        value = re.sub('\^([@A-Z[\\\\\]^_?])', translate_ctrl_chr, value)
+                return '\\x7f'
+            return f'\\x{ord(ctrl) - ord('@'):02x}'
+        value = re.sub(r'\^([@A-Z[\\\\\]^_?])', translate_ctrl_chr, value)
 
         # Ensure e.g. \E7 (or \e7) doesn’t get translated to “\0337”,
         # which would be interpreted as octal 337 by the C compiler
