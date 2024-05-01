@@ -57,7 +57,7 @@ class StringCapability(Capability):
             ctrl = m.group(1)
             if ctrl == '?':
                 return '\\x7f'
-            return f'\\x{ord(ctrl) - ord('@'):02x}'
+            return f'\\x{ord(ctrl) - ord("@"):02x}'
         value = re.sub(r'\^([@A-Z[\\\\\]^_?])', translate_ctrl_chr, value)
 
         # Ensure e.g. \E7 (or \e7) doesn’t get translated to “\0337”,
