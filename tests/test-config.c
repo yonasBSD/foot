@@ -641,7 +641,8 @@ test_section_cursor(void)
         (const char *[]){"unchanged", "hollow", "none"},
         (int []){CURSOR_UNFOCUSED_UNCHANGED, CURSOR_UNFOCUSED_HOLLOW, CURSOR_UNFOCUSED_NONE},
         (int *)&conf.cursor.unfocused_style);
-    test_boolean(&ctx, &parse_section_cursor, "blink", &conf.cursor.blink);
+    test_boolean(&ctx, &parse_section_cursor, "blink", &conf.cursor.blink.enabled);
+    test_uint32(&ctx, &parse_section_cursor, "blink-rate", &conf.cursor.blink.rate_ms);
     test_pt_or_px(&ctx, &parse_section_cursor, "beam-thickness",
                   &conf.cursor.beam_thickness);
     test_pt_or_px(&ctx, &parse_section_cursor, "underline-thickness",

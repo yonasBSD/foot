@@ -262,7 +262,10 @@ struct config {
     struct {
         enum cursor_style style;
         enum cursor_unfocused_style unfocused_style;
-        bool blink;
+        struct {
+            bool enabled;
+            uint32_t rate_ms;
+        } blink;
         struct {
             uint32_t text;
             uint32_t cursor;

@@ -511,7 +511,12 @@ applications can change these at runtime.
 
 *blink*
 	Boolean. Enables blinking cursor. Note that this can be overridden
-	by applications. Default: _no_.
+	by applications. Related option: *blink-rate*. Default: _no_.
+
+*blink-rate*
+	The rate at which the cursor blink, when cursor blinking has been
+	enabled. Expressed in milliseconds between each blink. Default:
+	_500_.
 
 *color*
 	Two space separated RRGGBB values (i.e. plain old 6-digit hex

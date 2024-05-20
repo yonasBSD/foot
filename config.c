@@ -1395,7 +1395,10 @@ parse_section_cursor(struct context *ctx)
     }
 
     else if (streq(key, "blink"))
-        return value_to_bool(ctx, &conf->cursor.blink);
+        return value_to_bool(ctx, &conf->cursor.blink.enabled);
+
+    else if (streq(key, "blink-rate"))
+        return value_to_uint32(ctx, 10, &conf->cursor.blink.rate_ms);
 
     else if (streq(key, "color")) {
         if (!value_to_two_colors(
@@ -3102,7 +3105,10 @@ config_load(struct config *conf, const char *conf_path,
         .cursor = {
             .style = CURSOR_BLOCK,
             .unfocused_style = CURSOR_UNFOCUSED_HOLLOW,
-            .blink = false,
+            .blink = {
+                .enabled = false,
+                .rate_ms = 500,
+            },
             .color = {
                 .text = 0,
                 .cursor = 0,

@@ -1229,7 +1229,7 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
         .cursor_style = conf->cursor.style,
         .cursor_blink = {
             .decset = false,
-            .deccsusr = conf->cursor.blink,
+            .deccsusr = conf->cursor.blink.enabled,
             .state = CURSOR_BLINK_ON,
             .fd = -1,
         },
@@ -2046,7 +2046,7 @@ term_reset(struct terminal *term, bool hard)
     term->alt.saved_cursor = (struct cursor){.point = {0, 0}};
     term->cursor_style = term->conf->cursor.style;
     term->cursor_blink.decset = false;
-    term->cursor_blink.deccsusr = term->conf->cursor.blink;
+    term->cursor_blink.deccsusr = term->conf->cursor.blink.enabled;
     term_cursor_blink_update(term);
     term->cursor_color.text = term->conf->cursor.color.text;
     term->cursor_color.cursor = term->conf->cursor.color.cursor;
@@ -2746,9 +2746,13 @@ cursor_blink_rearm_timer(struct terminal *term)
         term->cursor_blink.fd = fd;
     }
 
-    static const struct itimerspec timer = {
-        .it_value = {.tv_sec = 0, .tv_nsec = 500000000},
-        .it_interval = {.tv_sec = 0, .tv_nsec = 500000000},
+    const int rate_ms = term->conf->cursor.blink.rate_ms;
+    const long secs = rate_ms / 1000;
+    const long nsecs = (rate_ms % 1000) * 1000000;
+
+    const struct itimerspec timer = {
+        .it_value = {.tv_sec = secs, .tv_nsec = nsecs},
+        .it_interval = {.tv_sec = secs, .tv_nsec = nsecs},
     };
 
     if (timerfd_settime(term->cursor_blink.fd, 0, &timer, NULL) < 0) {

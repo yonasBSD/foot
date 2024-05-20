@@ -1665,7 +1665,7 @@ csi_dispatch(struct terminal *term, uint8_t final)
             switch (param) {
             case 0: /* blinking block, but we use it to reset to configured default */
                 term->cursor_style = term->conf->cursor.style;
-                term->cursor_blink.deccsusr = term->conf->cursor.blink;
+                term->cursor_blink.deccsusr = term->conf->cursor.blink.enabled;
                 term_cursor_blink_update(term);
                 break;
 

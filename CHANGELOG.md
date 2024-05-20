@@ -54,6 +54,13 @@
 
 ## Unreleased
 ### Added
+
+* `cursor.blink-rate` option, allowing you to configure the rate the
+  cursor blinks with (when `cursor.blink=yes`) ([#1707][1707]);
+
+[1707]: https://codeberg.org/dnkl/foot/issues/1707
+
+
 ### Changed
 
 * All `XTGETTCAP` capabilities are now in the `tigetstr()` format:
