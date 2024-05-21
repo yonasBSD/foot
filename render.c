@@ -1560,6 +1560,58 @@ render_ime_preedit(struct terminal *term, struct buffer *buf)
 }
 
 static void
+render_overlay_single_pixel(struct terminal *term, enum overlay_style style,
+                            pixman_color_t color)
+{
+    struct wayland *wayl = term->wl;
+    struct wayl_sub_surface *overlay = &term->window->overlay;
+
+    /*
+     * Note: we currently do *not* re-use the overlay buffer
+     *
+     * This means we'll re-create the buffer each time we render a new
+     * frame. This shouldn't be a problem in any of the cases where we
+     * use single-pixel buffers (unicode-input, and flash).
+     *
+     * Note: it's _almost_ enough to just check if
+     *     style' == last_overlay_style
+     * except that doesn't take window resizes into account...
+     */
+
+    assert(style == OVERLAY_UNICODE_MODE || style == OVERLAY_FLASH);
+    assert(wayl->single_pixel_manager != NULL);
+    assert(overlay->surface.viewport != NULL);
+
+    struct wl_buffer *buf =
+        wp_single_pixel_buffer_manager_v1_create_u32_rgba_buffer(
+            term->wl->single_pixel_manager,
+            (double)color.red / 0xffff * 0xffffffff,
+            (double)color.green / 0xffff * 0xffffffff,
+            (double)color.blue / 0xffff * 0xffffffff,
+            (double)color.alpha / 0xffff * 0xffffffff);
+
+    wl_surface_set_buffer_scale(overlay->surface.surf, 1);
+    wp_viewport_set_destination(
+        overlay->surface.viewport,
+        roundf(term->width / term->scale),
+        roundf(term->height / term->scale));
+
+    quirk_weston_subsurface_desync_on(overlay->sub);
+
+    wl_subsurface_set_position(overlay->sub, 0, 0);
+    wl_surface_attach(overlay->surface.surf, buf, 0, 0);
+
+    wl_surface_damage_buffer(
+        overlay->surface.surf, 0, 0, term->width, term->height);
+
+    wl_surface_commit(overlay->surface.surf);
+    quirk_weston_subsurface_desync_off(overlay->sub);
+
+    term->render.last_overlay_style = style;
+    wl_buffer_destroy(buf);
+}
+
+static void
 render_overlay(struct terminal *term)
 {
     struct wayl_sub_surface *overlay = &term->window->overlay;
@@ -1586,17 +1638,9 @@ render_overlay(struct terminal *term)
         return;
     }
 
-    struct buffer *buf = shm_get_buffer(
-        term->render.chains.overlay, term->width, term->height, true);
-
-    pixman_image_set_clip_region32(buf->pix[0], NULL);
-
     pixman_color_t color;
 
     switch (style) {
-    case OVERLAY_NONE:
-        break;
-
     case OVERLAY_SEARCH:
     case OVERLAY_UNICODE_MODE:
         color = (pixman_color_t){0, 0, 0, 0x7fff};
@@ -1607,7 +1651,25 @@ render_overlay(struct terminal *term)
                 term->conf->colors.flash,
                 term->conf->colors.flash_alpha);
         break;
+
+    case OVERLAY_NONE:
+        xassert(false);
+        break;
     }
+
+    const bool single_pixel =
+        (style == OVERLAY_UNICODE_MODE || style == OVERLAY_FLASH) &&
+        term->wl->single_pixel_manager != NULL &&
+        overlay->surface.viewport != NULL;
+
+    if (single_pixel) {
+        render_overlay_single_pixel(term, style, color);
+        return;
+    }
+
+    struct buffer *buf = shm_get_buffer(
+        term->render.chains.overlay, term->width, term->height, true);
+    pixman_image_set_clip_region32(buf->pix[0], NULL);
 
     /* Bounding rectangle of damaged areas - for wl_surface_damage_buffer() */
     pixman_box32_t damage_bounds;

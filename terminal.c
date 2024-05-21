@@ -2195,7 +2195,9 @@ term_font_size_reset(struct terminal *term)
 bool
 term_fractional_scaling(const struct terminal *term)
 {
-    return term->wl->fractional_scale_manager != NULL && term->window->scale > 0.;
+    return term->wl->fractional_scale_manager != NULL &&
+           term->wl->viewporter != NULL &&
+           term->window->scale > 0.;
 }
 
 bool

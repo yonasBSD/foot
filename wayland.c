@@ -1320,6 +1320,16 @@ handle_global(void *data, struct wl_registry *registry,
             wayl->registry, name, &wp_cursor_shape_manager_v1_interface, required);
     }
 
+    else if (streq(interface, wp_single_pixel_buffer_manager_v1_interface.name)) {
+        const uint32_t required = 1;
+        if (!verify_iface_version(interface, version, required))
+            return;
+
+        wayl->single_pixel_manager = wl_registry_bind(
+            wayl->registry, name,
+            &wp_single_pixel_buffer_manager_v1_interface, required);
+    }
+
 #if defined(FOOT_IME_ENABLED) && FOOT_IME_ENABLED
     else if (streq(interface, zwp_text_input_manager_v3_interface.name)) {
         const uint32_t required = 1;
@@ -1636,6 +1646,8 @@ wayl_destroy(struct wayland *wayl)
         zwp_text_input_manager_v3_destroy(wayl->text_input_manager);
 #endif
 
+    if (wayl->single_pixel_manager != NULL)
+        wp_single_pixel_buffer_manager_v1_destroy(wayl->single_pixel_manager);
     if (wayl->fractional_scale_manager != NULL)
         wp_fractional_scale_manager_v1_destroy(wayl->fractional_scale_manager);
     if (wayl->viewporter != NULL)
@@ -2058,6 +2070,7 @@ surface_scale_explicit_width_height(
             }
         }
 
+        xassert(surf->viewport != NULL);
         wl_surface_set_buffer_scale(surf->surf, 1);
         wp_viewport_set_destination(
             surf->viewport, roundf(width / scale), roundf(height / scale));
@@ -2204,7 +2217,7 @@ wayl_win_subsurface_new_with_custom_parent(
     }
 
     struct wp_viewport *viewport = NULL;
-    if (wayl->fractional_scale_manager != NULL &&  wayl->viewporter != NULL) {
+    if (wayl->viewporter != NULL) {
         viewport = wp_viewporter_get_viewport(wayl->viewporter, main_surface);
         if (viewport == NULL) {
             LOG_ERR("failed to instantiate viewport for sub-surface");

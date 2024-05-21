@@ -12,6 +12,7 @@
 #include <fractional-scale-v1.h>
 #include <presentation-time.h>
 #include <primary-selection-unstable-v1.h>
+#include <single-pixel-buffer-v1.h>
 #include <text-input-unstable-v3.h>
 #include <viewporter.h>
 #include <xdg-activation-v1.h>
@@ -439,10 +440,12 @@ struct wayland {
 
     struct wp_cursor_shape_manager_v1 *cursor_shape_manager;
 
+    struct wp_single_pixel_buffer_manager_v1 *single_pixel_manager;
+
     bool presentation_timings;
     struct wp_presentation *presentation;
     uint32_t presentation_clock_id;
-    
+
 #if defined(FOOT_IME_ENABLED) && FOOT_IME_ENABLED
     struct zwp_text_input_manager_v3 *text_input_manager;
 #endif
