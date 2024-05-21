@@ -44,9 +44,10 @@ body:
         Have you tested other compositors? Does the issue happen on
         all of them, or only your main compositor?
 
-        Use a debug [build](https://codeberg.org/dnkl/foot/INSTALL.md#debug-build) of foot is
-        possible, to get a better quality stacktrace in case of a
-        crash.
+        Use a debug
+        [build](https://codeberg.org/dnkl/foot/src/branch/master/INSTALL.md#debug-build)
+        of foot is possible, to get a better quality stacktrace in
+        case of a crash.
 
         Run foot with logging enabled:
         ```sh
