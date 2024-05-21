@@ -507,8 +507,10 @@ decset_decrst(struct terminal *term, unsigned param, bool enable)
     case 737769:
         if (enable)
             term_ime_enable(term);
-        else
+        else {
             term_ime_disable(term);
+            term->ime_reenable_after_url_mode = false;
+        }
         break;
 
     default:

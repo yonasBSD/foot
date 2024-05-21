@@ -87,9 +87,11 @@
 * No error response for empty `XTGETTCAP` request ([#1694][1694]).
 * Unicode-mode in one foot client affecting other clients, in foot
   server mode ([#1717][1717]).
+* IME interfering in URL-mode ([#1718][1718]).
 
 [1694]: https://codeberg.org/dnkl/foot/issues/1694
 [1717]: https://codeberg.org/dnkl/foot/issues/1717
+[1718]: https://codeberg.org/dnkl/foot/issues/1718
 
 
 ### Security

@@ -714,6 +714,7 @@ struct terminal {
     char32_t url_keys[5];
     bool urls_show_uri_on_jump_label;
     struct grid *url_grid_snapshot;
+    bool ime_reenable_after_url_mode;
 
 #if defined(FOOT_IME_ENABLED) && FOOT_IME_ENABLED
     bool ime_enabled;

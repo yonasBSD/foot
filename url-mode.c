@@ -778,6 +778,12 @@ urls_render(struct terminal *term)
     if (tll_length(win->term->urls) == 0)
         return;
 
+    /* Disable IME while in URL-mode */
+    if (term_ime_is_enabled(term)) {
+        term->ime_reenable_after_url_mode = true;
+        term_ime_disable(term);
+    }
+
     /* Dirty the last cursor, to ensure it is erased */
     {
         struct row *cursor_row = term->render.last_cursor.row;
@@ -860,6 +866,12 @@ urls_reset(struct terminal *term)
 
     term->urls_show_uri_on_jump_label = false;
     memset(term->url_keys, 0, sizeof(term->url_keys));
+
+    /* Re-enable IME, if it was enabled before we entered URL-mode */
+    if (term->ime_reenable_after_url_mode) {
+        term->ime_reenable_after_url_mode = false;
+        term_ime_enable(term);
+    }
 
     render_refresh(term);
 }
