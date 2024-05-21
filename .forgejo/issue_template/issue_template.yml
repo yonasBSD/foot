@@ -24,7 +24,7 @@ body:
       label: Compositor Version
       description: "The name and version of your compositor"
       placeholder: "sway version 1.9"
-    validation:
+    validations:
       required: true
   - type: textarea
     id: repro
