@@ -44,7 +44,7 @@ body:
         Have you tested other compositors? Does the issue happen on
         all of them, or only your main compositor?
 
-        Use a debug [build](../../INSTALL.md#debug-build) of foot is
+        Use a debug [build](INSTALL.md#debug-build) of foot is
         possible, to get a better quality stacktrace in case of a
         crash.
 
