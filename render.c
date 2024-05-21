@@ -1563,16 +1563,7 @@ static void
 render_overlay(struct terminal *term)
 {
     struct wayl_sub_surface *overlay = &term->window->overlay;
-    bool unicode_mode_active = false;
-
-    /* Check if unicode mode is active on at least one seat focusing
-     * this terminal instance */
-    tll_foreach(term->wl->seats, it) {
-        if (it->item.unicode_mode.active) {
-            unicode_mode_active = true;
-            break;
-        }
-    }
+    const bool unicode_mode_active = term->unicode_mode.active;
 
     const enum overlay_style style =
         term->is_searching ? OVERLAY_SEARCH :

@@ -85,8 +85,11 @@
   monitor's DPI is 0 (this is true for, for example, nested Wayland
   sessions, or in virtualized environments).
 * No error response for empty `XTGETTCAP` request ([#1694][1694]).
+* Unicode-mode in one foot client affecting other clients, in foot
+  server mode ([#1717][1717]).
 
 [1694]: https://codeberg.org/dnkl/foot/issues/1694
+[1717]: https://codeberg.org/dnkl/foot/issues/1717
 
 
 ### Security

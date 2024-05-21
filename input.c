@@ -441,7 +441,7 @@ execute_binding(struct seat *seat, struct terminal *term,
     }
 
     case BIND_ACTION_UNICODE_INPUT:
-        unicode_mode_activate(seat);
+        unicode_mode_activate(term);
         return true;
 
     case BIND_ACTION_QUIT:
@@ -1550,7 +1550,7 @@ key_press_release(struct seat *seat, struct terminal *term, uint32_t serial,
     xassert(bindings != NULL);
 
     if (pressed) {
-        if (seat->unicode_mode.active) {
+        if (term->unicode_mode.active) {
             unicode_mode_input(seat, term, sym);
             return;
         }

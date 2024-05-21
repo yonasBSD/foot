@@ -720,6 +720,12 @@ struct terminal {
 #endif
 
     struct {
+        bool active;
+        int count;
+        char32_t character;
+    } unicode_mode;
+
+    struct {
         bool in_progress;
         bool client_has_terminated;
         int terminate_timeout_fd;
