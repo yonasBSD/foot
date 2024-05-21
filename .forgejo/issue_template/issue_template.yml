@@ -46,7 +46,7 @@ body:
 
         Use a debug
         [build](https://codeberg.org/dnkl/foot/src/branch/master/INSTALL.md#debug-build)
-        of foot is possible, to get a better quality stacktrace in
+        of foot if possible, to get a better quality stacktrace in
         case of a crash.
 
         Run foot with logging enabled:
