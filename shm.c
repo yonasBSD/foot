@@ -350,7 +350,7 @@ get_new_buffers(struct buffer_chain *chain, size_t count,
         "foot-wayland-shm-buffer-pool",
         MFD_CLOEXEC | MFD_ALLOW_SEALING | MFD_NOEXEC_SEAL);
 
-    if (pool_fd < 0 && errno == EINVAL) {
+    if (pool_fd < 0 && errno == EINVAL && MFD_NOEXEC_SEAL != 0) {
         pool_fd = memfd_create(
             "foot-wayland-shm-buffer-pool", MFD_CLOEXEC | MFD_ALLOW_SEALING);
     }
