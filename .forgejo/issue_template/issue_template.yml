@@ -52,6 +52,11 @@ body:
         Have you tested other compositors? Does the issue happen on
         all of them, or only your main compositor?
 
+        Are you using tmux, zellij, or any other terminal multiplexer?
+        Does the bug happen in a plain foot instance?
+
+        Do you use an IME? Does the bug happen if you disable the IME?
+
         Use a debug
         [build](https://codeberg.org/dnkl/foot/src/branch/master/INSTALL.md#debug-build)
         of foot if possible, to get a better quality stacktrace in
