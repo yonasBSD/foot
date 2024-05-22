@@ -54,7 +54,13 @@ sixel_put
 sixel_init(struct terminal *term, int p1, int p2, int p3)
 {
     /*
-     * P1: pixel aspect ratio - unimplemented
+     * P1: pixel aspect ratio
+     *  - 0,1   - 2:1
+     *  - 2     - 5:1
+     *  - 3,4   - 3:1
+     *  - 5,6   - 2:1
+     *  - 7,8,9 - 1:1
+     *
      * P2: background color mode
      *  - 0|2: empty pixels use current background color
      *  - 1:   empty pixels remain at their current color (i.e. transparent)
