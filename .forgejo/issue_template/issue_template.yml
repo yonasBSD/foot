@@ -65,8 +65,8 @@ body:
         Obtaining logs and stacktraces
         ------------------------------
 
-        Use a debug
-        [build](https://codeberg.org/dnkl/foot/src/branch/master/INSTALL.md#debug-build)
+        Use a [debug
+        build](https://codeberg.org/dnkl/foot/src/branch/master/INSTALL.md#debug-build)
         of foot if possible, to get a better quality stacktrace in
         case of a crash.
 
