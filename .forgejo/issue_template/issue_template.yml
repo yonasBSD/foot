@@ -49,13 +49,21 @@ body:
         Please provide as many details as possible, we must be able to
         understand the bug in order to fix it.
 
-        Have you tested other compositors? Does the issue happen on
-        all of them, or only your main compositor?
+        Other software
+        --------------
 
-        Are you using tmux, zellij, or any other terminal multiplexer?
-        Does the bug happen in a plain foot instance?
+        **Compositors**: have you tested other compositors? Does the
+        issue happen on all of them, or only your main compositor?
 
-        Do you use an IME? Does the bug happen if you disable the IME?
+        **Terminal multiplexers**: are you using tmux, zellij, or any
+        other terminal multiplexer?  Does the bug happen in a plain
+        foot instance?
+
+        **IME** do you use an IME? Which one? Does the bug happen if
+        you disable the IME?
+
+        Obtaining logs and stacktraces
+        ------------------------------
 
         Use a debug
         [build](https://codeberg.org/dnkl/foot/src/branch/master/INSTALL.md#debug-build)
