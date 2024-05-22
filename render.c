@@ -1565,41 +1565,55 @@ render_overlay_single_pixel(struct terminal *term, enum overlay_style style,
 {
     struct wayland *wayl = term->wl;
     struct wayl_sub_surface *overlay = &term->window->overlay;
+    struct wl_buffer *buf = NULL;
 
     /*
-     * Note: we currently do *not* re-use the overlay buffer
+     * In an ideal world, we'd only update the surface (i.e. commit
+     * any changes) if anything has actually changed.
      *
-     * This means we'll re-create the buffer each time we render a new
-     * frame. This shouldn't be a problem in any of the cases where we
-     * use single-pixel buffers (unicode-input, and flash).
+     * For technical reasons, we can't do that, since we can't
+     * determine whether the last committed buffer is still valid
+     * (i.e. does it correspond to the current overlay style, *and*
+     * does last frame's size match the current size?)
      *
-     * Note: it's _almost_ enough to just check if
-     *     style' == last_overlay_style
-     * except that doesn't take window resizes into account...
+     * What we _can_ do is use the fact that single-pixel buffers
+     * don't have a size; you have to use a viewport to "size" them.
+     *
+     * This means we can check if the last frame's overlay style is
+     * the same as the current size. If so, then we *know* that the
+     * currently attached buffer is valid, and we *don't* have to
+     * create a new single-pixel buffer.
+     *
+     * What we do *not* know if the *size* is still valid. This means
+     * we do have to do the viewport calls, and a surface commit.
+     *
+     * This is still better than *always* creating a new buffer.
      */
 
     assert(style == OVERLAY_UNICODE_MODE || style == OVERLAY_FLASH);
     assert(wayl->single_pixel_manager != NULL);
     assert(overlay->surface.viewport != NULL);
 
-    struct wl_buffer *buf =
-        wp_single_pixel_buffer_manager_v1_create_u32_rgba_buffer(
-            term->wl->single_pixel_manager,
+    quirk_weston_subsurface_desync_on(overlay->sub);
+
+    if (style != term->render.last_overlay_style) {
+        buf = wp_single_pixel_buffer_manager_v1_create_u32_rgba_buffer(
+            wayl->single_pixel_manager,
             (double)color.red / 0xffff * 0xffffffff,
             (double)color.green / 0xffff * 0xffffffff,
             (double)color.blue / 0xffff * 0xffffffff,
             (double)color.alpha / 0xffff * 0xffffffff);
 
-    wl_surface_set_buffer_scale(overlay->surface.surf, 1);
+        wl_surface_set_buffer_scale(overlay->surface.surf, 1);
+        wl_surface_attach(overlay->surface.surf, buf, 0, 0);
+    }
+
     wp_viewport_set_destination(
         overlay->surface.viewport,
         roundf(term->width / term->scale),
         roundf(term->height / term->scale));
 
-    quirk_weston_subsurface_desync_on(overlay->sub);
-
     wl_subsurface_set_position(overlay->sub, 0, 0);
-    wl_surface_attach(overlay->surface.surf, buf, 0, 0);
 
     wl_surface_damage_buffer(
         overlay->surface.surf, 0, 0, term->width, term->height);
@@ -1608,7 +1622,10 @@ render_overlay_single_pixel(struct terminal *term, enum overlay_style style,
     quirk_weston_subsurface_desync_off(overlay->sub);
 
     term->render.last_overlay_style = style;
-    wl_buffer_destroy(buf);
+
+    if (buf != NULL) {
+        wl_buffer_destroy(buf);
+    }
 }
 
 static void
