@@ -19,6 +19,14 @@ body:
     validations:
       required: true
   - type: input
+    id: term
+    attributes:
+      label: TERM environment variable
+      description: "The output of `echo $TERM`"
+      placeholder: "foot"
+    validations:
+      required: true
+  - type: input
     id: compositor
     attributes:
       label: Compositor Version
