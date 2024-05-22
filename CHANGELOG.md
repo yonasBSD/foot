@@ -57,6 +57,9 @@
 
 * `cursor.blink-rate` option, allowing you to configure the rate the
   cursor blinks with (when `cursor.blink=yes`) ([#1707][1707]);
+* Support for `wp_single_pixel_buffer_v1`; certain overlay surfaces
+  will now utilize the new single-pixel buffer protocol. This mainly
+  reduces the memory usage, but should also be slightly faster.
 
 [1707]: https://codeberg.org/dnkl/foot/issues/1707
 
