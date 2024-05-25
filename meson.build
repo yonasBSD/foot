@@ -16,6 +16,11 @@ if cc.has_function('memfd_create')
   add_project_arguments('-DMEMFD_CREATE', language: 'c')
 endif
 
+# Missing on DragonFly, FreeBSD < 14.1
+if cc.has_function('execvpe')
+  add_project_arguments('-DEXECVPE', language: 'c')
+endif
+
 utmp_backend = get_option('utmp-backend')
 if utmp_backend == 'auto'
   host_os = host_machine.system()

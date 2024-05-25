@@ -31,7 +31,7 @@ struct environ {
     char **envp;
 };
 
-#if defined(__FreeBSD__)
+#if !defined(EXECVPE)
 static char *
 find_file_in_path(const char *file)
 {
@@ -82,11 +82,11 @@ foot_execvpe(const char *file, char *const argv[], char *const envp[])
     return ret;
 }
 
-#else   /* !__FreeBSD__ */
+#else   /* EXECVPE */
 
 #define foot_execvpe(file, argv, envp) execvpe(file, argv, envp)
 
-#endif  /* !__FreeBSD__ */
+#endif  /* EXECVPE */
 
 static bool
 is_valid_shell(const char *shell)
