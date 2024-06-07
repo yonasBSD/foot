@@ -50,15 +50,16 @@ empty string to be set, but it must be quoted: *KEY=""*)
 *font*, *font-bold*, *font-italic*, *font-bold-italic*
 	Comma separated list of fonts to use, in fontconfig format. That
 	is, a font name followed by a list of colon-separated
-	options. Most noteworthy is *:size=n*, which is used to set the
-	font size. Note that the font size is also affected by the
-	*dpi-aware* option.
+	options. Most noteworthy is *:size=n* (or *:pixelsize=n*), which
+	is used to set the font size. Note that the font size is also
+	affected by the *dpi-aware* option.
 	
 	Examples:
 		- Dina:weight=bold:slant=italic
 		- Courier New:size=12
 		- Fantasque Sans Mono:fontfeatures=ss01
 		- Meslo LG S:size=12, Noto Color Emoji:size=12
+		- Courier New:pixelsize=8
 	
 	For each option, the first font is the primary font. The remaining
 	fonts are fallback fonts that will be used whenever a glyph cannot
@@ -77,6 +78,11 @@ empty string to be set, but it must be quoted: *KEY=""*)
 	
 	To disable bold and/or italic fonts, set e.g. *font-bold* to
 	_exactly_ the same value as *font*.
+	
+	**size** is in _points_ (as defined by the FontConfig format). To
+	set a _pixel_ size, use **pixelsize** instead. Note that pixel
+	sizes are unaffected by DPI aware rendering (see *dpi-aware*), but
+	are affected by desktop scaling.
 	
 	Default: _monospace:size=8_ (*font*), _not set_ (*font-bold*,
 	*font-italic*, *font-bold-italic*).
