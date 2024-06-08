@@ -91,10 +91,13 @@
 * Unicode-mode in one foot client affecting other clients, in foot
   server mode ([#1717][1717]).
 * IME interfering in URL-mode ([#1718][1718]).
+* OSC-52 reply interleaved with other data sent to the client
+  ([#1734][1734]).
 
 [1694]: https://codeberg.org/dnkl/foot/issues/1694
 [1717]: https://codeberg.org/dnkl/foot/issues/1717
 [1718]: https://codeberg.org/dnkl/foot/issues/1718
+[1734]: https://codeberg.org/dnkl/foot/issues/1734
 
 
 ### Security

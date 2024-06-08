@@ -5,6 +5,8 @@
 #include <ctype.h>
 #include <errno.h>
 
+#include <sys/epoll.h>
+
 #define LOG_MODULE "osc"
 #define LOG_ENABLE_DBG 0
 #include "log.h"
@@ -124,7 +126,7 @@ from_clipboard_cb(char *text, size_t size, void *user)
             xassert(chunk != NULL);
             xassert(strlen(chunk) == 4);
 
-            term_to_slave(term, chunk, 4);
+            term_paste_data_to_slave(term, chunk, 4);
             free(chunk);
 
             ctx->idx = 0;
@@ -144,7 +146,7 @@ from_clipboard_cb(char *text, size_t size, void *user)
     char *chunk = base64_encode((const uint8_t *)t, left / 3 * 3);
     xassert(chunk != NULL);
     xassert(strlen(chunk) % 4 == 0);
-    term_to_slave(term, chunk, strlen(chunk));
+    term_paste_data_to_slave(term, chunk, strlen(chunk));
     free(chunk);
 }
 
@@ -157,13 +159,19 @@ from_clipboard_done(void *user)
     if (ctx->idx > 0) {
         char res[4];
         base64_encode_final(ctx->buf, ctx->idx, res);
-        term_to_slave(term, res, 4);
+        term_paste_data_to_slave(term, res, 4);
     }
 
     if (term->vt.osc.bel)
-        term_to_slave(term, "\a", 1);
+        term_paste_data_to_slave(term, "\a", 1);
     else
-        term_to_slave(term, "\033\\", 2);
+        term_paste_data_to_slave(term, "\033\\", 2);
+
+    term->is_sending_paste_data = false;
+
+    /* Make sure we send any queued up non-paste data */
+    if (tll_length(term->ptmx_buffers) > 0)
+        fdm_event_add(term->fdm, term->ptmx, EPOLLOUT);
 
     free(ctx);
 }
@@ -214,9 +222,24 @@ osc_from_clipboard(struct terminal *term, const char *source)
     if (!from_clipboard && !from_primary)
         return;
 
-    term_to_slave(term, "\033]52;", 5);
-    term_to_slave(term, &src, 1);
-    term_to_slave(term, ";", 1);
+    if (term->is_sending_paste_data) {
+        /* FIXME: we should wait for the paste to end, then continue
+           with the OSC-52 reply */
+        term_to_slave(term, "\033]52;", 5);
+        term_to_slave(term, &src, 1);
+        term_to_slave(term, ";", 1);
+        if (term->vt.osc.bel)
+            term_to_slave(term, "\a", 1);
+        else
+            term_to_slave(term, "\033\\", 2);
+        return;
+    }
+
+    term->is_sending_paste_data = true;
+
+    term_paste_data_to_slave(term, "\033]52;", 5);
+    term_paste_data_to_slave(term, &src, 1);
+    term_paste_data_to_slave(term, ";", 1);
 
     struct clip_context *ctx = xmalloc(sizeof(*ctx));
     *ctx = (struct clip_context) {.seat = seat, .term = term};
