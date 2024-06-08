@@ -84,7 +84,7 @@ enum key_binding_type {
 typedef tll(char *) config_modifier_list_t;
 
 struct config_key_binding {
-    int action;  /* One of the varios bind_action_* enums from wayland.h */
+    int action;  /* One of the various bind_action_* enums from wayland.h */
     //struct config_key_modifiers modifiers;
     config_modifier_list_t modifiers;
     union {
