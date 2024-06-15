@@ -192,6 +192,7 @@ struct seat {
 
         /* We used a discrete axis event in the current pointer frame */
         double aggregated[2];
+        double aggregated_120[2];
         bool have_discrete;
     } mouse;
 

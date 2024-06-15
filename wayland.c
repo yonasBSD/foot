@@ -1161,6 +1161,12 @@ handle_global(void *data, struct wl_registry *registry,
         if (!verify_iface_version(interface, version, required))
             return;
 
+#if defined(WL_POINTER_AXIS_VALUE120_SINCE_VERSION)
+        const uint32_t preferred = WL_POINTER_AXIS_VALUE120_SINCE_VERSION;
+#else
+        const uint32_t preferred = required;
+#endif
+
         int repeat_fd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC | TFD_NONBLOCK);
         if (repeat_fd == -1) {
             LOG_ERRNO("failed to create keyboard repeat timer FD");
@@ -1168,7 +1174,7 @@ handle_global(void *data, struct wl_registry *registry,
         }
 
         struct wl_seat *wl_seat = wl_registry_bind(
-            wayl->registry, name, &wl_seat_interface, required);
+            wayl->registry, name, &wl_seat_interface, min(version, preferred));
 
         tll_push_back(wayl->seats, ((struct seat){
                     .wayl = wayl,

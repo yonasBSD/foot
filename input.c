@@ -2768,7 +2768,7 @@ mouse_scroll(struct seat *seat, int amount, enum wl_pointer_axis axis)
     }
 }
 
-static float
+static double
 mouse_scroll_multiplier(const struct terminal *term, const struct seat *seat)
 {
     return (term->grid == &term->normal ||
@@ -2812,15 +2812,15 @@ wl_pointer_axis(void *data, struct wl_pointer *wl_pointer,
 
 static void
 wl_pointer_axis_discrete(void *data, struct wl_pointer *wl_pointer,
-                         uint32_t axis, int32_t discrete)
+                         enum wl_pointer_axis axis, int32_t discrete)
 {
+    LOG_DBG("axis_discrete: %d", discrete);
     struct seat *seat = data;
 
     if (touch_is_active(seat))
         return;
 
     seat->mouse.have_discrete = true;
-
     int amount = discrete;
 
     if (axis == WL_POINTER_AXIS_HORIZONTAL_SCROLL) {
@@ -2830,6 +2830,50 @@ wl_pointer_axis_discrete(void *data, struct wl_pointer *wl_pointer,
 
     mouse_scroll(seat, amount, axis);
 }
+
+#if defined(WL_POINTER_AXIS_VALUE120_SINCE_VERSION)
+static void
+wl_pointer_axis_value120(void *data, struct wl_pointer *wl_pointer,
+                         enum wl_pointer_axis axis, int32_t value120)
+{
+    LOG_DBG("axis_value120: %d -> %.2f", value120, (float)value120 / 120.);
+
+    struct seat *seat = data;
+
+    if (touch_is_active(seat))
+        return;
+
+    seat->mouse.have_discrete = true;
+
+    /*
+     * 120 corresponds to a single "low-res" scroll step.
+     *
+     * When doing high-res scrolling, take the scrollback.multiplier,
+     * and calculate how many degrees there are per line.
+     *
+     * For example, with scrollback.multiplier = 3, we have 120 / 3 == 40.
+     *
+     * Then, accumulate high-res scroll events, until we have *at
+     * least* that much. Translate the accumulated value to number of
+     * lines, and scroll.
+     *
+     * Subtract the "used" degrees from the accumulated value, and
+     * keep what's left (this value will always be less than the
+     * per-line value).
+     */
+    const double multiplier = mouse_scroll_multiplier(seat->mouse_focus, seat);
+    const double per_line = 120. / multiplier;
+
+    seat->mouse.aggregated_120[axis] += (double)value120;
+
+    if (fabs(seat->mouse.aggregated_120[axis]) < per_line)
+        return;
+
+    int lines = (int)(seat->mouse.aggregated_120[axis] / per_line);
+    mouse_scroll(seat, lines, axis);
+    seat->mouse.aggregated_120[axis] -= (double)lines * per_line;
+}
+#endif
 
 static void
 wl_pointer_frame(void *data, struct wl_pointer *wl_pointer)
@@ -2862,15 +2906,18 @@ wl_pointer_axis_stop(void *data, struct wl_pointer *wl_pointer,
 }
 
 const struct wl_pointer_listener pointer_listener = {
-    .enter = wl_pointer_enter,
-    .leave = wl_pointer_leave,
-    .motion = wl_pointer_motion,
-    .button = wl_pointer_button,
-    .axis = wl_pointer_axis,
-    .frame = wl_pointer_frame,
-    .axis_source = wl_pointer_axis_source,
-    .axis_stop = wl_pointer_axis_stop,
-    .axis_discrete = wl_pointer_axis_discrete,
+    .enter = &wl_pointer_enter,
+    .leave = &wl_pointer_leave,
+    .motion = &wl_pointer_motion,
+    .button = &wl_pointer_button,
+    .axis = &wl_pointer_axis,
+    .frame = &wl_pointer_frame,
+    .axis_source = &wl_pointer_axis_source,
+    .axis_stop = &wl_pointer_axis_stop,
+    .axis_discrete = &wl_pointer_axis_discrete,
+#if defined(WL_POINTER_AXIS_VALUE120_SINCE_VERSION)
+    .axis_value120 = &wl_pointer_axis_value120,
+#endif
 };
 
 static bool

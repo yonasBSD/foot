@@ -60,8 +60,10 @@
 * Support for `wp_single_pixel_buffer_v1`; certain overlay surfaces
   will now utilize the new single-pixel buffer protocol. This mainly
   reduces the memory usage, but should also be slightly faster.
+* Support for high-res mouse wheel scroll events ([#1738][1738]).
 
 [1707]: https://codeberg.org/dnkl/foot/issues/1707
+[1738]: https://codeberg.org/dnkl/foot/issues/1738
 
 
 ### Changed
