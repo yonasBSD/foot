@@ -1,11 +1,12 @@
 #include "wayland.h"
 
+#include <errno.h>
+#include <fcntl.h>
+#include <locale.h>
+#include <poll.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <errno.h>
-#include <poll.h>
-#include <fcntl.h>
 
 #include <sys/timerfd.h>
 #include <sys/epoll.h>
@@ -13,6 +14,8 @@
 #include <cursor-shape-v1.h>
 #include <wayland-client.h>
 #include <wayland-cursor.h>
+#include <xkbcommon/xkbcommon.h>
+#include <xkbcommon/xkbcommon-keysyms.h>
 #include <xkbcommon/xkbcommon-compose.h>
 
 #include <tllist.h>
@@ -1193,6 +1196,19 @@ handle_global(void *data, struct wl_registry *registry,
             seat->kbd.repeat.fd = -1;
             seat_destroy(seat);
             return;
+        }
+
+        seat->kbd.xkb = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+        if (seat->kbd.xkb != NULL) {
+            seat->kbd.xkb_compose_table = xkb_compose_table_new_from_locale(
+                seat->kbd.xkb, setlocale(LC_CTYPE, NULL), XKB_COMPOSE_COMPILE_NO_FLAGS);
+
+            if (seat->kbd.xkb_compose_table != NULL) {
+                seat->kbd.xkb_compose_state = xkb_compose_state_new(
+                    seat->kbd.xkb_compose_table, XKB_COMPOSE_STATE_NO_FLAGS);
+            } else {
+                LOG_WARN("failed to instantiate compose table; dead keys (compose) will not work");
+            }
         }
 
         seat_add_data_device(seat);

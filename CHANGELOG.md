@@ -95,11 +95,14 @@
 * IME interfering in URL-mode ([#1718][1718]).
 * OSC-52 reply interleaved with other data sent to the client
   ([#1734][1734]).
+* XKB compose state being reset when foot receives a new keymap
+  ([#1744][1744]).
 
 [1694]: https://codeberg.org/dnkl/foot/issues/1694
 [1717]: https://codeberg.org/dnkl/foot/issues/1717
 [1718]: https://codeberg.org/dnkl/foot/issues/1718
 [1734]: https://codeberg.org/dnkl/foot/issues/1734
+[1744]: https://codeberg.org/dnkl/foot/issues/1744
 
 
 ### Security

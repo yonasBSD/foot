@@ -513,14 +513,6 @@ keyboard_keymap(void *data, struct wl_keyboard *wl_keyboard,
      * Free old keymap state
      */
 
-    if (seat->kbd.xkb_compose_state != NULL) {
-        xkb_compose_state_unref(seat->kbd.xkb_compose_state);
-        seat->kbd.xkb_compose_state = NULL;
-    }
-    if (seat->kbd.xkb_compose_table != NULL) {
-        xkb_compose_table_unref(seat->kbd.xkb_compose_table);
-        seat->kbd.xkb_compose_table = NULL;
-    }
     if (seat->kbd.xkb_keymap != NULL) {
         xkb_keymap_unref(seat->kbd.xkb_keymap);
         seat->kbd.xkb_keymap = NULL;
@@ -528,10 +520,6 @@ keyboard_keymap(void *data, struct wl_keyboard *wl_keyboard,
     if (seat->kbd.xkb_state != NULL) {
         xkb_state_unref(seat->kbd.xkb_state);
         seat->kbd.xkb_state = NULL;
-    }
-    if (seat->kbd.xkb != NULL) {
-        xkb_context_unref(seat->kbd.xkb);
-        seat->kbd.xkb = NULL;
     }
 
     key_binding_unload_keymap(wayl->key_binding_manager, seat);
@@ -559,23 +547,11 @@ keyboard_keymap(void *data, struct wl_keyboard *wl_keyboard,
     while (map_str[size - 1] == '\0')
         size--;
 
-    seat->kbd.xkb = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-
     if (seat->kbd.xkb != NULL) {
         seat->kbd.xkb_keymap = xkb_keymap_new_from_buffer(
             seat->kbd.xkb, map_str, size, XKB_KEYMAP_FORMAT_TEXT_V1,
             XKB_KEYMAP_COMPILE_NO_FLAGS);
 
-        /* Compose (dead keys) */
-        seat->kbd.xkb_compose_table = xkb_compose_table_new_from_locale(
-            seat->kbd.xkb, setlocale(LC_CTYPE, NULL), XKB_COMPOSE_COMPILE_NO_FLAGS);
-
-        if (seat->kbd.xkb_compose_table == NULL) {
-            LOG_WARN("failed to instantiate compose table; dead keys will not work");
-        } else {
-            seat->kbd.xkb_compose_state = xkb_compose_state_new(
-                seat->kbd.xkb_compose_table, XKB_COMPOSE_STATE_NO_FLAGS);
-        }
     }
 
     if (seat->kbd.xkb_keymap != NULL) {
