@@ -40,6 +40,7 @@
     RV=\E[>c,
     Rect=\E[%p1%d;%p2%d;%p3%d;%p4%d;%p5%d$x,
     Se=\E[ q,
+    Smulx=\E[4:%p1%dm,
     Ss=\E[%p1%d q,
     Sync=\E[?2026%?%p1%{1}%-%tl%eh%;,
     TS=\E]2;,
