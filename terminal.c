@@ -3636,11 +3636,25 @@ term_fill(struct terminal *term, int r, int c, uint8_t data, size_t count,
                 break;
             }
         }
+
+        if (unlikely(term->vt.curly.style > CURLY_SINGLE ||
+                     term->vt.curly.color_src != COLOR_DEFAULT))
+        {
+            grid_row_curly_range_put(row, c, term->vt.curly);
+        }
     }
 
     if (unlikely(row->extra != NULL)) {
-        grid_row_uri_range_erase(row, c, c + count - 1);
-        grid_row_curly_range_erase(row, c, c + count - 1);
+        if (likely(term->vt.osc8.uri != NULL))
+            grid_row_uri_range_erase(row, c, c + count - 1);
+
+        if (likely(term->vt.curly.style <= CURLY_SINGLE &&
+                   term->vt.curly.color_src == COLOR_DEFAULT))
+        {
+            /* No extended/styled underlines active, so erase any such
+               attributes at the target columns */
+            grid_row_curly_range_erase(row, c, c + count - 1);
+        }
     }
 }
 
