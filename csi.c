@@ -120,7 +120,6 @@ csi_sgr(struct terminal *term)
 
                 term_update_ascii_printer(term);
             }
-            LOG_WARN("CURLY: %d", term->vt.curly.style);
             break;
         }
         case 5: term->vt.attrs.blink = true; break;
