@@ -4395,6 +4395,29 @@ render_resize(struct terminal *term, int width, int height, uint8_t opts)
             memcpy(g.rows[i]->cells,
                    orig->rows[j]->cells,
                    g.num_cols * sizeof(g.rows[i]->cells[0]));
+
+            if (orig->rows[j]->extra == NULL ||
+                orig->rows[j]->extra->curly_ranges.count == 0)
+            {
+                continue;
+            }
+
+            /*
+             * Copy undercurly ranges
+             */
+
+            const struct row_ranges *curly_src = &orig->rows[j]->extra->curly_ranges;
+
+            const int count = curly_src->count;
+            g.rows[i]->extra = xcalloc(1, sizeof(*g.rows[i]->extra));
+            g.rows[i]->extra->curly_ranges.v = xmalloc(
+                count * sizeof(g.rows[i]->extra->curly_ranges.v[0]));
+
+            struct row_ranges *curly_dst = &g.rows[i]->extra->curly_ranges;
+            curly_dst->count = curly_dst->size = count;
+
+            for (int k = 0; k < count; k++)
+                curly_dst->v[k] = curly_src->v[k];
         }
 
         term->normal = g;
