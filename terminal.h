@@ -104,12 +104,33 @@ struct uri_range_data {
     char *uri;
 };
 
+enum curly_style {
+    CURLY_NONE,
+    CURLY_SINGLE,  /* Legacy underline */
+    CURLY_DOUBLE,
+    CURLY_CURLY,
+    CURLY_DOTTED,
+    CURLY_DASHED,
+};
+
+struct curly_range_data {
+    enum curly_style style;
+    enum color_source color_src;
+    uint32_t color;
+};
+
+union row_range_data {
+    struct uri_range_data uri;
+    struct curly_range_data curly;
+};
+
 struct row_range {
     int start;
     int end;
 
     union {
         struct uri_range_data uri;
+        struct curly_range_data curly;
     };
 };
 
@@ -119,10 +140,11 @@ struct row_ranges {
     int count;
 };
 
-enum row_range_type {ROW_RANGE_URI};
+enum row_range_type {ROW_RANGE_URI, ROW_RANGE_CURLY};
 
 struct row_data {
     struct row_ranges uri_ranges;
+    struct row_ranges curly_ranges;
 };
 
 struct row {
@@ -270,6 +292,8 @@ struct vt {
         uint64_t id;
         char *uri;
     } osc8;
+
+    struct curly_range_data curly;
 
     struct {
         uint8_t *data;

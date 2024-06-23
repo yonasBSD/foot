@@ -105,6 +105,11 @@ verify_no_overlapping_ranges_of_type(const struct row_ranges *ranges,
                         r1->uri.uri, r1->start, r1->end,
                         r2->uri.uri, r2->start, r2->end);
                     break;
+
+                case ROW_RANGE_CURLY:
+                    BUG("curly underline overlap: %d-%d, %d-%d",
+                        r1->start, r1->end, r2->start, r2->end);
+                    break;
                 }
             }
         }
@@ -116,6 +121,7 @@ static void
 verify_no_overlapping_ranges(const struct row_data *extra)
 {
     verify_no_overlapping_ranges_of_type(&extra->uri_ranges, ROW_RANGE_URI);
+    verify_no_overlapping_ranges_of_type(&extra->curly_ranges, ROW_RANGE_CURLY);
 }
 
 static void
@@ -137,6 +143,12 @@ verify_ranges_of_type_are_sorted(const struct row_ranges *ranges,
                         last->uri.uri, last->start, last->end,
                         r->uri.uri, r->start, r->end);
                     break;
+
+                case ROW_RANGE_CURLY:
+                    BUG("curly ranges not sorted correctly: "
+                        "%d-%d came before %d-%d",
+                        last->start, last->end, r->start, r->end);
+                    break;
                 }
             }
         }
@@ -150,19 +162,37 @@ static void
 verify_ranges_are_sorted(const struct row_data *extra)
 {
     verify_ranges_of_type_are_sorted(&extra->uri_ranges, ROW_RANGE_URI);
+    verify_ranges_of_type_are_sorted(&extra->curly_ranges, ROW_RANGE_CURLY);
 }
 
 static void
-uri_range_ensure_size(struct row_data *extra, uint32_t count_to_add)
+range_ensure_size(struct row_ranges *ranges, int count_to_add)
 {
-    if (extra->uri_ranges.count + count_to_add > extra->uri_ranges.size) {
-        extra->uri_ranges.size = extra->uri_ranges.count + count_to_add;
-        extra->uri_ranges.v = xrealloc(
-            extra->uri_ranges.v,
-            extra->uri_ranges.size * sizeof(extra->uri_ranges.v[0]));
+    if (ranges->count + count_to_add > ranges->size) {
+        ranges->size = ranges->count + count_to_add;
+        ranges->v = xrealloc(ranges->v, ranges->size * sizeof(ranges->v[0]));
     }
 
-    xassert(extra->uri_ranges.count + count_to_add <= extra->uri_ranges.size);
+    xassert(ranges->count + count_to_add <= ranges->size);
+}
+
+static void
+range_insert(struct row_ranges *ranges, size_t idx, int start, int end)
+{
+    range_ensure_size(ranges, 1);
+
+    xassert(idx <= ranges->count);
+
+    const size_t move_count = ranges->count - idx;
+    memmove(&ranges->v[idx + 1],
+            &ranges->v[idx],
+            move_count * sizeof(ranges->v[0]));
+
+    ranges->count++;
+    ranges->v[idx] = (struct row_range){
+        .start = start,
+        .end = end,
+    };
 }
 
 /*
@@ -170,34 +200,27 @@ uri_range_ensure_size(struct row_data *extra, uint32_t count_to_add)
  * invalidating pointers into it.
  */
 static void
-uri_range_insert(struct row_data *extra, size_t idx, int start, int end,
+uri_range_insert(struct row_ranges *ranges, size_t idx, int start, int end,
                  uint64_t id, const char *uri)
 {
-    uri_range_ensure_size(extra, 1);
+    range_insert(ranges, idx, start, end);
+    ranges->v[idx].uri.id = id;
+    ranges->v[idx].uri.uri = xstrdup(uri);
+}
 
-    xassert(idx <= extra->uri_ranges.count);
-
-    const size_t move_count = extra->uri_ranges.count - idx;
-    memmove(&extra->uri_ranges.v[idx + 1],
-            &extra->uri_ranges.v[idx],
-            move_count * sizeof(extra->uri_ranges.v[0]));
-
-    extra->uri_ranges.count++;
-    extra->uri_ranges.v[idx] = (struct row_range){
-        .start = start,
-        .end = end,
-        .uri = {
-            .id = id,
-            .uri = xstrdup(uri),
-        },
-    };
+static void
+curly_range_insert(struct row_ranges *ranges, size_t idx, int start, int end,
+                   struct curly_range_data data)
+{
+    range_insert(ranges, idx, start, end);
+    ranges->v[idx].curly = data;
 }
 
 static void
 uri_range_append_no_strdup(struct row_data *extra, int start, int end,
                            uint64_t id, char *uri)
 {
-    uri_range_ensure_size(extra, 1);
+    range_ensure_size(&extra->uri_ranges, 1);
     extra->uri_ranges.v[extra->uri_ranges.count++] = (struct row_range){
         .start = start,
         .end = end,
@@ -216,16 +239,16 @@ uri_range_append(struct row_data *extra, int start, int end, uint64_t id,
 }
 
 static void
-uri_range_delete(struct row_data *extra, size_t idx)
+range_delete(struct row_ranges *ranges, enum row_range_type type, size_t idx)
 {
-    xassert(idx < extra->uri_ranges.count);
-    grid_row_uri_range_destroy(&extra->uri_ranges.v[idx]);
+    xassert(idx < ranges->count);
+    grid_row_range_destroy(&ranges->v[idx], type);
 
-    const size_t move_count = extra->uri_ranges.count - idx - 1;
-    memmove(&extra->uri_ranges.v[idx],
-            &extra->uri_ranges.v[idx + 1],
-            move_count * sizeof(extra->uri_ranges.v[0]));
-    extra->uri_ranges.count--;
+    const size_t move_count = ranges->count - idx - 1;
+    memmove(&ranges->v[idx],
+            &ranges->v[idx + 1],
+            move_count * sizeof(ranges->v[0]));
+    ranges->count--;
 }
 
 struct grid *
@@ -269,13 +292,19 @@ grid_snapshot(const struct grid *grid)
             struct row_data *clone_extra = xcalloc(1, sizeof(*clone_extra));
             clone_row->extra = clone_extra;
 
-            uri_range_ensure_size(clone_extra, extra->uri_ranges.count);
+            range_ensure_size(&clone_extra->uri_ranges, extra->uri_ranges.count);
+            range_ensure_size(&clone_extra->curly_ranges, extra->curly_ranges.count);
 
-            for (size_t i = 0; i < extra->uri_ranges.count; i++) {
+            for (int i = 0; i < extra->uri_ranges.count; i++) {
                 const struct row_range *range = &extra->uri_ranges.v[i];
                 uri_range_append(
                     clone_extra,
                     range->start, range->end, range->uri.id, range->uri.uri);
+            }
+
+            for (int i = 0; i < extra->curly_ranges.count; i++) {
+                //const struct row_range *range = &extra->curly_ranges.v[i];
+                BUG("TODO");
             }
         } else
             clone_row->extra = NULL;
@@ -490,9 +519,10 @@ grid_resize_without_reflow(
         ensure_row_has_extra_data(new_row);
         struct row_data *new_extra = new_row->extra;
 
-        uri_range_ensure_size(new_extra, old_extra->uri_ranges.count);
+        range_ensure_size(&new_extra->uri_ranges, old_extra->uri_ranges.count);
+        range_ensure_size(&new_extra->curly_ranges, old_extra->curly_ranges.count);
 
-        for (size_t i = 0; i < old_extra->uri_ranges.count; i++) {
+        for (int i = 0; i < old_extra->uri_ranges.count; i++) {
             const struct row_range *range = &old_extra->uri_ranges.v[i];
 
             if (range->start >= new_cols) {
@@ -504,7 +534,21 @@ grid_resize_without_reflow(
             const int end = min(range->end, new_cols - 1);
             uri_range_append(new_extra, start, end, range->uri.id, range->uri.uri);
         }
-    }
+
+        for (int i = 0; i < old_extra->uri_ranges.count; i++) {
+            const struct row_range *range = &old_extra->uri_ranges.v[i];
+
+            if (range->start >= new_cols) {
+                /* The whole range is truncated */
+                continue;
+            }
+
+            //const int start = range->start;
+            //const int end = min(range->end, new_cols - 1);
+            //uri_range_append(new_extra, start, end, range->uri.id, range->uri.uri);
+            BUG("TODO");
+        }
+}
 
     /* Clear "new" lines */
     for (int r = min(old_screen_rows, new_screen_rows); r < new_screen_rows; r++) {
@@ -1161,7 +1205,7 @@ grid_row_uri_range_put(struct row *row, int col, const char *uri, uint64_t id)
     bool run_merge_pass = false;
 
     struct row_data *extra = row->extra;
-    for (ssize_t i = (ssize_t)extra->uri_ranges.count - 1; i >= 0; i--) {
+    for (int i = extra->uri_ranges.count - 1; i >= 0; i--) {
         struct row_range *r = &extra->uri_ranges.v[i];
 
         const bool matching_id = r->uri.id == id;
@@ -1203,7 +1247,8 @@ grid_row_uri_range_put(struct row *row, int col, const char *uri, uint64_t id)
                 xassert(r->start < col);
                 xassert(r->end > col);
 
-                uri_range_insert(extra, i + 1, col + 1, r->end, r->uri.id, r->uri.uri);
+                uri_range_insert(
+                    &extra->uri_ranges, i + 1, col + 1, r->end, r->uri.id, r->uri.uri);
 
                 /* The insertion may xrealloc() the vector, making our
                  * 'old' pointer invalid */
@@ -1231,7 +1276,7 @@ grid_row_uri_range_put(struct row *row, int col, const char *uri, uint64_t id)
             },
         };
     } else
-        uri_range_insert(extra, insert_idx, col, col, id, uri);
+        uri_range_insert(&extra->uri_ranges, insert_idx, col, col, id, uri);
 
     if (run_merge_pass) {
         for (size_t i = 1; i < extra->uri_ranges.count; i++) {
@@ -1240,7 +1285,111 @@ grid_row_uri_range_put(struct row *row, int col, const char *uri, uint64_t id)
 
             if (r1->uri.id == r2->uri.id && r1->end + 1 == r2->start) {
                 r1->end = r2->end;
-                uri_range_delete(extra, i);
+                range_delete(&extra->uri_ranges, ROW_RANGE_URI, i);
+                i--;
+            }
+        }
+    }
+
+out:
+    verify_no_overlapping_ranges(extra);
+    verify_ranges_are_sorted(extra);
+}
+
+void
+grid_row_curly_range_put(struct row *row, int col, struct curly_range_data data)
+{
+    ensure_row_has_extra_data(row);
+
+    size_t insert_idx = 0;
+    bool replace = false;
+    bool run_merge_pass = false;
+
+    struct row_data *extra = row->extra;
+    for (int i = extra->curly_ranges.count - 1; i >= 0; i--) {
+        struct row_range *r = &extra->curly_ranges.v[i];
+
+        const bool matching = r->curly.style == data.style &&
+                              r->curly.color_src == data.color_src &&
+                              r->curly.color == data.color;
+
+        if (matching && r->end + 1 == col) {
+            /* Extend existing curly tail */
+            r->end++;
+            goto out;
+        }
+
+        else if (r->end < col) {
+            insert_idx = i + 1;
+            break;
+        }
+
+        else if (r->start > col)
+            continue;
+
+        else {
+            xassert(r->start <= col);
+            xassert(r->end >= col);
+
+            if (matching)
+                goto out;
+
+            if (r->start == r->end) {
+                replace = true;
+                run_merge_pass = true;
+                insert_idx = i;
+            } else if (r->start == col) {
+                run_merge_pass = true;
+                r->start++;
+                insert_idx = i;
+            } else if (r->end == col) {
+                run_merge_pass = true;
+                r->end--;
+                insert_idx = i + 1;
+            } else {
+                xassert(r->start < col);
+                xassert(r->end > col);
+
+                curly_range_insert(
+                    &extra->curly_ranges, i + 1, col + 1, r->end, data);
+
+                /* The insertion may xrealloc() the vector, making our
+                 * 'old' pointer invalid */
+                r = &extra->curly_ranges.v[i];
+                r->end = col - 1;
+                xassert(r->start <= r->end);
+
+                insert_idx = i + 1;
+            }
+
+            break;
+        }
+    }
+
+    xassert(insert_idx <= extra->curly_ranges.count);
+
+    if (replace) {
+        grid_row_curly_range_destroy(&extra->curly_ranges.v[insert_idx]);
+        extra->curly_ranges.v[insert_idx] = (struct row_range){
+            .start = col,
+            .end = col,
+            .curly = data,
+        };
+    } else
+        curly_range_insert(&extra->curly_ranges, insert_idx, col, col, data);
+
+    if (run_merge_pass) {
+        for (size_t i = 1; i < extra->curly_ranges.count; i++) {
+            struct row_range *r1 = &extra->curly_ranges.v[i - 1];
+            struct row_range *r2 = &extra->curly_ranges.v[i];
+
+            if (r1->curly.style == r2->curly.style &&
+                r1->curly.color_src == r2->curly.color_src &&
+                r1->curly.color == r2->curly.color &&
+                r1->end + 1 == r2->start)
+            {
+                r1->end = r2->end;
+                range_delete(&extra->curly_ranges, ROW_RANGE_CURLY, i);
                 i--;
             }
         }
@@ -1316,17 +1465,15 @@ UNITTEST
 #undef verify_range
 }
 
-void
-grid_row_uri_range_erase(struct row *row, int start, int end)
+static void
+grid_row_range_erase(struct row_ranges *ranges, enum row_range_type type,
+                     int start, int end)
 {
-    xassert(row->extra != NULL);
     xassert(start <= end);
 
-    struct row_data *extra = row->extra;
-
     /* Split up, or remove, URI ranges affected by the erase */
-    for (ssize_t i = (ssize_t)extra->uri_ranges.count - 1; i >= 0; i--) {
-        struct row_range *old = &extra->uri_ranges.v[i];
+    for (int i = ranges->count - 1; i >= 0; i--) {
+        struct row_range *old = &ranges->v[i];
 
         if (old->end < start)
             return;
@@ -1336,17 +1483,25 @@ grid_row_uri_range_erase(struct row *row, int start, int end)
 
         if (start <= old->start && end >= old->end) {
             /* Erase range covers URI completely - remove it */
-            uri_range_delete(extra, i);
+            range_delete(ranges, type, i);
         }
 
         else if (start > old->start && end < old->end) {
             /* Erase range erases a part in the middle of the URI */
-            uri_range_insert(
-                extra, i + 1, end + 1, old->end, old->uri.id, old->uri.uri);
+            switch (type) {
+            case ROW_RANGE_URI:
+                uri_range_insert(
+                    ranges, i + 1, end + 1, old->end, old->uri.id, old->uri.uri);
+                break;
+
+            case ROW_RANGE_CURLY:
+                curly_range_insert(ranges, i + 1, end + 1, old->end, old->curly);
+                break;
+            }
 
             /* The insertion may xrealloc() the vector, making our
              * 'old' pointer invalid */
-            old = &extra->uri_ranges.v[i];
+            old = &ranges->v[i];
             old->end = start - 1;
             return;  /* There can be no more URIs affected by the erase range */
         }
@@ -1364,6 +1519,20 @@ grid_row_uri_range_erase(struct row *row, int start, int end)
             return;  /* There can be no more overlapping URIs */
         }
     }
+}
+
+void
+grid_row_uri_range_erase(struct row *row, int start, int end)
+{
+    xassert(row->extra != NULL);
+    grid_row_range_erase(&row->extra->uri_ranges, ROW_RANGE_URI, start, end);
+}
+
+void
+grid_row_curly_range_erase(struct row *row, int start, int end)
+{
+    xassert(row->extra != NULL);
+    grid_row_range_erase(&row->extra->curly_ranges, ROW_RANGE_CURLY, start, end);
 }
 
 UNITTEST

@@ -1940,8 +1940,10 @@ erase_cell_range(struct terminal *term, struct row *row, int start, int end)
     } else
         memset(&row->cells[start], 0, (end - start + 1) * sizeof(row->cells[0]));
 
-    if (unlikely(row->extra != NULL))
+    if (unlikely(row->extra != NULL)) {
         grid_row_uri_range_erase(row, start, end);
+        grid_row_curly_range_erase(row, start, end);
+    }
 }
 
 static inline void
@@ -3621,6 +3623,7 @@ term_fill(struct terminal *term, int r, int c, uint8_t data, size_t count,
         cell->wc = data;
         cell->attrs = attrs;
 
+        /* TODO: why do we print the URI here, and then erase it below? */
         if (unlikely(term->vt.osc8.uri != NULL)) {
             grid_row_uri_range_put(row, c, term->vt.osc8.uri, term->vt.osc8.id);
 
@@ -3635,8 +3638,10 @@ term_fill(struct terminal *term, int r, int c, uint8_t data, size_t count,
         }
     }
 
-    if (unlikely(row->extra != NULL))
+    if (unlikely(row->extra != NULL)) {
         grid_row_uri_range_erase(row, c, c + count - 1);
+        grid_row_curly_range_erase(row, c, c + count - 1);
+    }
 }
 
 void
@@ -3706,6 +3711,13 @@ term_print(struct terminal *term, char32_t wc, int width)
     } else if (row->extra != NULL)
         grid_row_uri_range_erase(row, col, col + width - 1);
 
+    if (unlikely(term->vt.curly.style > CURLY_SINGLE ||
+                 term->vt.curly.color_src != COLOR_DEFAULT))
+    {
+        grid_row_curly_range_put(row, col, term->vt.curly);
+    } else if (row->extra != NULL)
+        grid_row_curly_range_erase(row, col, col + width - 1);
+
     /* Advance cursor the 'additional' columns while dirty:ing the cells */
     for (int i = 1; i < width && (col + 1) < term->cols; i++) {
         col++;
@@ -3763,8 +3775,10 @@ ascii_printer_fast(struct terminal *term, char32_t wc)
 
     grid->cursor.point.col = col;
 
-    if (unlikely(row->extra != NULL))
+    if (unlikely(row->extra != NULL)) {
         grid_row_uri_range_erase(row, uri_start, uri_start);
+        grid_row_curly_range_erase(row, uri_start, uri_start);
+    }
 }
 
 static void
@@ -3781,6 +3795,8 @@ term_update_ascii_printer(struct terminal *term)
     void (*new_printer)(struct terminal *term, char32_t wc) =
         unlikely(tll_length(term->grid->sixel_images) > 0 ||
                  term->vt.osc8.uri != NULL ||
+                 term->vt.curly.style > CURLY_SINGLE ||
+                 term->vt.curly.color_src != COLOR_DEFAULT ||
                  term->charsets.set[term->charsets.selected] == CHARSET_GRAPHIC ||
                  term->insert_mode)
         ? &ascii_printer_generic

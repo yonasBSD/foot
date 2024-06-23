@@ -847,8 +847,43 @@ render_cell(struct terminal *term, pixman_image_t *pix, pixman_region32_t *damag
     pixman_image_unref(clr_pix);
 
     /* Underline */
-    if (cell->attrs.underline)
-        draw_underline(term, pix, font, &fg, x, y, cell_cols);
+    if (cell->attrs.underline) {
+        pixman_color_t underline_color = fg;
+
+        /* Check if cell has a styled underline. This lookup is fairly
+           expensive... */
+        if (row->extra != NULL) {
+            for (int i = 0; i < row->extra->curly_ranges.count; i++) {
+                const struct row_range *range = &row->extra->curly_ranges.v[i];
+
+                if (range->start <= col && col <= range->end) {
+                    switch (range->curly.color_src) {
+                    case COLOR_BASE256:
+                        underline_color = color_hex_to_pixman(
+                            term->colors.table[range->curly.color]);
+                        break;
+
+                    case COLOR_RGB:
+                        underline_color =
+                            color_hex_to_pixman(range->curly.color);
+                        break;
+
+                    case COLOR_DEFAULT:
+                        break;
+
+                    case COLOR_BASE16:
+                        BUG("underline color can't be base-16");
+                        break;
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        draw_underline(term, pix, font, &underline_color, x, y, cell_cols);
+
+    }
 
     if (cell->attrs.strikethrough)
         draw_strikeout(term, pix, font, &fg, x, y, cell_cols);

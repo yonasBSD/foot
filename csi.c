@@ -32,7 +32,14 @@
 static void
 sgr_reset(struct terminal *term)
 {
+    /* TODO: can we drop this check? */
+    const enum curly_style curly_style = term->vt.curly.style;
+
     memset(&term->vt.attrs, 0, sizeof(term->vt.attrs));
+    memset(&term->vt.curly, 0, sizeof(term->vt.curly));
+
+    if (unlikely(curly_style > CURLY_SINGLE))
+        term_update_ascii_printer(term);
 }
 
 static const char *
@@ -88,7 +95,34 @@ csi_sgr(struct terminal *term)
         case 1: term->vt.attrs.bold = true; break;
         case 2: term->vt.attrs.dim = true; break;
         case 3: term->vt.attrs.italic = true; break;
-        case 4: term->vt.attrs.underline = true; break;
+        case 4: {
+            term->vt.attrs.underline = true;
+            term->vt.curly.style = CURLY_SINGLE;
+
+            if (unlikely(term->vt.params.v[i].sub.idx == 1)) {
+                enum curly_style style = term->vt.params.v[i].sub.value[0];
+
+                switch (style) {
+                default:
+                case CURLY_NONE:
+                    term->vt.attrs.underline = false;
+                    term->vt.curly.style = CURLY_NONE;
+                    break;
+
+                case CURLY_SINGLE:
+                case CURLY_DOUBLE:
+                case CURLY_CURLY:
+                case CURLY_DOTTED:
+                case CURLY_DASHED:
+                    term->vt.curly.style = style; break;
+                    break;
+                }
+
+                term_update_ascii_printer(term);
+            }
+            LOG_WARN("CURLY: %d", term->vt.curly.style);
+            break;
+        }
         case 5: term->vt.attrs.blink = true; break;
         case 6: LOG_WARN("ignored: rapid blink"); break;
         case 7: term->vt.attrs.reverse = true; break;
@@ -98,7 +132,12 @@ csi_sgr(struct terminal *term)
         case 21: break; /* double-underline, not implemented */
         case 22: term->vt.attrs.bold = term->vt.attrs.dim = false; break;
         case 23: term->vt.attrs.italic = false; break;
-        case 24: term->vt.attrs.underline = false; break;
+        case 24: {
+            term->vt.attrs.underline = false;
+            term->vt.curly.style = CURLY_NONE;
+            term_update_ascii_printer(term);
+            break;
+        }
         case 25: term->vt.attrs.blink = false; break;
         case 26: break;  /* rapid blink, ignored */
         case 27: term->vt.attrs.reverse = false; break;
@@ -119,7 +158,8 @@ csi_sgr(struct terminal *term)
             break;
 
         case 38:
-        case 48: {
+        case 48:
+        case 58: {
             uint32_t color;
             enum color_source src;
 
@@ -194,7 +234,11 @@ csi_sgr(struct terminal *term)
                 break;
             }
 
-            if (param == 38) {
+            if (unlikely(param == 58)) {
+                term->vt.curly.color_src = src;
+                term->vt.curly.color = color;
+                term_update_ascii_printer(term);
+            } else if (param == 38) {
                 term->vt.attrs.fg_src = src;
                 term->vt.attrs.fg = color;
             } else {
@@ -224,6 +268,12 @@ csi_sgr(struct terminal *term)
 
         case 49:
             term->vt.attrs.bg_src = COLOR_DEFAULT;
+            break;
+
+        case 59:
+            term->vt.curly.color_src = COLOR_DEFAULT;
+            term->vt.curly.color = 0;
+            term_update_ascii_printer(term);
             break;
 
         /* Bright foreground colors */
