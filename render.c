@@ -385,6 +385,120 @@ draw_underline(const struct terminal *term, pixman_image_t *pix,
 }
 
 static void
+draw_styled_underline(const struct terminal *term, pixman_image_t *pix,
+                      const struct fcft_font *font,
+                      const pixman_color_t *color,
+                      enum curly_style style, int x, int y, int cols)
+{
+    xassert(style != CURLY_NONE);
+
+    const int thickness = font->underline.thickness;
+
+    int y_ofs;
+
+    /* Make sure the line isn't positioned below the cell */
+    switch (style) {
+    case CURLY_DOUBLE:
+    case CURLY_CURLY:
+        y_ofs = min(underline_offset(term, font),
+                    term->cell_height - thickness * 3);
+        break;
+
+    default:
+        y_ofs = min(underline_offset(term, font),
+                    term->cell_height - thickness);
+        break;
+    }
+
+    const int ceil_w = cols * term->cell_width;
+
+    switch (style) {
+    case CURLY_DOUBLE: {
+        const pixman_rectangle16_t rects[] = {
+            {x, y + y_ofs, ceil_w, thickness},
+            {x, y + y_ofs + thickness * 2, ceil_w, thickness}};
+        pixman_image_fill_rectangles(PIXMAN_OP_SRC, pix, color, 2, rects);
+        break;
+    }
+
+    case CURLY_DASHED: {
+        const int ceil_w = cols * term->cell_width;
+        const int dash_w = ceil_w / 3 + (ceil_w % 3 > 0);
+        const pixman_rectangle16_t rects[] = {
+            {x, y + y_ofs, dash_w, thickness},
+            {x + dash_w * 2, y + y_ofs, dash_w, thickness},
+        };
+        pixman_image_fill_rectangles(
+            PIXMAN_OP_SRC, pix, color, 2, rects);
+        break;
+    }
+    case CURLY_DOTTED: {
+        const int ceil_w = cols * term->cell_width;
+        const int nrects = min(ceil_w / thickness / 2, 16);
+        pixman_rectangle16_t rects[16] = {0};
+
+        for (int i = 0; i < nrects; i++) {
+            rects[i] = (pixman_rectangle16_t){
+                x + i * thickness * 2, y + y_ofs, thickness, thickness};
+        }
+
+        pixman_image_fill_rectangles(PIXMAN_OP_SRC, pix, color, nrects, rects);
+        break;
+    }
+
+    case CURLY_CURLY: {
+        const int top = y + y_ofs;
+        const int bot = top + thickness * 3;
+        const int half_x = x + ceil_w / 2.0, full_x = x + ceil_w;
+
+        const double bt_2 = (bot - top) * (bot - top);
+        const double th_2 = thickness * thickness;
+        const double hx_2 = ceil_w * ceil_w / 4.0;
+        const int th = round(sqrt(th_2 + (th_2 * bt_2 / hx_2)) / 2.);
+
+        #define I(x) pixman_int_to_fixed(x)
+        const pixman_trapezoid_t traps[] = {
+#if 0  /* characters sit within the "dips" of the curlies */
+            {
+                I(top), I(bot),
+                {{I(x), I(top + th)}, {I(half_x), I(bot + th)}},
+                {{I(x), I(top - th)}, {I(half_x), I(bot - th)}},
+            },
+            {
+                I(top), I(bot),
+                {{I(half_x), I(bot - th)}, {I(full_x), I(top - th)}},
+                {{I(half_x), I(bot + th)}, {I(full_x), I(top + th)}},
+            }
+#else  /* characters sit on top of the curlies */
+            {
+                I(top), I(bot),
+                {{I(x), I(bot - th)}, {I(half_x), I(top - th)}},
+                {{I(x), I(bot + th)}, {I(half_x), I(top + th)}},
+            },
+            {
+                I(top), I(bot),
+                {{I(half_x), I(top + th)}, {I(full_x), I(bot + th)}},
+                {{I(half_x), I(top - th)}, {I(full_x), I(bot - th)}},
+            }
+#endif
+        };
+
+        pixman_image_t *fill = pixman_image_create_solid_fill(color);
+        pixman_composite_trapezoids(
+            PIXMAN_OP_OVER, fill, pix, PIXMAN_a8, 0, 0, 0, 0,
+            sizeof(traps) / sizeof(traps[0]), traps);
+
+        pixman_image_unref(fill);
+        break;
+    }
+
+    default:
+        draw_underline(term, pix, font, color, x, y, cols);
+        break;
+    }
+}
+
+static void
 draw_strikeout(const struct terminal *term, pixman_image_t *pix,
                const struct fcft_font *font,
                const pixman_color_t *color, int x, int y, int cols)
@@ -849,6 +963,7 @@ render_cell(struct terminal *term, pixman_image_t *pix, pixman_region32_t *damag
     /* Underline */
     if (cell->attrs.underline) {
         pixman_color_t underline_color = fg;
+        enum curly_style underline_style = CURLY_SINGLE;
 
         /* Check if cell has a styled underline. This lookup is fairly
            expensive... */
@@ -876,12 +991,14 @@ render_cell(struct terminal *term, pixman_image_t *pix, pixman_region32_t *damag
                         break;
                     }
 
+                    underline_style = range->curly.style;
                     break;
                 }
             }
         }
 
-        draw_underline(term, pix, font, &underline_color, x, y, cell_cols);
+        draw_styled_underline(
+            term, pix, font, &underline_color, underline_style, x, y, cell_cols);
 
     }
 
