@@ -89,9 +89,25 @@ void grid_row_uri_range_put(
 void grid_row_uri_range_erase(struct row *row, int start, int end);
 
 static inline void
-grid_row_uri_range_destroy(struct row_uri_range *range)
+grid_row_uri_range_destroy(struct row_range *range)
 {
-    free(range->uri);
+    free(range->uri.uri);
+}
+
+static inline void
+grid_row_range_destroy(struct row_range *range, enum row_range_type type)
+{
+    switch (type) {
+    case ROW_RANGE_URI: grid_row_uri_range_destroy(range); break;
+    }
+}
+
+static inline void
+grid_row_ranges_destroy(struct row_ranges *ranges, enum row_range_type type)
+{
+    for (int i = 0; i < ranges->count; i++) {
+        grid_row_range_destroy(&ranges->v[i], type);
+    }
 }
 
 static inline void

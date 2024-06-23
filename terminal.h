@@ -99,19 +99,30 @@ struct damage {
     uint16_t lines;
 };
 
-struct row_uri_range {
-    int start;
-    int end;
+struct uri_range_data {
     uint64_t id;
     char *uri;
 };
 
+struct row_range {
+    int start;
+    int end;
+
+    union {
+        struct uri_range_data uri;
+    };
+};
+
+struct row_ranges {
+    struct row_range *v;
+    int size;
+    int count;
+};
+
+enum row_range_type {ROW_RANGE_URI};
+
 struct row_data {
-    struct {
-        struct row_uri_range *v;
-        uint32_t size;
-        uint32_t count;
-    } uri_ranges;
+    struct row_ranges uri_ranges;
 };
 
 struct row {

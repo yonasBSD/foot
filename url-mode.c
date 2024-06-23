@@ -509,7 +509,7 @@ osc8_uris(const struct terminal *term, enum url_action action, url_list_t *urls)
             continue;
 
        for (size_t i = 0; i < extra->uri_ranges.count; i++) {
-           const struct row_uri_range *range = &extra->uri_ranges.v[i];
+           const struct row_range *range = &extra->uri_ranges.v[i];
 
            struct coord start = {
                .col = range->start,
@@ -522,8 +522,8 @@ osc8_uris(const struct terminal *term, enum url_action action, url_list_t *urls)
            tll_push_back(
                *urls,
                ((struct url){
-                   .id = range->id,
-                   .url = xstrdup(range->uri),
+                   .id = range->uri.id,
+                   .url = xstrdup(range->uri.uri),
                    .range = {
                        .start = start,
                        .end = end,
