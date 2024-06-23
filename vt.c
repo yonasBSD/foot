@@ -243,12 +243,16 @@ action_execute(struct terminal *term, uint8_t c)
     case '\x0e':
         /* SO - shift out */
         term->charsets.selected = G1;
+        term->bits_affecting_ascii_printer.charset =
+            term->charsets.set[term->charsets.selected] != CHARSET_ASCII;
         term_update_ascii_printer(term);
         break;
 
     case '\x0f':
         /* SI - shift in */
         term->charsets.selected = G0;
+        term->bits_affecting_ascii_printer.charset =
+            term->charsets.set[term->charsets.selected] != CHARSET_ASCII;
         term_update_ascii_printer(term);
         break;
 
@@ -482,12 +486,16 @@ action_esc_dispatch(struct terminal *term, uint8_t final)
         case 'n':
             /* LS2 - Locking Shift 2 */
             term->charsets.selected = G2;
+            term->bits_affecting_ascii_printer.charset =
+                term->charsets.set[term->charsets.selected] != CHARSET_ASCII;
             term_update_ascii_printer(term);
             break;
 
         case 'o':
             /* LS3 - Locking Shift 3 */
             term->charsets.selected = G3;
+            term->bits_affecting_ascii_printer.charset =
+                term->charsets.set[term->charsets.selected] != CHARSET_ASCII;
             term_update_ascii_printer(term);
             break;
 
@@ -546,6 +554,8 @@ action_esc_dispatch(struct terminal *term, uint8_t final)
             size_t idx = term->vt.private - '(';
             xassert(idx <= G3);
             term->charsets.set[idx] = CHARSET_GRAPHIC;
+            term->bits_affecting_ascii_printer.charset =
+                term->charsets.set[term->charsets.selected] != CHARSET_ASCII;
             term_update_ascii_printer(term);
             break;
         }
@@ -554,6 +564,8 @@ action_esc_dispatch(struct terminal *term, uint8_t final)
             size_t idx = term->vt.private - '(';
             xassert(idx <= G3);
             term->charsets.set[idx] = CHARSET_ASCII;
+            term->bits_affecting_ascii_printer.charset =
+                term->charsets.set[term->charsets.selected] != CHARSET_ASCII;
             term_update_ascii_printer(term);
             break;
         }

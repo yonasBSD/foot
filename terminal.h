@@ -393,6 +393,17 @@ struct terminal {
     const struct config *conf;
 
     void (*ascii_printer)(struct terminal *term, char32_t c);
+    union {
+        struct {
+            bool sixels:1;
+            bool osc8:1;
+            bool curly_style:1;
+            bool curly_color:1;
+            bool insert_mode:1;
+            bool charset:1;
+        };
+        uint8_t value;
+    } bits_affecting_ascii_printer;
 
     pid_t slave;
     int ptmx;

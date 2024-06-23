@@ -33,13 +33,12 @@ static void
 sgr_reset(struct terminal *term)
 {
     /* TODO: can we drop this check? */
-    const enum curly_style curly_style = term->vt.curly.style;
-
     memset(&term->vt.attrs, 0, sizeof(term->vt.attrs));
     memset(&term->vt.curly, 0, sizeof(term->vt.curly));
 
-    if (unlikely(curly_style > CURLY_SINGLE))
-        term_update_ascii_printer(term);
+    term->bits_affecting_ascii_printer.curly_style = false;
+    term->bits_affecting_ascii_printer.curly_color = false;
+    term_update_ascii_printer(term);
 }
 
 static const char *
@@ -107,6 +106,7 @@ csi_sgr(struct terminal *term)
                 case CURLY_NONE:
                     term->vt.attrs.underline = false;
                     term->vt.curly.style = CURLY_NONE;
+                    term->bits_affecting_ascii_printer.curly_style = false;
                     break;
 
                 case CURLY_SINGLE:
@@ -114,7 +114,9 @@ csi_sgr(struct terminal *term)
                 case CURLY_CURLY:
                 case CURLY_DOTTED:
                 case CURLY_DASHED:
-                    term->vt.curly.style = style; break;
+                    term->vt.curly.style = style;
+                    term->bits_affecting_ascii_printer.curly_style =
+                        style > CURLY_SINGLE;
                     break;
                 }
 
@@ -134,6 +136,7 @@ csi_sgr(struct terminal *term)
         case 24: {
             term->vt.attrs.underline = false;
             term->vt.curly.style = CURLY_NONE;
+            term->bits_affecting_ascii_printer.curly_style = false;
             term_update_ascii_printer(term);
             break;
         }
@@ -236,6 +239,7 @@ csi_sgr(struct terminal *term)
             if (unlikely(param == 58)) {
                 term->vt.curly.color_src = src;
                 term->vt.curly.color = color;
+                term->bits_affecting_ascii_printer.curly_color = true;
                 term_update_ascii_printer(term);
             } else if (param == 38) {
                 term->vt.attrs.fg_src = src;
@@ -272,6 +276,7 @@ csi_sgr(struct terminal *term)
         case 59:
             term->vt.curly.color_src = COLOR_DEFAULT;
             term->vt.curly.color = 0;
+            term->bits_affecting_ascii_printer.curly_color = false;
             term_update_ascii_printer(term);
             break;
 
@@ -527,6 +532,9 @@ decset_decrst(struct terminal *term, unsigned param, bool enable)
             tll_free(term->alt.scroll_damage);
             term_damage_view(term);
         }
+
+        term->bits_affecting_ascii_printer.sixels =
+            tll_length(term->grid->sixel_images) > 0;
         term_update_ascii_printer(term);
         break;
 
@@ -1165,6 +1173,7 @@ csi_dispatch(struct terminal *term, uint8_t final)
             if (param == 4) {
                 /* Insertion Replacement Mode (IRM) */
                 term->insert_mode = sm;
+                term->bits_affecting_ascii_printer.insert_mode = sm;
                 term_update_ascii_printer(term);
                 break;
             }
