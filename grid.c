@@ -239,6 +239,18 @@ uri_range_append(struct row_data *extra, int start, int end, uint64_t id,
 }
 
 static void
+curly_range_append(struct row_data *extra, int start, int end,
+                   struct curly_range_data data)
+{
+    range_ensure_size(&extra->curly_ranges, 1);
+    extra->curly_ranges.v[extra->curly_ranges.count++] = (struct row_range){
+        .start = start,
+        .end = end,
+        .curly = data,
+    };
+}
+
+static void
 range_delete(struct row_ranges *ranges, enum row_range_type type, size_t idx)
 {
     xassert(idx < ranges->count);
@@ -303,8 +315,8 @@ grid_snapshot(const struct grid *grid)
             }
 
             for (int i = 0; i < extra->curly_ranges.count; i++) {
-                //const struct row_range *range = &extra->curly_ranges.v[i];
-                BUG("TODO");
+                const struct row_range *range = &extra->curly_ranges.v[i];
+                curly_range_append(clone_extra, range->start, range->end, range->curly);
             }
         } else
             clone_row->extra = NULL;
@@ -535,18 +547,17 @@ grid_resize_without_reflow(
             uri_range_append(new_extra, start, end, range->uri.id, range->uri.uri);
         }
 
-        for (int i = 0; i < old_extra->uri_ranges.count; i++) {
-            const struct row_range *range = &old_extra->uri_ranges.v[i];
+        for (int i = 0; i < old_extra->curly_ranges.count; i++) {
+            const struct row_range *range = &old_extra->curly_ranges.v[i];
 
             if (range->start >= new_cols) {
                 /* The whole range is truncated */
                 continue;
             }
 
-            //const int start = range->start;
-            //const int end = min(range->end, new_cols - 1);
-            //uri_range_append(new_extra, start, end, range->uri.id, range->uri.uri);
-            BUG("TODO");
+            const int start = range->start;
+            const int end = min(range->end, new_cols - 1);
+            curly_range_append(new_extra, start, end, range->curly);
         }
 }
 
@@ -623,8 +634,8 @@ reflow_uri_range_start(struct row_range *range, struct row *new_row,
                        int new_col_idx)
 {
     ensure_row_has_extra_data(new_row);
-    uri_range_append_no_strdup
-        (new_row->extra, new_col_idx, -1, range->uri.id, range->uri.uri);
+    uri_range_append_no_strdup(
+        new_row->extra, new_col_idx, -1, range->uri.id, range->uri.uri);
     range->uri.uri = NULL;
 }
 
@@ -639,6 +650,33 @@ reflow_uri_range_end(struct row_range *range, struct row *new_row,
         &extra->uri_ranges.v[extra->uri_ranges.count - 1];
 
     xassert(new_range->uri.id == range->uri.id);
+    xassert(new_range->end < 0);
+    new_range->end = new_col_idx;
+}
+
+static void
+reflow_curly_range_start(struct row_range *range, struct row *new_row,
+                         int new_col_idx)
+{
+    ensure_row_has_extra_data(new_row);
+    curly_range_append(new_row->extra, new_col_idx, -1, range->curly);
+}
+
+
+static void
+reflow_curly_range_end(struct row_range *range, struct row *new_row,
+                       int new_col_idx)
+{
+    struct row_data *extra = new_row->extra;
+    xassert(extra->curly_ranges.count > 0);
+
+    struct row_range *new_range =
+        &extra->curly_ranges.v[extra->curly_ranges.count - 1];
+
+    xassert(new_range->curly.style == range->curly.style);
+    xassert(new_range->curly.color_src == range->curly.color_src);
+    xassert(new_range->curly.color == range->curly.color);
+
     xassert(new_range->end < 0);
     new_range->end = new_col_idx;
 }
@@ -700,6 +738,21 @@ _line_wrap(struct grid *old_grid, struct row **new_grid, struct row *row,
             /* Open a new range on the new/current row */
             ensure_row_has_extra_data(new_row);
             uri_range_append(new_row->extra, 0, -1, range->uri.id, range->uri.uri);
+        }
+    }
+
+    if (extra->curly_ranges.count > 0) {
+        struct row_range *range =
+            &extra->curly_ranges.v[extra->curly_ranges.count - 1];
+
+        if (range->end < 0) {
+
+            /* Terminate URI range on the previous row */
+            range->end = col_count - 1;
+
+            /* Open a new range on the new/current row */
+            ensure_row_has_extra_data(new_row);
+            curly_range_append(new_row->extra, 0, -1, range->curly);
         }
     }
 
@@ -887,12 +940,13 @@ grid_resize_and_reflow(
             tp = NULL;
 
         /* Does this row have any URIs? */
-        struct row_range *range, *range_terminator;
+        struct row_range *uri_range, *uri_range_terminator;
+        struct row_range *curly_range, *curly_range_terminator;
         struct row_data *extra = old_row->extra;
 
         if (extra != NULL && extra->uri_ranges.count > 0) {
-            range = &extra->uri_ranges.v[0];
-            range_terminator = &extra->uri_ranges.v[extra->uri_ranges.count];
+            uri_range = &extra->uri_ranges.v[0];
+            uri_range_terminator = &extra->uri_ranges.v[extra->uri_ranges.count];
 
             /* Make sure the *last* URI range's end point is included
              * in the copy */
@@ -900,18 +954,32 @@ grid_resize_and_reflow(
                 &extra->uri_ranges.v[extra->uri_ranges.count - 1];
             col_count = max(col_count, last_on_row->end + 1);
         } else
-            range = range_terminator = NULL;
+            uri_range = uri_range_terminator = NULL;
+
+        if (extra != NULL && extra->curly_ranges.count > 0) {
+            curly_range = &extra->curly_ranges.v[0];
+            curly_range_terminator = &extra->curly_ranges.v[extra->curly_ranges.count];
+
+            const struct row_range *last_on_row =
+                &extra->curly_ranges.v[extra->curly_ranges.count - 1];
+            col_count = max(col_count, last_on_row->end + 1);
+        } else
+            curly_range = curly_range_terminator = NULL;
 
         for (int start = 0, left = col_count; left > 0;) {
             int end;
             bool tp_break = false;
             bool uri_break = false;
+            bool curly_break = false;
             bool ftcs_break = false;
 
             /* Figure out where to end this chunk */
             {
-                const int uri_col = range != range_terminator
-                    ? ((range->start >= start ? range->start : range->end) + 1)
+                const int uri_col = uri_range != uri_range_terminator
+                    ? ((uri_range->start >= start ? uri_range->start : uri_range->end) + 1)
+                    : INT_MAX;
+                const int curly_col = curly_range != curly_range_terminator
+                    ? ((curly_range->start >= start ? curly_range->start : curly_range->end) + 1)
                     : INT_MAX;
                 const int tp_col = tp != NULL ? tp->col + 1 : INT_MAX;
                 const int ftcs_col = old_row->shell_integration.cmd_start >= start
@@ -920,9 +988,10 @@ grid_resize_and_reflow(
                     ? old_row->shell_integration.cmd_end + 1
                     : INT_MAX;
 
-                end = min(col_count, min(min(tp_col, uri_col), ftcs_col));
+                end = min(col_count, min(min(tp_col, min(uri_col, curly_col)), ftcs_col));
 
                 uri_break = end == uri_col;
+                curly_break = end == curly_col;
                 tp_break = end == tp_col;
                 ftcs_break = end == ftcs_col;
             }
@@ -1033,15 +1102,28 @@ grid_resize_and_reflow(
             }
 
             if (uri_break) {
-                xassert(range != NULL);
+                xassert(uri_range != NULL);
 
-                if (range->start == end - 1)
-                    reflow_uri_range_start(range, new_row, new_col_idx - 1);
+                if (uri_range->start == end - 1)
+                    reflow_uri_range_start(uri_range, new_row, new_col_idx - 1);
 
-                if (range->end == end - 1) {
-                    reflow_uri_range_end(range, new_row, new_col_idx - 1);
-                    grid_row_uri_range_destroy(range);
-                    range++;
+                if (uri_range->end == end - 1) {
+                    reflow_uri_range_end(uri_range, new_row, new_col_idx - 1);
+                    grid_row_uri_range_destroy(uri_range);
+                    uri_range++;
+                }
+            }
+
+            if (curly_break) {
+                xassert(curly_range != NULL);
+
+                if (curly_range->start == end - 1)
+                    reflow_curly_range_start(curly_range, new_row, new_col_idx - 1);
+
+                if (curly_range->end == end - 1) {
+                    reflow_curly_range_end(curly_range, new_row, new_col_idx - 1);
+                    grid_row_curly_range_destroy(curly_range);
+                    curly_range++;
                 }
             }
 
@@ -1067,20 +1149,26 @@ grid_resize_and_reflow(
 
             if (r + 1 < old_rows)
                 line_wrap();
-            else if (new_row->extra != NULL &&
-                     new_row->extra->uri_ranges.count > 0)
-            {
-                /*
-                 * line_wrap() "closes" still-open URIs. Since this is
-                 * the *last* row, and since we're line-breaking due
-                 * to a hard line-break (rather than running out of
-                 * cells in the "new_row"), there shouldn't be an open
-                 * URI (it would have been closed when we reached the
-                 * end of the URI while reflowing the last "old"
-                 * row).
-                 */
-                uint32_t last_idx = new_row->extra->uri_ranges.count - 1;
-                xassert(new_row->extra->uri_ranges.v[last_idx].end >= 0);
+            else if (new_row->extra != NULL) {
+                if (new_row->extra->uri_ranges.count > 0) {
+                    /*
+                     * line_wrap() "closes" still-open URIs. Since
+                     * this is the *last* row, and since we're
+                     * line-breaking due to a hard line-break (rather
+                     * than running out of cells in the "new_row"),
+                     * there shouldn't be an open URI (it would have
+                     * been closed when we reached the end of the URI
+                     * while reflowing the last "old" row).
+                     */
+                    int last_idx = new_row->extra->uri_ranges.count - 1;
+                    xassert(new_row->extra->uri_ranges.v[last_idx].end >= 0);
+                }
+
+                if (new_row->extra->curly_ranges.count > 0) {
+                    int last_idx = new_row->extra->curly_ranges.count - 1;
+                    xassert(new_row->extra->curly_ranges.v[last_idx].end >= 0);
+
+                }
             }
         }
 
@@ -1112,6 +1200,8 @@ grid_resize_and_reflow(
 
         for (size_t i = 0; i < row->extra->uri_ranges.count; i++)
             xassert(row->extra->uri_ranges.v[i].end >= 0);
+        for (size_t i = 0; i < row->extra->curly_ranges.count; i++)
+            xassert(row->extra->curly_ranges.v[i].end >= 0);
 
         verify_no_overlapping_ranges(row->extra);
         verify_ranges_are_sorted(row->extra);
