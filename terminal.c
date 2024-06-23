@@ -3624,7 +3624,7 @@ term_fill(struct terminal *term, int r, int c, uint8_t data, size_t count,
         cell->attrs = attrs;
 
         /* TODO: why do we print the URI here, and then erase it below? */
-        if (unlikely(term->vt.osc8.uri != NULL)) {
+        if (unlikely(use_sgr_attrs && term->vt.osc8.uri != NULL)) {
             grid_row_uri_range_put(row, c, term->vt.osc8.uri, term->vt.osc8.id);
 
             switch (term->conf->url.osc8_underline) {
@@ -3637,8 +3637,9 @@ term_fill(struct terminal *term, int r, int c, uint8_t data, size_t count,
             }
         }
 
-        if (unlikely(term->vt.curly.style > CURLY_SINGLE ||
-                     term->vt.curly.color_src != COLOR_DEFAULT))
+        if (unlikely(use_sgr_attrs &&
+                     (term->vt.curly.style > CURLY_SINGLE ||
+                      term->vt.curly.color_src != COLOR_DEFAULT)))
         {
             grid_row_curly_range_put(row, c, term->vt.curly);
         }
