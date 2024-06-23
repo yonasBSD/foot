@@ -971,6 +971,9 @@ render_cell(struct terminal *term, pixman_image_t *pix, pixman_region32_t *damag
             for (int i = 0; i < row->extra->curly_ranges.count; i++) {
                 const struct row_range *range = &row->extra->curly_ranges.v[i];
 
+                if (range->start > col)
+                    break;
+
                 if (range->start <= col && col <= range->end) {
                     switch (range->curly.color_src) {
                     case COLOR_BASE256:
