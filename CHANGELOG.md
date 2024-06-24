@@ -97,6 +97,8 @@
   ([#1734][1734]).
 * XKB compose state being reset when foot receives a new keymap
   ([#1744][1744]).
+* Regression: alpha changes through OSC-11 sequences not taking effect
+  until window is resized.
 
 [1694]: https://codeberg.org/dnkl/foot/issues/1694
 [1717]: https://codeberg.org/dnkl/foot/issues/1717

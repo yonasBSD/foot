@@ -564,7 +564,9 @@ shm_get_buffer(struct buffer_chain *chain, int width, int height, bool with_alph
     tll_foreach(chain->bufs, it) {
         struct buffer_private *buf = it->item;
 
-        if (buf->public.width != width || buf->public.height != height) {
+        if (buf->public.width != width || buf->public.height != height ||
+            with_alpha != buf->with_alpha)
+        {
             LOG_DBG("purging mismatching buffer %p", (void *)buf);
             if (buffer_unref_no_remove_from_chain(buf))
                 tll_remove(chain->bufs, it);
