@@ -99,12 +99,14 @@
   ([#1744][1744]).
 * Regression: alpha changes through OSC-11 sequences not taking effect
   until window is resized.
+* VS15 being ignored ([#1742][1742]).
 
 [1694]: https://codeberg.org/dnkl/foot/issues/1694
 [1717]: https://codeberg.org/dnkl/foot/issues/1717
 [1718]: https://codeberg.org/dnkl/foot/issues/1718
 [1734]: https://codeberg.org/dnkl/foot/issues/1734
 [1744]: https://codeberg.org/dnkl/foot/issues/1744
+[1742]: https://codeberg.org/dnkl/foot/issues/1742
 
 
 ### Security
