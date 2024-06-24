@@ -16,6 +16,7 @@
 #include "csi.h"
 #include "dcs.h"
 #include "debug.h"
+#include "emoji-variation-sequences.h"
 #include "grid.h"
 #include "osc.h"
 #include "sixel.h"
@@ -655,6 +656,24 @@ chain_key(uint32_t old_key, uint32_t new_wc)
     return new_key;
 }
 
+#if defined(FOOT_GRAPHEME_CLUSTERING)
+static int
+emoji_vs_compare(const void *_key, const void *_entry)
+{
+    const struct emoji_vs *key = _key;
+    const struct emoji_vs *entry = _entry;
+
+    uint32_t cp = key->start;
+
+    if (cp < entry->start)
+        return -1;
+    else if (cp > entry->end)
+        return 1;
+    else
+        return 0;
+}
+#endif
+
 static void
 action_utf8_print(struct terminal *term, char32_t wc)
 {
@@ -855,16 +874,31 @@ action_utf8_print(struct terminal *term, char32_t wc)
                 new_cc->width = min(grapheme_width + width, 2);
 
 #if defined(FOOT_GRAPHEME_CLUSTERING)
+                /* Handle VS-15 and VS-16 variation selectors */
                 if (unlikely(grapheme_clustering &&
                              (wc == 0xfe0e || wc == 0xfe0f) &&
                              new_cc->count == 2))
                 {
-                    /* Only emojis should be affected by VS16 */
-                    const utf8proc_property_t *props =
-                        utf8proc_get_property(new_cc->chars[0]);
+                    const struct emoji_vs *vs =
+                        bsearch(
+                            &(struct emoji_vs){.start = new_cc->chars[0]},
+                            emoji_vs, sizeof(emoji_vs) / sizeof(emoji_vs[0]),
+                            sizeof(struct emoji_vs),
+                            &emoji_vs_compare);
 
-                    if (props->boundclass == UTF8PROC_BOUNDCLASS_EXTENDED_PICTOGRAPHIC)
-                        new_cc->width = wc - 0xfe0d; /* 1 for VS-15, 2 for VS-16 */
+                    if (vs != NULL) {
+                        xassert(new_cc->chars[0] >= vs->start &&
+                                new_cc->chars[0] <= vs->end);
+
+                        /* Force a grapheme width of 1 for VS-15, and 2 for VS-16 */
+                        if (wc == 0xfe0e) {
+                            if (vs->vs15)
+                                new_cc->width = 1;
+                        } else if (wc == 0xfe0f) {
+                            if (vs->vs16)
+                                new_cc->width = 2;
+                        }
+                    }
                 }
 #endif
 

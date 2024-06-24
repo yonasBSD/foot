@@ -199,6 +199,14 @@ builtin_terminfo = custom_target(
             '@default_terminfo@', foot_terminfo, 'foot', '@OUTPUT@']
 )
 
+generate_emoji_variation_sequences = files('scripts/generate-emoji-variation-sequences.py')
+emoji_variation_sequences = custom_target(
+  'generate_emoji_variation_sequences',
+  input: 'unicode/emoji-variation-sequences.txt',
+  output: 'emoji-variation-sequences.h',
+  command: [python, generate_emoji_variation_sequences, '@INPUT@', '@OUTPUT@']
+)
+
 common = static_library(
   'common',
   'log.c', 'log.h',
@@ -227,7 +235,8 @@ vtlib = static_library(
   'osc.c', 'osc.h',
   'sixel.c', 'sixel.h',
   'vt.c', 'vt.h',
-  builtin_terminfo, wl_proto_src + wl_proto_headers,
+  builtin_terminfo, emoji_variation_sequences,
+  wl_proto_src + wl_proto_headers,
   version,
   dependencies: [libepoll, pixman, fcft, tllist, wayland_client, xkb, utf8proc],
   link_with: [common, misc],

@@ -100,6 +100,8 @@
 * Regression: alpha changes through OSC-11 sequences not taking effect
   until window is resized.
 * VS15 being ignored ([#1742][1742]).
+* VS16 being ignored for a subset of the valid VS16 sequences
+  ([#1742][1742]).
 
 [1694]: https://codeberg.org/dnkl/foot/issues/1694
 [1717]: https://codeberg.org/dnkl/foot/issues/1717
