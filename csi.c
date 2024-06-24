@@ -32,9 +32,8 @@
 static void
 sgr_reset(struct terminal *term)
 {
-    /* TODO: can we drop this check? */
-    memset(&term->vt.attrs, 0, sizeof(term->vt.attrs));
-    memset(&term->vt.curly, 0, sizeof(term->vt.curly));
+    term->vt.attrs = (struct attributes){0};
+    term->vt.curly = (struct curly_range_data){0};
 
     term->bits_affecting_ascii_printer.curly_style = false;
     term->bits_affecting_ascii_printer.curly_color = false;
