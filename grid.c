@@ -1417,7 +1417,7 @@ grid_row_range_put(struct row_ranges *ranges, int col,
 
             if (ranges_match(r1, r2, type) && r1->end + 1 == r2->start) {
                 r1->end = r2->end;
-                range_delete(ranges, ROW_RANGE_URI, i);
+                range_delete(ranges, type, i);
                 i--;
             }
         }
