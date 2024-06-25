@@ -277,7 +277,14 @@ empty string to be set, but it must be quoted: *KEY=""*)
 	Initial window width and height in _pixels_ (subject to output
 	scaling), in the form _WIDTHxHEIGHT_. The height _includes_ the
 	titlebar when using CSDs. Mutually exclusive to
-	*initial-window-size-chars*. Default: _700x500_.
+	*initial-window-size-chars*.
+	
+	Note that this option may not work as expected if fractional
+	scaling is being used, due to the fact that many compositors do
+	not report the correct scaling factor until after a window has
+	been mapped.
+    
+	Default: _700x500_.
 
 *initial-window-size-chars*
 	Initial window width and height in _characters_, in the form
@@ -289,6 +296,10 @@ empty string to be set, but it must be quoted: *KEY=""*)
 	be set correctly. If that is the case, use
 	*initial-window-size-pixels* instead.
 	
+	And, just like *initial-window-size-pixels*, this option may not
+	work as expected if fractional scaling is being used (see
+	*initial-window-size-pixels for details).
+    
 	Default: _not set_.
 
 *initial-window-mode*
