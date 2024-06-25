@@ -13,6 +13,7 @@
 
 @default_terminfo@+base|foot base fragment,
     AX,
+    Su,
     Tc,
     XF,
     XT,
