@@ -672,6 +672,20 @@ emoji_vs_compare(const void *_key, const void *_entry)
     else
         return 0;
 }
+
+UNITTEST
+{
+    /* Verify the emoji_vs list is sorted */
+    int64_t last_end = -1;
+
+    for (size_t i = 0; i < sizeof(emoji_vs) / sizeof(emoji_vs[0]); i++) {
+        const struct emoji_vs *vs = &emoji_vs[i];
+        xassert(vs->start <= vs->end);
+        xassert(vs->start > last_end);
+        xassert(vs->vs15 || vs->vs16);
+        last_end = vs->end;
+    }
+}
 #endif
 
 static void
