@@ -176,8 +176,17 @@ range_ensure_size(struct row_ranges *ranges, int count_to_add)
     xassert(ranges->count + count_to_add <= ranges->size);
 }
 
+union range_data_for_insertion {
+    struct {
+        uint64_t id;
+        const char *uri;
+    } uri;
+    struct curly_range_data curly;
+};
+
 static void
-range_insert(struct row_ranges *ranges, size_t idx, int start, int end)
+range_insert(struct row_ranges *ranges, size_t idx, int start, int end,
+             enum row_range_type type, const union range_data_for_insertion *data)
 {
     range_ensure_size(ranges, 1);
 
@@ -193,6 +202,17 @@ range_insert(struct row_ranges *ranges, size_t idx, int start, int end)
         .start = start,
         .end = end,
     };
+
+    switch (type) {
+    case ROW_RANGE_URI:
+        ranges->v[idx].uri.id = data->uri.id;
+        ranges->v[idx].uri.uri = xstrdup(data->uri.uri);
+        break;
+
+    case ROW_RANGE_CURLY:
+        ranges->v[idx].curly = data->curly;
+        break;
+    }
 }
 
 /*
@@ -203,17 +223,16 @@ static void
 uri_range_insert(struct row_ranges *ranges, size_t idx, int start, int end,
                  uint64_t id, const char *uri)
 {
-    range_insert(ranges, idx, start, end);
-    ranges->v[idx].uri.id = id;
-    ranges->v[idx].uri.uri = xstrdup(uri);
+    range_insert(ranges, idx, start, end, ROW_RANGE_URI,
+                 &(union range_data_for_insertion){.uri = {.id = id, .uri = uri}});
 }
 
 static void
 curly_range_insert(struct row_ranges *ranges, size_t idx, int start, int end,
                    struct curly_range_data data)
 {
-    range_insert(ranges, idx, start, end);
-    ranges->v[idx].curly = data;
+    range_insert(ranges, idx, start, end, ROW_RANGE_CURLY,
+                 &(union range_data_for_insertion){.curly = data});
 }
 
 static void
@@ -1285,128 +1304,62 @@ grid_resize_and_reflow(
 #endif
 }
 
-void
-grid_row_uri_range_put(struct row *row, int col, const char *uri, uint64_t id)
+static bool
+ranges_match(const struct row_range *r1, const struct row_range *r2,
+             enum row_range_type type)
 {
-    ensure_row_has_extra_data(row);
+    switch (type) {
+    case ROW_RANGE_URI:
+        /* TODO: also match URI? */
+        return r1->uri.id == r2->uri.id;
 
-    size_t insert_idx = 0;
-    bool replace = false;
-    bool run_merge_pass = false;
-
-    struct row_data *extra = row->extra;
-    for (int i = extra->uri_ranges.count - 1; i >= 0; i--) {
-        struct row_range *r = &extra->uri_ranges.v[i];
-
-        const bool matching_id = r->uri.id == id;
-
-        if (matching_id && r->end + 1 == col) {
-            /* Extend existing URI's tail */
-            r->end++;
-            goto out;
-        }
-
-        else if (r->end < col) {
-            insert_idx = i + 1;
-            break;
-        }
-
-        else if (r->start > col)
-            continue;
-
-        else {
-            xassert(r->start <= col);
-            xassert(r->end >= col);
-
-            if (matching_id)
-                goto out;
-
-            if (r->start == r->end) {
-                replace = true;
-                run_merge_pass = true;
-                insert_idx = i;
-            } else if (r->start == col) {
-                run_merge_pass = true;
-                r->start++;
-                insert_idx = i;
-            } else if (r->end == col) {
-                run_merge_pass = true;
-                r->end--;
-                insert_idx = i + 1;
-            } else {
-                xassert(r->start < col);
-                xassert(r->end > col);
-
-                uri_range_insert(
-                    &extra->uri_ranges, i + 1, col + 1, r->end, r->uri.id, r->uri.uri);
-
-                /* The insertion may xrealloc() the vector, making our
-                 * 'old' pointer invalid */
-                r = &extra->uri_ranges.v[i];
-                r->end = col - 1;
-                xassert(r->start <= r->end);
-
-                insert_idx = i + 1;
-            }
-
-            break;
-        }
+    case ROW_RANGE_CURLY:
+        return r1->curly.style == r2->curly.style &&
+               r1->curly.color_src == r2->curly.color_src &&
+               r1->curly.color == r2->curly.color;
     }
 
-    xassert(insert_idx <= extra->uri_ranges.count);
-
-    if (replace) {
-        grid_row_uri_range_destroy(&extra->uri_ranges.v[insert_idx]);
-        extra->uri_ranges.v[insert_idx] = (struct row_range){
-            .start = col,
-            .end = col,
-            .uri = {
-                .id = id,
-                .uri = xstrdup(uri),
-            },
-        };
-    } else
-        uri_range_insert(&extra->uri_ranges, insert_idx, col, col, id, uri);
-
-    if (run_merge_pass) {
-        for (size_t i = 1; i < extra->uri_ranges.count; i++) {
-            struct row_range *r1 = &extra->uri_ranges.v[i - 1];
-            struct row_range *r2 = &extra->uri_ranges.v[i];
-
-            if (r1->uri.id == r2->uri.id && r1->end + 1 == r2->start) {
-                r1->end = r2->end;
-                range_delete(&extra->uri_ranges, ROW_RANGE_URI, i);
-                i--;
-            }
-        }
-    }
-
-out:
-    verify_no_overlapping_ranges(extra);
-    verify_ranges_are_sorted(extra);
+    BUG("invalid range type");
+    return false;
 }
 
-void
-grid_row_curly_range_put(struct row *row, int col, struct curly_range_data data)
+static bool
+range_match_data(const struct row_range *r,
+                 const union range_data_for_insertion *data,
+                 enum row_range_type type)
 {
-    ensure_row_has_extra_data(row);
+    switch (type) {
+    case ROW_RANGE_URI:
+        return r->uri.id == data->uri.id;
 
+    case ROW_RANGE_CURLY:
+        return r->curly.style == data->curly.style &&
+               r->curly.color_src == data->curly.color_src &&
+               r->curly.color == data->curly.color;
+    }
+
+    BUG("invalid range type");
+    return false;
+}
+
+static void
+grid_row_range_put(struct row_ranges *ranges, int col,
+                   const union range_data_for_insertion *data,
+                   enum row_range_type type)
+{
     size_t insert_idx = 0;
     bool replace = false;
     bool run_merge_pass = false;
 
-    struct row_data *extra = row->extra;
-    for (int i = extra->curly_ranges.count - 1; i >= 0; i--) {
-        struct row_range *r = &extra->curly_ranges.v[i];
+    for (int i = ranges->count - 1; i >= 0; i--) {
+        struct row_range *r = &ranges->v[i];
 
-        const bool matching = r->curly.style == data.style &&
-                              r->curly.color_src == data.color_src &&
-                              r->curly.color == data.color;
+        const bool matching = range_match_data(r, data, type);
 
         if (matching && r->end + 1 == col) {
-            /* Extend existing curly tail */
+            /* Extend existing range tail */
             r->end++;
-            goto out;
+            return;
         }
 
         else if (r->end < col) {
@@ -1422,7 +1375,7 @@ grid_row_curly_range_put(struct row *row, int col, struct curly_range_data data)
             xassert(r->end >= col);
 
             if (matching)
-                goto out;
+                return;
 
             if (r->start == r->end) {
                 replace = true;
@@ -1440,12 +1393,13 @@ grid_row_curly_range_put(struct row *row, int col, struct curly_range_data data)
                 xassert(r->start < col);
                 xassert(r->end > col);
 
-                curly_range_insert(
-                    &extra->curly_ranges, i + 1, col + 1, r->end, data);
+                range_insert(
+                    ranges, i + 1, col + 1, r->end, type,
+                    &(union range_data_for_insertion){.uri = {.id = r->uri.id, .uri = r->uri.uri}});
 
                 /* The insertion may xrealloc() the vector, making our
                  * 'old' pointer invalid */
-                r = &extra->curly_ranges.v[i];
+                r = &ranges->v[i];
                 r->end = col - 1;
                 xassert(r->start <= r->end);
 
@@ -1456,38 +1410,68 @@ grid_row_curly_range_put(struct row *row, int col, struct curly_range_data data)
         }
     }
 
-    xassert(insert_idx <= extra->curly_ranges.count);
+    xassert(insert_idx <= ranges->count);
 
     if (replace) {
-        grid_row_curly_range_destroy(&extra->curly_ranges.v[insert_idx]);
-        extra->curly_ranges.v[insert_idx] = (struct row_range){
+        grid_row_range_destroy(&ranges->v[insert_idx], type);
+        ranges->v[insert_idx] = (struct row_range){
             .start = col,
             .end = col,
-            .curly = data,
         };
+
+        switch (type) {
+        case ROW_RANGE_URI:
+            ranges->v[insert_idx].uri.id = data->uri.id;
+            ranges->v[insert_idx].uri.uri = xstrdup(data->uri.uri);
+            break;
+
+        case ROW_RANGE_CURLY:
+            ranges->v[insert_idx].curly = data->curly;
+            break;
+        }
     } else
-        curly_range_insert(&extra->curly_ranges, insert_idx, col, col, data);
+        range_insert(ranges, insert_idx, col, col, type, data);
 
     if (run_merge_pass) {
-        for (size_t i = 1; i < extra->curly_ranges.count; i++) {
-            struct row_range *r1 = &extra->curly_ranges.v[i - 1];
-            struct row_range *r2 = &extra->curly_ranges.v[i];
+        for (size_t i = 1; i < ranges->count; i++) {
+            struct row_range *r1 = &ranges->v[i - 1];
+            struct row_range *r2 = &ranges->v[i];
 
-            if (r1->curly.style == r2->curly.style &&
-                r1->curly.color_src == r2->curly.color_src &&
-                r1->curly.color == r2->curly.color &&
-                r1->end + 1 == r2->start)
-            {
+            if (ranges_match(r1, r2, type) && r1->end + 1 == r2->start) {
                 r1->end = r2->end;
-                range_delete(&extra->curly_ranges, ROW_RANGE_CURLY, i);
+                range_delete(ranges, ROW_RANGE_URI, i);
                 i--;
             }
         }
     }
+}
 
-out:
-    verify_no_overlapping_ranges(extra);
-    verify_ranges_are_sorted(extra);
+void
+grid_row_uri_range_put(struct row *row, int col, const char *uri, uint64_t id)
+{
+    ensure_row_has_extra_data(row);
+
+    grid_row_range_put(
+        &row->extra->uri_ranges, col,
+        &(union range_data_for_insertion){.uri = {.id = id, .uri = uri}},
+        ROW_RANGE_URI);
+
+    verify_no_overlapping_ranges(row->extra);
+    verify_ranges_are_sorted(row->extra);
+}
+
+void
+grid_row_curly_range_put(struct row *row, int col, struct curly_range_data data)
+{
+    ensure_row_has_extra_data(row);
+
+    grid_row_range_put(
+        &row->extra->curly_ranges, col,
+        &(union range_data_for_insertion){.curly = data},
+        ROW_RANGE_CURLY);
+
+    verify_no_overlapping_ranges(row->extra);
+    verify_ranges_are_sorted(row->extra);
 }
 
 UNITTEST
