@@ -176,17 +176,13 @@ range_ensure_size(struct row_ranges *ranges, int count_to_add)
     xassert(ranges->count + count_to_add <= ranges->size);
 }
 
-union range_data_for_insertion {
-    struct {
-        uint64_t id;
-        const char *uri;
-    } uri;
-    struct curly_range_data curly;
-};
-
+/*
+ * Be careful! This function may xrealloc() the URI range vector, thus
+ * invalidating pointers into it.
+ */
 static void
 range_insert(struct row_ranges *ranges, size_t idx, int start, int end,
-             enum row_range_type type, const union range_data_for_insertion *data)
+             enum row_range_type type, const union row_range_data *data)
 {
     range_ensure_size(ranges, 1);
 
@@ -213,26 +209,6 @@ range_insert(struct row_ranges *ranges, size_t idx, int start, int end,
         ranges->v[idx].curly = data->curly;
         break;
     }
-}
-
-/*
- * Be careful! This function may xrealloc() the URI range vector, thus
- * invalidating pointers into it.
- */
-static void
-uri_range_insert(struct row_ranges *ranges, size_t idx, int start, int end,
-                 uint64_t id, const char *uri)
-{
-    range_insert(ranges, idx, start, end, ROW_RANGE_URI,
-                 &(union range_data_for_insertion){.uri = {.id = id, .uri = uri}});
-}
-
-static void
-curly_range_insert(struct row_ranges *ranges, size_t idx, int start, int end,
-                   struct curly_range_data data)
-{
-    range_insert(ranges, idx, start, end, ROW_RANGE_CURLY,
-                 &(union range_data_for_insertion){.curly = data});
 }
 
 static void
@@ -1324,8 +1300,7 @@ ranges_match(const struct row_range *r1, const struct row_range *r2,
 }
 
 static bool
-range_match_data(const struct row_range *r,
-                 const union range_data_for_insertion *data,
+range_match_data(const struct row_range *r, const union row_range_data *data,
                  enum row_range_type type)
 {
     switch (type) {
@@ -1344,8 +1319,7 @@ range_match_data(const struct row_range *r,
 
 static void
 grid_row_range_put(struct row_ranges *ranges, int col,
-                   const union range_data_for_insertion *data,
-                   enum row_range_type type)
+                   const union row_range_data *data, enum row_range_type type)
 {
     size_t insert_idx = 0;
     bool replace = false;
@@ -1393,9 +1367,13 @@ grid_row_range_put(struct row_ranges *ranges, int col,
                 xassert(r->start < col);
                 xassert(r->end > col);
 
-                range_insert(
-                    ranges, i + 1, col + 1, r->end, type,
-                    &(union range_data_for_insertion){.uri = {.id = r->uri.id, .uri = r->uri.uri}});
+                union row_range_data insert_data;
+                switch (type) {
+                case ROW_RANGE_URI: insert_data.uri = r->uri; break;
+                case ROW_RANGE_CURLY: insert_data.curly = r->curly; break;
+                }
+
+                range_insert(ranges, i + 1, col + 1, r->end, type, &insert_data);
 
                 /* The insertion may xrealloc() the vector, making our
                  * 'old' pointer invalid */
@@ -1453,7 +1431,7 @@ grid_row_uri_range_put(struct row *row, int col, const char *uri, uint64_t id)
 
     grid_row_range_put(
         &row->extra->uri_ranges, col,
-        &(union range_data_for_insertion){.uri = {.id = id, .uri = uri}},
+        &(union row_range_data){.uri = {.id = id, .uri = (char *)uri}},
         ROW_RANGE_URI);
 
     verify_no_overlapping_ranges(row->extra);
@@ -1467,7 +1445,7 @@ grid_row_curly_range_put(struct row *row, int col, struct curly_range_data data)
 
     grid_row_range_put(
         &row->extra->curly_ranges, col,
-        &(union range_data_for_insertion){.curly = data},
+        &(union row_range_data){.curly = data},
         ROW_RANGE_CURLY);
 
     verify_no_overlapping_ranges(row->extra);
@@ -1561,17 +1539,15 @@ grid_row_range_erase(struct row_ranges *ranges, enum row_range_type type,
         }
 
         else if (start > old->start && end < old->end) {
-            /* Erase range erases a part in the middle of the URI */
-            switch (type) {
-            case ROW_RANGE_URI:
-                uri_range_insert(
-                    ranges, i + 1, end + 1, old->end, old->uri.id, old->uri.uri);
-                break;
-
-            case ROW_RANGE_CURLY:
-                curly_range_insert(ranges, i + 1, end + 1, old->end, old->curly);
-                break;
-            }
+            /*
+             * Erase range erases a part in the middle of the URI
+             *
+             * Must copy, since range_insert() may xrealloc() (thus
+             * causing 'old' to be invalid) before it dereferences
+             * old->data
+             */
+            union row_range_data data = old->data;
+            range_insert(ranges, i + 1, end + 1, old->end, type, &data);
 
             /* The insertion may xrealloc() the vector, making our
              * 'old' pointer invalid */

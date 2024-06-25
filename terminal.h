@@ -129,8 +129,14 @@ struct row_range {
     int end;
 
     union {
-        struct uri_range_data uri;
-        struct curly_range_data curly;
+        /* This is just an expanded union row_range_data, but
+         * anonymous, so that we don't have to write range->u.uri.id,
+         * but can instead do range->uri.id */
+        union {
+            struct uri_range_data uri;
+            struct curly_range_data curly;
+        };
+        union row_range_data data;
     };
 };
 
