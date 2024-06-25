@@ -21,7 +21,7 @@ def main():
     parser.add_argument('output', type=argparse.FileType('w'))
     opts = parser.parse_args()
 
-    codepoints: list[Codepoint] = []
+    codepoints: dict[int, Codepoint] = {}
 
     for line in opts.input:
         line = line.rstrip()
@@ -36,30 +36,31 @@ def main():
 
         assert vs == 0xfe0e or vs == 0xfe0f
 
-        if len(codepoints) == 0 or codepoints[-1].start != cp:
-            codepoints.append(Codepoint(cp))
-        else:
-            assert codepoints[-1].start == cp
+        if cp not in codepoints:
+            codepoints[cp] = Codepoint(cp)
+
+        assert codepoints[cp].start == cp
 
         if vs == 0xfe0e:
-            codepoints[-1].vs15 = True
+            codepoints[cp].vs15 = True
         else:
-            codepoints[-1].vs16 = True
+            codepoints[cp].vs16 = True
 
+    sorted_list = sorted(codepoints.values(), key=lambda cp: cp.start)
 
-    compacted_codepoints: list[Codepoint] = []
-    for i, cp in enumerate(codepoints):
+    compacted: list[Codepoint] = []
+    for i, cp in enumerate(sorted_list):
         assert cp.end == cp.start
 
         if i == 0:
-            compacted_codepoints.append(cp)
+            compacted.append(cp)
             continue
 
-        last_cp = compacted_codepoints[-1]
+        last_cp = compacted[-1]
         if last_cp.end == cp.start - 1 and last_cp.vs15 == cp.vs15 and last_cp.vs16 == cp.vs16:
-            compacted_codepoints[-1].end = cp.start
+            compacted[-1].end = cp.start
         else:
-            compacted_codepoints.append(cp)
+            compacted.append(cp)
 
     opts.output.write('#pragma once\n')
     opts.output.write('#include <stdint.h>\n')
@@ -76,9 +77,9 @@ def main():
     opts.output.write('#if defined(FOOT_GRAPHEME_CLUSTERING)\n')
     opts.output.write('\n')
 
-    opts.output.write(f'static const struct emoji_vs emoji_vs[{len(compacted_codepoints)}] = {{\n')
+    opts.output.write(f'static const struct emoji_vs emoji_vs[{len(compacted)}] = {{\n')
 
-    for cp in compacted_codepoints:
+    for cp in compacted:
         opts.output.write('    {\n')
         opts.output.write(f'        .start = 0x{cp.start:X},\n')
         opts.output.write(f'        .end = 0x{cp.end:x},\n')
