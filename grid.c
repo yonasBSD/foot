@@ -194,55 +194,62 @@ range_insert(struct row_ranges *ranges, size_t idx, int start, int end,
             move_count * sizeof(ranges->v[0]));
 
     ranges->count++;
-    ranges->v[idx] = (struct row_range){
-        .start = start,
-        .end = end,
-    };
+
+    struct row_range *r = &ranges->v[idx];
+    r->start = start;
+    r->end = end;
 
     switch (type) {
     case ROW_RANGE_URI:
-        ranges->v[idx].uri.id = data->uri.id;
-        ranges->v[idx].uri.uri = xstrdup(data->uri.uri);
+        r->uri.id = data->uri.id;
+        r->uri.uri = xstrdup(data->uri.uri);
         break;
 
     case ROW_RANGE_CURLY:
-        ranges->v[idx].curly = data->curly;
+        r->curly = data->curly;
         break;
     }
 }
 
 static void
-uri_range_append_no_strdup(struct row_data *extra, int start, int end,
-                           uint64_t id, char *uri)
+range_append_by_ref(struct row_ranges *ranges, int start, int end,
+                    enum row_range_type type, const union row_range_data *data)
 {
-    range_ensure_size(&extra->uri_ranges, 1);
-    extra->uri_ranges.v[extra->uri_ranges.count++] = (struct row_range){
-        .start = start,
-        .end = end,
-        .uri = {
-            .id = id,
-            .uri = uri,
-        },
-    };
+    range_ensure_size(ranges, 1);
+
+    struct row_range *r = &ranges->v[ranges->count++];
+
+    r->start = start;
+    r->end = end;
+
+    switch (type) {
+    case ROW_RANGE_URI:
+        r->uri.id = data->uri.id;;
+        r->uri.uri = data->uri.uri;
+        break;
+
+    case ROW_RANGE_CURLY:
+        r->curly = data->curly;
+        break;
+    }
 }
 
 static void
-uri_range_append(struct row_data *extra, int start, int end, uint64_t id,
-                 const char *uri)
+range_append(struct row_ranges *ranges, int start, int end,
+             enum row_range_type type, const union row_range_data *data)
 {
-    uri_range_append_no_strdup(extra, start, end, id, xstrdup(uri));
-}
+    switch (type) {
+    case ROW_RANGE_URI:
+        range_append_by_ref(
+            ranges, start, end, type,
+            &(union row_range_data){.uri = {.id = data->uri.id,
+                                            .uri = xstrdup(data->uri.uri)}});
+        break;
 
-static void
-curly_range_append(struct row_data *extra, int start, int end,
-                   struct curly_range_data data)
-{
-    range_ensure_size(&extra->curly_ranges, 1);
-    extra->curly_ranges.v[extra->curly_ranges.count++] = (struct row_range){
-        .start = start,
-        .end = end,
-        .curly = data,
-    };
+    case ROW_RANGE_CURLY:
+        range_append_by_ref(ranges, start, end, type, data);
+        break;
+    }
 }
 
 static void
@@ -304,14 +311,16 @@ grid_snapshot(const struct grid *grid)
 
             for (int i = 0; i < extra->uri_ranges.count; i++) {
                 const struct row_range *range = &extra->uri_ranges.v[i];
-                uri_range_append(
-                    clone_extra,
-                    range->start, range->end, range->uri.id, range->uri.uri);
+                range_append(
+                    &clone_extra->uri_ranges,
+                    range->start, range->end, ROW_RANGE_URI, &range->data);
             }
 
             for (int i = 0; i < extra->curly_ranges.count; i++) {
                 const struct row_range *range = &extra->curly_ranges.v[i];
-                curly_range_append(clone_extra, range->start, range->end, range->curly);
+                range_append_by_ref(
+                    &clone_extra->curly_ranges, range->start, range->end,
+                    ROW_RANGE_CURLY, &range->data);
             }
         } else
             clone_row->extra = NULL;
@@ -539,7 +548,7 @@ grid_resize_without_reflow(
 
             const int start = range->start;
             const int end = min(range->end, new_cols - 1);
-            uri_range_append(new_extra, start, end, range->uri.id, range->uri.uri);
+            range_append(&new_extra->uri_ranges, start, end, ROW_RANGE_URI, &range->data);
         }
 
         for (int i = 0; i < old_extra->curly_ranges.count; i++) {
@@ -552,7 +561,7 @@ grid_resize_without_reflow(
 
             const int start = range->start;
             const int end = min(range->end, new_cols - 1);
-            curly_range_append(new_extra, start, end, range->curly);
+            range_append_by_ref(&new_extra->curly_ranges, start, end, ROW_RANGE_CURLY, &range->data);
         }
 }
 
@@ -629,8 +638,11 @@ reflow_uri_range_start(struct row_range *range, struct row *new_row,
                        int new_col_idx)
 {
     ensure_row_has_extra_data(new_row);
-    uri_range_append_no_strdup(
-        new_row->extra, new_col_idx, -1, range->uri.id, range->uri.uri);
+    range_append_by_ref(
+        &new_row->extra->uri_ranges, new_col_idx, -1,
+        ROW_RANGE_URI, &range->data);
+
+    /* The reflowed range now owns the URI string */
     range->uri.uri = NULL;
 }
 
@@ -654,7 +666,8 @@ reflow_curly_range_start(struct row_range *range, struct row *new_row,
                          int new_col_idx)
 {
     ensure_row_has_extra_data(new_row);
-    curly_range_append(new_row->extra, new_col_idx, -1, range->curly);
+    range_append_by_ref(&new_row->extra->curly_ranges, new_col_idx, -1,
+                        ROW_RANGE_CURLY, &range->data);
 }
 
 
@@ -732,7 +745,8 @@ _line_wrap(struct grid *old_grid, struct row **new_grid, struct row *row,
 
             /* Open a new range on the new/current row */
             ensure_row_has_extra_data(new_row);
-            uri_range_append(new_row->extra, 0, -1, range->uri.id, range->uri.uri);
+            range_append(&new_row->extra->uri_ranges, 0, -1,
+                         ROW_RANGE_URI, &range->data);
         }
     }
 
@@ -747,7 +761,8 @@ _line_wrap(struct grid *old_grid, struct row **new_grid, struct row *row,
 
             /* Open a new range on the new/current row */
             ensure_row_has_extra_data(new_row);
-            curly_range_append(new_row->extra, 0, -1, range->curly);
+            range_append(&new_row->extra->curly_ranges, 0, -1,
+                         ROW_RANGE_CURLY, &range->data);
         }
     }
 
@@ -1589,13 +1604,19 @@ UNITTEST
 {
     struct row_data row_data = {.uri_ranges = {0}};
     struct row row = {.extra = &row_data};
+    const union row_range_data data = {
+        .uri = {
+            .id = 0,
+            .uri = (char *)"dummy",
+        },
+    };
 
     /* Try erasing a row without any URIs */
     grid_row_uri_range_erase(&row, 0, 200);
     xassert(row_data.uri_ranges.count == 0);
 
-    uri_range_append(&row_data, 1, 10, 0, "dummy");
-    uri_range_append(&row_data, 11, 20, 0, "dummy");
+    range_append(&row_data.uri_ranges, 1, 10, ROW_RANGE_URI, &data);
+    range_append(&row_data.uri_ranges, 11, 20, ROW_RANGE_URI, &data);
     xassert(row_data.uri_ranges.count == 2);
     xassert(row_data.uri_ranges.v[1].start == 11);
     xassert(row_data.uri_ranges.v[1].end == 20);
@@ -1610,8 +1631,8 @@ UNITTEST
 
     /* Two URIs, then erase second half of the first, first half of
        the second */
-    uri_range_append(&row_data, 1, 10, 0, "dummy");
-    uri_range_append(&row_data, 11, 20, 0, "dummy");
+    range_append(&row_data.uri_ranges, 1, 10, ROW_RANGE_URI, &data);
+    range_append(&row_data.uri_ranges, 11, 20, ROW_RANGE_URI, &data);
     grid_row_uri_range_erase(&row, 5, 15);
     xassert(row_data.uri_ranges.count == 2);
     xassert(row_data.uri_ranges.v[0].start == 1);
@@ -1626,7 +1647,7 @@ UNITTEST
     row_data.uri_ranges.count = 0;
 
     /* One URI, erase middle part of it */
-    uri_range_append(&row_data, 1, 10, 0, "dummy");
+    range_append(&row_data.uri_ranges, 1, 10, ROW_RANGE_URI, &data);
     grid_row_uri_range_erase(&row, 5, 6);
     xassert(row_data.uri_ranges.count == 2);
     xassert(row_data.uri_ranges.v[0].start == 1);
@@ -1657,7 +1678,7 @@ UNITTEST
     free(row_data.uri_ranges.v);
     row_data.uri_ranges.v = NULL;
     row_data.uri_ranges.size = 0;
-    uri_range_append(&row_data, 1, 10, 0, "dummy");
+    range_append(&row_data.uri_ranges, 1, 10, ROW_RANGE_URI, &data);
     xassert(row_data.uri_ranges.size == 1);
 
     grid_row_uri_range_erase(&row, 5, 7);
