@@ -30,11 +30,18 @@ def main():
         if line[0] == '#':
             continue
 
-        cp, vs, _ = line.split(' ', maxsplit=2)
-        cp = int(cp, 16)
-        vs = int(vs, 16)
+        # Example: "0023 FE0E  ; text style;  # (1.1) NUMBER SIGN"
+        cps, _ = line.split(';', maxsplit=1)  # cps = "0023 FE0F  "
+        cps = cps.strip().split(' ')          # cps = ["0023", "FE0F"]
 
-        assert vs == 0xfe0e or vs == 0xfe0f
+        if len(cps) != 2:
+            raise NotImplementedError(f'emoji variation sequences with more than one base codepoint: {cps}')
+
+        cp, vs = cps       # cp = "0023", vs = "FE0F"
+        cp = int(cp, 16)   # cp = 0x23
+        vs = int(vs, 16)   # vs = 0xfe0f
+
+        assert vs in [0xfe0e, 0xfe0f]
 
         if cp not in codepoints:
             codepoints[cp] = Codepoint(cp)
