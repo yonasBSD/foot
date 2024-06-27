@@ -432,17 +432,43 @@ draw_styled_underline(const struct terminal *term, pixman_image_t *pix,
             PIXMAN_OP_SRC, pix, color, 2, rects);
         break;
     }
-    case CURLY_DOTTED: {
-        const int ceil_w = cols * term->cell_width;
-        const int nrects = min(ceil_w / thickness / 2, 16);
-        pixman_rectangle16_t rects[16] = {0};
 
-        for (int i = 0; i < nrects; i++) {
+    case CURLY_DOTTED: {
+        /* Number of dots per cell */
+        int per_cell = (term->cell_width / thickness) / 2;
+        if (per_cell == 0)
+            per_cell = 1;
+
+        xassert(per_cell >= 1);
+
+        /* Spacing between dots; start with the same width as the dots
+           themselves, then widen them if necessary, to consume unused
+           pixels */
+        int spacing[per_cell];
+        for (int i = 0; i < per_cell; i++)
+            spacing[i] = thickness;
+
+        /* Pixels remaining at the end of the cell */
+        int remaining = term->cell_width - (per_cell * 2) * thickness;
+
+        /* Spread out the left-over pixels across the spacing between
+           the dots */
+        for (int i = 0; remaining > 0; i = (i + 1) % per_cell, remaining--)
+            spacing[i]++;
+
+        xassert(remaining <= 0);
+
+        pixman_rectangle16_t rects[per_cell];
+        int dot_x = x;
+        for (int i = 0; i < per_cell; i++) {
             rects[i] = (pixman_rectangle16_t){
-                x + i * thickness * 2, y + y_ofs, thickness, thickness};
+                dot_x, y + y_ofs, thickness, thickness
+            };
+
+            dot_x += thickness + spacing[i];
         }
 
-        pixman_image_fill_rectangles(PIXMAN_OP_SRC, pix, color, nrects, rects);
+        pixman_image_fill_rectangles(PIXMAN_OP_SRC, pix, color, per_cell, rects);
         break;
     }
 
