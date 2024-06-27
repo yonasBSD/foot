@@ -634,58 +634,60 @@ grid_resize_without_reflow(
 }
 
 static void
-reflow_uri_range_start(struct row_range *range, struct row *new_row,
-                       int new_col_idx)
+reflow_range_start(struct row_range *range, enum row_range_type type,
+                   struct row *new_row, int new_col_idx)
 {
     ensure_row_has_extra_data(new_row);
-    range_append_by_ref(
-        &new_row->extra->uri_ranges, new_col_idx, -1,
-        ROW_RANGE_URI, &range->data);
 
-    /* The reflowed range now owns the URI string */
-    range->uri.uri = NULL;
+    struct row_ranges *new_ranges = NULL;
+    switch (type) {
+    case ROW_RANGE_URI: new_ranges = &new_row->extra->uri_ranges; break;
+    case ROW_RANGE_CURLY: new_ranges = &new_row->extra->curly_ranges; break;
+    }
+
+    if (new_ranges == NULL)
+        BUG("unhandled range type");
+
+    range_append_by_ref(new_ranges, new_col_idx, -1, type, &range->data);
+
+    switch (type) {
+    case ROW_RANGE_URI: range->uri.uri = NULL; break; /* Owned by new_ranges */
+    case ROW_RANGE_CURLY: break;
+    }
 }
 
 static void
-reflow_uri_range_end(struct row_range *range, struct row *new_row,
-                     int new_col_idx)
+reflow_range_end(struct row_range *range, enum row_range_type type,
+                 struct row *new_row, int new_col_idx)
 {
     struct row_data *extra = new_row->extra;
-    xassert(extra->uri_ranges.count > 0);
+    struct row_ranges *ranges = NULL;
 
-    struct row_range *new_range =
-        &extra->uri_ranges.v[extra->uri_ranges.count - 1];
+    switch (type) {
+    case ROW_RANGE_URI: ranges = &extra->uri_ranges; break;
+    case ROW_RANGE_CURLY: ranges = &extra->curly_ranges; break;
+    }
 
-    xassert(new_range->uri.id == range->uri.id);
+    if (ranges == NULL)
+        BUG("unhandled range type");
+
+    xassert(ranges->count > 0);
+
+    struct row_range *new_range = &ranges->v[ranges->count - 1];
     xassert(new_range->end < 0);
-    new_range->end = new_col_idx;
-}
 
-static void
-reflow_curly_range_start(struct row_range *range, struct row *new_row,
-                         int new_col_idx)
-{
-    ensure_row_has_extra_data(new_row);
-    range_append_by_ref(&new_row->extra->curly_ranges, new_col_idx, -1,
-                        ROW_RANGE_CURLY, &range->data);
-}
+    switch (type) {
+    case ROW_RANGE_URI:
+        xassert(new_range->uri.id == range->uri.id);
+        break;
 
+    case ROW_RANGE_CURLY:
+        xassert(new_range->curly.style == range->curly.style);
+        xassert(new_range->curly.color_src == range->curly.color_src);
+        xassert(new_range->curly.color == range->curly.color);
+        break;
+    }
 
-static void
-reflow_curly_range_end(struct row_range *range, struct row *new_row,
-                       int new_col_idx)
-{
-    struct row_data *extra = new_row->extra;
-    xassert(extra->curly_ranges.count > 0);
-
-    struct row_range *new_range =
-        &extra->curly_ranges.v[extra->curly_ranges.count - 1];
-
-    xassert(new_range->curly.style == range->curly.style);
-    xassert(new_range->curly.color_src == range->curly.color_src);
-    xassert(new_range->curly.color == range->curly.color);
-
-    xassert(new_range->end < 0);
     new_range->end = new_col_idx;
 }
 
@@ -1115,10 +1117,12 @@ grid_resize_and_reflow(
                 xassert(uri_range != NULL);
 
                 if (uri_range->start == end - 1)
-                    reflow_uri_range_start(uri_range, new_row, new_col_idx - 1);
+                    reflow_range_start(
+                        uri_range, ROW_RANGE_URI, new_row, new_col_idx - 1);
 
                 if (uri_range->end == end - 1) {
-                    reflow_uri_range_end(uri_range, new_row, new_col_idx - 1);
+                    reflow_range_end(
+                        uri_range, ROW_RANGE_URI, new_row, new_col_idx - 1);
                     grid_row_uri_range_destroy(uri_range);
                     uri_range++;
                 }
@@ -1128,10 +1132,12 @@ grid_resize_and_reflow(
                 xassert(curly_range != NULL);
 
                 if (curly_range->start == end - 1)
-                    reflow_curly_range_start(curly_range, new_row, new_col_idx - 1);
+                    reflow_range_start(
+                        curly_range, ROW_RANGE_CURLY, new_row, new_col_idx - 1);
 
                 if (curly_range->end == end - 1) {
-                    reflow_curly_range_end(curly_range, new_row, new_col_idx - 1);
+                    reflow_range_end(
+                        curly_range, ROW_RANGE_CURLY, new_row, new_col_idx - 1);
                     grid_row_curly_range_destroy(curly_range);
                     curly_range++;
                 }
