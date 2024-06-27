@@ -392,7 +392,15 @@ draw_styled_underline(const struct terminal *term, pixman_image_t *pix,
 {
     xassert(style != CURLY_NONE);
 
-    const int thickness = font->underline.thickness;
+    if (style == CURLY_SINGLE) {
+        draw_underline(term, pix, font, color, x, y, cols);
+        return;
+    }
+
+    const int thickness = term->conf->underline_thickness.px >= 0
+        ? term_pt_or_px_as_pixels(
+            term, &term->conf->underline_thickness)
+        : font->underline.thickness;
 
     int y_ofs;
 
@@ -404,9 +412,15 @@ draw_styled_underline(const struct terminal *term, pixman_image_t *pix,
                     term->cell_height - thickness * 3);
         break;
 
-    default:
+    case CURLY_DASHED:
+    case CURLY_DOTTED:
         y_ofs = min(underline_offset(term, font),
                     term->cell_height - thickness);
+        break;
+
+    case CURLY_NONE:
+    case CURLY_SINGLE:
+        BUG("underline styles not supposed to be handled here");
         break;
     }
 
@@ -518,8 +532,9 @@ draw_styled_underline(const struct terminal *term, pixman_image_t *pix,
         break;
     }
 
-    default:
-        draw_underline(term, pix, font, color, x, y, cols);
+    case CURLY_NONE:
+    case CURLY_SINGLE:
+        BUG("underline styles not supposed to be handled here");
         break;
     }
 }
