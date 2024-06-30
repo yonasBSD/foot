@@ -4072,6 +4072,8 @@ tiocswinsz(struct terminal *term)
         {
             LOG_ERRNO("TIOCSWINSZ");
         }
+
+        term_send_size_notification(term);
     }
 }
 

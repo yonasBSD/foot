@@ -44,6 +44,7 @@
 #include "util.h"
 #include "vt.h"
 #include "xmalloc.h"
+#include "xsnprintf.h"
 
 #define PTMX_TIMING 0
 
@@ -4239,4 +4240,38 @@ term_set_user_mouse_cursor(struct terminal *term, const char *cursor)
         ? xstrdup(cursor)
         : NULL;
     term_xcursor_update(term);
+}
+
+void
+term_enable_size_notifications(struct terminal *term)
+{
+    /* Note: always send current size upon activation, regardless of
+       previous state */
+    term->size_notifications = true;
+    term_send_size_notification(term);
+}
+
+void
+term_disable_size_notifications(struct terminal *term)
+{
+    if (!term->size_notifications)
+        return;
+
+    term->size_notifications = false;
+}
+
+void
+term_send_size_notification(struct terminal *term)
+{
+    if (!term->size_notifications)
+        return;
+
+    const int height = term->height - term->margins.top - term->margins.bottom;
+    const int width = term->width - term->margins.left - term->margins.right;
+
+    char buf[128];
+    const int n = xsnprintf(
+        buf, sizeof(buf), "\033[48;%d;%d;%d;%dt",
+        term->rows, term->cols, height, width);
+    term_to_slave(term, buf, n);
 }

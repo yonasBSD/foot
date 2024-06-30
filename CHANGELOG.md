@@ -67,6 +67,9 @@
   i.e. color palette stack ([#856][856]).
 * Log output now respects the [`NO_COLOR`](http://no-color.org/)
   environment variable ([#1771][1771]).
+* Support for [in-band window resize
+  notifications](https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83),
+  private mode `2048`.
 
 [1707]: https://codeberg.org/dnkl/foot/issues/1707
 [1738]: https://codeberg.org/dnkl/foot/issues/1738

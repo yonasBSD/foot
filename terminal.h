@@ -541,6 +541,8 @@ struct terminal {
         bool app_sync_updates:1;
         bool grapheme_shaping:1;
 
+        bool size_notifications:1;
+
         bool sixel_display_mode:1;
         bool sixel_private_palette:1;
         bool sixel_cursor_right_of_graphics:1;
@@ -800,6 +802,7 @@ struct terminal {
     char *cwd;
 
     bool grapheme_shaping;
+    bool size_notifications;
 };
 
 struct config;
@@ -945,6 +948,10 @@ void term_osc8_close(struct terminal *term);
 
 bool term_ptmx_pause(struct terminal *term);
 bool term_ptmx_resume(struct terminal *term);
+
+void term_enable_size_notifications(struct terminal *term);
+void term_disable_size_notifications(struct terminal *term);
+void term_send_size_notification(struct terminal *term);
 
 static inline void term_reset_grapheme_state(struct terminal *term)
 {
