@@ -1940,8 +1940,10 @@ erase_cell_range(struct terminal *term, struct row *row, int start, int end)
     } else
         memset(&row->cells[start], 0, (end - start + 1) * sizeof(row->cells[0]));
 
-    if (unlikely(row->extra != NULL))
+    if (unlikely(row->extra != NULL)) {
         grid_row_uri_range_erase(row, start, end);
+        grid_row_curly_range_erase(row, start, end);
+    }
 }
 
 static inline void
@@ -2021,6 +2023,7 @@ term_reset(struct terminal *term, bool hard)
     term_ime_enable(term);
 #endif
 
+    term->bits_affecting_ascii_printer.value = 0;
     term_update_ascii_printer(term);
 
     if (!hard)
@@ -3019,6 +3022,9 @@ term_restore_cursor(struct terminal *term, const struct cursor *cursor)
 
     term->vt.attrs = term->vt.saved_attrs;
     term->charsets = term->saved_charsets;
+
+    term->bits_affecting_ascii_printer.charset =
+        term->charsets.set[term->charsets.selected] != CHARSET_ASCII;
     term_update_ascii_printer(term);
 }
 
@@ -3621,7 +3627,8 @@ term_fill(struct terminal *term, int r, int c, uint8_t data, size_t count,
         cell->wc = data;
         cell->attrs = attrs;
 
-        if (unlikely(term->vt.osc8.uri != NULL)) {
+        /* TODO: why do we print the URI here, and then erase it below? */
+        if (unlikely(use_sgr_attrs && term->vt.osc8.uri != NULL)) {
             grid_row_uri_range_put(row, c, term->vt.osc8.uri, term->vt.osc8.id);
 
             switch (term->conf->url.osc8_underline) {
@@ -3633,10 +3640,27 @@ term_fill(struct terminal *term, int r, int c, uint8_t data, size_t count,
                 break;
             }
         }
+
+        if (unlikely(use_sgr_attrs &&
+                     (term->vt.curly.style > CURLY_SINGLE ||
+                      term->vt.curly.color_src != COLOR_DEFAULT)))
+        {
+            grid_row_curly_range_put(row, c, term->vt.curly);
+        }
     }
 
-    if (unlikely(row->extra != NULL))
-        grid_row_uri_range_erase(row, c, c + count - 1);
+    if (unlikely(row->extra != NULL)) {
+        if (likely(term->vt.osc8.uri != NULL))
+            grid_row_uri_range_erase(row, c, c + count - 1);
+
+        if (likely(term->vt.curly.style <= CURLY_SINGLE &&
+                   term->vt.curly.color_src == COLOR_DEFAULT))
+        {
+            /* No extended/styled underlines active, so erase any such
+               attributes at the target columns */
+            grid_row_curly_range_erase(row, c, c + count - 1);
+        }
+    }
 }
 
 void
@@ -3706,6 +3730,13 @@ term_print(struct terminal *term, char32_t wc, int width)
     } else if (row->extra != NULL)
         grid_row_uri_range_erase(row, col, col + width - 1);
 
+    if (unlikely(term->vt.curly.style > CURLY_SINGLE ||
+                 term->vt.curly.color_src != COLOR_DEFAULT))
+    {
+        grid_row_curly_range_put(row, col, term->vt.curly);
+    } else if (row->extra != NULL)
+        grid_row_curly_range_erase(row, col, col + width - 1);
+
     /* Advance cursor the 'additional' columns while dirty:ing the cells */
     for (int i = 1; i < width && (col + 1) < term->cols; i++) {
         col++;
@@ -3763,8 +3794,10 @@ ascii_printer_fast(struct terminal *term, char32_t wc)
 
     grid->cursor.point.col = col;
 
-    if (unlikely(row->extra != NULL))
+    if (unlikely(row->extra != NULL)) {
         grid_row_uri_range_erase(row, uri_start, uri_start);
+        grid_row_curly_range_erase(row, uri_start, uri_start);
+    }
 }
 
 static void
@@ -3772,19 +3805,21 @@ ascii_printer_single_shift(struct terminal *term, char32_t wc)
 {
     ascii_printer_generic(term, wc);
     term->charsets.selected = term->charsets.saved;
+
+    term->bits_affecting_ascii_printer.charset =
+        term->charsets.set[term->charsets.selected] != CHARSET_ASCII;
     term_update_ascii_printer(term);
 }
 
 void
 term_update_ascii_printer(struct terminal *term)
 {
+    _Static_assert(sizeof(term->bits_affecting_ascii_printer) == sizeof(uint8_t), "bad size");
+
     void (*new_printer)(struct terminal *term, char32_t wc) =
-        unlikely(tll_length(term->grid->sixel_images) > 0 ||
-                 term->vt.osc8.uri != NULL ||
-                 term->charsets.set[term->charsets.selected] == CHARSET_GRAPHIC ||
-                 term->insert_mode)
-        ? &ascii_printer_generic
-        : &ascii_printer_fast;
+        unlikely(term->bits_affecting_ascii_printer.value != 0)
+            ? &ascii_printer_generic
+            : &ascii_printer_fast;
 
 #if defined(_DEBUG) && LOG_ENABLE_DBG
     if (term->ascii_printer != new_printer) {
@@ -4077,6 +4112,8 @@ term_osc8_open(struct terminal *term, uint64_t id, const char *uri)
 
     term->vt.osc8.id = id;
     term->vt.osc8.uri = xstrdup(uri);
+
+    term->bits_affecting_ascii_printer.osc8 = true;
     term_update_ascii_printer(term);
 }
 
@@ -4086,6 +4123,7 @@ term_osc8_close(struct terminal *term)
     free(term->vt.osc8.uri);
     term->vt.osc8.uri = NULL;
     term->vt.osc8.id = 0;
+    term->bits_affecting_ascii_printer.osc8 = false;
     term_update_ascii_printer(term);
 }
 

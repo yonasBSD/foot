@@ -32,7 +32,12 @@
 static void
 sgr_reset(struct terminal *term)
 {
-    memset(&term->vt.attrs, 0, sizeof(term->vt.attrs));
+    term->vt.attrs = (struct attributes){0};
+    term->vt.curly = (struct curly_range_data){0};
+
+    term->bits_affecting_ascii_printer.curly_style = false;
+    term->bits_affecting_ascii_printer.curly_color = false;
+    term_update_ascii_printer(term);
 }
 
 static const char *
@@ -88,7 +93,36 @@ csi_sgr(struct terminal *term)
         case 1: term->vt.attrs.bold = true; break;
         case 2: term->vt.attrs.dim = true; break;
         case 3: term->vt.attrs.italic = true; break;
-        case 4: term->vt.attrs.underline = true; break;
+        case 4: {
+            term->vt.attrs.underline = true;
+            term->vt.curly.style = CURLY_SINGLE;
+
+            if (unlikely(term->vt.params.v[i].sub.idx == 1)) {
+                enum curly_style style = term->vt.params.v[i].sub.value[0];
+
+                switch (style) {
+                default:
+                case CURLY_NONE:
+                    term->vt.attrs.underline = false;
+                    term->vt.curly.style = CURLY_NONE;
+                    term->bits_affecting_ascii_printer.curly_style = false;
+                    break;
+
+                case CURLY_SINGLE:
+                case CURLY_DOUBLE:
+                case CURLY_CURLY:
+                case CURLY_DOTTED:
+                case CURLY_DASHED:
+                    term->vt.curly.style = style;
+                    term->bits_affecting_ascii_printer.curly_style =
+                        style > CURLY_SINGLE;
+                    break;
+                }
+
+                term_update_ascii_printer(term);
+            }
+            break;
+        }
         case 5: term->vt.attrs.blink = true; break;
         case 6: LOG_WARN("ignored: rapid blink"); break;
         case 7: term->vt.attrs.reverse = true; break;
@@ -98,7 +132,13 @@ csi_sgr(struct terminal *term)
         case 21: break; /* double-underline, not implemented */
         case 22: term->vt.attrs.bold = term->vt.attrs.dim = false; break;
         case 23: term->vt.attrs.italic = false; break;
-        case 24: term->vt.attrs.underline = false; break;
+        case 24: {
+            term->vt.attrs.underline = false;
+            term->vt.curly.style = CURLY_NONE;
+            term->bits_affecting_ascii_printer.curly_style = false;
+            term_update_ascii_printer(term);
+            break;
+        }
         case 25: term->vt.attrs.blink = false; break;
         case 26: break;  /* rapid blink, ignored */
         case 27: term->vt.attrs.reverse = false; break;
@@ -119,7 +159,8 @@ csi_sgr(struct terminal *term)
             break;
 
         case 38:
-        case 48: {
+        case 48:
+        case 58: {
             uint32_t color;
             enum color_source src;
 
@@ -194,7 +235,12 @@ csi_sgr(struct terminal *term)
                 break;
             }
 
-            if (param == 38) {
+            if (unlikely(param == 58)) {
+                term->vt.curly.color_src = src;
+                term->vt.curly.color = color;
+                term->bits_affecting_ascii_printer.curly_color = true;
+                term_update_ascii_printer(term);
+            } else if (param == 38) {
                 term->vt.attrs.fg_src = src;
                 term->vt.attrs.fg = color;
             } else {
@@ -224,6 +270,13 @@ csi_sgr(struct terminal *term)
 
         case 49:
             term->vt.attrs.bg_src = COLOR_DEFAULT;
+            break;
+
+        case 59:
+            term->vt.curly.color_src = COLOR_DEFAULT;
+            term->vt.curly.color = 0;
+            term->bits_affecting_ascii_printer.curly_color = false;
+            term_update_ascii_printer(term);
             break;
 
         /* Bright foreground colors */
@@ -478,6 +531,9 @@ decset_decrst(struct terminal *term, unsigned param, bool enable)
             tll_free(term->alt.scroll_damage);
             term_damage_view(term);
         }
+
+        term->bits_affecting_ascii_printer.sixels =
+            tll_length(term->grid->sixel_images) > 0;
         term_update_ascii_printer(term);
         break;
 
@@ -1116,6 +1172,7 @@ csi_dispatch(struct terminal *term, uint8_t final)
             if (param == 4) {
                 /* Insertion Replacement Mode (IRM) */
                 term->insert_mode = sm;
+                term->bits_affecting_ascii_printer.insert_mode = sm;
                 term_update_ascii_printer(term);
                 break;
             }

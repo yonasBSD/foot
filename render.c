@@ -385,6 +385,161 @@ draw_underline(const struct terminal *term, pixman_image_t *pix,
 }
 
 static void
+draw_styled_underline(const struct terminal *term, pixman_image_t *pix,
+                      const struct fcft_font *font,
+                      const pixman_color_t *color,
+                      enum curly_style style, int x, int y, int cols)
+{
+    xassert(style != CURLY_NONE);
+
+    if (style == CURLY_SINGLE) {
+        draw_underline(term, pix, font, color, x, y, cols);
+        return;
+    }
+
+    const int thickness = term->conf->underline_thickness.px >= 0
+        ? term_pt_or_px_as_pixels(
+            term, &term->conf->underline_thickness)
+        : font->underline.thickness;
+
+    int y_ofs;
+
+    /* Make sure the line isn't positioned below the cell */
+    switch (style) {
+    case CURLY_DOUBLE:
+    case CURLY_CURLY:
+        y_ofs = min(underline_offset(term, font),
+                    term->cell_height - thickness * 3);
+        break;
+
+    case CURLY_DASHED:
+    case CURLY_DOTTED:
+        y_ofs = min(underline_offset(term, font),
+                    term->cell_height - thickness);
+        break;
+
+    case CURLY_NONE:
+    case CURLY_SINGLE:
+        BUG("underline styles not supposed to be handled here");
+        break;
+    }
+
+    const int ceil_w = cols * term->cell_width;
+
+    switch (style) {
+    case CURLY_DOUBLE: {
+        const pixman_rectangle16_t rects[] = {
+            {x, y + y_ofs, ceil_w, thickness},
+            {x, y + y_ofs + thickness * 2, ceil_w, thickness}};
+        pixman_image_fill_rectangles(PIXMAN_OP_SRC, pix, color, 2, rects);
+        break;
+    }
+
+    case CURLY_DASHED: {
+        const int ceil_w = cols * term->cell_width;
+        const int dash_w = ceil_w / 3 + (ceil_w % 3 > 0);
+        const pixman_rectangle16_t rects[] = {
+            {x, y + y_ofs, dash_w, thickness},
+            {x + dash_w * 2, y + y_ofs, dash_w, thickness},
+        };
+        pixman_image_fill_rectangles(
+            PIXMAN_OP_SRC, pix, color, 2, rects);
+        break;
+    }
+
+    case CURLY_DOTTED: {
+        /* Number of dots per cell */
+        int per_cell = (term->cell_width / thickness) / 2;
+        if (per_cell == 0)
+            per_cell = 1;
+
+        xassert(per_cell >= 1);
+
+        /* Spacing between dots; start with the same width as the dots
+           themselves, then widen them if necessary, to consume unused
+           pixels */
+        int spacing[per_cell];
+        for (int i = 0; i < per_cell; i++)
+            spacing[i] = thickness;
+
+        /* Pixels remaining at the end of the cell */
+        int remaining = term->cell_width - (per_cell * 2) * thickness;
+
+        /* Spread out the left-over pixels across the spacing between
+           the dots */
+        for (int i = 0; remaining > 0; i = (i + 1) % per_cell, remaining--)
+            spacing[i]++;
+
+        xassert(remaining <= 0);
+
+        pixman_rectangle16_t rects[per_cell];
+        int dot_x = x;
+        for (int i = 0; i < per_cell; i++) {
+            rects[i] = (pixman_rectangle16_t){
+                dot_x, y + y_ofs, thickness, thickness
+            };
+
+            dot_x += thickness + spacing[i];
+        }
+
+        pixman_image_fill_rectangles(PIXMAN_OP_SRC, pix, color, per_cell, rects);
+        break;
+    }
+
+    case CURLY_CURLY: {
+        const int top = y + y_ofs;
+        const int bot = top + thickness * 3;
+        const int half_x = x + ceil_w / 2.0, full_x = x + ceil_w;
+
+        const double bt_2 = (bot - top) * (bot - top);
+        const double th_2 = thickness * thickness;
+        const double hx_2 = ceil_w * ceil_w / 4.0;
+        const int th = round(sqrt(th_2 + (th_2 * bt_2 / hx_2)) / 2.);
+
+        #define I(x) pixman_int_to_fixed(x)
+        const pixman_trapezoid_t traps[] = {
+#if 0  /* characters sit within the "dips" of the curlies */
+            {
+                I(top), I(bot),
+                {{I(x), I(top + th)}, {I(half_x), I(bot + th)}},
+                {{I(x), I(top - th)}, {I(half_x), I(bot - th)}},
+            },
+            {
+                I(top), I(bot),
+                {{I(half_x), I(bot - th)}, {I(full_x), I(top - th)}},
+                {{I(half_x), I(bot + th)}, {I(full_x), I(top + th)}},
+            }
+#else  /* characters sit on top of the curlies */
+            {
+                I(top), I(bot),
+                {{I(x), I(bot - th)}, {I(half_x), I(top - th)}},
+                {{I(x), I(bot + th)}, {I(half_x), I(top + th)}},
+            },
+            {
+                I(top), I(bot),
+                {{I(half_x), I(top + th)}, {I(full_x), I(bot + th)}},
+                {{I(half_x), I(top - th)}, {I(full_x), I(bot - th)}},
+            }
+#endif
+        };
+
+        pixman_image_t *fill = pixman_image_create_solid_fill(color);
+        pixman_composite_trapezoids(
+            PIXMAN_OP_OVER, fill, pix, PIXMAN_a8, 0, 0, 0, 0,
+            sizeof(traps) / sizeof(traps[0]), traps);
+
+        pixman_image_unref(fill);
+        break;
+    }
+
+    case CURLY_NONE:
+    case CURLY_SINGLE:
+        BUG("underline styles not supposed to be handled here");
+        break;
+    }
+}
+
+static void
 draw_strikeout(const struct terminal *term, pixman_image_t *pix,
                const struct fcft_font *font,
                const pixman_color_t *color, int x, int y, int cols)
@@ -847,8 +1002,49 @@ render_cell(struct terminal *term, pixman_image_t *pix, pixman_region32_t *damag
     pixman_image_unref(clr_pix);
 
     /* Underline */
-    if (cell->attrs.underline)
-        draw_underline(term, pix, font, &fg, x, y, cell_cols);
+    if (cell->attrs.underline) {
+        pixman_color_t underline_color = fg;
+        enum curly_style underline_style = CURLY_SINGLE;
+
+        /* Check if cell has a styled underline. This lookup is fairly
+           expensive... */
+        if (row->extra != NULL) {
+            for (int i = 0; i < row->extra->curly_ranges.count; i++) {
+                const struct row_range *range = &row->extra->curly_ranges.v[i];
+
+                if (range->start > col)
+                    break;
+
+                if (range->start <= col && col <= range->end) {
+                    switch (range->curly.color_src) {
+                    case COLOR_BASE256:
+                        underline_color = color_hex_to_pixman(
+                            term->colors.table[range->curly.color]);
+                        break;
+
+                    case COLOR_RGB:
+                        underline_color =
+                            color_hex_to_pixman(range->curly.color);
+                        break;
+
+                    case COLOR_DEFAULT:
+                        break;
+
+                    case COLOR_BASE16:
+                        BUG("underline color can't be base-16");
+                        break;
+                    }
+
+                    underline_style = range->curly.style;
+                    break;
+                }
+            }
+        }
+
+        draw_styled_underline(
+            term, pix, font, &underline_color, underline_style, x, y, cell_cols);
+
+    }
 
     if (cell->attrs.strikethrough)
         draw_strikeout(term, pix, font, &fg, x, y, cell_cols);
@@ -4243,6 +4439,29 @@ render_resize(struct terminal *term, int width, int height, uint8_t opts)
             memcpy(g.rows[i]->cells,
                    orig->rows[j]->cells,
                    g.num_cols * sizeof(g.rows[i]->cells[0]));
+
+            if (orig->rows[j]->extra == NULL ||
+                orig->rows[j]->extra->curly_ranges.count == 0)
+            {
+                continue;
+            }
+
+            /*
+             * Copy undercurly ranges
+             */
+
+            const struct row_ranges *curly_src = &orig->rows[j]->extra->curly_ranges;
+
+            const int count = curly_src->count;
+            g.rows[i]->extra = xcalloc(1, sizeof(*g.rows[i]->extra));
+            g.rows[i]->extra->curly_ranges.v = xmalloc(
+                count * sizeof(g.rows[i]->extra->curly_ranges.v[0]));
+
+            struct row_ranges *curly_dst = &g.rows[i]->extra->curly_ranges;
+            curly_dst->count = curly_dst->size = count;
+
+            for (int k = 0; k < count; k++)
+                curly_dst->v[k] = curly_src->v[k];
         }
 
         term->normal = g;

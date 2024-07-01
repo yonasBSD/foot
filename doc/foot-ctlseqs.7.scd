@@ -150,7 +150,7 @@ m*.
 |  3
 :  Italic
 |  4
-:  Underline
+:  Underline, including styled underlines
 |  5
 :  Blink
 |  7
@@ -176,15 +176,19 @@ m*.
 |  30-37
 :  Select foreground color (using *regularN* in *foot.ini*(5))
 |  38
-:  See "indexed and RGB colors" below
+:  Select foreground color, see "indexed and RGB colors" below
 |  39
 :  Use the default foreground color (*foreground* in *foot.ini*(5))
 |  40-47
 :  Select background color (using *regularN* in *foot.ini*(5))
 |  48
-:  See "indexed and RGB colors" below
+:  Select background color, see "indexed and RGB colors" below
 |  49
 :  Use the default background color (*background* in *foot.ini*(5))
+|  58
+:  Select underline color, see "indexed and RGB colors" below
+|  59
+:  Use the default underline color
 |  90-97
 :  Select foreground color (using *brightN* in *foot.ini*(5))
 |  100-107

@@ -13,6 +13,7 @@
 
 @default_terminfo@+base|foot base fragment,
     AX,
+    Su,
     Tc,
     XF,
     XT,
@@ -40,6 +41,8 @@
     RV=\E[>c,
     Rect=\E[%p1%d;%p2%d;%p3%d;%p4%d;%p5%d$x,
     Se=\E[ q,
+    Setulc=\E[58\:2\:\:%p1%{65536}%/%d\:%p1%{256}%/%{255}%&%d\:%p1%{255}%&%d%;m,
+    Smulx=\E[4:%p1%dm,
     Ss=\E[%p1%d q,
     Sync=\E[?2026%?%p1%{1}%-%tl%eh%;,
     TS=\E]2;,

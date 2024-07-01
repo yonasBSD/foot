@@ -99,19 +99,58 @@ struct damage {
     uint16_t lines;
 };
 
-struct row_uri_range {
-    int start;
-    int end;
+struct uri_range_data {
     uint64_t id;
     char *uri;
 };
 
+enum curly_style {
+    CURLY_NONE,
+    CURLY_SINGLE,  /* Legacy underline */
+    CURLY_DOUBLE,
+    CURLY_CURLY,
+    CURLY_DOTTED,
+    CURLY_DASHED,
+};
+
+struct curly_range_data {
+    enum curly_style style;
+    enum color_source color_src;
+    uint32_t color;
+};
+
+union row_range_data {
+    struct uri_range_data uri;
+    struct curly_range_data curly;
+};
+
+struct row_range {
+    int start;
+    int end;
+
+    union {
+        /* This is just an expanded union row_range_data, but
+         * anonymous, so that we don't have to write range->u.uri.id,
+         * but can instead do range->uri.id */
+        union {
+            struct uri_range_data uri;
+            struct curly_range_data curly;
+        };
+        union row_range_data data;
+    };
+};
+
+struct row_ranges {
+    struct row_range *v;
+    int size;
+    int count;
+};
+
+enum row_range_type {ROW_RANGE_URI, ROW_RANGE_CURLY};
+
 struct row_data {
-    struct {
-        struct row_uri_range *v;
-        uint32_t size;
-        uint32_t count;
-    } uri_ranges;
+    struct row_ranges uri_ranges;
+    struct row_ranges curly_ranges;
 };
 
 struct row {
@@ -260,6 +299,8 @@ struct vt {
         char *uri;
     } osc8;
 
+    struct curly_range_data curly;
+
     struct {
         uint8_t *data;
         size_t size;
@@ -358,6 +399,17 @@ struct terminal {
     const struct config *conf;
 
     void (*ascii_printer)(struct terminal *term, char32_t c);
+    union {
+        struct {
+            bool sixels:1;
+            bool osc8:1;
+            bool curly_style:1;
+            bool curly_color:1;
+            bool insert_mode:1;
+            bool charset:1;
+        };
+        uint8_t value;
+    } bits_affecting_ascii_printer;
 
     pid_t slave;
     int ptmx;
