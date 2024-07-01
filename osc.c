@@ -772,6 +772,7 @@ osc_dispatch(struct terminal *term)
         switch (param) {
         case 10:
             term->colors.fg = color;
+            term_damage_view(term);
             break;
 
         case 11:
@@ -785,6 +786,8 @@ osc_dispatch(struct terminal *term)
                     term_font_subpixel_changed(term);
                 }
             }
+            term_damage_view(term);
+            term_damage_margins(term);
             break;
 
         case 12:
@@ -795,16 +798,16 @@ osc_dispatch(struct terminal *term)
         case 17:
             term->colors.selection_bg = color;
             term->colors.use_custom_selection = true;
+            term_damage_view(term);
             break;
 
         case 19:
             term->colors.selection_fg = color;
             term->colors.use_custom_selection = true;
+            term_damage_view(term);
             break;
         }
 
-        term_damage_view(term);
-        term_damage_margins(term);
         break;
     }
 
