@@ -556,13 +556,14 @@ cursor_colors_for_cell(const struct terminal *term, const struct cell *cell,
               const pixman_color_t *fg, const pixman_color_t *bg,
               pixman_color_t *cursor_color, pixman_color_t *text_color)
 {
-    if (term->cursor_color.cursor >> 31) {
-        xassert(term->cursor_color.text >> 31);
-
+    if (term->cursor_color.cursor >> 31)
         *cursor_color = color_hex_to_pixman(term->cursor_color.cursor);
-        *text_color = color_hex_to_pixman(term->cursor_color.text);
-    } else {
+    else
         *cursor_color = *fg;
+
+    if (term->cursor_color.text >> 31)
+        *text_color = color_hex_to_pixman(term->cursor_color.text);
+    else {
         *text_color = *bg;
 
         if (unlikely(text_color->alpha != 0xffff)) {
