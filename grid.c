@@ -106,8 +106,8 @@ verify_no_overlapping_ranges_of_type(const struct row_ranges *ranges,
                         r2->uri.uri, r2->start, r2->end);
                     break;
 
-                case ROW_RANGE_CURLY:
-                    BUG("curly underline overlap: %d-%d, %d-%d",
+                case ROW_RANGE_UNDERLINE:
+                    BUG("underline overlap: %d-%d, %d-%d",
                         r1->start, r1->end, r2->start, r2->end);
                     break;
                 }
@@ -121,7 +121,7 @@ static void
 verify_no_overlapping_ranges(const struct row_data *extra)
 {
     verify_no_overlapping_ranges_of_type(&extra->uri_ranges, ROW_RANGE_URI);
-    verify_no_overlapping_ranges_of_type(&extra->curly_ranges, ROW_RANGE_CURLY);
+    verify_no_overlapping_ranges_of_type(&extra->underline_ranges, ROW_RANGE_UNDERLINE);
 }
 
 static void
@@ -144,8 +144,8 @@ verify_ranges_of_type_are_sorted(const struct row_ranges *ranges,
                         r->uri.uri, r->start, r->end);
                     break;
 
-                case ROW_RANGE_CURLY:
-                    BUG("curly ranges not sorted correctly: "
+                case ROW_RANGE_UNDERLINE:
+                    BUG("underline ranges not sorted correctly: "
                         "%d-%d came before %d-%d",
                         last->start, last->end, r->start, r->end);
                     break;
@@ -162,7 +162,7 @@ static void
 verify_ranges_are_sorted(const struct row_data *extra)
 {
     verify_ranges_of_type_are_sorted(&extra->uri_ranges, ROW_RANGE_URI);
-    verify_ranges_of_type_are_sorted(&extra->curly_ranges, ROW_RANGE_CURLY);
+    verify_ranges_of_type_are_sorted(&extra->underline_ranges, ROW_RANGE_UNDERLINE);
 }
 
 static void
@@ -205,8 +205,8 @@ range_insert(struct row_ranges *ranges, size_t idx, int start, int end,
         r->uri.uri = xstrdup(data->uri.uri);
         break;
 
-    case ROW_RANGE_CURLY:
-        r->curly = data->curly;
+    case ROW_RANGE_UNDERLINE:
+        r->underline = data->underline;
         break;
     }
 }
@@ -228,8 +228,8 @@ range_append_by_ref(struct row_ranges *ranges, int start, int end,
         r->uri.uri = data->uri.uri;
         break;
 
-    case ROW_RANGE_CURLY:
-        r->curly = data->curly;
+    case ROW_RANGE_UNDERLINE:
+        r->underline = data->underline;
         break;
     }
 }
@@ -246,7 +246,7 @@ range_append(struct row_ranges *ranges, int start, int end,
                                             .uri = xstrdup(data->uri.uri)}});
         break;
 
-    case ROW_RANGE_CURLY:
+    case ROW_RANGE_UNDERLINE:
         range_append_by_ref(ranges, start, end, type, data);
         break;
     }
@@ -307,7 +307,7 @@ grid_snapshot(const struct grid *grid)
             clone_row->extra = clone_extra;
 
             range_ensure_size(&clone_extra->uri_ranges, extra->uri_ranges.count);
-            range_ensure_size(&clone_extra->curly_ranges, extra->curly_ranges.count);
+            range_ensure_size(&clone_extra->underline_ranges, extra->underline_ranges.count);
 
             for (int i = 0; i < extra->uri_ranges.count; i++) {
                 const struct row_range *range = &extra->uri_ranges.v[i];
@@ -316,11 +316,11 @@ grid_snapshot(const struct grid *grid)
                     range->start, range->end, ROW_RANGE_URI, &range->data);
             }
 
-            for (int i = 0; i < extra->curly_ranges.count; i++) {
-                const struct row_range *range = &extra->curly_ranges.v[i];
+            for (int i = 0; i < extra->underline_ranges.count; i++) {
+                const struct row_range *range = &extra->underline_ranges.v[i];
                 range_append_by_ref(
-                    &clone_extra->curly_ranges, range->start, range->end,
-                    ROW_RANGE_CURLY, &range->data);
+                    &clone_extra->underline_ranges, range->start, range->end,
+                    ROW_RANGE_UNDERLINE, &range->data);
             }
         } else
             clone_row->extra = NULL;
@@ -536,7 +536,7 @@ grid_resize_without_reflow(
         struct row_data *new_extra = new_row->extra;
 
         range_ensure_size(&new_extra->uri_ranges, old_extra->uri_ranges.count);
-        range_ensure_size(&new_extra->curly_ranges, old_extra->curly_ranges.count);
+        range_ensure_size(&new_extra->underline_ranges, old_extra->underline_ranges.count);
 
         for (int i = 0; i < old_extra->uri_ranges.count; i++) {
             const struct row_range *range = &old_extra->uri_ranges.v[i];
@@ -551,8 +551,8 @@ grid_resize_without_reflow(
             range_append(&new_extra->uri_ranges, start, end, ROW_RANGE_URI, &range->data);
         }
 
-        for (int i = 0; i < old_extra->curly_ranges.count; i++) {
-            const struct row_range *range = &old_extra->curly_ranges.v[i];
+        for (int i = 0; i < old_extra->underline_ranges.count; i++) {
+            const struct row_range *range = &old_extra->underline_ranges.v[i];
 
             if (range->start >= new_cols) {
                 /* The whole range is truncated */
@@ -561,7 +561,7 @@ grid_resize_without_reflow(
 
             const int start = range->start;
             const int end = min(range->end, new_cols - 1);
-            range_append_by_ref(&new_extra->curly_ranges, start, end, ROW_RANGE_CURLY, &range->data);
+            range_append_by_ref(&new_extra->underline_ranges, start, end, ROW_RANGE_UNDERLINE, &range->data);
         }
 }
 
@@ -642,7 +642,7 @@ reflow_range_start(struct row_range *range, enum row_range_type type,
     struct row_ranges *new_ranges = NULL;
     switch (type) {
     case ROW_RANGE_URI: new_ranges = &new_row->extra->uri_ranges; break;
-    case ROW_RANGE_CURLY: new_ranges = &new_row->extra->curly_ranges; break;
+    case ROW_RANGE_UNDERLINE: new_ranges = &new_row->extra->underline_ranges; break;
     }
 
     if (new_ranges == NULL)
@@ -652,7 +652,7 @@ reflow_range_start(struct row_range *range, enum row_range_type type,
 
     switch (type) {
     case ROW_RANGE_URI: range->uri.uri = NULL; break; /* Owned by new_ranges */
-    case ROW_RANGE_CURLY: break;
+    case ROW_RANGE_UNDERLINE: break;
     }
 }
 
@@ -665,7 +665,7 @@ reflow_range_end(struct row_range *range, enum row_range_type type,
 
     switch (type) {
     case ROW_RANGE_URI: ranges = &extra->uri_ranges; break;
-    case ROW_RANGE_CURLY: ranges = &extra->curly_ranges; break;
+    case ROW_RANGE_UNDERLINE: ranges = &extra->underline_ranges; break;
     }
 
     if (ranges == NULL)
@@ -681,10 +681,10 @@ reflow_range_end(struct row_range *range, enum row_range_type type,
         xassert(new_range->uri.id == range->uri.id);
         break;
 
-    case ROW_RANGE_CURLY:
-        xassert(new_range->curly.style == range->curly.style);
-        xassert(new_range->curly.color_src == range->curly.color_src);
-        xassert(new_range->curly.color == range->curly.color);
+    case ROW_RANGE_UNDERLINE:
+        xassert(new_range->underline.style == range->underline.style);
+        xassert(new_range->underline.color_src == range->underline.color_src);
+        xassert(new_range->underline.color == range->underline.color);
         break;
     }
 
@@ -752,9 +752,9 @@ _line_wrap(struct grid *old_grid, struct row **new_grid, struct row *row,
         }
     }
 
-    if (extra->curly_ranges.count > 0) {
+    if (extra->underline_ranges.count > 0) {
         struct row_range *range =
-            &extra->curly_ranges.v[extra->curly_ranges.count - 1];
+            &extra->underline_ranges.v[extra->underline_ranges.count - 1];
 
         if (range->end < 0) {
 
@@ -763,8 +763,8 @@ _line_wrap(struct grid *old_grid, struct row **new_grid, struct row *row,
 
             /* Open a new range on the new/current row */
             ensure_row_has_extra_data(new_row);
-            range_append(&new_row->extra->curly_ranges, 0, -1,
-                         ROW_RANGE_CURLY, &range->data);
+            range_append(&new_row->extra->underline_ranges, 0, -1,
+                         ROW_RANGE_UNDERLINE, &range->data);
         }
     }
 
@@ -953,7 +953,7 @@ grid_resize_and_reflow(
 
         /* Does this row have any URIs? */
         struct row_range *uri_range, *uri_range_terminator;
-        struct row_range *curly_range, *curly_range_terminator;
+        struct row_range *underline_range, *underline_range_terminator;
         struct row_data *extra = old_row->extra;
 
         if (extra != NULL && extra->uri_ranges.count > 0) {
@@ -968,21 +968,21 @@ grid_resize_and_reflow(
         } else
             uri_range = uri_range_terminator = NULL;
 
-        if (extra != NULL && extra->curly_ranges.count > 0) {
-            curly_range = &extra->curly_ranges.v[0];
-            curly_range_terminator = &extra->curly_ranges.v[extra->curly_ranges.count];
+        if (extra != NULL && extra->underline_ranges.count > 0) {
+            underline_range = &extra->underline_ranges.v[0];
+            underline_range_terminator = &extra->underline_ranges.v[extra->underline_ranges.count];
 
             const struct row_range *last_on_row =
-                &extra->curly_ranges.v[extra->curly_ranges.count - 1];
+                &extra->underline_ranges.v[extra->underline_ranges.count - 1];
             col_count = max(col_count, last_on_row->end + 1);
         } else
-            curly_range = curly_range_terminator = NULL;
+            underline_range = underline_range_terminator = NULL;
 
         for (int start = 0, left = col_count; left > 0;) {
             int end;
             bool tp_break = false;
             bool uri_break = false;
-            bool curly_break = false;
+            bool underline_break = false;
             bool ftcs_break = false;
 
             /* Figure out where to end this chunk */
@@ -990,8 +990,8 @@ grid_resize_and_reflow(
                 const int uri_col = uri_range != uri_range_terminator
                     ? ((uri_range->start >= start ? uri_range->start : uri_range->end) + 1)
                     : INT_MAX;
-                const int curly_col = curly_range != curly_range_terminator
-                    ? ((curly_range->start >= start ? curly_range->start : curly_range->end) + 1)
+                const int underline_col = underline_range != underline_range_terminator
+                    ? ((underline_range->start >= start ? underline_range->start : underline_range->end) + 1)
                     : INT_MAX;
                 const int tp_col = tp != NULL ? tp->col + 1 : INT_MAX;
                 const int ftcs_col = old_row->shell_integration.cmd_start >= start
@@ -1000,10 +1000,10 @@ grid_resize_and_reflow(
                     ? old_row->shell_integration.cmd_end + 1
                     : INT_MAX;
 
-                end = min(col_count, min(min(tp_col, min(uri_col, curly_col)), ftcs_col));
+                end = min(col_count, min(min(tp_col, min(uri_col, underline_col)), ftcs_col));
 
                 uri_break = end == uri_col;
-                curly_break = end == curly_col;
+                underline_break = end == underline_col;
                 tp_break = end == tp_col;
                 ftcs_break = end == ftcs_col;
             }
@@ -1128,18 +1128,18 @@ grid_resize_and_reflow(
                 }
             }
 
-            if (curly_break) {
-                xassert(curly_range != NULL);
+            if (underline_break) {
+                xassert(underline_range != NULL);
 
-                if (curly_range->start == end - 1)
+                if (underline_range->start == end - 1)
                     reflow_range_start(
-                        curly_range, ROW_RANGE_CURLY, new_row, new_col_idx - 1);
+                        underline_range, ROW_RANGE_UNDERLINE, new_row, new_col_idx - 1);
 
-                if (curly_range->end == end - 1) {
+                if (underline_range->end == end - 1) {
                     reflow_range_end(
-                        curly_range, ROW_RANGE_CURLY, new_row, new_col_idx - 1);
-                    grid_row_curly_range_destroy(curly_range);
-                    curly_range++;
+                        underline_range, ROW_RANGE_UNDERLINE, new_row, new_col_idx - 1);
+                    grid_row_underline_range_destroy(underline_range);
+                    underline_range++;
                 }
             }
 
@@ -1180,9 +1180,9 @@ grid_resize_and_reflow(
                     xassert(new_row->extra->uri_ranges.v[last_idx].end >= 0);
                 }
 
-                if (new_row->extra->curly_ranges.count > 0) {
-                    int last_idx = new_row->extra->curly_ranges.count - 1;
-                    xassert(new_row->extra->curly_ranges.v[last_idx].end >= 0);
+                if (new_row->extra->underline_ranges.count > 0) {
+                    int last_idx = new_row->extra->underline_ranges.count - 1;
+                    xassert(new_row->extra->underline_ranges.v[last_idx].end >= 0);
 
                 }
             }
@@ -1216,8 +1216,8 @@ grid_resize_and_reflow(
 
         for (size_t i = 0; i < row->extra->uri_ranges.count; i++)
             xassert(row->extra->uri_ranges.v[i].end >= 0);
-        for (size_t i = 0; i < row->extra->curly_ranges.count; i++)
-            xassert(row->extra->curly_ranges.v[i].end >= 0);
+        for (size_t i = 0; i < row->extra->underline_ranges.count; i++)
+            xassert(row->extra->underline_ranges.v[i].end >= 0);
 
         verify_no_overlapping_ranges(row->extra);
         verify_ranges_are_sorted(row->extra);
@@ -1310,10 +1310,10 @@ ranges_match(const struct row_range *r1, const struct row_range *r2,
         /* TODO: also match URI? */
         return r1->uri.id == r2->uri.id;
 
-    case ROW_RANGE_CURLY:
-        return r1->curly.style == r2->curly.style &&
-               r1->curly.color_src == r2->curly.color_src &&
-               r1->curly.color == r2->curly.color;
+    case ROW_RANGE_UNDERLINE:
+        return r1->underline.style == r2->underline.style &&
+               r1->underline.color_src == r2->underline.color_src &&
+               r1->underline.color == r2->underline.color;
     }
 
     BUG("invalid range type");
@@ -1328,10 +1328,10 @@ range_match_data(const struct row_range *r, const union row_range_data *data,
     case ROW_RANGE_URI:
         return r->uri.id == data->uri.id;
 
-    case ROW_RANGE_CURLY:
-        return r->curly.style == data->curly.style &&
-               r->curly.color_src == data->curly.color_src &&
-               r->curly.color == data->curly.color;
+    case ROW_RANGE_UNDERLINE:
+        return r->underline.style == data->underline.style &&
+               r->underline.color_src == data->underline.color_src &&
+               r->underline.color == data->underline.color;
     }
 
     BUG("invalid range type");
@@ -1391,7 +1391,7 @@ grid_row_range_put(struct row_ranges *ranges, int col,
                 union row_range_data insert_data;
                 switch (type) {
                 case ROW_RANGE_URI: insert_data.uri = r->uri; break;
-                case ROW_RANGE_CURLY: insert_data.curly = r->curly; break;
+                case ROW_RANGE_UNDERLINE: insert_data.underline = r->underline; break;
                 }
 
                 range_insert(ranges, i + 1, col + 1, r->end, type, &insert_data);
@@ -1424,8 +1424,8 @@ grid_row_range_put(struct row_ranges *ranges, int col,
             ranges->v[insert_idx].uri.uri = xstrdup(data->uri.uri);
             break;
 
-        case ROW_RANGE_CURLY:
-            ranges->v[insert_idx].curly = data->curly;
+        case ROW_RANGE_UNDERLINE:
+            ranges->v[insert_idx].underline = data->underline;
             break;
         }
     } else
@@ -1460,14 +1460,14 @@ grid_row_uri_range_put(struct row *row, int col, const char *uri, uint64_t id)
 }
 
 void
-grid_row_curly_range_put(struct row *row, int col, struct curly_range_data data)
+grid_row_underline_range_put(struct row *row, int col, struct underline_range_data data)
 {
     ensure_row_has_extra_data(row);
 
     grid_row_range_put(
-        &row->extra->curly_ranges, col,
-        &(union row_range_data){.curly = data},
-        ROW_RANGE_CURLY);
+        &row->extra->underline_ranges, col,
+        &(union row_range_data){.underline = data},
+        ROW_RANGE_UNDERLINE);
 
     verify_no_overlapping_ranges(row->extra);
     verify_ranges_are_sorted(row->extra);
@@ -1600,10 +1600,10 @@ grid_row_uri_range_erase(struct row *row, int start, int end)
 }
 
 void
-grid_row_curly_range_erase(struct row *row, int start, int end)
+grid_row_underline_range_erase(struct row *row, int start, int end)
 {
     xassert(row->extra != NULL);
-    grid_row_range_erase(&row->extra->curly_ranges, ROW_RANGE_CURLY, start, end);
+    grid_row_range_erase(&row->extra->underline_ranges, ROW_RANGE_UNDERLINE, start, end);
 }
 
 UNITTEST

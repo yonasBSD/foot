@@ -298,10 +298,10 @@ decrqss_unhook(struct terminal *term)
         if (a->italic)
             append_sgr_attr("3");
         if (a->underline) {
-            if (term->vt.curly.style > CURLY_SINGLE) {
+            if (term->vt.underline.style > UNDERLINE_SINGLE) {
                 char value[4];
                 int val_len =
-                    xsnprintf(value, sizeof(value), "4:%d", term->vt.curly.style);
+                    xsnprintf(value, sizeof(value), "4:%d", term->vt.underline.style);
                 append_sgr_attr_n(&reply, &len, value, val_len);
             } else
                 append_sgr_attr("4");
@@ -381,7 +381,7 @@ decrqss_unhook(struct terminal *term)
         }
         }
 
-        switch (term->vt.curly.color_src) {
+        switch (term->vt.underline.color_src) {
         case COLOR_DEFAULT:
         case COLOR_BASE16:
             break;
@@ -389,15 +389,15 @@ decrqss_unhook(struct terminal *term)
         case COLOR_BASE256: {
             char value[16];
             int val_len = xsnprintf(
-                value, sizeof(value), "58:5:%u", term->vt.curly.color);
+                value, sizeof(value), "58:5:%u", term->vt.underline.color);
             append_sgr_attr_n(&reply, &len, value, val_len);
             break;
         }
 
         case COLOR_RGB: {
-            uint8_t r = term->vt.curly.color >> 16;
-            uint8_t g = term->vt.curly.color >> 8;
-            uint8_t b = term->vt.curly.color >> 0;
+            uint8_t r = term->vt.underline.color >> 16;
+            uint8_t g = term->vt.underline.color >> 8;
+            uint8_t b = term->vt.underline.color >> 0;
 
             char value[32];
             int val_len = xsnprintf(

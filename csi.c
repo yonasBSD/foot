@@ -33,10 +33,10 @@ static void
 sgr_reset(struct terminal *term)
 {
     term->vt.attrs = (struct attributes){0};
-    term->vt.curly = (struct curly_range_data){0};
+    term->vt.underline = (struct underline_range_data){0};
 
-    term->bits_affecting_ascii_printer.curly_style = false;
-    term->bits_affecting_ascii_printer.curly_color = false;
+    term->bits_affecting_ascii_printer.underline_style = false;
+    term->bits_affecting_ascii_printer.underline_color = false;
     term_update_ascii_printer(term);
 }
 
@@ -95,27 +95,27 @@ csi_sgr(struct terminal *term)
         case 3: term->vt.attrs.italic = true; break;
         case 4: {
             term->vt.attrs.underline = true;
-            term->vt.curly.style = CURLY_SINGLE;
+            term->vt.underline.style = UNDERLINE_SINGLE;
 
             if (unlikely(term->vt.params.v[i].sub.idx == 1)) {
-                enum curly_style style = term->vt.params.v[i].sub.value[0];
+                enum underline_style style = term->vt.params.v[i].sub.value[0];
 
                 switch (style) {
                 default:
-                case CURLY_NONE:
+                case UNDERLINE_NONE:
                     term->vt.attrs.underline = false;
-                    term->vt.curly.style = CURLY_NONE;
-                    term->bits_affecting_ascii_printer.curly_style = false;
+                    term->vt.underline.style = UNDERLINE_NONE;
+                    term->bits_affecting_ascii_printer.underline_style = false;
                     break;
 
-                case CURLY_SINGLE:
-                case CURLY_DOUBLE:
-                case CURLY_CURLY:
-                case CURLY_DOTTED:
-                case CURLY_DASHED:
-                    term->vt.curly.style = style;
-                    term->bits_affecting_ascii_printer.curly_style =
-                        style > CURLY_SINGLE;
+                case UNDERLINE_SINGLE:
+                case UNDERLINE_DOUBLE:
+                case UNDERLINE_CURLY:
+                case UNDERLINE_DOTTED:
+                case UNDERLINE_DASHED:
+                    term->vt.underline.style = style;
+                    term->bits_affecting_ascii_printer.underline_style =
+                        style > UNDERLINE_SINGLE;
                     break;
                 }
 
@@ -134,8 +134,8 @@ csi_sgr(struct terminal *term)
         case 23: term->vt.attrs.italic = false; break;
         case 24: {
             term->vt.attrs.underline = false;
-            term->vt.curly.style = CURLY_NONE;
-            term->bits_affecting_ascii_printer.curly_style = false;
+            term->vt.underline.style = UNDERLINE_NONE;
+            term->bits_affecting_ascii_printer.underline_style = false;
             term_update_ascii_printer(term);
             break;
         }
@@ -236,9 +236,9 @@ csi_sgr(struct terminal *term)
             }
 
             if (unlikely(param == 58)) {
-                term->vt.curly.color_src = src;
-                term->vt.curly.color = color;
-                term->bits_affecting_ascii_printer.curly_color = true;
+                term->vt.underline.color_src = src;
+                term->vt.underline.color = color;
+                term->bits_affecting_ascii_printer.underline_color = true;
                 term_update_ascii_printer(term);
             } else if (param == 38) {
                 term->vt.attrs.fg_src = src;
@@ -273,9 +273,9 @@ csi_sgr(struct terminal *term)
             break;
 
         case 59:
-            term->vt.curly.color_src = COLOR_DEFAULT;
-            term->vt.curly.color = 0;
-            term->bits_affecting_ascii_printer.curly_color = false;
+            term->vt.underline.color_src = COLOR_DEFAULT;
+            term->vt.underline.color = 0;
+            term->bits_affecting_ascii_printer.underline_color = false;
             term_update_ascii_printer(term);
             break;
 

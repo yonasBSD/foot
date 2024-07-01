@@ -388,11 +388,11 @@ static void
 draw_styled_underline(const struct terminal *term, pixman_image_t *pix,
                       const struct fcft_font *font,
                       const pixman_color_t *color,
-                      enum curly_style style, int x, int y, int cols)
+                      enum underline_style style, int x, int y, int cols)
 {
-    xassert(style != CURLY_NONE);
+    xassert(style != UNDERLINE_NONE);
 
-    if (style == CURLY_SINGLE) {
+    if (style == UNDERLINE_SINGLE) {
         draw_underline(term, pix, font, color, x, y, cols);
         return;
     }
@@ -406,20 +406,20 @@ draw_styled_underline(const struct terminal *term, pixman_image_t *pix,
 
     /* Make sure the line isn't positioned below the cell */
     switch (style) {
-    case CURLY_DOUBLE:
-    case CURLY_CURLY:
+    case UNDERLINE_DOUBLE:
+    case UNDERLINE_CURLY:
         y_ofs = min(underline_offset(term, font),
                     term->cell_height - thickness * 3);
         break;
 
-    case CURLY_DASHED:
-    case CURLY_DOTTED:
+    case UNDERLINE_DASHED:
+    case UNDERLINE_DOTTED:
         y_ofs = min(underline_offset(term, font),
                     term->cell_height - thickness);
         break;
 
-    case CURLY_NONE:
-    case CURLY_SINGLE:
+    case UNDERLINE_NONE:
+    case UNDERLINE_SINGLE:
         BUG("underline styles not supposed to be handled here");
         break;
     }
@@ -427,7 +427,7 @@ draw_styled_underline(const struct terminal *term, pixman_image_t *pix,
     const int ceil_w = cols * term->cell_width;
 
     switch (style) {
-    case CURLY_DOUBLE: {
+    case UNDERLINE_DOUBLE: {
         const pixman_rectangle16_t rects[] = {
             {x, y + y_ofs, ceil_w, thickness},
             {x, y + y_ofs + thickness * 2, ceil_w, thickness}};
@@ -435,7 +435,7 @@ draw_styled_underline(const struct terminal *term, pixman_image_t *pix,
         break;
     }
 
-    case CURLY_DASHED: {
+    case UNDERLINE_DASHED: {
         const int ceil_w = cols * term->cell_width;
         const int dash_w = ceil_w / 3 + (ceil_w % 3 > 0);
         const pixman_rectangle16_t rects[] = {
@@ -447,7 +447,7 @@ draw_styled_underline(const struct terminal *term, pixman_image_t *pix,
         break;
     }
 
-    case CURLY_DOTTED: {
+    case UNDERLINE_DOTTED: {
         /* Number of dots per cell */
         int per_cell = (term->cell_width / thickness) / 2;
         if (per_cell == 0)
@@ -486,7 +486,7 @@ draw_styled_underline(const struct terminal *term, pixman_image_t *pix,
         break;
     }
 
-    case CURLY_CURLY: {
+    case UNDERLINE_CURLY: {
         const int top = y + y_ofs;
         const int bot = top + thickness * 3;
         const int half_x = x + ceil_w / 2.0, full_x = x + ceil_w;
@@ -532,8 +532,8 @@ draw_styled_underline(const struct terminal *term, pixman_image_t *pix,
         break;
     }
 
-    case CURLY_NONE:
-    case CURLY_SINGLE:
+    case UNDERLINE_NONE:
+    case UNDERLINE_SINGLE:
         BUG("underline styles not supposed to be handled here");
         break;
     }
@@ -1005,27 +1005,27 @@ render_cell(struct terminal *term, pixman_image_t *pix, pixman_region32_t *damag
     /* Underline */
     if (cell->attrs.underline) {
         pixman_color_t underline_color = fg;
-        enum curly_style underline_style = CURLY_SINGLE;
+        enum underline_style underline_style = UNDERLINE_SINGLE;
 
         /* Check if cell has a styled underline. This lookup is fairly
            expensive... */
         if (row->extra != NULL) {
-            for (int i = 0; i < row->extra->curly_ranges.count; i++) {
-                const struct row_range *range = &row->extra->curly_ranges.v[i];
+            for (int i = 0; i < row->extra->underline_ranges.count; i++) {
+                const struct row_range *range = &row->extra->underline_ranges.v[i];
 
                 if (range->start > col)
                     break;
 
                 if (range->start <= col && col <= range->end) {
-                    switch (range->curly.color_src) {
+                    switch (range->underline.color_src) {
                     case COLOR_BASE256:
                         underline_color = color_hex_to_pixman(
-                            term->colors.table[range->curly.color]);
+                            term->colors.table[range->underline.color]);
                         break;
 
                     case COLOR_RGB:
                         underline_color =
-                            color_hex_to_pixman(range->curly.color);
+                            color_hex_to_pixman(range->underline.color);
                         break;
 
                     case COLOR_DEFAULT:
@@ -1036,7 +1036,7 @@ render_cell(struct terminal *term, pixman_image_t *pix, pixman_region32_t *damag
                         break;
                     }
 
-                    underline_style = range->curly.style;
+                    underline_style = range->underline.style;
                     break;
                 }
             }
@@ -4442,27 +4442,27 @@ render_resize(struct terminal *term, int width, int height, uint8_t opts)
                    g.num_cols * sizeof(g.rows[i]->cells[0]));
 
             if (orig->rows[j]->extra == NULL ||
-                orig->rows[j]->extra->curly_ranges.count == 0)
+                orig->rows[j]->extra->underline_ranges.count == 0)
             {
                 continue;
             }
 
             /*
-             * Copy undercurly ranges
+             * Copy underline ranges
              */
 
-            const struct row_ranges *curly_src = &orig->rows[j]->extra->curly_ranges;
+            const struct row_ranges *underline_src = &orig->rows[j]->extra->underline_ranges;
 
-            const int count = curly_src->count;
+            const int count = underline_src->count;
             g.rows[i]->extra = xcalloc(1, sizeof(*g.rows[i]->extra));
-            g.rows[i]->extra->curly_ranges.v = xmalloc(
-                count * sizeof(g.rows[i]->extra->curly_ranges.v[0]));
+            g.rows[i]->extra->underline_ranges.v = xmalloc(
+                count * sizeof(g.rows[i]->extra->underline_ranges.v[0]));
 
-            struct row_ranges *curly_dst = &g.rows[i]->extra->curly_ranges;
-            curly_dst->count = curly_dst->size = count;
+            struct row_ranges *underline_dst = &g.rows[i]->extra->underline_ranges;
+            underline_dst->count = underline_dst->size = count;
 
             for (int k = 0; k < count; k++)
-                curly_dst->v[k] = curly_src->v[k];
+                underline_dst->v[k] = underline_src->v[k];
         }
 
         term->normal = g;

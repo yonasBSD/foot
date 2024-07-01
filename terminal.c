@@ -1942,7 +1942,7 @@ erase_cell_range(struct terminal *term, struct row *row, int start, int end)
 
     if (unlikely(row->extra != NULL)) {
         grid_row_uri_range_erase(row, start, end);
-        grid_row_curly_range_erase(row, start, end);
+        grid_row_underline_range_erase(row, start, end);
     }
 }
 
@@ -3642,10 +3642,10 @@ term_fill(struct terminal *term, int r, int c, uint8_t data, size_t count,
         }
 
         if (unlikely(use_sgr_attrs &&
-                     (term->vt.curly.style > CURLY_SINGLE ||
-                      term->vt.curly.color_src != COLOR_DEFAULT)))
+                     (term->vt.underline.style > UNDERLINE_SINGLE ||
+                      term->vt.underline.color_src != COLOR_DEFAULT)))
         {
-            grid_row_curly_range_put(row, c, term->vt.curly);
+            grid_row_underline_range_put(row, c, term->vt.underline);
         }
     }
 
@@ -3653,12 +3653,12 @@ term_fill(struct terminal *term, int r, int c, uint8_t data, size_t count,
         if (likely(term->vt.osc8.uri != NULL))
             grid_row_uri_range_erase(row, c, c + count - 1);
 
-        if (likely(term->vt.curly.style <= CURLY_SINGLE &&
-                   term->vt.curly.color_src == COLOR_DEFAULT))
+        if (likely(term->vt.underline.style <= UNDERLINE_SINGLE &&
+                   term->vt.underline.color_src == COLOR_DEFAULT))
         {
             /* No extended/styled underlines active, so erase any such
                attributes at the target columns */
-            grid_row_curly_range_erase(row, c, c + count - 1);
+            grid_row_underline_range_erase(row, c, c + count - 1);
         }
     }
 }
@@ -3730,12 +3730,12 @@ term_print(struct terminal *term, char32_t wc, int width)
     } else if (row->extra != NULL)
         grid_row_uri_range_erase(row, col, col + width - 1);
 
-    if (unlikely(term->vt.curly.style > CURLY_SINGLE ||
-                 term->vt.curly.color_src != COLOR_DEFAULT))
+    if (unlikely(term->vt.underline.style > UNDERLINE_SINGLE ||
+                 term->vt.underline.color_src != COLOR_DEFAULT))
     {
-        grid_row_curly_range_put(row, col, term->vt.curly);
+        grid_row_underline_range_put(row, col, term->vt.underline);
     } else if (row->extra != NULL)
-        grid_row_curly_range_erase(row, col, col + width - 1);
+        grid_row_underline_range_erase(row, col, col + width - 1);
 
     /* Advance cursor the 'additional' columns while dirty:ing the cells */
     for (int i = 1; i < width && (col + 1) < term->cols; i++) {
@@ -3796,7 +3796,7 @@ ascii_printer_fast(struct terminal *term, char32_t wc)
 
     if (unlikely(row->extra != NULL)) {
         grid_row_uri_range_erase(row, uri_start, uri_start);
-        grid_row_curly_range_erase(row, uri_start, uri_start);
+        grid_row_underline_range_erase(row, uri_start, uri_start);
     }
 }
 

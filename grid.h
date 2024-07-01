@@ -88,9 +88,9 @@ void grid_row_uri_range_put(
     struct row *row, int col, const char *uri, uint64_t id);
 void grid_row_uri_range_erase(struct row *row, int start, int end);
 
-void grid_row_curly_range_put(
-    struct row *row, int col, struct curly_range_data data);
-void grid_row_curly_range_erase(struct row *row, int start, int end);
+void grid_row_underline_range_put(
+    struct row *row, int col, struct underline_range_data data);
+void grid_row_underline_range_erase(struct row *row, int start, int end);
 
 static inline void
 grid_row_uri_range_destroy(struct row_range *range)
@@ -99,7 +99,7 @@ grid_row_uri_range_destroy(struct row_range *range)
 }
 
 static inline void
-grid_row_curly_range_destroy(struct row_range *range)
+grid_row_underline_range_destroy(struct row_range *range)
 {
 }
 
@@ -108,7 +108,7 @@ grid_row_range_destroy(struct row_range *range, enum row_range_type type)
 {
     switch (type) {
     case ROW_RANGE_URI: grid_row_uri_range_destroy(range); break;
-    case ROW_RANGE_CURLY: grid_row_curly_range_destroy(range); break;
+    case ROW_RANGE_UNDERLINE: grid_row_underline_range_destroy(range); break;
     }
 }
 
@@ -129,9 +129,9 @@ grid_row_reset_extra(struct row *row)
         return;
 
     grid_row_ranges_destroy(&extra->uri_ranges, ROW_RANGE_URI);
-    grid_row_ranges_destroy(&extra->curly_ranges, ROW_RANGE_CURLY);
+    grid_row_ranges_destroy(&extra->underline_ranges, ROW_RANGE_UNDERLINE);
     free(extra->uri_ranges.v);
-    free(extra->curly_ranges.v);
+    free(extra->underline_ranges.v);
 
     free(extra);
     row->extra = NULL;

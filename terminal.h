@@ -104,24 +104,24 @@ struct uri_range_data {
     char *uri;
 };
 
-enum curly_style {
-    CURLY_NONE,
-    CURLY_SINGLE,  /* Legacy underline */
-    CURLY_DOUBLE,
-    CURLY_CURLY,
-    CURLY_DOTTED,
-    CURLY_DASHED,
+enum underline_style {
+    UNDERLINE_NONE,
+    UNDERLINE_SINGLE,  /* Legacy underline */
+    UNDERLINE_DOUBLE,
+    UNDERLINE_CURLY,
+    UNDERLINE_DOTTED,
+    UNDERLINE_DASHED,
 };
 
-struct curly_range_data {
-    enum curly_style style;
+struct underline_range_data {
+    enum underline_style style;
     enum color_source color_src;
     uint32_t color;
 };
 
 union row_range_data {
     struct uri_range_data uri;
-    struct curly_range_data curly;
+    struct underline_range_data underline;
 };
 
 struct row_range {
@@ -134,7 +134,7 @@ struct row_range {
          * but can instead do range->uri.id */
         union {
             struct uri_range_data uri;
-            struct curly_range_data curly;
+            struct underline_range_data underline;
         };
         union row_range_data data;
     };
@@ -146,11 +146,11 @@ struct row_ranges {
     int count;
 };
 
-enum row_range_type {ROW_RANGE_URI, ROW_RANGE_CURLY};
+enum row_range_type {ROW_RANGE_URI, ROW_RANGE_UNDERLINE};
 
 struct row_data {
     struct row_ranges uri_ranges;
-    struct row_ranges curly_ranges;
+    struct row_ranges underline_ranges;
 };
 
 struct row {
@@ -299,7 +299,7 @@ struct vt {
         char *uri;
     } osc8;
 
-    struct curly_range_data curly;
+    struct underline_range_data underline;
 
     struct {
         uint8_t *data;
@@ -403,8 +403,8 @@ struct terminal {
         struct {
             bool sixels:1;
             bool osc8:1;
-            bool curly_style:1;
-            bool curly_color:1;
+            bool underline_style:1;
+            bool underline_color:1;
             bool insert_mode:1;
             bool charset:1;
         };
