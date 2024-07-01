@@ -63,10 +63,14 @@
 * Support for high-res mouse wheel scroll events ([#1738][1738]).
 * Styled and colored underlines ([#828][828]).
 * Support for SGR 21 (double underline).
+* Support for `XTPUSHCOLORS`, `XTPOPCOLORS` and `XTREPORTCOLORS`,
+  i.e. color palette stack ([#856][856]).
 
 [1707]: https://codeberg.org/dnkl/foot/issues/1707
 [1738]: https://codeberg.org/dnkl/foot/issues/1738
 [828]: https://codeberg.org/dnkl/foot/issues/828
+[856]: https://codeberg.org/dnkl/foot/issues/856
+
 
 ### Changed
 
