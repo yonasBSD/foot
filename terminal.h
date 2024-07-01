@@ -393,6 +393,19 @@ struct url {
 };
 typedef tll(struct url) url_list_t;
 
+
+struct colors {
+    uint32_t fg;
+    uint32_t bg;
+    uint32_t table[256];
+    uint16_t alpha;
+    uint32_t cursor_fg;  /* Text color */
+    uint32_t cursor_bg;  /* cursor color */
+    uint32_t selection_fg;
+    uint32_t selection_bg;
+    bool use_custom_selection;
+};
+
 struct terminal {
     struct fdm *fdm;
     struct reaper *reaper;
@@ -563,17 +576,13 @@ struct terminal {
     int cell_width;  /* pixels per cell, x-wise */
     int cell_height; /* pixels per cell, y-wise */
 
+    struct colors colors;
+
     struct {
-        uint32_t fg;
-        uint32_t bg;
-        uint32_t table[256];
-        uint16_t alpha;
-        uint32_t cursor_fg;  /* Text color */
-        uint32_t cursor_bg;  /* cursor color */
-        uint32_t selection_fg;
-        uint32_t selection_bg;
-        bool use_custom_selection;
-    } colors;
+        struct colors *stack;
+        size_t idx;
+        size_t size;
+    } color_stack;
 
     enum cursor_style cursor_style;
     struct {

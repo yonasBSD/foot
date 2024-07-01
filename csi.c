@@ -2048,6 +2048,82 @@ csi_dispatch(struct terminal *term, uint8_t final)
         break; /* private[0] == ‘$’ */
     }
 
+    case '#': {
+        switch (final) {
+        case 'P': { /* XTPUSHCOLORS */
+            int slot = vt_param_get(term, 0, 0);
+
+            /* Pm == 0, "push" (what xterm does is take take the
+               *current* slot + 1, even if that's in the middle of the
+               stack, and overwrites whatever is already in that
+               slot) */
+            if (slot == 0)
+                slot = term->color_stack.idx + 1;
+
+            if (term->color_stack.size < slot) {
+                const size_t new_size = slot;
+                term->color_stack.stack = xrealloc(
+                    term->color_stack.stack,
+                    new_size * sizeof(term->color_stack.stack[0]));
+
+                /* Initialize new slots (except the selected slot,
+                   which is done below) */
+                xassert(new_size > 0);
+                for (size_t i = term->color_stack.size; i < new_size - 1; i++) {
+                    memcpy(&term->color_stack.stack[i], &term->colors,
+                           sizeof(term->colors));
+                }
+                term->color_stack.size = new_size;
+            }
+
+            xassert(slot > 0);
+            xassert(slot <= term->color_stack.size);
+            term->color_stack.idx = slot;
+            memcpy(&term->color_stack.stack[slot - 1], &term->colors,
+                   sizeof(term->colors));
+            break;
+        }
+
+        case 'Q': {  /* XTPOPCOLORS */
+            int slot = vt_param_get(term, 0, 0);
+
+            /* Pm == 0, "pop" (what xterm does is copy colors from the
+              *current* slot, *and* decrease the current slot index,
+              even if that's in the middle of the stack) */
+            if (slot == 0)
+                slot = term->color_stack.idx;
+
+            if (slot > 0 && slot <= term->color_stack.size) {
+                memcpy(&term->colors, &term->color_stack.stack[slot - 1],
+                       sizeof(term->colors));
+                term->color_stack.idx = slot - 1;
+
+                /* TODO: we _could_ iterate all cells and only dirty
+                   those that are affected by the palette change... */
+                term_damage_view(term);
+            } else if (slot == 0) {
+                LOG_ERR("XTPOPCOLORS: cannot pop beyond the first element");
+            } else {
+                LOG_ERR(
+                    "XTPOPCOLORS: invalid color slot: %d "
+                    "(stack has %zu slots, current slot is %zu)",
+                    vt_param_get(term, 0, 0),
+                    term->color_stack.size, term->color_stack.idx);
+            }
+            break;
+        }
+
+        case 'R': {  /* XTREPORTCOLORS */
+            char reply[64];
+            int n = xsnprintf(reply, sizeof(reply), "\033[?%zu;%zu#Q",
+                              term->color_stack.idx, term->color_stack.size);
+            term_to_slave(term, reply, n);
+            break;
+        }
+        }
+        break; /* private[0] == '#' */
+    }
+
     case 0x243f:  /* ?$ */
         switch (final) {
         case 'p': {

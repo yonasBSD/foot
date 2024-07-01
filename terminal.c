@@ -1227,6 +1227,11 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
             .selection_bg = conf->colors.selection_bg,
             .use_custom_selection = conf->colors.use_custom.selection,
         },
+        .color_stack = {
+            .stack = NULL,
+            .size = 0,
+            .idx = 0,
+        },
         .origin = ORIGIN_ABSOLUTE,
         .cursor_style = conf->cursor.style,
         .cursor_blink = {
@@ -1823,6 +1828,7 @@ term_destroy(struct terminal *term)
     free(term->foot_exe);
     free(term->cwd);
     free(term->mouse_user_cursor);
+    free(term->color_stack.stack);
 
     int ret = EXIT_SUCCESS;
 
@@ -2040,6 +2046,10 @@ term_reset(struct terminal *term, bool hard)
     term->colors.use_custom_selection = term->conf->colors.use_custom.selection;
     memcpy(term->colors.table, term->conf->colors.table,
            sizeof(term->colors.table));
+    free(term->color_stack.stack);
+    term->color_stack.stack = NULL;
+    term->color_stack.size = 0;
+    term->color_stack.idx = 0;
     term->origin = ORIGIN_ABSOLUTE;
     term->normal.cursor.lcf = false;
     term->alt.cursor.lcf = false;
