@@ -632,6 +632,19 @@ manipulation sequences. The generic format is:
 :  <unnamed>
 :  kitty
 :  Update current Kitty keyboard flags, according to _mode_.
+|  \\E[ # P
+:  XTPUSHCOLORS
+:  xterm
+:  Push current color palette onto stack
+|  \\E[ # Q
+:  XTPOPCOLORS
+:  xterm
+:  Pop color palette from stack
+|  \\E[ # R
+:  XTREPORTCOLORS
+:  xterm
+:  Report the current entry on the palette stack, and the number of
+   palettes stored on the stack.
 
 
 # OSC
