@@ -2101,6 +2101,7 @@ csi_dispatch(struct terminal *term, uint8_t final)
                 /* TODO: we _could_ iterate all cells and only dirty
                    those that are affected by the palette change... */
                 term_damage_view(term);
+                term_damage_margins(term);
             } else if (slot == 0) {
                 LOG_ERR("XTPOPCOLORS: cannot pop beyond the first element");
             } else {
