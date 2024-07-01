@@ -1221,6 +1221,8 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
             .fg = conf->colors.fg,
             .bg = conf->colors.bg,
             .alpha = conf->colors.alpha,
+            .cursor_fg = conf->cursor.color.text,
+            .cursor_bg = conf->cursor.color.cursor,
             .selection_fg = conf->colors.selection_fg,
             .selection_bg = conf->colors.selection_bg,
             .use_custom_selection = conf->colors.use_custom.selection,
@@ -1232,10 +1234,6 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
             .deccsusr = conf->cursor.blink.enabled,
             .state = CURSOR_BLINK_ON,
             .fd = -1,
-        },
-        .cursor_color = {
-            .text = conf->cursor.color.text,
-            .cursor = conf->cursor.color.cursor,
         },
         .selection = {
             .coords = {
@@ -2035,6 +2033,8 @@ term_reset(struct terminal *term, bool hard)
     term->colors.fg = term->conf->colors.fg;
     term->colors.bg = term->conf->colors.bg;
     term->colors.alpha = term->conf->colors.alpha;
+    term->colors.cursor_fg = term->conf->cursor.color.text;
+    term->colors.cursor_bg = term->conf->cursor.color.cursor;
     term->colors.selection_fg = term->conf->colors.selection_fg;
     term->colors.selection_bg = term->conf->colors.selection_bg;
     term->colors.use_custom_selection = term->conf->colors.use_custom.selection;
@@ -2051,8 +2051,6 @@ term_reset(struct terminal *term, bool hard)
     term->cursor_blink.decset = false;
     term->cursor_blink.deccsusr = term->conf->cursor.blink.enabled;
     term_cursor_blink_update(term);
-    term->cursor_color.text = term->conf->cursor.color.text;
-    term->cursor_color.cursor = term->conf->cursor.color.cursor;
     selection_cancel(term);
     term->normal.offset = term->normal.view = 0;
     term->alt.offset = term->alt.view = 0;

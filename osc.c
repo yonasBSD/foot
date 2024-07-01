@@ -712,15 +712,25 @@ osc_dispatch(struct terminal *term)
         osc_notify(term, string);
         break;
 
-    case 10:
-    case 11:
-    case 17:
-    case 19: {
+    case 10:    /* fg */
+    case 11:    /* bg */
+    case 12:    /* cursor */
+    case 17:    /* highlight (selection) fg */
+    case 19: {  /* highlight (selection) bg */
         /* Set default foreground/background/highlight-bg/highlight-fg color */
 
         /* Client queried for current value */
         if (string[0] == '?' && string[1] == '\0') {
-            uint32_t color = param == 10 ? term->colors.fg : term->colors.bg;
+            uint32_t color = param == 10
+                ? term->colors.fg
+                : param == 11
+                    ? term->colors.bg
+                    : param == 12
+                        ? term->colors.cursor_bg
+                        : param == 17
+                            ? term->colors.selection_bg
+                            : term->colors.selection_fg;
+
             uint8_t r = (color >> 16) & 0xff;
             uint8_t g = (color >>  8) & 0xff;
             uint8_t b = (color >>  0) & 0xff;
@@ -754,6 +764,7 @@ osc_dispatch(struct terminal *term)
         LOG_DBG("change color definition for %s to %06x",
                 param == 10 ? "foreground" :
                 param == 11 ? "background" :
+                param == 12 ? "cursor" :
                 param == 17 ? "selection background" :
                               "selection foreground",
                 color);
@@ -776,6 +787,11 @@ osc_dispatch(struct terminal *term)
             }
             break;
 
+        case 12:
+            term->colors.cursor_bg = 1u << 31 | color;
+            term_damage_cursor(term);
+            break;
+
         case 17:
             term->colors.selection_bg = color;
             term->colors.use_custom_selection = true;
@@ -791,43 +807,6 @@ osc_dispatch(struct terminal *term)
         term_damage_margins(term);
         break;
     }
-
-    case 12: /* Set cursor color */
-
-        /* Client queried for current value */
-        if (string[0] == '?' && string[1] == '\0') {
-            uint8_t r = (term->cursor_color.cursor >> 16) & 0xff;
-            uint8_t g = (term->cursor_color.cursor >>  8) & 0xff;
-            uint8_t b = (term->cursor_color.cursor >>  0) & 0xff;
-            const char *terminator = term->vt.osc.bel ? "\a" : "\033\\";
-
-            char reply[32];
-            size_t n = xsnprintf(
-                reply, sizeof(reply), "\033]12;rgb:%02x/%02x/%02x%s",
-                r, g, b, terminator);
-
-            term_to_slave(term, reply, n);
-            break;
-        }
-
-        uint32_t color;
-
-        if (string[0] == '#' || string[0] == '['
-            ? !parse_legacy_color(string, &color, NULL, NULL)
-            : !parse_rgb(string, &color, NULL, NULL))
-        {
-            break;
-        }
-
-        LOG_DBG("change cursor color to %06x", color);
-
-        if (color == 0)
-            term->cursor_color.cursor = 0;  /* Invert fg/bg */
-        else
-            term->cursor_color.cursor = 1u << 31 | color;
-
-        term_damage_cursor(term);
-        break;
 
     case 22:  /* Set mouse cursor */
         term_set_user_mouse_cursor(term, string);
@@ -895,8 +874,8 @@ osc_dispatch(struct terminal *term)
 
     case 112:
         LOG_DBG("resetting cursor color");
-        term->cursor_color.text = term->conf->cursor.color.text;
-        term->cursor_color.cursor = term->conf->cursor.color.cursor;
+        term->colors.cursor_fg = term->conf->cursor.color.text;
+        term->colors.cursor_bg = term->conf->cursor.color.cursor;
         term_damage_cursor(term);
         break;
 

@@ -568,6 +568,8 @@ struct terminal {
         uint32_t bg;
         uint32_t table[256];
         uint16_t alpha;
+        uint32_t cursor_fg;  /* Text color */
+        uint32_t cursor_bg;  /* cursor color */
         uint32_t selection_fg;
         uint32_t selection_bg;
         bool use_custom_selection;
@@ -580,10 +582,6 @@ struct terminal {
         int fd;
         enum { CURSOR_BLINK_ON, CURSOR_BLINK_OFF } state;
     } cursor_blink;
-    struct {
-        uint32_t text;
-        uint32_t cursor;
-    } cursor_color;
 
     struct {
         enum selection_kind kind;
