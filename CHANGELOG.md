@@ -62,6 +62,7 @@
   reduces the memory usage, but should also be slightly faster.
 * Support for high-res mouse wheel scroll events ([#1738][1738]).
 * Styled and colored underlines ([#828][828]).
+* Support for SGR 21 (double underline).
 
 [1707]: https://codeberg.org/dnkl/foot/issues/1707
 [1738]: https://codeberg.org/dnkl/foot/issues/1738

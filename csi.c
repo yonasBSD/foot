@@ -129,7 +129,13 @@ csi_sgr(struct terminal *term)
         case 8: term->vt.attrs.conceal = true; break;
         case 9: term->vt.attrs.strikethrough = true; break;
 
-        case 21: break; /* double-underline, not implemented */
+        case 21:
+            term->vt.attrs.underline = true;
+            term->vt.underline.style = UNDERLINE_DOUBLE;
+            term->bits_affecting_ascii_printer.underline_style = true;
+            term_update_ascii_printer(term);
+            break;
+
         case 22: term->vt.attrs.bold = term->vt.attrs.dim = false; break;
         case 23: term->vt.attrs.italic = false; break;
         case 24: {

@@ -159,6 +159,8 @@ m*.
 :  Conceal; text is not visible, but is copiable
 |  9
 :  Crossed-out/strike
+|  21
+:  Double underline
 |  22
 :  Disable *bold* and *dim*
 |  23
