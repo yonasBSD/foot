@@ -420,8 +420,9 @@ draw_styled_underline(const struct terminal *term, pixman_image_t *pix,
 
     case UNDERLINE_NONE:
     case UNDERLINE_SINGLE:
-        BUG("underline styles not supposed to be handled here");
-        break;
+    default:
+        BUG("unexpected underline style: %d", (int)style);
+        return;
     }
 
     const int ceil_w = cols * term->cell_width;
