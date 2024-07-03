@@ -2387,6 +2387,96 @@ term_damage_margins(struct terminal *term)
 }
 
 void
+term_damage_color(struct terminal *term, enum color_source src, int idx)
+{
+    xassert(src == COLOR_DEFAULT || src == COLOR_BASE256);
+
+    for (int r = 0; r < term->rows; r++) {
+        struct row *row = grid_row_in_view(term->grid, r);
+        struct cell *cell = &row->cells[0];
+        const struct cell *end = &row->cells[term->cols];
+
+        for (; cell < end; cell++) {
+            bool dirty = false;
+
+            switch (cell->attrs.fg_src) {
+            case COLOR_BASE16:
+            case COLOR_BASE256:
+                if (src == COLOR_BASE256 && cell->attrs.fg == idx)
+                    dirty = true;
+                break;
+
+            case COLOR_DEFAULT:
+                if (src == COLOR_DEFAULT) {
+                    /* Doesn't matter whether we've updated the
+                       default foreground, or background, we still
+                       want to dirty this cell, to be sure we handle
+                       all cases of color inversion/reversal */
+                    dirty = true;
+                }
+                break;
+
+            case COLOR_RGB:
+                /* Not affected */
+                break;
+            }
+
+            switch (cell->attrs.bg_src) {
+            case COLOR_BASE16:
+            case COLOR_BASE256:
+                if (src == COLOR_BASE256 && cell->attrs.bg == idx)
+                    dirty = true;
+                break;
+
+            case COLOR_DEFAULT:
+                if (src == COLOR_DEFAULT) {
+                    /* Doesn't matter whether we've updated the
+                       default foreground, or background, we still
+                       want to dirty this cell, to be sure we handle
+                       all cases of color inversion/reversal */
+                    dirty = true;
+                }
+                break;
+
+            case COLOR_RGB:
+                /* Not affected */
+                break;
+            }
+
+            if (dirty) {
+                cell->attrs.clean = 0;
+                row->dirty = true;
+            }
+        }
+
+        /* Colored underlines */
+        if (row->extra != NULL) {
+            const struct row_ranges *underlines = &row->extra->underline_ranges;
+
+            for (int i = 0; i < underlines->count; i++) {
+                const struct row_range *range = &underlines->v[i];
+
+                /* Underline colors are either default, or
+                   BASE256/RGB, but never BASE16 */
+                xassert(range->underline.color_src == COLOR_DEFAULT ||
+                        range->underline.color_src == COLOR_BASE256 ||
+                        range->underline.color_src == COLOR_RGB);
+
+                if (range->underline.color_src == src) {
+                    struct cell *c = &row->cells[range->start];
+                    const struct cell *e = &row->cells[range->end + 1];
+
+                    for (; c < e; c++)
+                        c->attrs.clean = 0;
+
+                    row->dirty = true;
+                }
+            }
+        }
+    }
+}
+
+void
 term_damage_scroll(struct terminal *term, enum damage_type damage_type,
                    struct scroll_region region, int lines)
 {

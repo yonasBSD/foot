@@ -845,6 +845,7 @@ void term_damage_view(struct terminal *term);
 
 void term_damage_cursor(struct terminal *term);
 void term_damage_margins(struct terminal *term);
+void term_damage_color(struct terminal *term, enum color_source src, int idx);
 
 void term_reset_view(struct terminal *term);
 

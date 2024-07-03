@@ -2098,8 +2098,10 @@ csi_dispatch(struct terminal *term, uint8_t final)
                        sizeof(term->colors));
                 term->color_stack.idx = slot - 1;
 
-                /* TODO: we _could_ iterate all cells and only dirty
-                   those that are affected by the palette change... */
+                /* Assume a full palette switch *will* affect almost
+                   all cells. The alternative is to call
+                   term_damage_color() for all 256 palette entries
+                   *and* the default fg/bg (256 + 2 calls in total) */
                 term_damage_view(term);
                 term_damage_margins(term);
             } else if (slot == 0) {

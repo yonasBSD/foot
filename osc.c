@@ -651,47 +651,7 @@ osc_dispatch(struct terminal *term)
                         idx, term->colors.table[idx], color);
 
                 term->colors.table[idx] = color;
-
-                /* Dirty visible, affected cells */
-                for (int r = 0; r < term->rows; r++) {
-                    struct row *row = grid_row_in_view(term->grid, r);
-                    struct cell *cell = &row->cells[0];
-
-                    for (int c = 0; c < term->cols; c++, cell++) {
-                        bool dirty = false;
-
-                        switch (cell->attrs.fg_src) {
-                        case COLOR_BASE16:
-                        case COLOR_BASE256:
-                            if (cell->attrs.fg == idx)
-                                dirty = true;
-                            break;
-
-                        case COLOR_DEFAULT:
-                        case COLOR_RGB:
-                            /* Not affected */
-                            break;
-                        }
-
-                        switch (cell->attrs.bg_src) {
-                        case COLOR_BASE16:
-                        case COLOR_BASE256:
-                            if (cell->attrs.bg == idx)
-                                dirty = true;
-                            break;
-
-                        case COLOR_DEFAULT:
-                        case COLOR_RGB:
-                            /* Not affected */
-                            break;
-                        }
-
-                        if (dirty) {
-                            cell->attrs.clean = 0;
-                            row->dirty = true;
-                        }
-                    }
-                }
+                term_damage_color(term, COLOR_BASE256, idx);
             }
         }
 
@@ -772,7 +732,7 @@ osc_dispatch(struct terminal *term)
         switch (param) {
         case 10:
             term->colors.fg = color;
-            term_damage_view(term);
+            term_damage_color(term, COLOR_DEFAULT, 0);
             break;
 
         case 11:
@@ -786,7 +746,7 @@ osc_dispatch(struct terminal *term)
                     term_font_subpixel_changed(term);
                 }
             }
-            term_damage_view(term);
+            term_damage_color(term, COLOR_DEFAULT, 0);
             term_damage_margins(term);
             break;
 
@@ -798,13 +758,11 @@ osc_dispatch(struct terminal *term)
         case 17:
             term->colors.selection_bg = color;
             term->colors.use_custom_selection = true;
-            term_damage_view(term);
             break;
 
         case 19:
             term->colors.selection_fg = color;
             term->colors.use_custom_selection = true;
-            term_damage_view(term);
             break;
         }
 
@@ -829,6 +787,7 @@ osc_dispatch(struct terminal *term)
             LOG_DBG("resetting all colors");
             for (size_t i = 0; i < ALEN(term->colors.table); i++)
                 term->colors.table[i] = term->conf->colors.table[i];
+            term_damage_view(term);
         }
 
         else {
@@ -850,11 +809,10 @@ osc_dispatch(struct terminal *term)
 
                 LOG_DBG("resetting color #%u", idx);
                 term->colors.table[idx] = term->conf->colors.table[idx];
+                term_damage_color(term, COLOR_BASE256, idx);
             }
 
         }
-
-        term_damage_view(term);
         break;
     }
 
@@ -864,14 +822,14 @@ osc_dispatch(struct terminal *term)
     case 110: /* Reset default text foreground color */
         LOG_DBG("resetting foreground color");
         term->colors.fg = term->conf->colors.fg;
-        term_damage_view(term);
+        term_damage_color(term, COLOR_DEFAULT, 0);
         break;
 
     case 111: /* Reset default text background color */
         LOG_DBG("resetting background color");
         term->colors.bg = term->conf->colors.bg;
         term->colors.alpha = term->conf->colors.alpha;
-        term_damage_view(term);
+        term_damage_color(term, COLOR_DEFAULT, 0);
         term_damage_margins(term);
         break;
 
