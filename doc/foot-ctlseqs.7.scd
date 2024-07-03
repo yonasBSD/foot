@@ -750,7 +750,7 @@ and are terminated by *\\E\\* (ST).
 :< *Description*
 |  \\EP q <sixel data> \\E\\ 
 :  Emit a sixel image at the current cursor position
-|  \\P $ q <query> \\E\\ 
+|  \\EP $ q <query> \\E\\ 
 :  Request selection or setting (DECRQSS). Implemented queries:
    DECSTBM, SGR and DECSCUSR.
 |  \\EP = _C_ s \\E\\ 
