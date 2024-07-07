@@ -121,6 +121,12 @@ empty string to be set, but it must be quoted: *KEY=""*)
 	You can specify a height in _pixels_ by using the *px* suffix:
 	e.g. *line-height=12px*.
 	
+	*Warning*: when changing the font size at runtime (i.e. zooming in
+	our out), foot will change the line height by the same
+	percentage. However, due to rounding, it is possible the line
+	height will be "too small" for some font sizes, causing
+	e.g. underscores to "disappear".
+	
 	See also: *vertical-letter-offset*.
 	
 	Default: _not set_.
