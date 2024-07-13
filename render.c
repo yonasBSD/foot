@@ -600,7 +600,7 @@ draw_cursor(const struct terminal *term, const struct cell *cell,
                 break;
 
             case CURSOR_UNFOCUSED_HOLLOW:
-                draw_hollow_block(term, pix, fg, x, y, cols);
+                draw_hollow_block(term, pix, &cursor_color, x, y, cols);
                 return;
 
             case CURSOR_UNFOCUSED_NONE:
