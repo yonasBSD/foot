@@ -2708,7 +2708,7 @@ mouse_scroll(struct seat *seat, int amount, enum wl_pointer_axis axis)
     xassert(term != NULL);
 
     int button = axis == WL_POINTER_AXIS_VERTICAL_SCROLL
-        ? amount < 0 ? BTN_BACK : BTN_FORWARD
+        ? amount < 0 ? BTN_WHEEL_BACK : BTN_WHEEL_FORWARD
         : amount < 0 ? BTN_WHEEL_LEFT : BTN_WHEEL_RIGHT;
     amount = abs(amount);
 

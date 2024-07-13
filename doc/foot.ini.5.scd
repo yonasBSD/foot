@@ -1156,10 +1156,13 @@ The trailing *COUNT* (number of times the button has to be clicked) is
 optional and specifies the click count required to trigger the
 binding. The default if *COUNT* is omitted is _1_.
 
-To map wheel events (i.e. scrolling), use the button names *BTN_BACK*
-(up) and *BTN_FORWARD* (down). Note that these events never generate a
-*COUNT* larger than 1. That is, *BTN_BACK+2*, for example, will never
-trigger.
+To map wheel events (i.e. scrolling), use the button names
+*BTN_WHEEL_BACK* (up) and *BTN_WHEEL_FORWARD* (down). Note that these
+events never generate a *COUNT* larger than 1. That is,
+*BTN_WHEEL_BACK+2*, for example, will never trigger.
+
+Foot also recognizes tiltable wheels; to map these, use
+*BTN_WHEEL_LEFT* and *BTN_WHEEL_RIGHT*.
 
 A modifier+button combination can only be mapped to *one* action. Lets
 say you want to bind *BTN\_MIDDLE* to *fullscreen*. Since
@@ -1187,7 +1190,7 @@ actions listed under *key-bindings* can be used here as well.
 	Alt screen: send fake _KeyUP_ events to the client application, if
 	alternate scroll mode is enabled.
 	
-	Default: _BTN_BACK_
+	Default: _BTN\_WHEEL\_BACK_
 
 *scrollback-down-mouse*
 	Normal screen: scrolls down the contents.
@@ -1195,7 +1198,7 @@ actions listed under *key-bindings* can be used here as well.
 	Alt screen: send fake _KeyDOWN_ events to the client application, if
 	alternate scroll mode is enabled.
 
-	Default: _BTN_FORWARD_
+	Default: _BTN\_WHEEL\_FORWARD_
 
 *select-begin*
 	Begin an interactive selection. The selection is finalized, and
@@ -1269,12 +1272,12 @@ actions listed under *key-bindings* can be used here as well.
 	Pastes from the _primary selection_. Default: _BTN\_MIDDLE_.
 
 *font-increase*
-	Increases the font size by 0.5pt. Default: _Control+BTN\_BACK_
-	(also defined in *key-bindings*).
+	Increases the font size by 0.5pt. Default:
+	_Control+BTN\_WHEEL\_BACK_ (also defined in *key-bindings*).
 
 *font-decrease*
-	Decreases the font size by 0.5pt. Default: _Control+BTN\_FORWARD_
-	(also defined in *key-bindings*).
+	Decreases the font size by 0.5pt. Default:
+	_Control+BTN\_WHEEL\_FORWARD_ (also defined in *key-bindings*).
 
 
 # TWEAK

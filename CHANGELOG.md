@@ -89,9 +89,19 @@
   and background are the same), the cursor will instead be rendered
   using the default foreground and background colors, inverted
   ([#1761][1761]).
+* Mouse wheel events now generate `BTN_WHEEL_BACK` and
+  `BTN_WHEEL_FORWARD` "button presses", instead of `BTN_BACK` and
+  `BTN_FORWARD`. The default bindings have been updated, and
+  `scrollback-up-mouse`, `scrollback-down-mouse`, `font-increase` and
+  `font-decrease` now use the new button names.
+  
+  This change allow users to separate physical mouse buttons that
+  _also_ generates `BTN_BACK` and `BTN_FORWARD`, from wheel scrolling
+  ([#1763][1763]).
 
 [1701]: https://codeberg.org/dnkl/foot/issues/1701
 [1761]: https://codeberg.org/dnkl/foot/issues/1761
+[1763]: https://codeberg.org/dnkl/foot/issues/1763
 
 
 ### Deprecated
@@ -118,6 +128,8 @@
   foot config has not set any custom cursor colors (i.e. without
   OSC-12, inverted fg/bg would be used).
 * Wrong color used when drawing the unfocused, hollow cursor.
+* Encoding of `BTN_BACK` and `BTN_FORWARD`, when sending a mouse input
+  escape sequence to the terminal application.
 
 [1694]: https://codeberg.org/dnkl/foot/issues/1694
 [1717]: https://codeberg.org/dnkl/foot/issues/1717

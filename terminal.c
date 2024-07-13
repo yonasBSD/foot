@@ -3192,17 +3192,23 @@ term_kbd_focus_out(struct terminal *term)
 static int
 linux_mouse_button_to_x(int button)
 {
+    /* Note: on X11, scroll events where reported as buttons. Not so
+     * on Wayland. We manually map scroll events to custom "button"
+     * defines (BTN_WHEEL_*).
+     */
     switch (button) {
-    case BTN_LEFT:        return 1;
-    case BTN_MIDDLE:      return 2;
-    case BTN_RIGHT:       return 3;
-    case BTN_BACK:        return 4;
-    case BTN_FORWARD:     return 5;
-    case BTN_WHEEL_LEFT:  return 6;  /* Foot custom define */
-    case BTN_WHEEL_RIGHT: return 7;  /* Foot custom define */
-    case BTN_SIDE:        return 8;
-    case BTN_EXTRA:       return 9;
-    case BTN_TASK:        return -1;  /* TODO: ??? */
+    case BTN_LEFT:          return 1;
+    case BTN_MIDDLE:        return 2;
+    case BTN_RIGHT:         return 3;
+    case BTN_WHEEL_BACK:    return 4;  /* Foot custom define */
+    case BTN_WHEEL_FORWARD: return 5;  /* Foot custom define */
+    case BTN_WHEEL_LEFT:    return 6;  /* Foot custom define */
+    case BTN_WHEEL_RIGHT:   return 7;  /* Foot custom define */
+    case BTN_SIDE:          return 8;
+    case BTN_EXTRA:         return 9;
+    case BTN_FORWARD:       return 10;
+    case BTN_BACK:          return 11;
+    case BTN_TASK:          return 12; /* Guessing... */
 
     default:
         LOG_WARN("unrecognized mouse button: %d (0x%x)", button, button);

@@ -1686,6 +1686,7 @@ static const struct {
     const char *name;
     int code;
 } button_map[] = {
+    /* System defined */
     {"BTN_LEFT", BTN_LEFT},
     {"BTN_RIGHT", BTN_RIGHT},
     {"BTN_MIDDLE", BTN_MIDDLE},
@@ -1694,6 +1695,12 @@ static const struct {
     {"BTN_FORWARD", BTN_FORWARD},
     {"BTN_BACK", BTN_BACK},
     {"BTN_TASK", BTN_TASK},
+
+    /* Foot custom, to be able to map scroll events to mouse bindings */
+    {"BTN_WHEEL_BACK", BTN_WHEEL_BACK},
+    {"BTN_WHEEL_FORWARD", BTN_WHEEL_FORWARD},
+    {"BTN_WHEEL_LEFT", BTN_WHEEL_LEFT},
+    {"BTN_WHEEL_RIGHT", BTN_WHEEL_RIGHT},
 };
 
 static int
@@ -2989,8 +2996,8 @@ static void
 add_default_mouse_bindings(struct config *conf)
 {
     const struct config_key_binding bindings[] = {
-        {BIND_ACTION_SCROLLBACK_UP_MOUSE, m("none"), {.m = {BTN_BACK, 1}}},
-        {BIND_ACTION_SCROLLBACK_DOWN_MOUSE, m("none"), {.m = {BTN_FORWARD, 1}}},
+        {BIND_ACTION_SCROLLBACK_UP_MOUSE, m("none"), {.m = {BTN_WHEEL_BACK, 1}}},
+        {BIND_ACTION_SCROLLBACK_DOWN_MOUSE, m("none"), {.m = {BTN_WHEEL_FORWARD, 1}}},
         {BIND_ACTION_PRIMARY_PASTE, m("none"), {.m = {BTN_MIDDLE, 1}}},
         {BIND_ACTION_SELECT_BEGIN, m("none"), {.m = {BTN_LEFT, 1}}},
         {BIND_ACTION_SELECT_BEGIN_BLOCK, m(XKB_MOD_NAME_CTRL), {.m = {BTN_LEFT, 1}}},
@@ -3000,8 +3007,8 @@ add_default_mouse_bindings(struct config *conf)
         {BIND_ACTION_SELECT_WORD_WS, m(XKB_MOD_NAME_CTRL), {.m = {BTN_LEFT, 2}}},
         {BIND_ACTION_SELECT_QUOTE, m("none"), {.m = {BTN_LEFT, 3}}},
         {BIND_ACTION_SELECT_ROW, m("none"), {.m = {BTN_LEFT, 4}}},
-        {BIND_ACTION_FONT_SIZE_UP, m("Control"), {.m = {BTN_BACK, 1}}},
-        {BIND_ACTION_FONT_SIZE_DOWN, m("Control"), {.m = {BTN_FORWARD, 1}}},
+        {BIND_ACTION_FONT_SIZE_UP, m("Control"), {.m = {BTN_WHEEL_BACK, 1}}},
+        {BIND_ACTION_FONT_SIZE_DOWN, m("Control"), {.m = {BTN_WHEEL_FORWARD, 1}}},
     };
 
     conf->bindings.mouse.count = ALEN(bindings);
