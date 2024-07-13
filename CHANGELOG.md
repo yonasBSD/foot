@@ -84,8 +84,14 @@
   In other words, if, after this change, `XTGETTCAP` returns a string
   that is different compared to `tigetstr()`, then it is likely a bug
   in foot's implementation of `XTGETTCAP`.
+* If the cursor foreground and background colors are identical (for
+  example, when cursor uses inverted colors and the cell's foreground
+  and background are the same), the cursor will instead be rendered
+  using the default foreground and background colors, inverted
+  ([#1761][1761]).
 
 [1701]: https://codeberg.org/dnkl/foot/issues/1701
+[1761]: https://codeberg.org/dnkl/foot/issues/1761
 
 
 ### Deprecated

@@ -573,6 +573,14 @@ cursor_colors_for_cell(const struct terminal *term, const struct cell *cell,
             *text_color = color_hex_to_pixman(term->colors.bg);
         }
     }
+
+    if (text_color->red == cursor_color->red &&
+        text_color->green == cursor_color->green &&
+        text_color->blue == cursor_color->blue)
+    {
+        *text_color = color_hex_to_pixman(term->colors.bg);
+        *cursor_color = color_hex_to_pixman(term->colors.fg);
+    }
 }
 
 static void
