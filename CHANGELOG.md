@@ -118,8 +118,6 @@
   foot config has not set any custom cursor colors (i.e. without
   OSC-12, inverted fg/bg would be used).
 * Wrong color used when drawing the unfocused, hollow cursor.
-* Encoding of `BTN_BACK` and `BTN_FORWARD`, when sending a mouse input
-  escape sequence to the terminal application.
 
 [1694]: https://codeberg.org/dnkl/foot/issues/1694
 [1717]: https://codeberg.org/dnkl/foot/issues/1717
