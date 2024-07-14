@@ -94,10 +94,12 @@
   `BTN_FORWARD`. The default bindings have been updated, and
   `scrollback-up-mouse`, `scrollback-down-mouse`, `font-increase` and
   `font-decrease` now use the new button names.
-  
+
   This change allow users to separate physical mouse buttons that
   _also_ generates `BTN_BACK` and `BTN_FORWARD`, from wheel scrolling
   ([#1763][1763]).
+* Replaced the old catppuccin theme with updated flavored themes
+  pulled from [catppuccin/foot](https://github.com/catppuccin/foot)
 
 [1701]: https://codeberg.org/dnkl/foot/issues/1701
 [1761]: https://codeberg.org/dnkl/foot/issues/1761
