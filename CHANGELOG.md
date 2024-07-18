@@ -65,11 +65,14 @@
 * Support for SGR 21 (double underline).
 * Support for `XTPUSHCOLORS`, `XTPOPCOLORS` and `XTREPORTCOLORS`,
   i.e. color palette stack ([#856][856]).
+* Log output now respects the [`NO_COLOR`](http://no-color.org/)
+  environment variable ([#1771][1771]).
 
 [1707]: https://codeberg.org/dnkl/foot/issues/1707
 [1738]: https://codeberg.org/dnkl/foot/issues/1738
 [828]: https://codeberg.org/dnkl/foot/issues/828
 [856]: https://codeberg.org/dnkl/foot/issues/856
+[1771]: https://codeberg.org/dnkl/foot/issues/1771
 
 
 ### Changed
