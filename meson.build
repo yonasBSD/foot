@@ -252,6 +252,12 @@ pgolib = static_library(
   link_with: vtlib,
 )
 
+tokenize = static_library(
+  'tokenizelib',
+  'tokenize.c',
+  link_with: [common],
+)
+
 if get_option('b_pgo') == 'generate'
   executable(
     'pgo',
