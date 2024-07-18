@@ -1860,14 +1860,17 @@ mouse_coord_pixel_to_cell(struct seat *seat, const struct terminal *term,
      * if the cursor is outside the grid. I.e. if it is inside the
      * margins.
      */
-
-    if (x < term->margins.left || x >= term->width - term->margins.right)
-        seat->mouse.col = -1;
+    if (x < term->margins.left)
+        seat->mouse.col = 0;
+    else if (x >= term->width - term->margins.right)
+        seat->mouse.col = term->cols - 1;
     else
         seat->mouse.col = (x - term->margins.left) / term->cell_width;
 
-    if (y < term->margins.top || y >= term->height - term->margins.bottom)
-        seat->mouse.row = -1;
+    if (y < term->margins.top)
+        seat->mouse.row = 0;
+    else if (y >= term->height - term->margins.bottom)
+        seat->mouse.row = term->rows - 1;
     else
         seat->mouse.row = (y - term->margins.top) / term->cell_height;
 }
@@ -2127,49 +2130,10 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
         int old_col = seat->mouse.col;
         int old_row = seat->mouse.row;
 
-        /*
-         * While the seat's mouse coordinates must always be on the
-         * grid, or -1, we allow updating the selection even when the
-         * mouse is outside the grid (could also be outside the
-         * terminal window).
-         */
-        int selection_col;
-        int selection_row;
+        mouse_coord_pixel_to_cell(seat, term, seat->mouse.x, seat->mouse.y);
 
-        if (x < term->margins.left) {
-            seat->mouse.col = -1;
-            selection_col = 0;
-        } else if (x >= term->width - term->margins.right) {
-            seat->mouse.col = -1;
-            selection_col = term->cols - 1;
-        } else {
-            seat->mouse.col = (x - term->margins.left) / term->cell_width;
-            selection_col = seat->mouse.col;
-        }
-
-        if (y < term->margins.top) {
-            seat->mouse.row = -1;
-            selection_row = 0;
-        } else if (y >= term->height - term->margins.bottom) {
-            seat->mouse.row = -1;
-            selection_row = term->rows - 1;
-        } else {
-            seat->mouse.row = (y - term->margins.top) / term->cell_height;
-            selection_row = seat->mouse.row;
-        }
-
-        /*
-         * If client is receiving events (because the button was
-         * pressed while the cursor was inside the grid area), then
-         * make sure it receives valid coordinates.
-         */
-        if (send_to_client) {
-            seat->mouse.col = selection_col;
-            seat->mouse.row = selection_row;
-        }
-
-        xassert(seat->mouse.col == -1 || (seat->mouse.col >= 0 && seat->mouse.col < term->cols));
-        xassert(seat->mouse.row == -1 || (seat->mouse.row >= 0 && seat->mouse.row < term->rows));
+        xassert(seat->mouse.col >= 0 && seat->mouse.col < term->cols);
+        xassert(seat->mouse.row >= 0 && seat->mouse.row < term->rows);
 
         /* Cursor has moved to a different cell since last time */
         bool cursor_is_on_new_cell
@@ -2186,9 +2150,13 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
         const bool cursor_is_on_grid = seat->mouse.col >= 0 && seat->mouse.row >= 0;
 
         enum selection_scroll_direction auto_scroll_direction
-            = y < term->margins.top ? SELECTION_SCROLL_UP
-            : y > term->height - term->margins.bottom ? SELECTION_SCROLL_DOWN
-            : SELECTION_SCROLL_NOT;
+            = term->selection.coords.end.row < 0
+                ? SELECTION_SCROLL_NOT
+                : y < term->margins.top
+                    ? SELECTION_SCROLL_UP
+                    : y > term->height - term->margins.bottom
+                        ? SELECTION_SCROLL_DOWN
+                        : SELECTION_SCROLL_NOT;
 
         if (auto_scroll_direction == SELECTION_SCROLL_NOT)
             selection_stop_scroll_timer(term);
@@ -2220,14 +2188,18 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
 
                 selection_start_scroll_timer(
                     term, 400000000 / (divisor > 0 ? divisor : 1),
-                    auto_scroll_direction, selection_col);
+                    auto_scroll_direction, seat->mouse.col);
             }
 
-            if (term->selection.ongoing && (
-                    cursor_is_on_new_cell ||
-                    term->selection.coords.end.row < 0))
+            if (term->selection.ongoing &&
+                (cursor_is_on_new_cell ||
+                 (term->selection.coords.end.row < 0 &&
+                  seat->mouse.x >= term->margins.left &&
+                  seat->mouse.x < term->width - term->margins.right &&
+                  seat->mouse.y >= term->margins.top &&
+                  seat->mouse.y < term->height - term->margins.bottom)))
             {
-                selection_update(term, selection_col, selection_row);
+                selection_update(term, seat->mouse.col, seat->mouse.row);
             }
         }
 

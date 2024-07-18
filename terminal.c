@@ -3451,10 +3451,7 @@ term_xcursor_update_for_seat(struct terminal *term, struct seat *seat)
             shape = CURSOR_SHAPE_CUSTOM;
         }
 
-        else if (seat->mouse.col >= 0 &&
-                 seat->mouse.row >= 0 &&
-                 term_mouse_grabbed(term, seat))
-        {
+        else if (term_mouse_grabbed(term, seat)) {
             shape = CURSOR_SHAPE_TEXT;
         }
 

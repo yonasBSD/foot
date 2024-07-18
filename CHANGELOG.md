@@ -106,10 +106,13 @@
   ([#1763][1763]).
 * Replaced the old catppuccin theme with updated flavored themes
   pulled from [catppuccin/foot](https://github.com/catppuccin/foot)
+* Mouse selections can now be started inside the margins
+  ([#1702][1702]).
 
 [1701]: https://codeberg.org/dnkl/foot/issues/1701
 [1761]: https://codeberg.org/dnkl/foot/issues/1761
 [1763]: https://codeberg.org/dnkl/foot/issues/1763
+[1702]: https://codeberg.org/dnkl/foot/issues/1702
 
 
 ### Deprecated
