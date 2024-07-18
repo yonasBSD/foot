@@ -455,6 +455,9 @@ struct wayland {
     tll(struct seat) seats;
 
     tll(struct terminal *) terms;
+
+    /* WL_SHM >= 2 */
+    bool use_shm_release;
 };
 
 struct wayland *wayl_init(

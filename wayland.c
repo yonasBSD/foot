@@ -1120,9 +1120,16 @@ handle_global(void *data, struct wl_registry *registry,
         if (!verify_iface_version(interface, version, required))
             return;
 
+#if defined(WL_SHM_RELEASE_SINCE_VERSION)
+        const uint32_t preferred = WL_SHM_RELEASE_SINCE_VERSION;
+#else
+        const uint32_t preferred = required;
+#endif
+
         wayl->shm = wl_registry_bind(
-            wayl->registry, name, &wl_shm_interface, required);
+            wayl->registry, name, &wl_shm_interface, min(version, preferred));
         wl_shm_add_listener(wayl->shm, &shm_listener, wayl);
+        wayl->use_shm_release = version >= WL_SHM_RELEASE_SINCE_VERSION;
     }
 
     else if (streq(interface, xdg_wm_base_interface.name)) {
@@ -1690,8 +1697,12 @@ wayl_destroy(struct wayland *wayl)
         wl_data_device_manager_destroy(wayl->data_device_manager);
     if (wayl->primary_selection_device_manager != NULL)
         zwp_primary_selection_device_manager_v1_destroy(wayl->primary_selection_device_manager);
-    if (wayl->shm != NULL)
-        wl_shm_destroy(wayl->shm);
+    if (wayl->shm != NULL) {
+        if (wayl->use_shm_release)
+            wl_shm_release(wayl->shm);
+        else
+            wl_shm_destroy(wayl->shm);
+    }
     if (wayl->sub_compositor != NULL)
         wl_subcompositor_destroy(wayl->sub_compositor);
     if (wayl->compositor != NULL)
