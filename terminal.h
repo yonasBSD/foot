@@ -20,6 +20,7 @@
 #include "fdm.h"
 #include "key-binding.h"
 #include "macros.h"
+#include "notify.h"
 #include "reaper.h"
 #include "shm.h"
 #include "wayland.h"
@@ -797,6 +798,8 @@ struct terminal {
         void (*cb)(void *data, int exit_code);
         void *cb_data;
     } shutdown;
+
+    tll(struct kitty_notification) kitty_notifications;
 
     char *foot_exe;
     char *cwd;

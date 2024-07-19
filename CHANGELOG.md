@@ -70,6 +70,8 @@
 * Support for [in-band window resize
   notifications](https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83),
   private mode `2048`.
+* Support for OSC-99 [_"Kitty desktop
+  notifications"_](https://sw.kovidgoyal.net/kitty/desktop-notifications/).
 
 [1707]: https://codeberg.org/dnkl/foot/issues/1707
 [1738]: https://codeberg.org/dnkl/foot/issues/1738

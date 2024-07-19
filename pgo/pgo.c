@@ -152,7 +152,9 @@ void ime_disable(struct seat *seat) {}
 void ime_reset_preedit(struct seat *seat) {}
 
 void
-notify_notify(const struct terminal *term, const char *title, const char *body)
+ notify_notify(
+     const struct terminal *term, const char *title, const char *body,
+     enum notify_when when, enum notify_urgency urgency)
 {
 }
 

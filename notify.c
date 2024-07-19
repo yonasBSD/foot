@@ -12,14 +12,18 @@
 #include "log.h"
 #include "config.h"
 #include "spawn.h"
+#include "terminal.h"
 #include "xmalloc.h"
 
 void
-notify_notify(const struct terminal *term, const char *title, const char *body)
+notify_notify(const struct terminal *term, const char *title, const char *body,
+              enum notify_when when, enum notify_urgency urgency)
 {
     LOG_DBG("notify: title=\"%s\", msg=\"%s\"", title, body);
 
-    if (term->conf->notify_focus_inhibit && term->kbd_focus) {
+    if ((term->conf->notify_focus_inhibit || when != NOTIFY_ALWAYS)
+        && term->kbd_focus)
+    {
         /* No notifications while we're focused */
         return;
     }
@@ -33,10 +37,17 @@ notify_notify(const struct terminal *term, const char *title, const char *body)
     char **argv = NULL;
     size_t argc = 0;
 
+    const char *urgency_str =
+        urgency == NOTIFY_URGENCY_LOW
+            ? "low"
+            : urgency == NOTIFY_URGENCY_NORMAL
+                ? "normal" : "critical";
+
     if (!spawn_expand_template(
-            &term->conf->notify, 4,
-            (const char *[]){"app-id", "window-title", "title", "body"},
-            (const char *[]){term->app_id ? term->app_id : term->conf->app_id, term->window_title, title, body},
+            &term->conf->notify, 5,
+            (const char *[]){"app-id", "window-title", "title", "body", "urgency"},
+            (const char *[]){term->app_id ? term->app_id : term->conf->app_id,
+                             term->window_title, title, body, urgency_str},
             &argc, &argv))
     {
         return;

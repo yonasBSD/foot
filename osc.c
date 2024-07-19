@@ -560,7 +560,250 @@ osc_notify(struct terminal *term, char *string)
         return;
     }
 
-    notify_notify(term, title, msg != NULL ? msg : "");
+    notify_notify(
+        term, title, msg != NULL ? msg : "",
+        NOTIFY_ALWAYS, NOTIFY_URGENCY_NORMAL);
+}
+
+static void
+kitty_notification(struct terminal *term, char *string)
+{
+    /* https://sw.kovidgoyal.net/kitty/desktop-notifications */
+
+    char *payload = strchr(string, ';');
+    if (payload == NULL) {
+        LOG_ERR("OSC-99: payload missing");
+        return;
+    }
+
+    char *parameters = string;
+    *payload = '\0';
+    payload++;
+
+    char *id = xstrdup("0");       /* The 'i' parameter */
+    bool focus = true;             /* The 'a' parameter */
+    bool report = false;           /* The 'a' parameter */
+    bool done = true;              /* The 'd' parameter */
+    bool base64 = false;           /* The 'e' parameter */
+    bool payload_is_title = true;  /* The 'p' parameter */
+
+    enum notify_when when = NOTIFY_ALWAYS;
+    enum notify_urgency urgency = NOTIFY_URGENCY_NORMAL;
+
+    bool have_a = false;
+    bool have_o = false;
+    bool have_u = false;
+
+    char *ctx = NULL;
+    for (char *param = strtok_r(parameters, ":", &ctx);
+         param != NULL;
+         param = strtok_r(NULL, ":", &ctx))
+    {
+        /* All parameters are on the form X=value, where X is always
+           exactly one character */
+        if (param[0] == '\0' || param[1] != '=') {
+            LOG_WARN("OSC-99: invalid parameter: \"%s\"", param);
+            continue;
+        }
+
+        char *value = &param[2];
+
+        switch (param[0]) {
+        case 'a': {
+            /* notification activation action: focus|report|-focus|-report */
+            have_a = true;
+            char *a_ctx = NULL;
+            for (const char *v = strtok_r(value, ",", &a_ctx);
+                 v != NULL;
+                 v = strtok_r(NULL, ",", &a_ctx))
+            {
+                LOG_WARN("    a: \"%s\"", v);
+                bool reverse = v[0] == '-';
+                if (reverse)
+                    v++;
+
+                if (strcmp(v, "focus") == 0) {
+                    focus = !reverse;
+                    if (focus)
+                        LOG_WARN("unimplemented: OSC-99: focus on notification activation");
+                } else if (strcmp(v, "report") == 0) {
+                    report = !reverse;
+                    if (report)
+                        LOG_WARN("unimplemented: OSC-99: report on notification activation");
+                } else
+                    LOG_WARN("OSC-99: unrecognized value for 'a': \"%s\", ignoring", v);
+            }
+
+            break;
+        }
+
+        case 'd':
+            /* done: 0|1 */
+            if (value[0] == '0' && value[1] == '\0')
+                done = false;
+            else if (value[0] == '1' && value[1] == '\0')
+                done = true;
+            else
+                LOG_WARN("OSC-99: unrecognized value for 'd': \"%s\", ignoring", value);
+            break;
+
+        case 'e':
+            /* base64: 0=utf8, 1=base64(utf8) */
+            if (value[0] == '0' && value[1] == '\0')
+                base64 = false;
+            else if (value[0] == '1' && value[1] == '\0')
+                base64 = true;
+            else
+                LOG_WARN("OSC-99: unrecognized value for 'e': \"%s\", ignoring", value);
+            break;
+
+        case 'i':
+            /* id */
+            free(id);
+            id = xstrdup(value);
+            break;
+
+        case 'p':
+            /* payload content: title|body */
+            if (strcmp(value, "title") == 0)
+                payload_is_title = true;
+            else if (strcmp(value, "body") == 0)
+                payload_is_title = false;
+            else
+                LOG_WARN("OSC-99: unrecognized value for 'p': \"%s\", ignoring", value);
+            break;
+
+        case 'o':
+            /* honor when: always|unfocused|invisible */
+            have_o = true;
+            if (strcmp(value, "always") == 0)
+                when = NOTIFY_ALWAYS;
+            else if (strcmp(value, "unfocused") == 0)
+                when = NOTIFY_UNFOCUSED;
+            else if (strcmp(value, "invisible") == 0)
+                when = NOTIFY_INVISIBLE;
+            else
+                LOG_WARN("OSC-99: unrecognized value for 'o': \"%s\", ignoring", value);
+            break;
+
+        case 'u':
+            /* urgency: 0=low, 1=normal, 2=critical */
+            have_u = true;
+            if (value[0] == '0' && value[1] == '\0')
+                urgency = NOTIFY_URGENCY_LOW;
+            else if (value[0] == '1' && value[1] == '\0')
+                urgency = NOTIFY_URGENCY_NORMAL;
+            else if (value[0] == '2' && value[1] == '\0')
+                urgency = NOTIFY_URGENCY_CRITICAL;
+            else
+                LOG_WARN("OSC-99: unrecognized value for 'u': \"%s\", ignoring", value);
+            break;
+
+        default:
+            LOG_WARN("OSC-99: unrecognized parameter: \"%s\", ignoring", param);
+           break;
+        }
+    }
+
+    if (base64)
+        payload = base64_decode(payload);
+    else
+        payload = xstrdup(payload);
+
+    LOG_DBG("id=%s, done=%d, focus=%d, report=%d, base64=%d, payload: %s, "
+            "honor: %s, urgency: %s, %s: %s",
+            id, done, focus, report, base64,
+            payload_is_title ? "title" : "body",
+            (when == NOTIFY_ALWAYS
+                ? "always"
+                : when == NOTIFY_UNFOCUSED
+                    ? "unfocused"
+                    : "invisible"),
+            (urgency == NOTIFY_URGENCY_LOW
+                ? "low" : urgency == NOTIFY_URGENCY_NORMAL
+                    ? "normal"
+                    : "critical"),
+            payload_is_title ? "title" : "body", payload);
+
+    /* Search for an existing (d=0) notification to update */
+    struct kitty_notification *notif = NULL;
+    tll_foreach(term->kitty_notifications, it) {
+        if (strcmp(it->item.id, id) == 0) {
+            /* Found existing notification */
+            LOG_WARN("found existing kitty notification");
+            notif = &it->item;
+            break;
+        }
+    }
+
+    if (notif == NULL) {
+        /* Somewhat unoptimized... this will be free:d and removed
+           immediately if d=1 */
+        tll_push_front(term->kitty_notifications, ((struct kitty_notification){
+            .id = id,
+            .title = NULL,
+            .body = NULL,
+            .when = when,
+            .urgency = urgency,
+            .focus = focus,
+            .report = report,
+        }));
+
+        id = NULL; /* Prevent double free */
+        notif = &tll_front(term->kitty_notifications);
+    }
+
+    /* Update notification metadata */
+    if (have_a) {
+        notif->focus = focus;
+        notif->report = report;
+    }
+
+    if (have_o)
+        notif->when = when;
+    if (have_u)
+        notif->urgency = urgency;
+
+    if (payload_is_title) {
+        if (notif->title == NULL) {
+            notif->title = payload;
+            payload = NULL;
+        } else {
+            char *new_title = xasprintf("%s%s", notif->title, payload);
+            free(notif->title);
+            notif->title = new_title;
+        }
+    } else {
+        if (notif->body == NULL) {
+            notif->body = payload;
+            payload = NULL;
+        } else {
+            char *new_body = xasprintf("%s%s", notif->body, payload);
+            free(notif->body);
+            notif->body = new_body;
+        }
+    }
+
+    free(id);
+    free(payload);
+
+    if (done) {
+        notify_notify(
+            term,
+            notif->title != NULL ? notif->title : "",
+            notif->body != NULL ? notif->body : "",
+            notif->when, notif->urgency);
+
+        tll_foreach(term->kitty_notifications, it) {
+            if (&it->item == notif) {
+                free(it->item.id);
+                free(it->item.title);
+                free(it->item.body);
+                tll_remove(term->kitty_notifications, it);
+                break;
+            }
+        }
+    }
 }
 
 void
@@ -778,6 +1021,10 @@ osc_dispatch(struct terminal *term)
 
     case 52:  /* Copy to/from clipboard/primary */
         osc_selection(term, string);
+        break;
+
+    case 99:  /* Kitty notifications */
+        kitty_notification(term, string);
         break;
 
     case 104: {

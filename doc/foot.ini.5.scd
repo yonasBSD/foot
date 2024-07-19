@@ -360,7 +360,7 @@ empty string to be set, but it must be quoted: *KEY=""*)
 	By default, notifications are *inhibited* if the foot window
 	has keyboard focus. See _notify-focus-inhibit_.
 	
-	Default: _notify-send -a ${app-id} -i ${app-id} ${title} ${body}_.
+	Default: _notify-send -a ${app-id} -i ${app-id} -u ${urgency} ${title} ${body}_.
 
 *notify-focus-inhibit*
 	Boolean. If enabled, foot will not display notifications if the

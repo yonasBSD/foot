@@ -3184,8 +3184,9 @@ config_load(struct config *conf, const char *conf_path,
     memcpy(conf->colors.table, default_color_table, sizeof(default_color_table));
     parse_modifiers(XKB_MOD_NAME_SHIFT, 5, &conf->mouse.selection_override_modifiers);
 
-    tokenize_cmdline("notify-send -a ${app-id} -i ${app-id} ${title} ${body}",
-                     &conf->notify.argv.args);
+    tokenize_cmdline(
+        "notify-send -a ${app-id} -i ${app-id} -u ${urgency} ${title} ${body}",
+        &conf->notify.argv.args);
     tokenize_cmdline("xdg-open ${url}", &conf->url.launch.argv.args);
 
     static const char32_t *url_protocols[] = {
