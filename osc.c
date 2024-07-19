@@ -790,8 +790,8 @@ kitty_notification(struct terminal *term, char *string)
     if (done) {
         notify_notify(
             term,
-            notif->title != NULL ? notif->title : "",
-            notif->body != NULL ? notif->body : "",
+            notif->title != NULL ? notif->title : notif->body,
+            notif->title != NULL && notif->body != NULL ? notif->body : "",
             notif->when, notif->urgency);
 
         tll_foreach(term->kitty_notifications, it) {
