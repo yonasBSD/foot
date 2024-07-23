@@ -10,11 +10,12 @@
 #include <fcntl.h>
 
 #define LOG_MODULE "notify"
-#define LOG_ENABLE_DBG 0
+#define LOG_ENABLE_DBG 1
 #include "log.h"
 #include "config.h"
 #include "spawn.h"
 #include "terminal.h"
+#include "util.h"
 #include "wayland.h"
 #include "xmalloc.h"
 #include "xsnprintf.h"
@@ -26,7 +27,9 @@ notify_free(struct terminal *term, struct notification *notif)
     free(notif->id);
     free(notif->title);
     free(notif->body);
-    free(notif->icon);
+    free(notif->icon_id);
+    free(notif->icon_symbolic_name);
+    free(notif->icon_data);
     free(notif->xdg_token);
     free(notif->stdout_data);
 }
@@ -167,11 +170,22 @@ notify_notify(const struct terminal *term, struct notification *notif)
 
     /* Icon: use symbolic name from notification, if present,
        otherwise fallback to the application ID */
-    const char *icon = notif->icon != NULL
-        ? notif->icon
-        : term->app_id != NULL
-            ? term->app_id
-            : term->conf->app_id;
+    const char *icon_name_or_path = term->app_id != NULL
+        ? term->app_id
+        : term->conf->app_id;
+
+    if (notif->icon_id != NULL) {
+        for (size_t i = 0; i < ALEN(term->notification_icons); i++) {
+            const struct notification_icon *icon = &term->notification_icons[i];
+
+            if (icon->id != NULL && strcmp(icon->id, notif->icon_id) == 0) {
+                icon_name_or_path = icon->symbolic_name != NULL
+                    ? icon->symbolic_name
+                    : icon->tmp_file_on_disk;
+                break;
+            }
+        }
+    }
 
     LOG_DBG("notify: title=\"%s\", body=\"%s\"", title, body);
 
@@ -201,9 +215,11 @@ notify_notify(const struct terminal *term, struct notification *notif)
 
     if (!spawn_expand_template(
             &term->conf->desktop_notifications.command, 6,
-            (const char *[]){"app-id", "window-title", "icon", "title", "body", "urgency"},
-            (const char *[]){term->app_id ? term->app_id : term->conf->app_id,
-                             term->window_title, icon, title, body, urgency_str},
+            (const char *[]){
+                "app-id", "window-title", "icon", "title", "body", "urgency"},
+            (const char *[]){
+                term->app_id ? term->app_id : term->conf->app_id,
+                term->window_title, icon_name_or_path, title, body, urgency_str},
             &argc, &argv))
     {
         return false;
@@ -253,4 +269,94 @@ notify_notify(const struct terminal *term, struct notification *notif)
     notif->pid = pid;
     notif->stdout_fd = stdout_fds[0];
     return true;
+}
+
+static void
+add_icon(struct notification_icon *icon, const char *id, const char *symbolic_name,
+         const uint8_t *data, size_t data_sz)
+{
+    icon->id = xstrdup(id);
+    icon->symbolic_name = symbolic_name != NULL ? xstrdup(symbolic_name) : NULL;
+    icon->tmp_file_on_disk = NULL;
+
+    if (data_sz > 0) {
+        char name[64] = "/tmp/foot-notification-icon-cache-XXXXXX";
+        int fd = mkstemp(name);
+
+        if (fd < 0) {
+            LOG_ERRNO("failed to create temporary file for icon cache");
+            return;
+        }
+
+        write(fd, data, data_sz);
+        close(fd);
+
+        LOG_DBG("wrote icon data to %s", name);
+        icon->tmp_file_on_disk = xstrdup(name);
+    }
+
+    LOG_DBG("added icon to cache: %s: sym=%s, file=%s",
+            icon->id, icon->symbolic_name, icon->tmp_file_on_disk);
+}
+
+void
+notify_icon_add(struct terminal *term, const char *id,
+                const char *symbolic_name, const uint8_t *data, size_t data_sz)
+{
+#if defined(_DEBUG)
+    for (size_t i = 0; i < ALEN(term->notification_icons); i++) {
+        struct notification_icon *icon = &term->notification_icons[i];
+        if (icon->id != NULL && strcmp(icon->id, id) == 0) {
+            BUG("notification icon cache already contains \"%s\"", id);
+        }
+    }
+#endif
+
+    for (size_t i = 0; i < ALEN(term->notification_icons); i++) {
+        struct notification_icon *icon = &term->notification_icons[i];
+        if (icon->id == NULL) {
+            add_icon(icon, id, symbolic_name, data, data_sz);
+            return;
+        }
+    }
+
+    /* Cache full - throw out first entry, add new entry last */
+    notify_icon_free(&term->notification_icons[0]);
+    memmove(&term->notification_icons[0],
+            &term->notification_icons[1],
+            ((ALEN(term->notification_icons) - 1) *
+             sizeof(term->notification_icons[0])));
+
+    add_icon(
+        &term->notification_icons[ALEN(term->notification_icons) - 1],
+        id, symbolic_name, data, data_sz);
+}
+
+void
+notify_icon_del(struct terminal *term, const char *id)
+{
+    for (size_t i = 0; i < ALEN(term->notification_icons); i++) {
+        struct notification_icon *icon = &term->notification_icons[i];
+
+        if (icon->id == NULL || strcmp(icon->id, id) != 0)
+            continue;
+
+        notify_icon_free(icon);
+        return;
+    }
+}
+
+void
+notify_icon_free(struct notification_icon *icon)
+{
+    if (icon->tmp_file_on_disk != NULL)
+        unlink(icon->tmp_file_on_disk);
+
+    free(icon->id);
+    free(icon->symbolic_name);
+    free(icon->tmp_file_on_disk);
+
+    icon->id = NULL;
+    icon->symbolic_name = NULL;
+    icon->tmp_file_on_disk = NULL;
 }

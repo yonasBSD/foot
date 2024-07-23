@@ -1823,6 +1823,9 @@ term_destroy(struct terminal *term)
         tll_remove(term->notifications, it);
     }
 
+    for (size_t i = 0; i < ALEN(term->notification_icons); i++)
+        notify_icon_free(&term->notification_icons[i]);
+
     sixel_fini(term);
 
     term_ime_reset(term);
@@ -2032,6 +2035,9 @@ term_reset(struct terminal *term, bool hard)
         notify_free(term, &it->item);
         tll_remove(term->notifications, it);
     }
+
+    for (size_t i = 0; i < ALEN(term->notification_icons); i++)
+        notify_icon_free(&term->notification_icons[i]);
 
     term->grapheme_shaping = term->conf->tweak.grapheme_shaping;
 

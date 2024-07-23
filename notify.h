@@ -1,5 +1,6 @@
 #pragma once
 #include <stdbool.h>
+#include <stdint.h>
 #include <unistd.h>
 
 struct terminal;
@@ -29,7 +30,11 @@ struct notification {
     char *id;
     char *title;
     char *body;
-    char *icon;
+
+    char *icon_id;
+    char *icon_symbolic_name;
+    uint8_t *icon_data;
+    size_t icon_data_sz;
 
     enum notify_when when;
     enum notify_urgency urgency;
@@ -49,5 +54,17 @@ struct notification {
     size_t stdout_sz;
 };
 
+struct notification_icon {
+    char *id;
+    char *symbolic_name;
+    char *tmp_file_on_disk;
+};
+
 bool notify_notify(const struct terminal *term, struct notification *notif);
 void notify_free(struct terminal *term, struct notification *notif);
+
+void notify_icon_add(struct terminal *term, const char *id,
+                     const char *symbolic_name, const uint8_t *data,
+                     size_t data_sz);
+void notify_icon_del(struct terminal *term, const char *id);
+void notify_icon_free(struct notification_icon *icon);

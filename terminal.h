@@ -802,6 +802,7 @@ struct terminal {
     /* Notifications that either haven't been sent yet, or have been
        sent but not yet dismissed */
     tll(struct notification) notifications;
+    struct notification_icon notification_icons[32];
 
     char *foot_exe;
     char *cwd;

@@ -67,7 +67,7 @@ osc_to_clipboard(struct terminal *term, const char *target,
         return;
     }
 
-    char *decoded = base64_decode(base64_data);
+    char *decoded = base64_decode(base64_data, NULL);
     if (decoded == NULL) {
         if (errno == EINVAL)
             LOG_WARN("OSC: invalid clipboard data: %s", base64_data);
@@ -579,12 +579,19 @@ kitty_notification(struct terminal *term, char *string)
     payload++;
 
     char *id = xstrdup("0");       /* The 'i' parameter */
-    char *icon = NULL;             /* The 'I' parameter */
+    char *icon_id = NULL;          /* The 'g' parameter */
+    char *symbolic_icon = NULL;    /* The 'n' parameter */
     bool focus = true;             /* The 'a' parameter */
     bool report = false;           /* The 'a' parameter */
     bool done = true;              /* The 'd' parameter */
     bool base64 = false;           /* The 'e' parameter */
-    bool payload_is_title = true;  /* The 'p' parameter */
+
+    size_t payload_size;
+    enum {
+        PAYLOAD_TITLE,
+        PAYLOAD_BODY,
+        PAYLOAD_ICON,
+    } payload_type = PAYLOAD_TITLE; /* The 'p' parameter */
 
     enum notify_when when = NOTIFY_ALWAYS;
     enum notify_urgency urgency = NOTIFY_URGENCY_NORMAL;
@@ -653,9 +660,11 @@ kitty_notification(struct terminal *term, char *string)
         case 'p':
             /* payload content: title|body */
             if (strcmp(value, "title") == 0)
-                payload_is_title = true;
+                payload_type = PAYLOAD_TITLE;
             else if (strcmp(value, "body") == 0)
-                payload_is_title = false;
+                payload_type = PAYLOAD_BODY;
+            else if (strcmp(value, "icon") == 0)
+                payload_type = PAYLOAD_ICON;
             break;
 
         case 'o':
@@ -680,21 +689,26 @@ kitty_notification(struct terminal *term, char *string)
                 urgency = NOTIFY_URGENCY_CRITICAL;
             break;
 
-        /*
-         * The options below are not (yet) part of the official spec.
-         */
-        case 'I':
-            /* icon: only symbolic names allowed; absolute paths are ignored */
-            if (value[0] != '/')
-                icon = xstrdup(value);
+        case 'g':
+            free(icon_id);
+            icon_id = xstrdup(value);
+            break;
+
+        case 'n':
+            free(symbolic_icon);
+            symbolic_icon = xstrdup(value);
             break;
         }
     }
 
-    if (base64)
-        payload = base64_decode(payload);
-    else
+    if (base64) {
+        payload = base64_decode(payload, &payload_size);
+        if (payload == NULL)
+            goto out;
+    } else {
         payload = xstrdup(payload);
+        payload_size = strlen(payload);
+    }
 
     LOG_DBG("id=%s, done=%d, focus=%d, report=%d, base64=%d, icon=%s, payload: %s, "
             "honor: %s, urgency: %s, %s: %s",
@@ -724,9 +738,6 @@ kitty_notification(struct terminal *term, char *string)
     if (notif == NULL) {
         tll_push_front(term->notifications, ((struct notification){
             .id = id,
-            .icon = NULL,
-            .title = NULL,
-            .body = NULL,
             .when = when,
             .urgency = urgency,
             .focus = focus,
@@ -753,34 +764,78 @@ kitty_notification(struct terminal *term, char *string)
     if (have_u)
         notif->urgency = urgency;
 
-    if (icon != NULL) {
-        free(notif->icon);
-        notif->icon = icon;
-        icon = NULL;  /* Prevent double free */
+    if (icon_id != NULL) {
+        free(notif->icon_id);
+        notif->icon_id = icon_id;
+        icon_id = NULL;  /* Prevent double free */
     }
 
-    if (payload_is_title) {
-        if (notif->title == NULL) {
-            notif->title = payload;
+    if (symbolic_icon != NULL) {
+        free(notif->icon_symbolic_name);
+        notif->icon_symbolic_name = symbolic_icon;
+        symbolic_icon = NULL;
+    }
+
+    /* Handled chunked payload - append to existing metadata */
+    switch (payload_type) {
+    case PAYLOAD_TITLE:
+    case PAYLOAD_BODY: {
+        char **ptr = payload_type == PAYLOAD_TITLE
+            ? &notif->title
+            : &notif->body;
+
+        if (*ptr == NULL) {
+            *ptr = payload;
             payload = NULL;
         } else {
-            char *old_title = notif->title;
-            notif->title = xstrjoin(old_title, payload);
-            free(old_title);
+            char *old = *ptr;
+            *ptr = xstrjoin(old, payload);
+            free(old);
         }
-    } else {
-        if (notif->body == NULL) {
-            notif->body = payload;
+        break;
+    }
+
+    case PAYLOAD_ICON:
+        if (notif->icon_data == NULL) {
+            notif->icon_data = (uint8_t *)payload;
+            notif->icon_data_sz = payload_size;
             payload = NULL;
         } else {
-            char *old_body = notif->body;
-            notif->body = xstrjoin(old_body, payload);
-            free(old_body);
+            notif->icon_data = xrealloc(
+                notif->icon_data, notif->icon_data_sz + payload_size);
+            memcpy(&notif->icon_data[notif->icon_data_sz], payload, payload_size);
+            notif->icon_data_sz += payload_size;
         }
+        break;
     }
 
     if (done) {
-        if (!notify_notify(term, notif)) {
+        /* Update icon cache, if necessary */
+        if (notif->icon_id != NULL &&
+            (notif->icon_symbolic_name != NULL || notif->icon_data != NULL))
+        {
+            notify_icon_del(term, notif->icon_id);
+            notify_icon_add(term, notif->icon_id,
+                            notif->icon_symbolic_name,
+                            notif->icon_data, notif->icon_data_sz);
+
+            /* Don't need this anymore */
+            free(notif->icon_symbolic_name);
+            free(notif->icon_data);
+            notif->icon_symbolic_name = NULL;
+            notif->icon_data = NULL;
+            notif->icon_data_sz = 0;
+        }
+
+        /*
+         * Show notification.
+         *
+         * The checks for title|body is to handle notifications that
+         * only load icon data into the icon cache
+         */
+        if ((notif->title != NULL || notif->body != NULL) &&
+            !notify_notify(term, notif))
+        {
             tll_foreach(term->notifications, it) {
                 if (&it->item == notif) {
                     notify_free(term, &it->item);
@@ -793,7 +848,8 @@ kitty_notification(struct terminal *term, char *string)
 
 out:
     free(id);
-    free(icon);
+    free(icon_id);
+    free(symbolic_icon);
     free(payload);
 }
 
