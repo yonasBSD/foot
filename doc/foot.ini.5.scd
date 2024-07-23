@@ -463,11 +463,14 @@ Note: do not set *TERM* here; use the *term* option in the main
 		has been configured.
 		
 		For this to work, foot needs an XDG activation token. To this
-		end, foot will read the command's stdout; everything printed
-		there, not including trailing newlines, are assumed to be part
-		of the activation token. There is no harm in printing
-		something else on stdout - it will simply result in the
-		activation failing (i.e. the window will not be focused).
+		end, foot will read the command's stdout; a line prefixed with
+		*xdgtoken=* will be recognized as containing the XDG
+		activation token:
+		
+			xdgtoken=18179adf579a7a904ce73754964b1ec3
+		
+		The expected format of stdout may change at any time. Please
+		read the changelog when upgrading foot.
 		
 		*Note*: notify-send does not, out of the box, support
 		reporting the XDG activation token in any way. This means

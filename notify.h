@@ -23,18 +23,30 @@ enum notify_urgency {
 };
 
 struct notification {
+    /*
+     * Set by caller of notify_notify()
+     */
     char *id;
     char *title;
     char *body;
     char *icon;
-    char *xdg_token;
+
     enum notify_when when;
     enum notify_urgency urgency;
     bool focus;
     bool report;
 
-    pid_t pid;
-    int stdout_fd;
+    /*
+     * Used internally by notify
+     */
+
+    char *xdg_token;       /* XDG activation token, from daemon */
+
+    pid_t pid;             /* Notifier command PID */
+    int stdout_fd;         /* Notifier command's stdout */
+
+    char *stdout;          /* Data we've reado from command's stdout */
+    size_t stdout_sz;
 };
 
 bool notify_notify(const struct terminal *term, struct notification *notif);

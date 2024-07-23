@@ -28,6 +28,40 @@ notify_free(struct terminal *term, struct notification *notif)
     free(notif->body);
     free(notif->icon);
     free(notif->xdg_token);
+    free(notif->stdout);
+}
+
+static void
+consume_stdout(struct notification *notif, bool eof)
+{
+    char *data = notif->stdout;
+    const char *line = data;
+    size_t left = notif->stdout_sz;
+
+    /* Process stdout, line-by-line */
+    while (left > 0) {
+        line = data;
+        size_t len = left;
+        char *eol = memchr(line, '\n', left);
+
+        if (eol != NULL) {
+            *eol = '\0';
+            len = strlen(line);
+            data = eol + 1;
+        } else if (!eof)
+            break;
+
+        /* Check for 'xdgtoken=xyz' */
+        if (len > 9 && memcmp(line, "xdgtoken=", 9) == 0) {
+            notif->xdg_token = xstrndup(&line[9], len - 9);
+            LOG_DBG("XDG token: \"%s\"", notif->xdg_token);
+        }
+
+        left -= len + (eol != NULL ? 1 : 0);
+    }
+
+    memmove(notif->stdout, data, left);
+    notif->stdout_sz = left;
 }
 
 static bool
@@ -35,6 +69,7 @@ fdm_notify_stdout(struct fdm *fdm, int fd, int events, void *data)
 {
     const struct terminal *term = data;
     struct notification *notif = NULL;
+
 
     /* Find notification */
     tll_foreach(term->notifications, it) {
@@ -56,34 +91,25 @@ fdm_notify_stdout(struct fdm *fdm, int fd, int events, void *data)
             return false;
         }
 
-        if (count > 0) {
-            buf[count - 1] = '\0';
-
-            if (notif != NULL) {
-                if (notif->xdg_token == NULL) {
-                    notif->xdg_token = xstrdup(buf);
-                } else {
-                    char *new_token = xstrjoin(notif->xdg_token, buf);
-                    free(notif->xdg_token);
-                    notif->xdg_token = new_token;
-                }
+        if (count > 0 && notif != NULL) {
+            if (notif->stdout == NULL) {
+                xassert(notif->stdout_sz == 0);
+                notif->stdout = xmemdup(buf, count);
+            } else {
+                notif->stdout = xrealloc(notif->stdout, notif->stdout_sz + count);
+                memcpy(&notif->stdout[notif->stdout_sz], buf, count);
             }
+
+            notif->stdout_sz += count;
+            consume_stdout(notif, false);
         }
     }
 
     if (events & EPOLLHUP) {
         fdm_del(fdm, fd);
-        if (notif != NULL)
+        if (notif != NULL) {
             notif->stdout_fd = -1;
-
-        /* Strip trailing newlines */
-        if (notif != NULL && notif->xdg_token != NULL) {
-            size_t len = strlen(notif->xdg_token);
-
-            while (len > 0 && notif->xdg_token[len - 1] == '\n')
-                len--;
-
-            notif->xdg_token[len] = '\0';
+            consume_stdout(notif, true);
         }
     }
 
@@ -130,6 +156,7 @@ notify_notify(const struct terminal *term, struct notification *notif)
     xassert(notif->xdg_token == NULL);
     xassert(notif->pid == 0);
     xassert(notif->stdout_fd == 0);
+    xassert(notif->stdout == NULL);
 
     notif->pid = -1;
     notif->stdout_fd = -1;
@@ -187,7 +214,9 @@ notify_notify(const struct terminal *term, struct notification *notif)
         LOG_DBG("  argv[%zu] = \"%s\"", i, argv[i]);
 
     int stdout_fds[2] = {-1, -1};
-    if (notif->focus && pipe2(stdout_fds, O_CLOEXEC | O_NONBLOCK) < 0) {
+    if ((notif->focus || notif->report) &&
+        pipe2(stdout_fds, O_CLOEXEC | O_NONBLOCK) < 0)
+    {
         LOG_WARN("failed to create stdout pipe");
         /* Non-fatal */
     }
