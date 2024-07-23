@@ -187,6 +187,8 @@ notify_notify(struct terminal *term, struct notification *notif)
                 break;
             }
         }
+    } else if (notif->icon_symbolic_name != NULL) {
+        icon_name_or_path = notif->icon_symbolic_name;
     }
 
     bool track_notification = notif->focus || notif->report;
