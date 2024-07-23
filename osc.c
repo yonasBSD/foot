@@ -722,8 +722,6 @@ kitty_notification(struct terminal *term, char *string)
     }
 
     if (notif == NULL) {
-        /* Somewhat unoptimized... this will be free:d and removed
-           immediately if d=1 */
         tll_push_front(term->notifications, ((struct notification){
             .id = id,
             .icon = NULL,
@@ -766,18 +764,18 @@ kitty_notification(struct terminal *term, char *string)
             notif->title = payload;
             payload = NULL;
         } else {
-            char *new_title = xasprintf("%s%s", notif->title, payload);
-            free(notif->title);
-            notif->title = new_title;
+            char *old_title = notif->title;
+            notif->title = xstrjoin(old_title, payload);
+            free(old_title);
         }
     } else {
         if (notif->body == NULL) {
             notif->body = payload;
             payload = NULL;
         } else {
-            char *new_body = xasprintf("%s%s", notif->body, payload);
-            free(notif->body);
-            notif->body = new_body;
+            char *old_body = notif->body;
+            notif->body = xstrjoin(old_body, payload);
+            free(old_body);
         }
     }
 
