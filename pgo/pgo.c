@@ -152,7 +152,7 @@ void ime_disable(struct seat *seat) {}
 void ime_reset_preedit(struct seat *seat) {}
 
 bool
-notify_notify(const struct terminal *term, struct notification *notif)
+notify_notify(struct terminal *term, struct notification *notif)
 {
     return true;
 }
@@ -162,6 +162,22 @@ notify_free(struct terminal *term, struct notification *notif)
 {
 }
 
+void
+notify_icon_add(struct terminal *term, const char *id,
+                const char *symbolic_name, const uint8_t *data,
+                size_t data_sz)
+{
+}
+
+void
+notify_icon_del(struct terminal *term, const char *id)
+{
+}
+
+void
+notify_icon_free(struct notification_icon *icon)
+{
+}
 
 void reaper_add(struct reaper *reaper, pid_t pid, reaper_cb cb, void *cb_data) {}
 void reaper_del(struct reaper *reaper, pid_t pid) {}
