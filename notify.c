@@ -54,7 +54,7 @@ consume_stdout(struct notification *notif, bool eof)
         } else if (!eof)
             break;
 
-        if (strcmp(line, "activate-foot") == 0)
+        if (strcmp(line, "default") == 0)
             notif->activated = true;
 
         /* Check for 'xdgtoken=xyz' */
@@ -231,7 +231,7 @@ notify_notify(struct terminal *term, struct notification *notif)
         (const char *[]){
             term->app_id ? term->app_id : term->conf->app_id,
             term->window_title, icon_name_or_path, title, body, urgency_str,
-            "activate-foot=Click to activate"},
+            "default=Click to activate"},
         &argc, &argv))
     {
         return false;
