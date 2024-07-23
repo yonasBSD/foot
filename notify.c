@@ -303,11 +303,14 @@ add_icon(struct notification_icon *icon, const char *id, const char *symbolic_na
             return;
         }
 
-        write(fd, data, data_sz);
-        close(fd);
+        if (write(fd, data, data_sz) != (ssize_t)data_sz) {
+            LOG_ERRNO("failed to write icon data to temporary file");
+        } else {
+            LOG_DBG("wrote icon data to %s", name);
+            icon->tmp_file_on_disk = xstrdup(name);
+        }
 
-        LOG_DBG("wrote icon data to %s", name);
-        icon->tmp_file_on_disk = xstrdup(name);
+        close(fd);
     }
 
     LOG_DBG("added icon to cache: ID=%s: sym=%s, file=%s",
