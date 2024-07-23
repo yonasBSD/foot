@@ -66,10 +66,10 @@ consume_stdout(struct notification *notif, bool eof)
         left -= len + (eol != NULL ? 1 : 0);
     }
 
-    if (left > 0) {
+    if (left > 0)
         memmove(notif->stdout_data, data, left);
-        notif->stdout_sz = left;
-    }
+
+    notif->stdout_sz = left;
 }
 
 static bool
