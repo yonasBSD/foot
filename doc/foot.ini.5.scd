@@ -457,7 +457,9 @@ Note: do not set *TERM* here; use the *term* option in the main
 	
 	Window activation (focusing)
 		Foot can focus the window when the notification is
-		"activated". This typically happens when the default action is
+		'activated'. It can also send an event back to the client
+		application, notifying it that the notification has been
+		'activated', This typically happens when the default action is
 		invoked, and/or when the notification is clicked, but exact
 		behavior depends on the notification daemon in use, and how it
 		has been configured.
@@ -496,21 +498,6 @@ Note: do not set *TERM* here; use the *term* option in the main
 		*Note*: notify-send does not, out of the box, support
 		reporting the XDG activation token in any way. This means
 		window activation will not work by default.
-	
-	Notification dismissal
-		The kitty desktop notifications protocol (OSC-99) allows the
-		terminal application to request an event be sent to it when
-		the notification has been dismissed (by setting *a=report* in
-		the notification request).
-		
-		To be able to send this event, foot needs to know when the
-		notification is dismissed. This is handled in a very simple
-		manner; the command signals notification dismissal by
-		exiting. That is, as soon as the command returns, foot
-		considers the notification dismissed.
-		
-		For *notify-send*, this can be achieved with the *--wait*
-		option.
 	
 	Default: _notify-send --wait --app-name ${app-id} --icon ${icon} --urgency ${urgency} --action ${action} -- ${title} ${body}_.
 
