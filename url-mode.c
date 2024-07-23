@@ -74,8 +74,9 @@ spawn_url_launcher_with_token(struct terminal *term,
             (const char *[]){url},
             &argc, &argv))
     {
-        ret = spawn(term->reaper, term->cwd, argv,
-              dev_null, dev_null, dev_null, xdg_activation_token);
+        ret = spawn(
+            term->reaper, term->cwd, argv,
+            dev_null, dev_null, dev_null, NULL, NULL, xdg_activation_token) >= 0;
 
         for (size_t i = 0; i < argc; i++)
             free(argv[i]);

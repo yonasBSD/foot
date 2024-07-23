@@ -198,7 +198,7 @@ add_utmp_record(const struct config *conf, struct reaper *reaper, int ptmx)
         return true;
 
     char *const argv[] = {conf->utmp_helper_path, UTMP_ADD, getenv("WAYLAND_DISPLAY"), NULL};
-    return spawn(reaper, NULL, argv, ptmx, ptmx, -1, NULL);
+    return spawn(reaper, NULL, argv, ptmx, ptmx, -1, NULL, NULL, NULL) >= 0;
 #else
     return true;
 #endif
@@ -222,7 +222,7 @@ del_utmp_record(const struct config *conf, struct reaper *reaper, int ptmx)
         ;
 
     char *const argv[] = {conf->utmp_helper_path, UTMP_DEL, del_argument, NULL};
-    return spawn(reaper, NULL, argv, ptmx, ptmx, -1, NULL);
+    return spawn(reaper, NULL, argv, ptmx, ptmx, -1, NULL, NULL, NULL) >= 0;
 #else
     return true;
 #endif
@@ -3594,7 +3594,7 @@ term_bell(struct terminal *term)
     {
         int devnull = open("/dev/null", O_RDONLY);
         spawn(term->reaper, NULL, term->conf->bell.command.argv.args,
-              devnull, -1, -1, NULL);
+              devnull, -1, -1, NULL, NULL, NULL);
 
         if (devnull >= 0)
             close(devnull);
@@ -3606,7 +3606,7 @@ term_spawn_new(const struct terminal *term)
 {
     return spawn(
         term->reaper, term->cwd, (char *const []){term->foot_exe, NULL},
-        -1, -1, -1, NULL);
+        -1, -1, -1, NULL, NULL, NULL) >= 0;
 }
 
 void
