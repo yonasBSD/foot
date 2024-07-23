@@ -1313,7 +1313,8 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
 #if defined(FOOT_IME_ENABLED) && FOOT_IME_ENABLED
         .ime_enabled = true,
 #endif
-        .notifications = tll_init(),
+        .kitty_notifications = tll_init(),
+        .active_notifications = tll_init(),
     };
 
     pixman_region32_init(&term->render.last_overlay_clip);
@@ -1818,9 +1819,14 @@ term_destroy(struct terminal *term)
         tll_remove(term->ptmx_paste_buffers, it);
     }
 
-    tll_foreach(term->notifications, it) {
+    tll_foreach(term->kitty_notifications, it) {
         notify_free(term, &it->item);
-        tll_remove(term->notifications, it);
+        tll_remove(term->kitty_notifications, it);
+    }
+
+    tll_foreach(term->active_notifications, it) {
+        notify_free(term, &it->item);
+        tll_remove(term->active_notifications, it);
     }
 
     for (size_t i = 0; i < ALEN(term->notification_icons); i++)
@@ -2031,9 +2037,14 @@ term_reset(struct terminal *term, bool hard)
         tll_remove(term->alt.sixel_images, it);
     }
 
-    tll_foreach(term->notifications, it) {
+    tll_foreach(term->kitty_notifications, it) {
         notify_free(term, &it->item);
-        tll_remove(term->notifications, it);
+        tll_remove(term->kitty_notifications, it);
+    }
+
+    tll_foreach(term->active_notifications, it) {
+        notify_free(term, &it->item);
+        tll_remove(term->active_notifications, it);
     }
 
     for (size_t i = 0; i < ALEN(term->notification_icons); i++)

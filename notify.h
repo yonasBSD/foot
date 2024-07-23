@@ -60,7 +60,7 @@ struct notification_icon {
     char *tmp_file_on_disk;
 };
 
-bool notify_notify(const struct terminal *term, struct notification *notif);
+bool notify_notify(struct terminal *term, struct notification *notif);
 void notify_free(struct terminal *term, struct notification *notif);
 
 void notify_icon_add(struct terminal *term, const char *id,

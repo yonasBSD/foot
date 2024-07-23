@@ -727,7 +727,7 @@ kitty_notification(struct terminal *term, char *string)
 
     /* Search for an existing (d=0) notification to update */
     struct notification *notif = NULL;
-    tll_foreach(term->notifications, it) {
+    tll_foreach(term->kitty_notifications, it) {
         if (strcmp(it->item.id, id) == 0) {
             /* Found existing notification */
             notif = &it->item;
@@ -736,16 +736,17 @@ kitty_notification(struct terminal *term, char *string)
     }
 
     if (notif == NULL) {
-        tll_push_front(term->notifications, ((struct notification){
+        tll_push_front(term->kitty_notifications, ((struct notification){
             .id = id,
             .when = when,
             .urgency = urgency,
             .focus = focus,
             .report = report,
+            .stdout_fd = -1,
         }));
 
         id = NULL;   /* Prevent double free */
-        notif = &tll_front(term->notifications);
+        notif = &tll_front(term->kitty_notifications);
     }
 
     if (notif->pid > 0) {
@@ -833,15 +834,15 @@ kitty_notification(struct terminal *term, char *string)
          * The checks for title|body is to handle notifications that
          * only load icon data into the icon cache
          */
-        if ((notif->title != NULL || notif->body != NULL) &&
-            !notify_notify(term, notif))
-        {
-            tll_foreach(term->notifications, it) {
-                if (&it->item == notif) {
-                    notify_free(term, &it->item);
-                    tll_remove(term->notifications, it);
-                    break;
-                }
+        if (notif->title != NULL || notif->body != NULL) {
+            notify_notify(term, notif);
+        }
+
+        tll_foreach(term->kitty_notifications, it) {
+            if (&it->item == notif) {
+                notify_free(term, &it->item);
+                tll_remove(term->kitty_notifications, it);
+                break;
             }
         }
     }

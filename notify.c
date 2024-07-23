@@ -75,7 +75,7 @@ fdm_notify_stdout(struct fdm *fdm, int fd, int events, void *data)
 
 
     /* Find notification */
-    tll_foreach(term->notifications, it) {
+    tll_foreach(term->active_notifications, it) {
         if (it->item.stdout_fd == fd) {
             notif = &it->item;
             break;
@@ -124,7 +124,7 @@ notif_done(struct reaper *reaper, pid_t pid, int status, void *data)
 {
     struct terminal *term = data;
 
-    tll_foreach(term->notifications, it) {
+    tll_foreach(term->active_notifications, it) {
         struct notification *notif = &it->item;
         if (notif->pid != pid)
             continue;
@@ -148,17 +148,17 @@ notif_done(struct reaper *reaper, pid_t pid, int status, void *data)
         }
 
         notify_free(term, notif);
-        tll_remove(term->notifications, it);
+        tll_remove(term->active_notifications, it);
         return;
     }
 }
 
 bool
-notify_notify(const struct terminal *term, struct notification *notif)
+notify_notify(struct terminal *term, struct notification *notif)
 {
     xassert(notif->xdg_token == NULL);
     xassert(notif->pid == 0);
-    xassert(notif->stdout_fd == 0);
+    xassert(notif->stdout_fd <= 0);
     xassert(notif->stdout_data == NULL);
 
     notif->pid = -1;
@@ -186,6 +186,8 @@ notify_notify(const struct terminal *term, struct notification *notif)
             }
         }
     }
+
+    bool track_notification = notif->focus || notif->report;
 
     LOG_DBG("notify: title=\"%s\", body=\"%s\"", title, body);
 
@@ -230,12 +232,24 @@ notify_notify(const struct terminal *term, struct notification *notif)
         LOG_DBG("  argv[%zu] = \"%s\"", i, argv[i]);
 
     int stdout_fds[2] = {-1, -1};
-    if ((notif->focus || notif->report) &&
-        pipe2(stdout_fds, O_CLOEXEC | O_NONBLOCK) < 0)
-    {
-        LOG_WARN("failed to create stdout pipe");
-        /* Non-fatal */
+    if (track_notification) {
+        if (pipe2(stdout_fds, O_CLOEXEC | O_NONBLOCK) < 0) {
+            LOG_WARN("failed to create stdout pipe");
+            track_notification = false;
+            /* Non-fatal */
+        } else {
+            tll_push_back(term->active_notifications, *notif);
+            notif->id = NULL;
+            notif->title = NULL;
+            notif->body = NULL;
+            notif->icon_id = NULL;
+            notif->icon_symbolic_name= NULL;
+            notif->icon_data = NULL;
+            notif->icon_data_sz = 0;
+            notif = &tll_back(term->active_notifications);
+        }
     }
+
 
     if (stdout_fds[0] >= 0) {
         xassert(notif->xdg_token == NULL);
@@ -247,7 +261,7 @@ notify_notify(const struct terminal *term, struct notification *notif)
     int devnull = open("/dev/null", O_RDONLY);
     pid_t pid = spawn(
         term->reaper, NULL, argv, devnull, stdout_fds[1], -1,
-        &notif_done, (void *)term, NULL);
+        track_notification ? &notif_done : NULL, (void *)term, NULL);
 
     if (stdout_fds[1] >= 0) {
         /* Close write-end of stdout pipe */
