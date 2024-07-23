@@ -100,12 +100,12 @@ void wayl_win_alpha_changed(struct wl_window *win) {}
 bool wayl_win_set_urgent(struct wl_window *win) { return true; }
 bool wayl_fractional_scaling(const struct wayland *wayl) { return true; }
 
-bool
+pid_t
 spawn(struct reaper *reaper, const char *cwd, char *const argv[],
       int stdin_fd, int stdout_fd, int stderr_fd,
-      const char *xdg_activation_token)
+      reaper_cb cb, void *cb_data, const char *xdg_activation_token)
 {
-    return true;
+    return 2;
 }
 
 pid_t
