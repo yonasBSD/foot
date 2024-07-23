@@ -151,12 +151,17 @@ void ime_enable(struct seat *seat) {}
 void ime_disable(struct seat *seat) {}
 void ime_reset_preedit(struct seat *seat) {}
 
+bool
+notify_notify(const struct terminal *term, struct notification *notif)
+{
+    return true;
+}
+
 void
- notify_notify(
-     const struct terminal *term, const char *title, const char *body,
-     enum notify_when when, enum notify_urgency urgency)
+notify_free(struct terminal *term, struct notification *notif)
 {
 }
+
 
 void reaper_add(struct reaper *reaper, pid_t pid, reaper_cb cb, void *cb_data) {}
 void reaper_del(struct reaper *reaper, pid_t pid) {}
