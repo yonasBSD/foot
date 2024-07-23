@@ -78,7 +78,6 @@ fdm_notify_stdout(struct fdm *fdm, int fd, int events, void *data)
     const struct terminal *term = data;
     struct notification *notif = NULL;
 
-
     /* Find notification */
     tll_foreach(term->active_notifications, it) {
         if (it->item.stdout_fd == fd) {
@@ -225,13 +224,13 @@ notify_notify(struct terminal *term, struct notification *notif)
                 ? "normal" : "critical";
 
     if (!spawn_expand_template(
-        &term->conf->desktop_notifications.command, 7,
+        &term->conf->desktop_notifications.command, 8,
         (const char *[]){
-            "app-id", "window-title", "icon", "title", "body", "urgency", "action"},
+            "app-id", "window-title", "icon", "title", "body", "urgency", "action-name", "action-label"},
         (const char *[]){
             term->app_id ? term->app_id : term->conf->app_id,
             term->window_title, icon_name_or_path, title, body, urgency_str,
-            "default=Click to activate"},
+            "default", "Click to activate"},
         &argc, &argv))
     {
         return false;
@@ -253,7 +252,7 @@ notify_notify(struct terminal *term, struct notification *notif)
             notif->title = NULL;
             notif->body = NULL;
             notif->icon_id = NULL;
-            notif->icon_symbolic_name= NULL;
+            notif->icon_symbolic_name = NULL;
             notif->icon_data = NULL;
             notif->icon_data_sz = 0;
             notif = &tll_back(term->active_notifications);
@@ -262,7 +261,6 @@ notify_notify(struct terminal *term, struct notification *notif)
 
 
     if (stdout_fds[0] >= 0) {
-        xassert(notif->xdg_token == NULL);
         fdm_add(term->fdm, stdout_fds[0], EPOLLIN,
                 &fdm_notify_stdout, (void *)term);
     }

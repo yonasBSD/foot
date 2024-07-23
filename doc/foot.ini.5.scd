@@ -470,12 +470,9 @@ Note: do not set *TERM* here; use the *term* option in the main
 		
 		There are two parts to handle this. First, the notification
 		must define an action. For this purpose, foot definse the
-		template parameter *${action}*. It is intended to be used with
-		e.g. notify-send's *-A,--action* option. The contents of
-		*${action}* is not configurable, but will be on the form
-		'name=label', where name is a notification internal reference
-		to the action, and label is what is displayed in the
-		notification.
+		template parameters *${action-name}* and
+		*${action-label}*. They are intended to be used with
+		e.g. notify-send's *-A,--action* option.
 		
 		Second, foot needs to know when the notification activated,
 		and it needs to get hold of the XDG activation token.
@@ -489,7 +486,7 @@ Note: do not set *TERM* here; use the *term* option in the main
 		line, prefixed with *xdgtoken=*.
 		
 		Example:
-			activate-foot
+			default
 			xdgtoken=18179adf579a7a904ce73754964b1ec3
 		
 		The expected format of stdout may change at any time. Please
@@ -499,7 +496,8 @@ Note: do not set *TERM* here; use the *term* option in the main
 		reporting the XDG activation token in any way. This means
 		window activation will not work by default.
 	
-	Default: _notify-send --wait --app-name ${app-id} --icon ${icon} --urgency ${urgency} --action ${action} -- ${title} ${body}_.
+	Default: _notify-send --wait --app-name ${app-id} --icon ${icon} --urgency ${urgency} --action ${action-name},${action-label} --print-id -- ${title} ${body}_.
+
 
 *inhibit-when-focused*
 	Boolean. If enabled, foot will not display notifications if the

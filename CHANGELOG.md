@@ -75,8 +75,8 @@
 * `desktop-notifications.command` option, replaces `notify`.
 * `desktop-notifications.inhibit-when-focused` option, replaces
   `notify-focus-inhibit`.
-* `${icon}`, `${urgency}` and `${action}` added to the
-  `desktop-notifications.command` template.
+* `${icon}`, `${urgency}`,`${action-name}` and `${action-label}` added
+  to the `desktop-notifications.command` template.
 
 [1707]: https://codeberg.org/dnkl/foot/issues/1707
 [1738]: https://codeberg.org/dnkl/foot/issues/1738
