@@ -189,7 +189,8 @@ notify_notify(struct terminal *term, struct notification *notif)
 
     bool track_notification = notif->focus || notif->report;
 
-    LOG_DBG("notify: title=\"%s\", body=\"%s\"", title, body);
+    LOG_DBG("notify: title=\"%s\", body=\"%s\", icon=\"%s\" (tracking: %s)",
+            title, body, icon_name_or_path, track_notification ? "yes" : "no");
 
     xassert(title != NULL);
     if (title == NULL)
@@ -309,7 +310,7 @@ add_icon(struct notification_icon *icon, const char *id, const char *symbolic_na
         icon->tmp_file_on_disk = xstrdup(name);
     }
 
-    LOG_DBG("added icon to cache: %s: sym=%s, file=%s",
+    LOG_DBG("added icon to cache: ID=%s: sym=%s, file=%s",
             icon->id, icon->symbolic_name, icon->tmp_file_on_disk);
 }
 
@@ -355,6 +356,7 @@ notify_icon_del(struct terminal *term, const char *id)
         if (icon->id == NULL || strcmp(icon->id, id) != 0)
             continue;
 
+        LOG_DBG("expelled %s from the notification icon cache", icon->id);
         notify_icon_free(icon);
         return;
     }
