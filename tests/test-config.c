@@ -511,7 +511,7 @@ test_section_main(void)
     test_boolean(&ctx, &parse_section_main, "login-shell", &conf.login_shell);
     test_boolean(&ctx, &parse_section_main, "box-drawings-uses-font-glyphs", &conf.box_drawings_uses_font_glyphs);
     test_boolean(&ctx, &parse_section_main, "locked-title", &conf.locked_title);
-    test_boolean(&ctx, &parse_section_main, "notify-focus-inhibit", &conf.notify_focus_inhibit);
+    test_boolean(&ctx, &parse_section_main, "notify-focus-inhibit", &conf.desktop_notifications.inhibit_when_focused);  /* Deprecated */
     test_boolean(&ctx, &parse_section_main, "dpi-aware", &conf.dpi_aware);
 
     test_pt_or_px(&ctx, &parse_section_main, "font-size-adjustment", &conf.font_size_adjustment.pt_or_px);  /* TODO: test ‘N%’ values too */
@@ -524,7 +524,7 @@ test_section_main(void)
     test_uint16(&ctx, &parse_section_main, "resize-delay-ms", &conf.resize_delay_ms);
     test_uint16(&ctx, &parse_section_main, "workers", &conf.render_worker_count);
 
-    test_spawn_template(&ctx, &parse_section_main, "notify", &conf.notify);
+    test_spawn_template(&ctx, &parse_section_main, "notify", &conf.desktop_notifications.command);  /* Deprecated */
 
     test_enum(&ctx, &parse_section_main, "selection-target",
               4,
@@ -566,6 +566,20 @@ test_section_bell(void)
                  &conf.bell.command_focused);
     test_spawn_template(&ctx, &parse_section_bell, "command",
                         &conf.bell.command);
+
+    config_free(&conf);
+}
+
+static void
+test_section_desktop_notifications(void)
+{
+    struct config conf = {0};
+    struct context ctx = {.conf = &conf, .section = "desktop-notifications", .path = "unittest"};
+
+    test_invalid_key(&ctx, &parse_section_desktop_notifications, "invalid-key");
+
+    test_boolean(&ctx, &parse_section_desktop_notifications, "inhibit-when-focused", &conf.desktop_notifications.inhibit_when_focused);
+    test_spawn_template(&ctx, &parse_section_desktop_notifications, "command", &conf.desktop_notifications.command);
 
     config_free(&conf);
 }
@@ -1391,6 +1405,7 @@ main(int argc, const char *const *argv)
     log_init(LOG_COLORIZE_AUTO, false, 0, LOG_CLASS_ERROR);
     test_section_main();
     test_section_bell();
+    test_section_desktop_notifications();
     test_section_scrollback();
     test_section_url();
     test_section_cursor();

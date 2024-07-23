@@ -560,9 +560,9 @@ osc_notify(struct terminal *term, char *string)
         return;
     }
 
-    notify_notify(
-        term, title, msg != NULL ? msg : "",
-        NOTIFY_ALWAYS, NOTIFY_URGENCY_NORMAL);
+    notify_notify(term, &(struct notification){
+        .title = (char *)title,
+        .body = (char *)msg});
 }
 
 static void
@@ -571,16 +571,15 @@ kitty_notification(struct terminal *term, char *string)
     /* https://sw.kovidgoyal.net/kitty/desktop-notifications */
 
     char *payload = strchr(string, ';');
-    if (payload == NULL) {
-        LOG_ERR("OSC-99: payload missing");
+    if (payload == NULL)
         return;
-    }
 
     char *parameters = string;
     *payload = '\0';
     payload++;
 
     char *id = xstrdup("0");       /* The 'i' parameter */
+    char *icon = NULL;             /* The 'I' parameter */
     bool focus = true;             /* The 'a' parameter */
     bool report = false;           /* The 'a' parameter */
     bool done = true;              /* The 'd' parameter */
@@ -601,10 +600,8 @@ kitty_notification(struct terminal *term, char *string)
     {
         /* All parameters are on the form X=value, where X is always
            exactly one character */
-        if (param[0] == '\0' || param[1] != '=') {
-            LOG_WARN("OSC-99: invalid parameter: \"%s\"", param);
+        if (param[0] == '\0' || param[1] != '=')
             continue;
-        }
 
         char *value = &param[2];
 
@@ -613,25 +610,19 @@ kitty_notification(struct terminal *term, char *string)
             /* notification activation action: focus|report|-focus|-report */
             have_a = true;
             char *a_ctx = NULL;
+
             for (const char *v = strtok_r(value, ",", &a_ctx);
                  v != NULL;
                  v = strtok_r(NULL, ",", &a_ctx))
             {
-                LOG_WARN("    a: \"%s\"", v);
                 bool reverse = v[0] == '-';
                 if (reverse)
                     v++;
 
-                if (strcmp(v, "focus") == 0) {
+                if (strcmp(v, "focus") == 0)
                     focus = !reverse;
-                    if (focus)
-                        LOG_WARN("unimplemented: OSC-99: focus on notification activation");
-                } else if (strcmp(v, "report") == 0) {
+                else if (strcmp(v, "report") == 0)
                     report = !reverse;
-                    if (report)
-                        LOG_WARN("unimplemented: OSC-99: report on notification activation");
-                } else
-                    LOG_WARN("OSC-99: unrecognized value for 'a': \"%s\", ignoring", v);
             }
 
             break;
@@ -643,8 +634,6 @@ kitty_notification(struct terminal *term, char *string)
                 done = false;
             else if (value[0] == '1' && value[1] == '\0')
                 done = true;
-            else
-                LOG_WARN("OSC-99: unrecognized value for 'd': \"%s\", ignoring", value);
             break;
 
         case 'e':
@@ -653,8 +642,6 @@ kitty_notification(struct terminal *term, char *string)
                 base64 = false;
             else if (value[0] == '1' && value[1] == '\0')
                 base64 = true;
-            else
-                LOG_WARN("OSC-99: unrecognized value for 'e': \"%s\", ignoring", value);
             break;
 
         case 'i':
@@ -669,8 +656,6 @@ kitty_notification(struct terminal *term, char *string)
                 payload_is_title = true;
             else if (strcmp(value, "body") == 0)
                 payload_is_title = false;
-            else
-                LOG_WARN("OSC-99: unrecognized value for 'p': \"%s\", ignoring", value);
             break;
 
         case 'o':
@@ -682,8 +667,6 @@ kitty_notification(struct terminal *term, char *string)
                 when = NOTIFY_UNFOCUSED;
             else if (strcmp(value, "invisible") == 0)
                 when = NOTIFY_INVISIBLE;
-            else
-                LOG_WARN("OSC-99: unrecognized value for 'o': \"%s\", ignoring", value);
             break;
 
         case 'u':
@@ -695,13 +678,16 @@ kitty_notification(struct terminal *term, char *string)
                 urgency = NOTIFY_URGENCY_NORMAL;
             else if (value[0] == '2' && value[1] == '\0')
                 urgency = NOTIFY_URGENCY_CRITICAL;
-            else
-                LOG_WARN("OSC-99: unrecognized value for 'u': \"%s\", ignoring", value);
             break;
 
-        default:
-            LOG_WARN("OSC-99: unrecognized parameter: \"%s\", ignoring", param);
-           break;
+        /*
+         * The options below are not (yet) part of the official spec.
+         */
+        case 'I':
+            /* icon: only symbolic names allowed; absolute paths are ignored */
+            if (value[0] != '/')
+                icon = xstrdup(value);
+            break;
         }
     }
 
@@ -710,9 +696,9 @@ kitty_notification(struct terminal *term, char *string)
     else
         payload = xstrdup(payload);
 
-    LOG_DBG("id=%s, done=%d, focus=%d, report=%d, base64=%d, payload: %s, "
+    LOG_DBG("id=%s, done=%d, focus=%d, report=%d, base64=%d, icon=%s, payload: %s, "
             "honor: %s, urgency: %s, %s: %s",
-            id, done, focus, report, base64,
+            id, done, focus, report, base64, icon != NULL ? icon : "<not set>",
             payload_is_title ? "title" : "body",
             (when == NOTIFY_ALWAYS
                 ? "always"
@@ -726,11 +712,10 @@ kitty_notification(struct terminal *term, char *string)
             payload_is_title ? "title" : "body", payload);
 
     /* Search for an existing (d=0) notification to update */
-    struct kitty_notification *notif = NULL;
-    tll_foreach(term->kitty_notifications, it) {
+    struct notification *notif = NULL;
+    tll_foreach(term->notifications, it) {
         if (strcmp(it->item.id, id) == 0) {
             /* Found existing notification */
-            LOG_WARN("found existing kitty notification");
             notif = &it->item;
             break;
         }
@@ -739,8 +724,9 @@ kitty_notification(struct terminal *term, char *string)
     if (notif == NULL) {
         /* Somewhat unoptimized... this will be free:d and removed
            immediately if d=1 */
-        tll_push_front(term->kitty_notifications, ((struct kitty_notification){
+        tll_push_front(term->notifications, ((struct notification){
             .id = id,
+            .icon = NULL,
             .title = NULL,
             .body = NULL,
             .when = when,
@@ -749,8 +735,13 @@ kitty_notification(struct terminal *term, char *string)
             .report = report,
         }));
 
-        id = NULL; /* Prevent double free */
-        notif = &tll_front(term->kitty_notifications);
+        id = NULL;   /* Prevent double free */
+        notif = &tll_front(term->notifications);
+    }
+
+    if (notif->pid > 0) {
+        /* Notification has already been completed, ignore new metadata */
+        goto out;
     }
 
     /* Update notification metadata */
@@ -763,6 +754,12 @@ kitty_notification(struct terminal *term, char *string)
         notif->when = when;
     if (have_u)
         notif->urgency = urgency;
+
+    if (icon != NULL) {
+        free(notif->icon);
+        notif->icon = icon;
+        icon = NULL;  /* Prevent double free */
+    }
 
     if (payload_is_title) {
         if (notif->title == NULL) {
@@ -784,26 +781,22 @@ kitty_notification(struct terminal *term, char *string)
         }
     }
 
-    free(id);
-    free(payload);
-
     if (done) {
-        notify_notify(
-            term,
-            notif->title != NULL ? notif->title : notif->body,
-            notif->title != NULL && notif->body != NULL ? notif->body : "",
-            notif->when, notif->urgency);
-
-        tll_foreach(term->kitty_notifications, it) {
-            if (&it->item == notif) {
-                free(it->item.id);
-                free(it->item.title);
-                free(it->item.body);
-                tll_remove(term->kitty_notifications, it);
-                break;
+        if (!notify_notify(term, notif)) {
+            tll_foreach(term->notifications, it) {
+                if (&it->item == notif) {
+                    notify_free(term, &it->item);
+                    tll_remove(term->notifications, it);
+                    break;
+                }
             }
         }
     }
+
+out:
+    free(id);
+    free(icon);
+    free(payload);
 }
 
 void

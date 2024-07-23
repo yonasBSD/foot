@@ -718,6 +718,10 @@ All _OSC_ sequences begin with *\\E]*, sometimes abbreviated _OSC_.
 :  Copy _Pd_ (base64 encoded text) to the clipboard. _Pc_ denotes the
    target: *c* targets the clipboard and *s* and *p* the primary
    selection.
+|  \\E] 99 ; _params_ ; _payload_ \\E\\
+:  kitty
+:  Desktop notification; uses *desktop-notifications.command* in
+   *foot.ini*(5).
 |  \\E] 104 ; _c_ \\E\\ 
 :  xterm
 :  Reset color number _c_ (multiple semicolon separated _c_ values may
@@ -757,7 +761,8 @@ All _OSC_ sequences begin with *\\E]*, sometimes abbreviated _OSC_.
 :  Flash the entire terminal (foot extension)
 |  \\E] 777;notify;_title_;_msg_ \\E\\ 
 :  urxvt
-:  Desktop notification, uses *notify* in *foot.ini*(5).
+:  Desktop notification, uses *desktop-notifications.command* in
+   *foot.ini*(5).
 
 # DCS
 

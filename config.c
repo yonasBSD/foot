@@ -1024,11 +1024,29 @@ parse_section_main(struct context *ctx)
     else if (streq(key, "word-delimiters"))
         return value_to_wchars(ctx, &conf->word_delimiters);
 
-    else if (streq(key, "notify"))
-        return value_to_spawn_template(ctx, &conf->notify);
+    else if (streq(key, "notify")) {
+        user_notification_add(
+            &conf->notifications, USER_NOTIFICATION_DEPRECATED,
+            xstrdup("notify: use desktop-notifications.command instead"));
+        log_msg(
+            LOG_CLASS_WARNING, LOG_MODULE, __FILE__, __LINE__,
+            "deprecated: notify: use desktop-notifications.command instead");
+        return value_to_spawn_template(
+            ctx, &conf->desktop_notifications.command);
+    }
 
-    else if (streq(key, "notify-focus-inhibit"))
-        return value_to_bool(ctx, &conf->notify_focus_inhibit);
+    else if (streq(key, "notify-focus-inhibit")) {
+        user_notification_add(
+            &conf->notifications, USER_NOTIFICATION_DEPRECATED,
+            xstrdup("notify-focus-inhibit: "
+                    "use desktop-notifications.inhibit-when-focused instead"));
+        log_msg(
+            LOG_CLASS_WARNING, LOG_MODULE, __FILE__, __LINE__,
+            "deprecrated: notify-focus-inhibit: "
+            "use desktop-notifications.inhibit-when-focused instead");
+        return value_to_bool(
+            ctx, &conf->desktop_notifications.inhibit_when_focused);
+    }
 
     else if (streq(key, "selection-target")) {
         _Static_assert(sizeof(conf->selection_target) == sizeof(int),
@@ -1077,6 +1095,24 @@ parse_section_bell(struct context *ctx)
         return value_to_spawn_template(ctx, &conf->bell.command);
     else if (streq(key, "command-focused"))
         return value_to_bool(ctx, &conf->bell.command_focused);
+    else {
+        LOG_CONTEXTUAL_ERR("not a valid option: %s", key);
+        return false;
+    }
+}
+
+static bool
+parse_section_desktop_notifications(struct context *ctx)
+{
+    struct config *conf = ctx->conf;
+    const char *key = ctx->key;
+
+    if (streq(key, "command"))
+        return value_to_spawn_template(
+            ctx, &conf->desktop_notifications.command);
+    else if (streq(key, "inhibit-when-focused"))
+        return value_to_bool(
+            ctx, &conf->desktop_notifications.inhibit_when_focused);
     else {
         LOG_CONTEXTUAL_ERR("not a valid option: %s", key);
         return false;
@@ -2662,6 +2698,7 @@ parse_key_value(char *kv, const char **section, const char **key, const char **v
 enum section {
     SECTION_MAIN,
     SECTION_BELL,
+    SECTION_DESKTOP_NOTIFICATIONS,
     SECTION_SCROLLBACK,
     SECTION_URL,
     SECTION_COLORS,
@@ -2688,6 +2725,7 @@ static const struct {
 } section_info[] = {
     [SECTION_MAIN] =            {&parse_section_main, "main"},
     [SECTION_BELL] =            {&parse_section_bell, "bell"},
+    [SECTION_DESKTOP_NOTIFICATIONS] = {&parse_section_desktop_notifications, "desktop-notifications"},
     [SECTION_SCROLLBACK] =      {&parse_section_scrollback, "scrollback"},
     [SECTION_URL] =             {&parse_section_url, "url"},
     [SECTION_COLORS] =          {&parse_section_colors, "colors"},
@@ -3144,10 +3182,12 @@ config_load(struct config *conf, const char *conf_path,
         .presentation_timings = false,
         .selection_target = SELECTION_TARGET_PRIMARY,
         .hold_at_exit = false,
-        .notify = {
-            .argv = {.args = NULL},
+        .desktop_notifications = {
+            .command = {
+                .argv = {.args = NULL},
+            },
+            .inhibit_when_focused = true,
         },
-        .notify_focus_inhibit = true,
 
         .tweak = {
             .fcft_filter = FCFT_SCALING_FILTER_LANCZOS3,
@@ -3185,8 +3225,8 @@ config_load(struct config *conf, const char *conf_path,
     parse_modifiers(XKB_MOD_NAME_SHIFT, 5, &conf->mouse.selection_override_modifiers);
 
     tokenize_cmdline(
-        "notify-send -a ${app-id} -i ${app-id} -u ${urgency} ${title} ${body}",
-        &conf->notify.argv.args);
+        "notify-send --wait --app-name ${app-id} --icon ${icon} --urgency ${urgency} -- ${title} ${body}",
+        &conf->desktop_notifications.command.argv.args);
     tokenize_cmdline("xdg-open ${url}", &conf->url.launch.argv.args);
 
     static const char32_t *url_protocols[] = {
@@ -3439,7 +3479,8 @@ config_clone(const struct config *old)
     conf->scrollback.indicator.text = xc32dup(old->scrollback.indicator.text);
     conf->server_socket_path = xstrdup(old->server_socket_path);
     spawn_template_clone(&conf->bell.command, &old->bell.command);
-    spawn_template_clone(&conf->notify, &old->notify);
+    spawn_template_clone(&conf->desktop_notifications.command,
+                         &old->desktop_notifications.command);
 
     for (size_t i = 0; i < ALEN(conf->fonts); i++)
         config_font_list_clone(&conf->fonts[i], &old->fonts[i]);
@@ -3521,7 +3562,7 @@ config_free(struct config *conf)
     free(conf->word_delimiters);
     spawn_template_free(&conf->bell.command);
     free(conf->scrollback.indicator.text);
-    spawn_template_free(&conf->notify);
+    spawn_template_free(&conf->desktop_notifications.command);
     for (size_t i = 0; i < ALEN(conf->fonts); i++)
         config_font_list_destroy(&conf->fonts[i]);
     free(conf->server_socket_path);

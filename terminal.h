@@ -799,7 +799,9 @@ struct terminal {
         void *cb_data;
     } shutdown;
 
-    tll(struct kitty_notification) kitty_notifications;
+    /* Notifications that either haven't been sent yet, or have been
+       sent but not yet dismissed */
+    tll(struct notification) notifications;
 
     char *foot_exe;
     char *cwd;

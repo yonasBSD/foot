@@ -1,30 +1,41 @@
 #pragma once
 #include <stdbool.h>
+#include <unistd.h>
 
 struct terminal;
 
 enum notify_when {
+    /* First, so that it can be left out of initializer and still be
+       the default */
     NOTIFY_ALWAYS,
+
     NOTIFY_UNFOCUSED,
     NOTIFY_INVISIBLE
 };
 
 enum notify_urgency {
-    NOTIFY_URGENCY_LOW,
+    /* First, so that it can be left out of initializer and still be
+       the default */
     NOTIFY_URGENCY_NORMAL,
+
+    NOTIFY_URGENCY_LOW,
     NOTIFY_URGENCY_CRITICAL,
 };
 
-struct kitty_notification {
+struct notification {
     char *id;
     char *title;
     char *body;
+    char *icon;
+    char *xdg_token;
     enum notify_when when;
     enum notify_urgency urgency;
     bool focus;
     bool report;
+
+    pid_t pid;
+    int stdout_fd;
 };
 
-void notify_notify(
-    const struct terminal *term, const char *title, const char *body,
-    enum notify_when when, enum notify_urgency urgency);
+bool notify_notify(const struct terminal *term, struct notification *notif);
+void notify_free(struct terminal *term, struct notification *notif);

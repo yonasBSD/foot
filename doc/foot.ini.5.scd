@@ -342,32 +342,6 @@ empty string to be set, but it must be quoted: *KEY=""*)
 	text. Note that whitespace characters are _always_ word
 	delimiters, regardless of this setting. Default: _,│`|:"'()[]{}<>_
 
-*notify*
-	Command to execute to display a notification. _${title}_ and
-	_${body}_ will be replaced with the notification's actual _title_
-	and _body_ (message content).
-	
-	_${app-id}_ is replaced with the value of the command line option
-	_--app-id_, and defaults to *foot* (normal mode), or
-	*footclient* (server mode).
-	
-	_${window-title}_ is replaced with the current window title.
-	
-	Applications can trigger notifications in the following ways:
-	
-		- OSC 777: *\\e]777;notify;<title>;<body>\\e\\\\*
-	
-	By default, notifications are *inhibited* if the foot window
-	has keyboard focus. See _notify-focus-inhibit_.
-	
-	Default: _notify-send -a ${app-id} -i ${app-id} -u ${urgency} ${title} ${body}_.
-
-*notify-focus-inhibit*
-	Boolean. If enabled, foot will not display notifications if the
-	terminal window has keyboard focus.
-
-	Default: _yes_
-
 *selection-target*
 	Clipboard target to automatically copy selected text to. One of
 	*none*, *primary*, *clipboard* or *both*. Default: _primary_.
@@ -426,10 +400,11 @@ Note: do not set *TERM* here; use the *term* option in the main
 	Default: _no_
 
 *notify*
-	When set to _yes_, foot will emit a desktop notification using
-	the command specified in the *notify* option whenever *BEL* is
+	When set to _yes_, foot will emit a desktop notification using the
+	command specified in the *notify* option whenever *BEL* is
 	received. By default, bell notifications are shown only when the
-	window does *not* have keyboard focus. See _notify-focus-inhibit_.
+	window does *not* have keyboard focus. See
+	_desktop-notifications.inhibit-when-focused_.
 
 	Default: _no_
 
@@ -444,6 +419,82 @@ Note: do not set *TERM* here; use the *term* option in the main
 *command-focused*
 	Whether to run the command on *BEL* even while focused. Default:
 	_no_
+
+# SECTION: desktop-notifications
+
+*command*
+	Command to execute to display a notification.
+	
+	Template arguments
+		_${title}_ and _${body}_ will be replaced with the
+		notification's actual _title_ and _body_ (message content).
+		
+		_${app-id}_ is replaced with the value of the command line
+		option _--app-id_, and defaults to *foot* (normal mode), or
+		*footclient* (server mode).
+		
+		_${window-title}_ is replaced with the current window title.
+		
+		_${icon}_ is replaced by the icon specified in the
+		notification request, or _${app_id}_ if the notification did
+		not set an icon. Note that only symbolic icon names are
+		supported, not filenames.
+		
+		_${urgency}_ is replaced with the notifications urgency;
+		*low*, *normal* or *critical*.
+	
+	Ways to trigger notifications
+		Applications can trigger notifications in the following ways:
+	
+		- OSC 777: *\\e]777;notify;<title>;<body>\\e\\\\*
+		- OSC 99: *\\e]99;;<title>\\e\\\\* (this is just a bare bones
+		  example; this protocol has lots of features, see
+		  https://sw.kovidgoyal.net/kitty/desktop-notifications)
+		
+		By default, notifications are *inhibited* if the foot window
+		has keyboard focus. See
+		_desktop-notifications.inhibit-when-focused_.
+	
+	Window activation (focusing)
+		Foot can focus the window when the notification is
+		"activated". This typically happens when the default action is
+		invoked, and/or when the notification is clicked, but exact
+		behavior depends on the notification daemon in use, and how it
+		has been configured.
+		
+		For this to work, foot needs an XDG activation token. To this
+		end, foot will read the command's stdout; everything printed
+		there, not including trailing newlines, are assumed to be part
+		of the activation token. There is no harm in printing
+		something else on stdout - it will simply result in the
+		activation failing (i.e. the window will not be focused).
+		
+		*Note*: notify-send does not, out of the box, support
+		reporting the XDG activation token in any way. This means
+		window activation will not work by default.
+	
+	Notification dismissal
+		The kitty desktop notifications protocol (OSC-99) allows the
+		terminal application to request an event be sent to it when
+		the notification has been dismissed (by setting *a=report* in
+		the notification request).
+		
+		To be able to send this event, foot needs to know when the
+		notification is dismissed. This is handled in a very simple
+		manner; the command signals notification dismissal by
+		exiting. That is, as soon as the command returns, foot
+		considers the notification dismissed.
+		
+		For *notify-send*, this can be achieved with the *--wait*
+		option.
+	
+	Default: _notify-send --wait --app-name ${app-id} --icon ${icon} --urgency ${urgency} -- ${title} ${body}_.
+
+*inhibit-when-focused*
+	Boolean. If enabled, foot will not display notifications if the
+	terminal window has keyboard focus.
+	
+	Default: _yes_
 
 # SECTION: scrollback
 
