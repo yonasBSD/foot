@@ -45,7 +45,7 @@ struct notification {
     pid_t pid;             /* Notifier command PID */
     int stdout_fd;         /* Notifier command's stdout */
 
-    char *stdout;          /* Data we've reado from command's stdout */
+    char *stdout_data;     /* Data we've reado from command's stdout */
     size_t stdout_sz;
 };
 

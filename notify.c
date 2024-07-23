@@ -28,13 +28,13 @@ notify_free(struct terminal *term, struct notification *notif)
     free(notif->body);
     free(notif->icon);
     free(notif->xdg_token);
-    free(notif->stdout);
+    free(notif->stdout_data);
 }
 
 static void
 consume_stdout(struct notification *notif, bool eof)
 {
-    char *data = notif->stdout;
+    char *data = notif->stdout_data;
     const char *line = data;
     size_t left = notif->stdout_sz;
 
@@ -60,7 +60,7 @@ consume_stdout(struct notification *notif, bool eof)
         left -= len + (eol != NULL ? 1 : 0);
     }
 
-    memmove(notif->stdout, data, left);
+    memmove(notif->stdout_data, data, left);
     notif->stdout_sz = left;
 }
 
@@ -92,12 +92,12 @@ fdm_notify_stdout(struct fdm *fdm, int fd, int events, void *data)
         }
 
         if (count > 0 && notif != NULL) {
-            if (notif->stdout == NULL) {
+            if (notif->stdout_data == NULL) {
                 xassert(notif->stdout_sz == 0);
-                notif->stdout = xmemdup(buf, count);
+                notif->stdout_data = xmemdup(buf, count);
             } else {
-                notif->stdout = xrealloc(notif->stdout, notif->stdout_sz + count);
-                memcpy(&notif->stdout[notif->stdout_sz], buf, count);
+                notif->stdout_data = xrealloc(notif->stdout_data, notif->stdout_sz + count);
+                memcpy(&notif->stdout_data[notif->stdout_sz], buf, count);
             }
 
             notif->stdout_sz += count;
@@ -156,7 +156,7 @@ notify_notify(const struct terminal *term, struct notification *notif)
     xassert(notif->xdg_token == NULL);
     xassert(notif->pid == 0);
     xassert(notif->stdout_fd == 0);
-    xassert(notif->stdout == NULL);
+    xassert(notif->stdout_data == NULL);
 
     notif->pid = -1;
     notif->stdout_fd = -1;
