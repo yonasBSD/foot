@@ -462,11 +462,32 @@ Note: do not set *TERM* here; use the *term* option in the main
 		behavior depends on the notification daemon in use, and how it
 		has been configured.
 		
-		For this to work, foot needs an XDG activation token. To this
-		end, foot will read the command's stdout; a line prefixed with
-		*xdgtoken=* will be recognized as containing the XDG
-		activation token:
+		For this to work, foot needs to know when the notification was
+		activated (as opposed to just dismissed), and it needs an XDG
+		activation token.
 		
+		There are two parts to handle this. First, the notification
+		must define an action. For this purpose, foot definse the
+		template parameter *${action}*. It is intended to be used with
+		e.g. notify-send's *-A,--action* option. The contents of
+		*${action}* is not configurable, but will be on the form
+		'name=label', where name is a notification internal reference
+		to the action, and label is what is displayed in the
+		notification.
+		
+		Second, foot needs to know when the notification activated,
+		and it needs to get hold of the XDG activation token.
+		
+		Both are expected to be printed on stdout.
+		
+		Foot expects the action name (not label) to be printed on a
+		single line. No prefix, no postfix.
+		
+		Foot expects the activation token to be printed on a single
+		line, prefixed with *xdgtoken=*.
+		
+		Example:
+			activate-foot
 			xdgtoken=18179adf579a7a904ce73754964b1ec3
 		
 		The expected format of stdout may change at any time. Please
@@ -491,7 +512,7 @@ Note: do not set *TERM* here; use the *term* option in the main
 		For *notify-send*, this can be achieved with the *--wait*
 		option.
 	
-	Default: _notify-send --wait --app-name ${app-id} --icon ${icon} --urgency ${urgency} -- ${title} ${body}_.
+	Default: _notify-send --wait --app-name ${app-id} --icon ${icon} --urgency ${urgency} --action ${action} -- ${title} ${body}_.
 
 *inhibit-when-focused*
 	Boolean. If enabled, foot will not display notifications if the

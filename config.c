@@ -3225,7 +3225,7 @@ config_load(struct config *conf, const char *conf_path,
     parse_modifiers(XKB_MOD_NAME_SHIFT, 5, &conf->mouse.selection_override_modifiers);
 
     tokenize_cmdline(
-        "notify-send --wait --app-name ${app-id} --icon ${icon} --urgency ${urgency} -- ${title} ${body}",
+        "notify-send --wait --app-name ${app-id} --icon ${icon} --urgency ${urgency} --action ${action} -- ${title} ${body}",
         &conf->desktop_notifications.command.argv.args);
     tokenize_cmdline("xdg-open ${url}", &conf->url.launch.argv.args);
 

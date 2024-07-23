@@ -45,6 +45,7 @@ struct notification {
      * Used internally by notify
      */
 
+    bool activated;        /* User 'activated' the notification */
     char *xdg_token;       /* XDG activation token, from daemon */
 
     pid_t pid;             /* Notifier command PID */

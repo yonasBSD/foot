@@ -54,8 +54,11 @@ consume_stdout(struct notification *notif, bool eof)
         } else if (!eof)
             break;
 
+        if (strcmp(line, "activate-foot") == 0)
+            notif->activated = true;
+
         /* Check for 'xdgtoken=xyz' */
-        if (len > 9 && memcmp(line, "xdgtoken=", 9) == 0) {
+        else if (len > 9 && memcmp(line, "xdgtoken=", 9) == 0) {
             notif->xdg_token = xstrndup(&line[9], len - 9);
             LOG_DBG("XDG token: \"%s\"", notif->xdg_token);
         }
@@ -133,12 +136,13 @@ notif_done(struct reaper *reaper, pid_t pid, int status, void *data)
 
         LOG_DBG("notification %s dismissed", notif->id);
 
-        if (notif->focus) {
-            LOG_DBG("focus window on notification activation: \"%s\"", notif->xdg_token);
+        if (notif->activated && notif->focus) {
+            LOG_DBG("focus window on notification activation: \"%s\"",
+                    notif->xdg_token);
             wayl_activate(term->wl, term->window, notif->xdg_token);
         }
 
-        if (notif->report) {
+        if (notif->activated && notif->report) {
             xassert(notif->id != NULL);
 
             LOG_DBG("sending notification report to client");
@@ -221,13 +225,14 @@ notify_notify(struct terminal *term, struct notification *notif)
                 ? "normal" : "critical";
 
     if (!spawn_expand_template(
-            &term->conf->desktop_notifications.command, 6,
-            (const char *[]){
-                "app-id", "window-title", "icon", "title", "body", "urgency"},
-            (const char *[]){
-                term->app_id ? term->app_id : term->conf->app_id,
-                term->window_title, icon_name_or_path, title, body, urgency_str},
-            &argc, &argv))
+        &term->conf->desktop_notifications.command, 7,
+        (const char *[]){
+            "app-id", "window-title", "icon", "title", "body", "urgency", "action"},
+        (const char *[]){
+            term->app_id ? term->app_id : term->conf->app_id,
+            term->window_title, icon_name_or_path, title, body, urgency_str,
+            "activate-foot=Click to activate"},
+        &argc, &argv))
     {
         return false;
     }
