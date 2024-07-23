@@ -567,17 +567,19 @@ kitty_notification(struct terminal *term, char *string)
 {
     /* https://sw.kovidgoyal.net/kitty/desktop-notifications */
 
-    char *payload = strchr(string, ';');
-    if (payload == NULL)
+    char *payload_raw = strchr(string, ';');
+    if (payload_raw == NULL)
         return;
 
     char *parameters = string;
-    *payload = '\0';
-    payload++;
+    *payload_raw = '\0';
+    payload_raw++;
 
     char *id = xstrdup("0");       /* The 'i' parameter */
     char *icon_id = NULL;          /* The 'g' parameter */
     char *symbolic_icon = NULL;    /* The 'n' parameter */
+    char *payload = NULL;
+
     bool focus = true;             /* The 'a' parameter */
     bool report = false;           /* The 'a' parameter */
     bool done = true;              /* The 'd' parameter */
@@ -662,6 +664,25 @@ kitty_notification(struct terminal *term, char *string)
                 payload_type = PAYLOAD_BODY;
             else if (strcmp(value, "icon") == 0)
                 payload_type = PAYLOAD_ICON;
+            else if (strcmp(value, "?") == 0) {
+                /* Query capabilities */
+
+                char when_str[64];
+                strcpy(when_str, "unfocused");
+                if (!term->conf->desktop_notifications.inhibit_when_focused)
+                    strcat(when_str, ",always");
+
+                const char *terminator = term->vt.osc.bel ? "\a" : "\033\\";
+
+                char reply[128];
+                int n = xsnprintf(
+                    reply, sizeof(reply),
+                    "\033]99;i=%s:p=?;p=title,body,?:a=focus,report:o=%s:u=0,1,2%s",
+                    id, when_str, terminator);
+
+                term_to_slave(term, reply, n);
+                goto out;
+            }
             break;
 
         case 'o':
@@ -701,11 +722,11 @@ kitty_notification(struct terminal *term, char *string)
     }
 
     if (base64) {
-        payload = base64_decode(payload, &payload_size);
+        payload = base64_decode(payload_raw, &payload_size);
         if (payload == NULL)
             goto out;
     } else {
-        payload = xstrdup(payload);
+        payload = xstrdup(payload_raw);
         payload_size = strlen(payload);
     }
 
