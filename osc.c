@@ -644,7 +644,7 @@ kitty_notification(struct terminal *term, char *string)
             break;
 
         case 'e':
-            /* base64: 0=utf8, 1=base64(utf8) */
+            /* base64 (payload encoding): 0=utf8, 1=base64(utf8) */
             if (value[0] == '0' && value[1] == '\0')
                 base64 = false;
             else if (value[0] == '1' && value[1] == '\0')
@@ -690,11 +690,13 @@ kitty_notification(struct terminal *term, char *string)
             break;
 
         case 'g':
+            /* graphical ID */
             free(icon_id);
             icon_id = xstrdup(value);
             break;
 
         case 'n':
+            /* Symbolic icon name, used with 'g' */
             free(symbolic_icon);
             symbolic_icon = xstrdup(value);
             break;
@@ -709,21 +711,6 @@ kitty_notification(struct terminal *term, char *string)
         payload = xstrdup(payload);
         payload_size = strlen(payload);
     }
-
-    LOG_DBG("id=%s, done=%d, focus=%d, report=%d, base64=%d, icon=%s, payload: %s, "
-            "honor: %s, urgency: %s, %s: %s",
-            id, done, focus, report, base64, icon != NULL ? icon : "<not set>",
-            payload_is_title ? "title" : "body",
-            (when == NOTIFY_ALWAYS
-                ? "always"
-                : when == NOTIFY_UNFOCUSED
-                    ? "unfocused"
-                    : "invisible"),
-            (urgency == NOTIFY_URGENCY_LOW
-                ? "low" : urgency == NOTIFY_URGENCY_NORMAL
-                    ? "normal"
-                    : "critical"),
-            payload_is_title ? "title" : "body", payload);
 
     /* Search for an existing (d=0) notification to update */
     struct notification *notif = NULL;
