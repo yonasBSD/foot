@@ -625,9 +625,9 @@ kitty_notification(struct terminal *term, char *string)
                 if (reverse)
                     v++;
 
-                if (strcmp(v, "focus") == 0)
+                if (streq(v, "focus"))
                     focus = !reverse;
-                else if (strcmp(v, "report") == 0)
+                else if (streq(v, "report"))
                     report = !reverse;
             }
 
@@ -658,13 +658,13 @@ kitty_notification(struct terminal *term, char *string)
 
         case 'p':
             /* payload content: title|body */
-            if (strcmp(value, "title") == 0)
+            if (streq(value, "title"))
                 payload_type = PAYLOAD_TITLE;
-            else if (strcmp(value, "body") == 0)
+            else if (streq(value, "body"))
                 payload_type = PAYLOAD_BODY;
-            else if (strcmp(value, "icon") == 0)
+            else if (streq(value, "icon"))
                 payload_type = PAYLOAD_ICON;
-            else if (strcmp(value, "?") == 0) {
+            else if (streq(value, "?")) {
                 /* Query capabilities */
 
                 char when_str[64];
@@ -688,11 +688,11 @@ kitty_notification(struct terminal *term, char *string)
         case 'o':
             /* honor when: always|unfocused|invisible */
             have_o = true;
-            if (strcmp(value, "always") == 0)
+            if (streq(value, "always"))
                 when = NOTIFY_ALWAYS;
-            else if (strcmp(value, "unfocused") == 0)
+            else if (streq(value, "unfocused"))
                 when = NOTIFY_UNFOCUSED;
-            else if (strcmp(value, "invisible") == 0)
+            else if (streq(value, "invisible"))
                 when = NOTIFY_INVISIBLE;
             break;
 
@@ -733,7 +733,7 @@ kitty_notification(struct terminal *term, char *string)
     /* Search for an existing (d=0) notification to update */
     struct notification *notif = NULL;
     tll_foreach(term->kitty_notifications, it) {
-        if (strcmp(it->item.id, id) == 0) {
+        if (streq(it->item.id, id)) {
             /* Found existing notification */
             notif = &it->item;
             break;

@@ -220,7 +220,7 @@ notify_notify(struct terminal *term, struct notification *notif)
         for (size_t i = 0; i < ALEN(term->notification_icons); i++) {
             const struct notification_icon *icon = &term->notification_icons[i];
 
-            if (icon->id != NULL && strcmp(icon->id, notif->icon_id) == 0) {
+            if (icon->id != NULL && streq(icon->id, notif->icon_id)) {
                 icon_name_or_path = icon->symbolic_name != NULL
                     ? icon->symbolic_name
                     : icon->tmp_file_name;
@@ -378,7 +378,7 @@ notify_icon_add(struct terminal *term, const char *id,
 #if defined(_DEBUG)
     for (size_t i = 0; i < ALEN(term->notification_icons); i++) {
         struct notification_icon *icon = &term->notification_icons[i];
-        if (icon->id != NULL && strcmp(icon->id, id) == 0) {
+        if (icon->id != NULL && streq(icon->id, id)) {
             BUG("notification icon cache already contains \"%s\"", id);
         }
     }
@@ -410,7 +410,7 @@ notify_icon_del(struct terminal *term, const char *id)
     for (size_t i = 0; i < ALEN(term->notification_icons); i++) {
         struct notification_icon *icon = &term->notification_icons[i];
 
-        if (icon->id == NULL || strcmp(icon->id, id) != 0)
+        if (icon->id == NULL || !streq(icon->id, id))
             continue;
 
         LOG_DBG("expelled %s from the notification icon cache", icon->id);
