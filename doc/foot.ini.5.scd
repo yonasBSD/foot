@@ -496,7 +496,7 @@ Note: do not set *TERM* here; use the *term* option in the main
 		reporting the XDG activation token in any way. This means
 		window activation will not work by default.
 	
-	Default: _notify-send --wait --app-name ${app-id} --icon ${icon} --urgency ${urgency} --action ${action-name},${action-label} --print-id -- ${title} ${body}_.
+	Default: _notify-send --wait --app-name ${app-id} --icon ${icon} --urgency ${urgency} --action ${action-name}=${action-label} --print-id -- ${title} ${body}_.
 
 
 *inhibit-when-focused*
