@@ -186,7 +186,7 @@ notify_notify(struct terminal *term, struct notification *notif)
             if (icon->id != NULL && strcmp(icon->id, notif->icon_id) == 0) {
                 icon_name_or_path = icon->symbolic_name != NULL
                     ? icon->symbolic_name
-                    : icon->tmp_file_on_disk;
+                    : icon->tmp_file_name;
                 break;
             }
         }
@@ -299,11 +299,21 @@ add_icon(struct notification_icon *icon, const char *id, const char *symbolic_na
 {
     icon->id = xstrdup(id);
     icon->symbolic_name = symbolic_name != NULL ? xstrdup(symbolic_name) : NULL;
-    icon->tmp_file_on_disk = NULL;
+    icon->tmp_file_name = NULL;
+    icon->tmp_file_fd = -1;
 
-    if (data_sz > 0) {
+    /*
+     * Dump in-line data to a temporary file. This allows us to pass
+     * the filename as a parameter to notification helpers
+     * (i.e. notify-send -i <path>).
+     *
+     * Optimization: since we always prefer (i.e. use) the symbolic
+     * name if present, there's no need to create a file on disk if we
+     * have a symbolic name.
+     */
+    if (symbolic_name == NULL && data_sz > 0) {
         char name[64] = "/tmp/foot-notification-icon-cache-XXXXXX";
-        int fd = mkstemp(name);
+        int fd = mkostemp(name, O_CLOEXEC);
 
         if (fd < 0) {
             LOG_ERRNO("failed to create temporary file for icon cache");
@@ -312,16 +322,16 @@ add_icon(struct notification_icon *icon, const char *id, const char *symbolic_na
 
         if (write(fd, data, data_sz) != (ssize_t)data_sz) {
             LOG_ERRNO("failed to write icon data to temporary file");
+            close(fd);
         } else {
             LOG_DBG("wrote icon data to %s", name);
-            icon->tmp_file_on_disk = xstrdup(name);
+            icon->tmp_file_name = xstrdup(name);
+            icon->tmp_file_fd = fd;
         }
-
-        close(fd);
     }
 
     LOG_DBG("added icon to cache: ID=%s: sym=%s, file=%s",
-            icon->id, icon->symbolic_name, icon->tmp_file_on_disk);
+            icon->id, icon->symbolic_name, icon->tmp_file_name);
 }
 
 void
@@ -375,14 +385,17 @@ notify_icon_del(struct terminal *term, const char *id)
 void
 notify_icon_free(struct notification_icon *icon)
 {
-    if (icon->tmp_file_on_disk != NULL)
-        unlink(icon->tmp_file_on_disk);
+    if (icon->tmp_file_fd >= 0)
+        close(icon->tmp_file_fd);
+    if (icon->tmp_file_name != NULL)
+        unlink(icon->tmp_file_name);
 
     free(icon->id);
     free(icon->symbolic_name);
-    free(icon->tmp_file_on_disk);
+    free(icon->tmp_file_name);
 
     icon->id = NULL;
     icon->symbolic_name = NULL;
-    icon->tmp_file_on_disk = NULL;
+    icon->tmp_file_name = NULL;
+    icon->tmp_file_fd = -1;
 }

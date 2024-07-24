@@ -58,7 +58,8 @@ struct notification {
 struct notification_icon {
     char *id;
     char *symbolic_name;
-    char *tmp_file_on_disk;
+    char *tmp_file_name;
+    int tmp_file_fd;
 };
 
 bool notify_notify(struct terminal *term, struct notification *notif);
