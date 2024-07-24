@@ -677,7 +677,7 @@ kitty_notification(struct terminal *term, char *string)
                 char reply[128];
                 int n = xsnprintf(
                     reply, sizeof(reply),
-                    "\033]99;i=%s:p=?;p=title,body,?:a=focus,report:o=%s:u=0,1,2%s",
+                    "\033]99;i=%s:p=?;p=title,body,icon:a=focus,report:o=%s:u=0,1,2%s",
                     id, when_str, terminator);
 
                 term_to_slave(term, reply, n);
