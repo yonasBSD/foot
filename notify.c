@@ -34,6 +34,27 @@ notify_free(struct terminal *term, struct notification *notif)
     free(notif->stdout_data);
 }
 
+static bool
+to_integer(const char *line, size_t len, uint32_t *res)
+{
+    bool is_id = true;
+    uint32_t maybe_id = 0;
+
+    for (size_t i = 0; i < len; i++) {
+        char digit = line[i];
+        if (digit < '0' || digit > '9') {
+            is_id = false;
+            break;
+        }
+
+        maybe_id *= 10;
+        maybe_id += digit - '0';
+    }
+
+    *res = maybe_id;
+    return is_id;
+}
+
 static void
 consume_stdout(struct notification *notif, bool eof)
 {
@@ -54,10 +75,26 @@ consume_stdout(struct notification *notif, bool eof)
         } else if (!eof)
             break;
 
-        if (strcmp(line, "default") == 0)
-            notif->activated = true;
+        uint32_t maybe_id = 0;
 
-        /* Check for 'xdgtoken=xyz' */
+        /* Check for daemon assigned ID, either '123', or 'id=123' */
+        if (to_integer(line, len, &maybe_id) ||
+            (len > 3 && memcmp(line, "id=", 3) == 0 &&
+             to_integer(&line[3], len - 3, &maybe_id)))
+        {
+            notif->external_id = maybe_id;
+            LOG_DBG("external ID: %u", notif->external_id);
+        }
+
+        /* Check for triggered action, either 'default' or 'action=default' */
+        else if ((len == 7 && memcmp(line, "default", 7) == 0) ||
+                 (len == 7 + 7 && memcmp(line, "action=default", 7 + 7) == 0))
+        {
+            notif->activated = true;
+            LOG_DBG("notification's default action was triggered");
+        }
+
+        /* Check for XDG activation token, 'xdgtoken=xyz' */
         else if (len > 9 && memcmp(line, "xdgtoken=", 9) == 0) {
             notif->xdg_token = xstrndup(&line[9], len - 9);
             LOG_DBG("XDG token: \"%s\"", notif->xdg_token);

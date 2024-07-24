@@ -496,6 +496,21 @@ Note: do not set *TERM* here; use the *term* option in the main
 		reporting the XDG activation token in any way. This means
 		window activation will not work by default.
 	
+	Stdout
+		Foot recognizes the following things from the notification
+		helper's stdout:
+		
+		- _nnn_: integer in base 10, daemon assigned notification ID
+		- _id=nnn_: same as plain _nnn_.
+		- _default_: the 'default' action was triggered
+		- _action=default_: same as _default_
+		- _xdgtoken=xyz_: XDG activation token.
+		
+		Example:
+			17++
+action=default++
+xdgtoken=95ebdfe56e4f47ddb5bba9d7dc3a2c35
+
 	Default: _notify-send --wait --app-name ${app-id} --icon ${icon} --urgency ${urgency} --action ${action-name}=${action-label} --print-id -- ${title} ${body}_.
 
 

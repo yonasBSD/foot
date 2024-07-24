@@ -45,6 +45,7 @@ struct notification {
      * Used internally by notify
      */
 
+    uint32_t external_id;  /* Daemon assigned notification ID */
     bool activated;        /* User 'activated' the notification */
     char *xdg_token;       /* XDG activation token, from daemon */
 
