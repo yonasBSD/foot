@@ -181,11 +181,20 @@ notif_done(struct reaper *reaper, pid_t pid, int status, void *data)
         if (notif->activated && notif->report_activated) {
             xassert(notif->id != NULL);
 
-            LOG_DBG("sending notification report to client");
+            LOG_DBG("sending notification activation event to client");
 
             char reply[7 + strlen(notif->id) + 1 + 2 + 1];
             int n = xsnprintf(
                 reply, sizeof(reply), "\033]99;i=%s;\033\\", notif->id);
+            term_to_slave(term, reply, n);
+        }
+
+        if (notif->report_closed) {
+            LOG_DBG("sending notification close event to client");
+
+            char reply[7 + strlen(notif->id) + 1 + 7 + 1 + 2 + 1];
+            int n = xsnprintf(
+                reply, sizeof(reply), "\033]99;i=%s:p=close;\033\\", notif->id);
             term_to_slave(term, reply, n);
         }
 

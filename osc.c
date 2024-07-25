@@ -581,7 +581,8 @@ kitty_notification(struct terminal *term, char *string)
     char *payload = NULL;
 
     bool focus = true;             /* The 'a' parameter */
-    bool report = false;           /* The 'a' parameter */
+    bool report_activated = false; /* The 'a' parameter */
+    bool report_closed = false;    /* The 'c' parameter */
     bool done = true;              /* The 'd' parameter */
     bool base64 = false;           /* The 'e' parameter */
 
@@ -596,6 +597,7 @@ kitty_notification(struct terminal *term, char *string)
     enum notify_urgency urgency = NOTIFY_URGENCY_NORMAL;
 
     bool have_a = false;
+    bool have_c = false;
     bool have_o = false;
     bool have_u = false;
 
@@ -628,11 +630,19 @@ kitty_notification(struct terminal *term, char *string)
                 if (streq(v, "focus"))
                     focus = !reverse;
                 else if (streq(v, "report"))
-                    report = !reverse;
+                    report_activated = !reverse;
             }
 
             break;
         }
+
+        case 'c':
+            if (value[0] == '1' && value[1] == '\0')
+                report_closed = true;
+            else if (value[0] == '0' && value[1] == '\0')
+                report_closed = false;
+            have_c = true;
+            break;
 
         case 'd':
             /* done: 0|1 */
@@ -677,7 +687,7 @@ kitty_notification(struct terminal *term, char *string)
                 char reply[128];
                 int n = xsnprintf(
                     reply, sizeof(reply),
-                    "\033]99;i=%s:p=?;p=title,body,icon:a=focus,report:o=%s:u=0,1,2%s",
+                    "\033]99;i=%s:p=?;p=title,body,icon:a=focus,report:o=%s:u=0,1,2:c=1%s",
                     id, when_str, terminator);
 
                 term_to_slave(term, reply, n);
@@ -746,7 +756,8 @@ kitty_notification(struct terminal *term, char *string)
             .when = when,
             .urgency = urgency,
             .focus = focus,
-            .report_activated = report,
+            .report_activated = report_activated,
+            .report_closed = report_closed,
             .stdout_fd = -1,
         }));
 
@@ -762,8 +773,11 @@ kitty_notification(struct terminal *term, char *string)
     /* Update notification metadata */
     if (have_a) {
         notif->focus = focus;
-        notif->report_activated = report;
+        notif->report_activated = report_activated;
     }
+
+    if (have_c)
+        notif->report_closed = report_closed;
 
     if (have_o)
         notif->when = when;
