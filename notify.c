@@ -339,6 +339,51 @@ notify_notify(struct terminal *term, struct notification *notif)
     return true;
 }
 
+void
+notify_close(struct terminal *term, const char *id)
+{
+    LOG_DBG("close notification %s", id);
+
+    if (term->conf->desktop_notifications.close.argv.args == NULL)
+        return;
+
+    tll_foreach(term->active_notifications, it) {
+        const struct notification *notif = &it->item;
+        if (notif->id == 0 || !streq(notif->id, id))
+            continue;
+
+        if (notif->external_id == 0)
+            return;
+
+        char **argv = NULL;
+        size_t argc = 0;
+
+        char external_id[16];
+        xsnprintf(external_id, sizeof(external_id), "%u", notif->external_id);
+
+        if (!spawn_expand_template(
+            &term->conf->desktop_notifications.close, 1,
+            (const char *[]){"id"},
+            (const char *[]){external_id},
+            &argc, &argv))
+        {
+            return;
+        }
+
+        int devnull = open("/dev/null", O_RDONLY);
+        spawn(
+            term->reaper, NULL, argv, devnull, -1, -1,
+            NULL, (void *)term, NULL);
+
+        if (devnull >= 0)
+            close(devnull);
+
+        for (size_t i = 0; i < argc; i++)
+            free(argv[i]);
+        free(argv);
+    }
+}
+
 static void
 add_icon(struct notification_icon *icon, const char *id, const char *symbolic_name,
          const uint8_t *data, size_t data_sz)

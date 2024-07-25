@@ -590,6 +590,7 @@ kitty_notification(struct terminal *term, char *string)
     enum {
         PAYLOAD_TITLE,
         PAYLOAD_BODY,
+        PAYLOAD_CLOSE,
         PAYLOAD_ICON,
     } payload_type = PAYLOAD_TITLE; /* The 'p' parameter */
 
@@ -672,6 +673,8 @@ kitty_notification(struct terminal *term, char *string)
                 payload_type = PAYLOAD_TITLE;
             else if (streq(value, "body"))
                 payload_type = PAYLOAD_BODY;
+            else if (streq(value, "close"))
+                payload_type = PAYLOAD_CLOSE;
             else if (streq(value, "icon"))
                 payload_type = PAYLOAD_ICON;
             else if (streq(value, "?")) {
@@ -687,7 +690,7 @@ kitty_notification(struct terminal *term, char *string)
                 char reply[128];
                 int n = xsnprintf(
                     reply, sizeof(reply),
-                    "\033]99;i=%s:p=?;p=title,body,icon:a=focus,report:o=%s:u=0,1,2:c=1%s",
+                    "\033]99;i=%s:p=?;p=title,body,close,icon:a=focus,report:o=%s:u=0,1,2:c=1%s",
                     id, when_str, terminator);
 
                 term_to_slave(term, reply, n);
@@ -815,6 +818,10 @@ kitty_notification(struct terminal *term, char *string)
         break;
     }
 
+    case PAYLOAD_CLOSE:
+        /* Ignore payload */
+        break;
+
     case PAYLOAD_ICON:
         if (notif->icon_data == NULL) {
             notif->icon_data = (uint8_t *)payload;
@@ -847,14 +854,18 @@ kitty_notification(struct terminal *term, char *string)
             notif->icon_data_sz = 0;
         }
 
-        /*
-         * Show notification.
-         *
-         * The checks for title|body is to handle notifications that
-         * only load icon data into the icon cache
-         */
-        if (notif->title != NULL || notif->body != NULL) {
-            notify_notify(term, notif);
+        if (payload_type == PAYLOAD_CLOSE) {
+            notify_close(term, notif->id);
+        } else {
+            /*
+             * Show notification.
+             *
+             * The checks for title|body is to handle notifications that
+             * only load icon data into the icon cache
+             */
+            if (notif->title != NULL || notif->body != NULL) {
+                notify_notify(term, notif);
+            }
         }
 
         tll_foreach(term->kitty_notifications, it) {

@@ -77,6 +77,9 @@
   `notify-focus-inhibit`.
 * `${icon}`, `${urgency}`,`${action-name}` and `${action-label}` added
   to the `desktop-notifications.command` template.
+* `desktop-notifications.close` option, defining what to execute when
+  an application wants to close an existing notification (via an
+  OSC-99 escape sequence).
 
 [1707]: https://codeberg.org/dnkl/foot/issues/1707
 [1738]: https://codeberg.org/dnkl/foot/issues/1738

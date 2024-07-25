@@ -513,6 +513,18 @@ xdgtoken=95ebdfe56e4f47ddb5bba9d7dc3a2c35
 
 	Default: _notify-send --wait --app-name ${app-id} --icon ${icon} --urgency ${urgency} --action ${action-name}=${action-label} --print-id -- ${title} ${body}_.
 
+*close*
+	Command to execute to close an existing notification.
+	
+	_${id}_ is expanded to the ID of the notification that should be
+	closed. For example:
+	
+		fyi --close ${id}
+	
+	Closing a notification is only supported by the Kitty Desktop
+	Notification protocol, OSC-99.
+	
+	Default: _not set_
 
 *inhibit-when-focused*
 	Boolean. If enabled, foot will not display notifications if the

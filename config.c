@@ -1110,6 +1110,9 @@ parse_section_desktop_notifications(struct context *ctx)
     if (streq(key, "command"))
         return value_to_spawn_template(
             ctx, &conf->desktop_notifications.command);
+    else if (streq(key, "close"))
+        return value_to_spawn_template(
+            ctx, &conf->desktop_notifications.close);
     else if (streq(key, "inhibit-when-focused"))
         return value_to_bool(
             ctx, &conf->desktop_notifications.inhibit_when_focused);
@@ -3186,6 +3189,9 @@ config_load(struct config *conf, const char *conf_path,
             .command = {
                 .argv = {.args = NULL},
             },
+            .close = {
+                .argv = {.args = NULL},
+            },
             .inhibit_when_focused = true,
         },
 
@@ -3481,6 +3487,8 @@ config_clone(const struct config *old)
     spawn_template_clone(&conf->bell.command, &old->bell.command);
     spawn_template_clone(&conf->desktop_notifications.command,
                          &old->desktop_notifications.command);
+    spawn_template_clone(&conf->desktop_notifications.close,
+                         &old->desktop_notifications.close);
 
     for (size_t i = 0; i < ALEN(conf->fonts); i++)
         config_font_list_clone(&conf->fonts[i], &old->fonts[i]);
@@ -3563,6 +3571,7 @@ config_free(struct config *conf)
     spawn_template_free(&conf->bell.command);
     free(conf->scrollback.indicator.text);
     spawn_template_free(&conf->desktop_notifications.command);
+    spawn_template_free(&conf->desktop_notifications.close);
     for (size_t i = 0; i < ALEN(conf->fonts); i++)
         config_font_list_destroy(&conf->fonts[i]);
     free(conf->server_socket_path);
