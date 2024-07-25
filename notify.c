@@ -183,9 +183,9 @@ notif_done(struct reaper *reaper, pid_t pid, int status, void *data)
 
             LOG_DBG("sending notification report to client");
 
-            char reply[5 + strlen(notif->id) + 1 + 2 + 1];
+            char reply[7 + strlen(notif->id) + 1 + 2 + 1];
             int n = xsnprintf(
-                reply, sizeof(reply), "\033]99;%s;\033\\", notif->id);
+                reply, sizeof(reply), "\033]99;i=%s;\033\\", notif->id);
             term_to_slave(term, reply, n);
         }
 
