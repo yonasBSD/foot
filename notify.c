@@ -178,7 +178,7 @@ notif_done(struct reaper *reaper, pid_t pid, int status, void *data)
             wayl_activate(term->wl, term->window, notif->xdg_token);
         }
 
-        if (notif->activated && notif->report) {
+        if (notif->activated && notif->report_activated) {
             xassert(notif->id != NULL);
 
             LOG_DBG("sending notification report to client");
@@ -231,7 +231,7 @@ notify_notify(struct terminal *term, struct notification *notif)
         icon_name_or_path = notif->icon_symbolic_name;
     }
 
-    bool track_notification = notif->focus || notif->report;
+    bool track_notification = notif->focus || notif->report_activated;
 
     LOG_DBG("notify: title=\"%s\", body=\"%s\", icon=\"%s\" (tracking: %s)",
             title, body, icon_name_or_path, track_notification ? "yes" : "no");

@@ -746,7 +746,7 @@ kitty_notification(struct terminal *term, char *string)
             .when = when,
             .urgency = urgency,
             .focus = focus,
-            .report = report,
+            .report_activated = report,
             .stdout_fd = -1,
         }));
 
@@ -762,7 +762,7 @@ kitty_notification(struct terminal *term, char *string)
     /* Update notification metadata */
     if (have_a) {
         notif->focus = focus;
-        notif->report = report;
+        notif->report_activated = report;
     }
 
     if (have_o)

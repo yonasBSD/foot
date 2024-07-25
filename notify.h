@@ -39,7 +39,7 @@ struct notification {
     enum notify_when when;
     enum notify_urgency urgency;
     bool focus;
-    bool report;
+    bool report_activated;
 
     /*
      * Used internally by notify
