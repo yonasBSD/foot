@@ -338,8 +338,10 @@ struct config {
         SELECTION_TARGET_BOTH
     } selection_target;
 
-    struct config_spawn_template notify;
-    bool notify_focus_inhibit;
+    struct {
+        struct config_spawn_template command;
+        bool inhibit_when_focused;
+    } desktop_notifications;
 
     env_var_list_t env_vars;
 

@@ -20,6 +20,7 @@
 #include "fdm.h"
 #include "key-binding.h"
 #include "macros.h"
+#include "notify.h"
 #include "reaper.h"
 #include "shm.h"
 #include "wayland.h"
@@ -797,6 +798,12 @@ struct terminal {
         void (*cb)(void *data, int exit_code);
         void *cb_data;
     } shutdown;
+
+    /* Notifications that either haven't been sent yet, or have been
+       sent but not yet dismissed */
+    tll(struct notification) kitty_notifications;
+    tll(struct notification) active_notifications;
+    struct notification_icon notification_icons[32];
 
     char *foot_exe;
     char *cwd;

@@ -12,15 +12,12 @@
 #include "log.h"
 #include "base64.h"
 #include "config.h"
-#include "grid.h"
 #include "macros.h"
 #include "notify.h"
-#include "render.h"
 #include "selection.h"
 #include "terminal.h"
 #include "uri.h"
 #include "util.h"
-#include "vt.h"
 #include "xmalloc.h"
 #include "xsnprintf.h"
 
@@ -67,7 +64,7 @@ osc_to_clipboard(struct terminal *term, const char *target,
         return;
     }
 
-    char *decoded = base64_decode(base64_data);
+    char *decoded = base64_decode(base64_data, NULL);
     if (decoded == NULL) {
         if (errno == EINVAL)
             LOG_WARN("OSC: invalid clipboard data: %s", base64_data);
@@ -560,7 +557,306 @@ osc_notify(struct terminal *term, char *string)
         return;
     }
 
-    notify_notify(term, title, msg != NULL ? msg : "");
+    notify_notify(term, &(struct notification){
+        .title = (char *)title,
+        .body = (char *)msg});
+}
+
+static void
+kitty_notification(struct terminal *term, char *string)
+{
+    /* https://sw.kovidgoyal.net/kitty/desktop-notifications */
+
+    char *payload_raw = strchr(string, ';');
+    if (payload_raw == NULL)
+        return;
+
+    char *parameters = string;
+    *payload_raw = '\0';
+    payload_raw++;
+
+    char *id = xstrdup("0");       /* The 'i' parameter */
+    char *icon_id = NULL;          /* The 'g' parameter */
+    char *symbolic_icon = NULL;    /* The 'n' parameter */
+    char *payload = NULL;
+
+    bool focus = true;             /* The 'a' parameter */
+    bool report = false;           /* The 'a' parameter */
+    bool done = true;              /* The 'd' parameter */
+    bool base64 = false;           /* The 'e' parameter */
+
+    size_t payload_size;
+    enum {
+        PAYLOAD_TITLE,
+        PAYLOAD_BODY,
+        PAYLOAD_ICON,
+    } payload_type = PAYLOAD_TITLE; /* The 'p' parameter */
+
+    enum notify_when when = NOTIFY_ALWAYS;
+    enum notify_urgency urgency = NOTIFY_URGENCY_NORMAL;
+
+    bool have_a = false;
+    bool have_o = false;
+    bool have_u = false;
+
+    char *ctx = NULL;
+    for (char *param = strtok_r(parameters, ":", &ctx);
+         param != NULL;
+         param = strtok_r(NULL, ":", &ctx))
+    {
+        /* All parameters are on the form X=value, where X is always
+           exactly one character */
+        if (param[0] == '\0' || param[1] != '=')
+            continue;
+
+        char *value = &param[2];
+
+        switch (param[0]) {
+        case 'a': {
+            /* notification activation action: focus|report|-focus|-report */
+            have_a = true;
+            char *a_ctx = NULL;
+
+            for (const char *v = strtok_r(value, ",", &a_ctx);
+                 v != NULL;
+                 v = strtok_r(NULL, ",", &a_ctx))
+            {
+                bool reverse = v[0] == '-';
+                if (reverse)
+                    v++;
+
+                if (streq(v, "focus"))
+                    focus = !reverse;
+                else if (streq(v, "report"))
+                    report = !reverse;
+            }
+
+            break;
+        }
+
+        case 'd':
+            /* done: 0|1 */
+            if (value[0] == '0' && value[1] == '\0')
+                done = false;
+            else if (value[0] == '1' && value[1] == '\0')
+                done = true;
+            break;
+
+        case 'e':
+            /* base64 (payload encoding): 0=utf8, 1=base64(utf8) */
+            if (value[0] == '0' && value[1] == '\0')
+                base64 = false;
+            else if (value[0] == '1' && value[1] == '\0')
+                base64 = true;
+            break;
+
+        case 'i':
+            /* id */
+            free(id);
+            id = xstrdup(value);
+            break;
+
+        case 'p':
+            /* payload content: title|body */
+            if (streq(value, "title"))
+                payload_type = PAYLOAD_TITLE;
+            else if (streq(value, "body"))
+                payload_type = PAYLOAD_BODY;
+            else if (streq(value, "icon"))
+                payload_type = PAYLOAD_ICON;
+            else if (streq(value, "?")) {
+                /* Query capabilities */
+
+                char when_str[64];
+                strcpy(when_str, "unfocused");
+                if (!term->conf->desktop_notifications.inhibit_when_focused)
+                    strcat(when_str, ",always");
+
+                const char *terminator = term->vt.osc.bel ? "\a" : "\033\\";
+
+                char reply[128];
+                int n = xsnprintf(
+                    reply, sizeof(reply),
+                    "\033]99;i=%s:p=?;p=title,body,icon:a=focus,report:o=%s:u=0,1,2%s",
+                    id, when_str, terminator);
+
+                term_to_slave(term, reply, n);
+                goto out;
+            }
+            break;
+
+        case 'o':
+            /* honor when: always|unfocused|invisible */
+            have_o = true;
+            if (streq(value, "always"))
+                when = NOTIFY_ALWAYS;
+            else if (streq(value, "unfocused"))
+                when = NOTIFY_UNFOCUSED;
+            else if (streq(value, "invisible"))
+                when = NOTIFY_INVISIBLE;
+            break;
+
+        case 'u':
+            /* urgency: 0=low, 1=normal, 2=critical */
+            have_u = true;
+            if (value[0] == '0' && value[1] == '\0')
+                urgency = NOTIFY_URGENCY_LOW;
+            else if (value[0] == '1' && value[1] == '\0')
+                urgency = NOTIFY_URGENCY_NORMAL;
+            else if (value[0] == '2' && value[1] == '\0')
+                urgency = NOTIFY_URGENCY_CRITICAL;
+            break;
+
+        case 'g':
+            /* graphical ID */
+            free(icon_id);
+            icon_id = xstrdup(value);
+            break;
+
+        case 'n':
+            /* Symbolic icon name, used with 'g' */
+            free(symbolic_icon);
+            symbolic_icon = xstrdup(value);
+            break;
+        }
+    }
+
+    if (base64) {
+        payload = base64_decode(payload_raw, &payload_size);
+        if (payload == NULL)
+            goto out;
+    } else {
+        payload = xstrdup(payload_raw);
+        payload_size = strlen(payload);
+    }
+
+    /* Search for an existing (d=0) notification to update */
+    struct notification *notif = NULL;
+    tll_foreach(term->kitty_notifications, it) {
+        if (streq(it->item.id, id)) {
+            /* Found existing notification */
+            notif = &it->item;
+            break;
+        }
+    }
+
+    if (notif == NULL) {
+        tll_push_front(term->kitty_notifications, ((struct notification){
+            .id = id,
+            .when = when,
+            .urgency = urgency,
+            .focus = focus,
+            .report = report,
+            .stdout_fd = -1,
+        }));
+
+        id = NULL;   /* Prevent double free */
+        notif = &tll_front(term->kitty_notifications);
+    }
+
+    if (notif->pid > 0) {
+        /* Notification has already been completed, ignore new metadata */
+        goto out;
+    }
+
+    /* Update notification metadata */
+    if (have_a) {
+        notif->focus = focus;
+        notif->report = report;
+    }
+
+    if (have_o)
+        notif->when = when;
+    if (have_u)
+        notif->urgency = urgency;
+
+    if (icon_id != NULL) {
+        free(notif->icon_id);
+        notif->icon_id = icon_id;
+        icon_id = NULL;  /* Prevent double free */
+    }
+
+    if (symbolic_icon != NULL) {
+        free(notif->icon_symbolic_name);
+        notif->icon_symbolic_name = symbolic_icon;
+        symbolic_icon = NULL;
+    }
+
+    /* Handled chunked payload - append to existing metadata */
+    switch (payload_type) {
+    case PAYLOAD_TITLE:
+    case PAYLOAD_BODY: {
+        char **ptr = payload_type == PAYLOAD_TITLE
+            ? &notif->title
+            : &notif->body;
+
+        if (*ptr == NULL) {
+            *ptr = payload;
+            payload = NULL;
+        } else {
+            char *old = *ptr;
+            *ptr = xstrjoin(old, payload);
+            free(old);
+        }
+        break;
+    }
+
+    case PAYLOAD_ICON:
+        if (notif->icon_data == NULL) {
+            notif->icon_data = (uint8_t *)payload;
+            notif->icon_data_sz = payload_size;
+            payload = NULL;
+        } else {
+            notif->icon_data = xrealloc(
+                notif->icon_data, notif->icon_data_sz + payload_size);
+            memcpy(&notif->icon_data[notif->icon_data_sz], payload, payload_size);
+            notif->icon_data_sz += payload_size;
+        }
+        break;
+    }
+
+    if (done) {
+        /* Update icon cache, if necessary */
+        if (notif->icon_id != NULL &&
+            (notif->icon_symbolic_name != NULL || notif->icon_data != NULL))
+        {
+            notify_icon_del(term, notif->icon_id);
+            notify_icon_add(term, notif->icon_id,
+                            notif->icon_symbolic_name,
+                            notif->icon_data, notif->icon_data_sz);
+
+            /* Don't need this anymore */
+            free(notif->icon_symbolic_name);
+            free(notif->icon_data);
+            notif->icon_symbolic_name = NULL;
+            notif->icon_data = NULL;
+            notif->icon_data_sz = 0;
+        }
+
+        /*
+         * Show notification.
+         *
+         * The checks for title|body is to handle notifications that
+         * only load icon data into the icon cache
+         */
+        if (notif->title != NULL || notif->body != NULL) {
+            notify_notify(term, notif);
+        }
+
+        tll_foreach(term->kitty_notifications, it) {
+            if (&it->item == notif) {
+                notify_free(term, &it->item);
+                tll_remove(term->kitty_notifications, it);
+                break;
+            }
+        }
+    }
+
+out:
+    free(id);
+    free(icon_id);
+    free(symbolic_icon);
+    free(payload);
 }
 
 void
@@ -778,6 +1074,10 @@ osc_dispatch(struct terminal *term)
 
     case 52:  /* Copy to/from clipboard/primary */
         osc_selection(term, string);
+        break;
+
+    case 99:  /* Kitty notifications */
+        kitty_notification(term, string);
         break;
 
     case 104: {

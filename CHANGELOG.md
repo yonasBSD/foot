@@ -70,6 +70,13 @@
 * Support for [in-band window resize
   notifications](https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83),
   private mode `2048`.
+* Support for OSC-99 [_"Kitty desktop
+  notifications"_](https://sw.kovidgoyal.net/kitty/desktop-notifications/).
+* `desktop-notifications.command` option, replaces `notify`.
+* `desktop-notifications.inhibit-when-focused` option, replaces
+  `notify-focus-inhibit`.
+* `${icon}`, `${urgency}`,`${action-name}` and `${action-label}` added
+  to the `desktop-notifications.command` template.
 
 [1707]: https://codeberg.org/dnkl/foot/issues/1707
 [1738]: https://codeberg.org/dnkl/foot/issues/1738
@@ -116,6 +123,12 @@
 
 
 ### Deprecated
+
+* `notify` option; replaced by `desktop-notifications.command`.
+* `notify-focus-inhibit` option; replaced by
+  `desktop-notifications.inhibit-when-focused`.
+
+
 ### Removed
 ### Fixed
 

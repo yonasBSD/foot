@@ -1,7 +1,7 @@
 #include "unicode-mode.h"
 
 #define LOG_MODULE "unicode-input"
-#define LOG_ENABLE_DBG 1
+#define LOG_ENABLE_DBG 0
 #include "log.h"
 #include "render.h"
 #include "search.h"

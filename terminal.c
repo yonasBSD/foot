@@ -198,7 +198,7 @@ add_utmp_record(const struct config *conf, struct reaper *reaper, int ptmx)
         return true;
 
     char *const argv[] = {conf->utmp_helper_path, UTMP_ADD, getenv("WAYLAND_DISPLAY"), NULL};
-    return spawn(reaper, NULL, argv, ptmx, ptmx, -1, NULL);
+    return spawn(reaper, NULL, argv, ptmx, ptmx, -1, NULL, NULL, NULL) >= 0;
 #else
     return true;
 #endif
@@ -222,7 +222,7 @@ del_utmp_record(const struct config *conf, struct reaper *reaper, int ptmx)
         ;
 
     char *const argv[] = {conf->utmp_helper_path, UTMP_DEL, del_argument, NULL};
-    return spawn(reaper, NULL, argv, ptmx, ptmx, -1, NULL);
+    return spawn(reaper, NULL, argv, ptmx, ptmx, -1, NULL, NULL, NULL) >= 0;
 #else
     return true;
 #endif
@@ -1313,6 +1313,8 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
 #if defined(FOOT_IME_ENABLED) && FOOT_IME_ENABLED
         .ime_enabled = true,
 #endif
+        .kitty_notifications = tll_init(),
+        .active_notifications = tll_init(),
     };
 
     pixman_region32_init(&term->render.last_overlay_clip);
@@ -1817,6 +1819,19 @@ term_destroy(struct terminal *term)
         tll_remove(term->ptmx_paste_buffers, it);
     }
 
+    tll_foreach(term->kitty_notifications, it) {
+        notify_free(term, &it->item);
+        tll_remove(term->kitty_notifications, it);
+    }
+
+    tll_foreach(term->active_notifications, it) {
+        notify_free(term, &it->item);
+        tll_remove(term->active_notifications, it);
+    }
+
+    for (size_t i = 0; i < ALEN(term->notification_icons); i++)
+        notify_icon_free(&term->notification_icons[i]);
+
     sixel_fini(term);
 
     term_ime_reset(term);
@@ -2021,6 +2036,19 @@ term_reset(struct terminal *term, bool hard)
         sixel_destroy(&it->item);
         tll_remove(term->alt.sixel_images, it);
     }
+
+    tll_foreach(term->kitty_notifications, it) {
+        notify_free(term, &it->item);
+        tll_remove(term->kitty_notifications, it);
+    }
+
+    tll_foreach(term->active_notifications, it) {
+        notify_free(term, &it->item);
+        tll_remove(term->active_notifications, it);
+    }
+
+    for (size_t i = 0; i < ALEN(term->notification_icons); i++)
+        notify_icon_free(&term->notification_icons[i]);
 
     term->grapheme_shaping = term->conf->tweak.grapheme_shaping;
 
@@ -3566,8 +3594,11 @@ term_bell(struct terminal *term)
         }
     }
 
-    if (term->conf->bell.notify)
-        notify_notify(term, "Bell", "Bell in terminal");
+    if (term->conf->bell.notify) {
+        notify_notify(term, &(struct notification){
+            .title = (char *)"Bell",
+            .body = (char *)"Bell in terminal"});
+    }
 
     if (term->conf->bell.flash)
         term_flash(term, 100);
@@ -3577,7 +3608,7 @@ term_bell(struct terminal *term)
     {
         int devnull = open("/dev/null", O_RDONLY);
         spawn(term->reaper, NULL, term->conf->bell.command.argv.args,
-              devnull, -1, -1, NULL);
+              devnull, -1, -1, NULL, NULL, NULL);
 
         if (devnull >= 0)
             close(devnull);
@@ -3589,7 +3620,7 @@ term_spawn_new(const struct terminal *term)
 {
     return spawn(
         term->reaper, term->cwd, (char *const []){term->foot_exe, NULL},
-        -1, -1, -1, NULL);
+        -1, -1, -1, NULL, NULL, NULL) >= 0;
 }
 
 void

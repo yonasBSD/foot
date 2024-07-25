@@ -1824,8 +1824,7 @@ wayl_win_init(struct terminal *term, const char *token)
     wl_surface_commit(win->surface.surf);
 
     /* Complete XDG startup notification */
-    if (token && wayl->xdg_activation != NULL)
-        xdg_activation_v1_activate(wayl->xdg_activation, token, win->surface.surf);
+    wayl_activate(wayl, win, token);
 
     if (!wayl_win_subsurface_new(win, &win->overlay, false)) {
         LOG_ERR("failed to create overlay surface");
@@ -2376,4 +2375,16 @@ wayl_get_activation_token(
     xdg_activation_token_v1_add_listener(token, &activation_token_listener, ctx);
     xdg_activation_token_v1_commit(token);
     return true;
+}
+
+void
+wayl_activate(struct wayland *wayl, struct wl_window *win, const char *token)
+{
+    if (wayl->xdg_activation == NULL)
+        return;
+
+    if (token == NULL)
+        return;
+
+    xdg_activation_v1_activate(wayl->xdg_activation, token, win->surface.surf);
 }

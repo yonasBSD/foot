@@ -499,3 +499,5 @@ void wayl_win_subsurface_destroy(struct wayl_sub_surface *surf);
 bool wayl_get_activation_token(
     struct wayland *wayl, struct seat *seat, uint32_t serial,
     struct wl_window *win, activation_token_cb_t cb, void *cb_data);
+void wayl_activate(struct wayland *wayl, struct wl_window *win, const char *token);
+
