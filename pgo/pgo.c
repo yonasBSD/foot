@@ -158,6 +158,11 @@ notify_notify(struct terminal *term, struct notification *notif)
 }
 
 void
+notify_close(struct terminal *term, const char *id)
+{
+}
+
+void
 notify_free(struct terminal *term, struct notification *notif)
 {
 }
