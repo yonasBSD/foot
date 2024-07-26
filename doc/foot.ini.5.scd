@@ -524,6 +524,11 @@ xdgtoken=95ebdfe56e4f47ddb5bba9d7dc3a2c35
 	Closing a notification is only supported by the Kitty Desktop
 	Notification protocol, OSC-99.
 	
+	If set to the empty string (the default), foot will instead try to
+	close the notification by sending SIGINT to the notification
+	helper process. For example, *notify-send --wait* (libnotify >=
+	0.8.0) responds to SIGINT by closing the notification.
+	
 	Default: _not set_
 
 *inhibit-when-focused*

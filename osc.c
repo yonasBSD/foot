@@ -759,6 +759,7 @@ kitty_notification(struct terminal *term, char *string)
             .when = when,
             .urgency = urgency,
             .focus = focus,
+            .may_be_programatically_closed = true,
             .report_activated = report_activated,
             .report_closed = report_closed,
             .stdout_fd = -1,

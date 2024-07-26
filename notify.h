@@ -39,6 +39,7 @@ struct notification {
     enum notify_when when;
     enum notify_urgency urgency;
     bool focus;
+    bool may_be_programatically_closed;
     bool report_activated;
     bool report_closed;
 
