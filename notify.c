@@ -10,7 +10,7 @@
 #include <fcntl.h>
 
 #define LOG_MODULE "notify"
-#define LOG_ENABLE_DBG 1
+#define LOG_ENABLE_DBG 0
 #include "log.h"
 #include "config.h"
 #include "spawn.h"
