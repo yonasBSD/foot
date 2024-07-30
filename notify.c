@@ -223,11 +223,8 @@ notify_notify(struct terminal *term, struct notification *notif)
     const char *title = notif->title != NULL ? notif->title : notif->body;
     const char *body = notif->title != NULL && notif->body != NULL ? notif->body : "";
 
-    /* Icon: use symbolic name from notification, if present,
-       otherwise fallback to the application ID */
-    const char *icon_name_or_path = term->app_id != NULL
-        ? term->app_id
-        : term->conf->app_id;
+    /* Icon: symbolic name if present, otherwise a filename */
+    const char *icon_name_or_path = "";
 
     if (notif->icon_id != NULL) {
         for (size_t i = 0; i < ALEN(term->notification_icons); i++) {

@@ -511,7 +511,7 @@ Note: do not set *TERM* here; use the *term* option in the main
 action=default++
 xdgtoken=95ebdfe56e4f47ddb5bba9d7dc3a2c35
 
-	Default: _notify-send --wait --app-name ${app-id} --icon ${icon} --urgency ${urgency} --action ${action-name}=${action-label} --print-id -- ${title} ${body}_.
+	Default: _notify-send --wait --app-name ${app-id} --icon ${app-id} --urgency ${urgency} --hint STRING:image-path:${icon} --action ${action-name}=${action-label} --print-id -- ${title} ${body}_.
 
 *close*
 	Command to execute to close an existing notification.
