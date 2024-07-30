@@ -505,10 +505,13 @@ notify_icon_del(struct terminal *term, const char *id)
 void
 notify_icon_free(struct notification_icon *icon)
 {
-    if (icon->tmp_file_fd >= 0)
-        close(icon->tmp_file_fd);
-    if (icon->tmp_file_name != NULL)
+    if (icon->tmp_file_name != NULL) {
         unlink(icon->tmp_file_name);
+        if (icon->tmp_file_fd >= 0) {
+            xassert(icon->tmp_file_fd > 0);  // DEBUG
+            close(icon->tmp_file_fd);
+        }
+    }
 
     free(icon->id);
     free(icon->symbolic_name);

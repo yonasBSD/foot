@@ -1330,6 +1330,10 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
         }
     }
 
+    for (size_t i = 0; i < ALEN(term->notification_icons); i++) {
+        term->notification_icons[i].tmp_file_fd = -1;
+    }
+
     add_utmp_record(conf, reaper, ptmx);
 
     if (!pty_path) {

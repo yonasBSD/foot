@@ -255,7 +255,7 @@ instantiate_offset(struct buffer_private *buf, off_t new_offset)
 
     void *mmapped = MAP_FAILED;
     struct wl_buffer *wl_buf = NULL;
-    pixman_image_t **pix = xcalloc(buf->public.pix_instances, sizeof(*pix));
+    pixman_image_t **pix = xcalloc(buf->public.pix_instances, sizeof(pix[0]));
 
     mmapped = (uint8_t *)pool->real_mmapped + new_offset;
 
