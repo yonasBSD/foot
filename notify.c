@@ -476,18 +476,21 @@ notify_notify(struct terminal *term, struct notification *notif)
 
         if (action_argc == 0) {
             free(argv[i]);
-            memmove(&argv[i], &argv[i + 1], (argc - i - 1) * sizeof(argv[0]));
-            argv[argc--] = NULL;
+
+            /* Remove ${command-arg}, but include terminating NULL */
+            memmove(&argv[i], &argv[i + 1], (argc - i) * sizeof(argv[0]));
+            argc--;
             break;
         }
 
-        /* Remove the "${action-arg}" entry, add all actions argument from earlier */
-        argv = xrealloc(argv, (argc + action_argc - 1) * sizeof(argv[0]));
+        /* Remove the "${action-arg}" entry, add all actions argument
+           from earlier, but include terminating NULL */
+        argv = xrealloc(argv, (argc + action_argc) * sizeof(argv[0]));
 
         /* Move remaining arguments to after the action arguments */
         memmove(&argv[i + action_argc],
                 &argv[i + 1],
-                (argc - (i + 1)) * sizeof(argv[0]));
+                (argc - i) * sizeof(argv[0]));  /* Include terminating NULL */
 
         free(argv[i]); /* Free xstrdup("${action-arg}"); */
 
@@ -501,10 +504,11 @@ notify_notify(struct terminal *term, struct notification *notif)
         argc--;  /* The ${action-arg} option has been removed */
         break;
     }
-    
+
     LOG_DBG("notify command:");
     for (size_t i = 0; i < argc; i++)
         LOG_DBG("  argv[%zu] = \"%s\"", i, argv[i]);
+    xassert(argv[argc] == NULL);
 
     int stdout_fds[2] = {-1, -1};
     if (track_notification) {
