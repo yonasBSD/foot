@@ -3601,7 +3601,9 @@ term_bell(struct terminal *term)
     if (term->conf->bell.notify) {
         notify_notify(term, &(struct notification){
             .title = (char *)"Bell",
-            .body = (char *)"Bell in terminal"});
+            .body = (char *)"Bell in terminal",
+            .expire_time = -1,
+        });
     }
 
     if (term->conf->bell.flash)

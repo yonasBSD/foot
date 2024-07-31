@@ -806,6 +806,11 @@ value_to_spawn_template(struct context *ctx,
 
     char **argv = NULL;
 
+    if (ctx->value[0] == '"' && ctx->value[1] == '"' && ctx->value[2] == '\0') {
+        template->argv.args = NULL;
+        return true;
+    }
+
     if (!tokenize_cmdline(ctx->value, &argv)) {
         LOG_CONTEXTUAL_ERR("syntax error in command line");
         return false;
@@ -1110,6 +1115,9 @@ parse_section_desktop_notifications(struct context *ctx)
     if (streq(key, "command"))
         return value_to_spawn_template(
             ctx, &conf->desktop_notifications.command);
+    else if (streq(key, "command-action-arg"))
+        return value_to_spawn_template(
+            ctx, &conf->desktop_notifications.command_action_arg);
     else if (streq(key, "close"))
         return value_to_spawn_template(
             ctx, &conf->desktop_notifications.close);
@@ -3189,6 +3197,9 @@ config_load(struct config *conf, const char *conf_path,
             .command = {
                 .argv = {.args = NULL},
             },
+            .command_action_arg = {
+                .argv = {.args = NULL},
+            },
             .close = {
                 .argv = {.args = NULL},
             },
@@ -3231,8 +3242,9 @@ config_load(struct config *conf, const char *conf_path,
     parse_modifiers(XKB_MOD_NAME_SHIFT, 5, &conf->mouse.selection_override_modifiers);
 
     tokenize_cmdline(
-        "notify-send --wait --app-name ${app-id} --icon ${app-id} --urgency ${urgency} --hint STRING:image-path:${icon} --action ${action-name}=${action-label} --print-id -- ${title} ${body}",
+        "notify-send --wait --app-name ${app-id} --icon ${app-id} --category ${category} --urgency ${urgency} --expire-time ${expire-time} --hint STRING:image-path:${icon} --replace-id ${replace-id} ${action-arg} --print-id -- ${title} ${body}",
         &conf->desktop_notifications.command.argv.args);
+    tokenize_cmdline("--action ${action-name}=${action-label}", &conf->desktop_notifications.command_action_arg.argv.args);
     tokenize_cmdline("xdg-open ${url}", &conf->url.launch.argv.args);
 
     static const char32_t *url_protocols[] = {
@@ -3487,6 +3499,8 @@ config_clone(const struct config *old)
     spawn_template_clone(&conf->bell.command, &old->bell.command);
     spawn_template_clone(&conf->desktop_notifications.command,
                          &old->desktop_notifications.command);
+    spawn_template_clone(&conf->desktop_notifications.command_action_arg,
+                         &old->desktop_notifications.command_action_arg);
     spawn_template_clone(&conf->desktop_notifications.close,
                          &old->desktop_notifications.close);
 
@@ -3571,6 +3585,7 @@ config_free(struct config *conf)
     spawn_template_free(&conf->bell.command);
     free(conf->scrollback.indicator.text);
     spawn_template_free(&conf->desktop_notifications.command);
+    spawn_template_free(&conf->desktop_notifications.command_action_arg);
     spawn_template_free(&conf->desktop_notifications.close);
     for (size_t i = 0; i < ALEN(conf->fonts); i++)
         config_font_list_destroy(&conf->fonts[i]);

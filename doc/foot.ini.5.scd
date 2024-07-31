@@ -436,12 +436,37 @@ Note: do not set *TERM* here; use the *term* option in the main
 		_${window-title}_ is replaced with the current window title.
 		
 		_${icon}_ is replaced by the icon specified in the
-		notification request, or _${app_id}_ if the notification did
-		not set an icon. Note that only symbolic icon names are
-		supported, not filenames.
+		notification request, or the empty string if no icon was
+		specified. Can be used with e.g. notify-send's *--icon*
+		option, or preferably, by setting the *image-path* hint (with
+		e.g. notify-send's *--hint* option).
+		
+		_${category}_ is replaced by the notification's catogory. Can
+		be used together with e.g. notify-send's *--category* option.
 		
 		_${urgency}_ is replaced with the notifications urgency;
-		*low*, *normal* or *critical*.
+		*low*, *normal* or *critical*. Can be used together with
+		e.g. notify-send's *--urgency* option.
+		
+		_${expire-time}_ is replaced with the notification specified
+		notification timeout. Can be used together with
+		e.g. notify-send's *--expire-time* option.
+		
+		_${replace-id}_ is replaced by the notification daemon
+		assigned ID that the notification replaces/updates. For this
+		to work, foot needs to know the externally assigned IDs of
+		previously emitted notifications, see the 'stdout' section
+		below. Can be used together with e.g. notify-send's
+		*--replace-id* option.
+		
+		_${action-arg}_ will be expanded to the *command-action-arg*
+		option, for each notification action. There will always be at
+		least one action, the "default" action. Foot uses this to
+		enable window focusing, and reporting notification activation
+		to applications that requested such events.
+		
+		Applications can also define their own custom notification
+		actions. See the *command-action-arg* option for details.
 	
 	Ways to trigger notifications
 		Applications can trigger notifications in the following ways:
@@ -469,12 +494,11 @@ Note: do not set *TERM* here; use the *term* option in the main
 		activation token.
 		
 		There are two parts to handle this. First, the notification
-		must define an action. For this purpose, foot definse the
-		template parameters *${action-name}* and
-		*${action-label}*. They are intended to be used with
-		e.g. notify-send's *-A,--action* option.
+		must define an action. For this purpose, foot will add a
+		"default" action to the notification (see the
+		*command-action-arg* option).
 		
-		Second, foot needs to know when the notification activated,
+		Second, foot needs to know when the notification is activated,
 		and it needs to get hold of the XDG activation token.
 		
 		Both are expected to be printed on stdout.
@@ -486,8 +510,8 @@ Note: do not set *TERM* here; use the *term* option in the main
 		line, prefixed with *xdgtoken=*.
 		
 		Example:
-			default
-			xdgtoken=18179adf579a7a904ce73754964b1ec3
+			default++
+xdgtoken=18179adf579a7a904ce73754964b1ec3
 		
 		The expected format of stdout may change at any time. Please
 		read the changelog when upgrading foot.
@@ -501,17 +525,81 @@ Note: do not set *TERM* here; use the *term* option in the main
 		helper's stdout:
 		
 		- _nnn_: integer in base 10, daemon assigned notification ID
-		- _id=nnn_: same as plain _nnn_.
-		- _default_: the 'default' action was triggered
-		- _action=default_: same as _default_
-		- _xdgtoken=xyz_: XDG activation token.
+		- *id=*_nnn_: same as plain _nnn_.
+		- *default*: the 'default' action was triggered
+		- *action=*_default_: same as _default_
+		- *action=*_n_: application custom action _n_ triggered
+		- *xdgtoken=*_xyz_: XDG activation token.
 		
 		Example:
 			17++
 action=default++
 xdgtoken=95ebdfe56e4f47ddb5bba9d7dc3a2c35
 
-	Default: _notify-send --wait --app-name ${app-id} --icon ${app-id} --urgency ${urgency} --hint STRING:image-path:${icon} --action ${action-name}=${action-label} --print-id -- ${title} ${body}_.
+	Default: _notify-send++
+			--wait++
+			--app-name    ${app-id}++
+			--icon        ${app-id}++
+			--category    ${category}++
+			--urgency     ${urgency}++
+			--expire-time ${expire-time}++
+			--hint        STRING:image-path:${icon}++
+			--replace-id  ${replace-id}++
+			${action-arg}++
+			--print-id++
+			-- ${title} ${body}_.
+
+*command-action-arg*
+	String to use with *command* to enable passing action/button names
+	to the notification helper.
+
+	Foot will always configure a "default" action that can be used to
+	"activate" the notification, which in turn can cause the foot
+	window to be focused, or an escape to be sent to the terminal
+	application (depending on how the application generated the
+	notification).
+	
+	Furhermore, the OSC-99 notifications protocol allows applications
+	to define their own actions. Foot uses a combination of the
+	*command* option, and the *command-action-arg* option to pass the
+	names of the actions to the notification helper.
+	
+	This option has the following template arguments:
+	
+	- _${action-name}_: the name of the action; *default* for the
+	  default action configured by foot, and _n_, where _n_ is an
+	  integer >= 1, for application defined actions.
+	- _${action-label}_: *Click to activate* for the default action,
+	  and a free-form string for application defined actions.
+	
+	For each notification action (remember, there will always be at
+	least one), *command-action-arg* will be expanded with the
+	action's name and label.
+
+	Then, _${action-arg}_ is expanded *command* to the full list of
+	actions.
+	
+	If *command-action-arg* is set to the empty string, no actions
+	will be passed to *command*. That is, _${action-arg}_ will be
+	replaced with the empty string.
+	
+	Example:
+	
+	*command-action-arg=--action ${action-name}=${action-label}*
+	*command=notify-send ${action-arg} ...*
+	
+	Assume the application defined two custom actions: *OK* and
+	*Cancel*.
+	
+	Given the above, foot will execute:
+	
+		notify-send++
+			--action default='Click to activate'++
+			--action 1=OK++
+			--action 2=Cancel++
+			...
+	
+	Default: _--action ${action-name}=${action-label}_
 
 *close*
 	Command to execute to close an existing notification.

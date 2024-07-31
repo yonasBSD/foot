@@ -580,6 +580,8 @@ test_section_desktop_notifications(void)
 
     test_boolean(&ctx, &parse_section_desktop_notifications, "inhibit-when-focused", &conf.desktop_notifications.inhibit_when_focused);
     test_spawn_template(&ctx, &parse_section_desktop_notifications, "command", &conf.desktop_notifications.command);
+    test_spawn_template(&ctx, &parse_section_desktop_notifications, "command-action-arg", &conf.desktop_notifications.command_action_arg);
+    test_spawn_template(&ctx, &parse_section_desktop_notifications, "close", &conf.desktop_notifications.close);
 
     config_free(&conf);
 }

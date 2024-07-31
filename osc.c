@@ -559,7 +559,9 @@ osc_notify(struct terminal *term, char *string)
 
     notify_notify(term, &(struct notification){
         .title = (char *)title,
-        .body = (char *)msg});
+        .body = (char *)msg,
+        .expire_time = -1,
+    });
 }
 
 static void
@@ -575,9 +577,11 @@ kitty_notification(struct terminal *term, char *string)
     *payload_raw = '\0';
     payload_raw++;
 
-    char *id = xstrdup("0");       /* The 'i' parameter */
+    char *id = NULL;               /* The 'i' parameter */
+    char *app_id = NULL;           /* The 'f' parameter */
     char *icon_id = NULL;          /* The 'g' parameter */
     char *symbolic_icon = NULL;    /* The 'n' parameter */
+    char *category = NULL;         /* The 't' parameter */
     char *payload = NULL;
 
     bool focus = true;             /* The 'a' parameter */
@@ -586,12 +590,16 @@ kitty_notification(struct terminal *term, char *string)
     bool done = true;              /* The 'd' parameter */
     bool base64 = false;           /* The 'e' parameter */
 
+    int32_t expire_time = -1;      /* The 'w' parameter */
+
     size_t payload_size;
     enum {
         PAYLOAD_TITLE,
         PAYLOAD_BODY,
         PAYLOAD_CLOSE,
+        PAYLOAD_ALIVE,
         PAYLOAD_ICON,
+        PAYLOAD_BUTTON,
     } payload_type = PAYLOAD_TITLE; /* The 'p' parameter */
 
     enum notify_when when = NOTIFY_ALWAYS;
@@ -601,6 +609,7 @@ kitty_notification(struct terminal *term, char *string)
     bool have_c = false;
     bool have_o = false;
     bool have_u = false;
+    bool have_w = false;
 
     char *ctx = NULL;
     for (char *param = strtok_r(parameters, ":", &ctx);
@@ -675,8 +684,12 @@ kitty_notification(struct terminal *term, char *string)
                 payload_type = PAYLOAD_BODY;
             else if (streq(value, "close"))
                 payload_type = PAYLOAD_CLOSE;
+            else if (streq(value, "alive"))
+                payload_type = PAYLOAD_ALIVE;
             else if (streq(value, "icon"))
                 payload_type = PAYLOAD_ICON;
+            else if (streq(value, "buttons"))
+                payload_type = PAYLOAD_BUTTON;
             else if (streq(value, "?")) {
                 /* Query capabilities */
 
@@ -690,9 +703,10 @@ kitty_notification(struct terminal *term, char *string)
                 char reply[128];
                 int n = xsnprintf(
                     reply, sizeof(reply),
-                    "\033]99;i=%s:p=?;p=title,body,close,icon:a=focus,report:o=%s:u=0,1,2:c=1%s",
-                    id, when_str, terminator);
+                    "\033]99;i=%s:p=?;p=title,body,?,close,alive,icon,buttons:a=focus,report:o=%s:u=0,1,2:c=1:w=1%s",
+                    id != NULL ? id : "0", when_str, terminator);
 
+                xassert(n < sizeof(reply));
                 term_to_slave(term, reply, n);
                 goto out;
             }
@@ -720,6 +734,45 @@ kitty_notification(struct terminal *term, char *string)
                 urgency = NOTIFY_URGENCY_CRITICAL;
             break;
 
+        case 'w': {
+            /* Notification timeout */
+            errno = 0;
+            char *end = NULL;
+            long timeout = strtol(value, &end, 10);
+
+            if (errno == 0 && *end == '\0' && timeout <= INT32_MAX) {
+                expire_time = timeout;
+                have_w = true;
+            }
+            break;
+        }
+
+        case 'f':
+            free(app_id);
+            app_id = base64_decode(value, NULL);
+            break;
+
+        case 't': {
+            /* Type (category) */
+            char *decoded = base64_decode(value, NULL);
+            if (decoded != NULL) {
+                if (category == NULL)
+                    category = decoded;
+                else {
+                    const size_t old_len = strlen(category);
+                    const size_t new_len = strlen(decoded);
+
+                    /* Append, comma separated */
+                    category = xrealloc(category, old_len + 1 + new_len + 1);
+                    category[old_len] = ',';
+                    memcpy(&category[old_len + 1], decoded, new_len);
+                    category[old_len + 1 + new_len] = '\0';
+                    free(decoded);
+                }
+            }
+            break;
+        }
+
         case 'g':
             /* graphical ID */
             free(icon_id);
@@ -729,7 +782,35 @@ kitty_notification(struct terminal *term, char *string)
         case 'n':
             /* Symbolic icon name, used with 'g' */
             free(symbolic_icon);
-            symbolic_icon = xstrdup(value);
+            symbolic_icon = base64_decode(value, NULL);
+
+            /* Translate OSC-99 "special" names */
+            if (symbolic_icon != NULL) {
+                const char *translated_name = NULL;
+
+                if (streq(symbolic_icon, "error"))
+                    translated_name = "dialog-error";
+                else if (streq(symbolic_icon, "warn") ||
+                         streq(symbolic_icon, "warning"))
+                    translated_name = "dialog-warning";
+                else if (streq(symbolic_icon, "info"))
+                    translated_name = "dialog-information";
+                else if (streq(symbolic_icon, "question"))
+                    translated_name = "dialog-question";
+                else if (streq(symbolic_icon, "help"))
+                    translated_name = "system-help";
+                else if (streq(symbolic_icon, "file-manager"))
+                    translated_name = "system-file-manager";
+                else if (streq(symbolic_icon, "system-monitor"))
+                    translated_name = "utilities-system-monitor";
+                else if (streq(symbolic_icon, "text-editor"))
+                    translated_name = "text-editor";
+
+                if (translated_name != NULL) {
+                    free(symbolic_icon);
+                    symbolic_icon = xstrdup(translated_name);
+                }
+            }
             break;
         }
     }
@@ -746,7 +827,9 @@ kitty_notification(struct terminal *term, char *string)
     /* Search for an existing (d=0) notification to update */
     struct notification *notif = NULL;
     tll_foreach(term->kitty_notifications, it) {
-        if (streq(it->item.id, id)) {
+        if ((id == NULL && it->item.id == NULL) ||
+            (id != NULL && it->item.id != NULL && streq(it->item.id, id)))
+        {
             /* Found existing notification */
             notif = &it->item;
             break;
@@ -758,6 +841,8 @@ kitty_notification(struct terminal *term, char *string)
             .id = id,
             .when = when,
             .urgency = urgency,
+            .expire_time = expire_time,
+            .actions = tll_init(),
             .focus = focus,
             .may_be_programatically_closed = true,
             .report_activated = report_activated,
@@ -787,6 +872,8 @@ kitty_notification(struct terminal *term, char *string)
         notif->when = when;
     if (have_u)
         notif->urgency = urgency;
+    if (have_w)
+        notif->expire_time = expire_time;
 
     if (icon_id != NULL) {
         free(notif->icon_id);
@@ -798,6 +885,29 @@ kitty_notification(struct terminal *term, char *string)
         free(notif->icon_symbolic_name);
         notif->icon_symbolic_name = symbolic_icon;
         symbolic_icon = NULL;
+    }
+
+    if (app_id != NULL) {
+        free(notif->app_id);
+        notif->app_id = app_id;
+        app_id = NULL;  /* Prevent double free */
+    }
+
+    if (category != NULL) {
+        if (notif->category == NULL) {
+            notif->category = category;
+            category = NULL;  /* Prevent double free */
+        } else {
+            const size_t old_len = strlen(notif->category);
+            const size_t new_len = strlen(category);
+
+            /* Append, comma separated */
+            notif->category =
+                xrealloc(notif->category, old_len + 1 + new_len + 1);
+            notif->category[old_len] = ',';
+            memcpy(&notif->category[old_len + 1], category, new_len);
+            notif->category[old_len + 1 + new_len] = '\0';
+        }
     }
 
     /* Handled chunked payload - append to existing metadata */
@@ -820,6 +930,7 @@ kitty_notification(struct terminal *term, char *string)
     }
 
     case PAYLOAD_CLOSE:
+    case PAYLOAD_ALIVE:
         /* Ignore payload */
         break;
 
@@ -835,6 +946,20 @@ kitty_notification(struct terminal *term, char *string)
             notif->icon_data_sz += payload_size;
         }
         break;
+
+    case PAYLOAD_BUTTON: {
+        char *ctx = NULL;
+        for (const char *button = strtok_r(payload, "\u2028", &ctx);
+             button != NULL;
+             button = strtok_r(NULL, "\u2028", &ctx))
+        {
+            if (button[0] != '\0') {
+                tll_push_back(notif->actions, xstrdup(button));
+            }
+        }
+        
+        break;
+    }
     }
 
     if (done) {
@@ -856,7 +981,42 @@ kitty_notification(struct terminal *term, char *string)
         }
 
         if (payload_type == PAYLOAD_CLOSE) {
-            notify_close(term, notif->id);
+            if (notif->id != NULL)
+                notify_close(term, notif->id);
+        } else if (payload_type == PAYLOAD_ALIVE)  {
+            char *alive_ids = NULL;
+            size_t alive_ids_len = 0;
+
+            tll_foreach(term->active_notifications, it) {
+                /* TODO: check with kitty: use "0" for all
+                   notifications with no ID? */
+
+                const char *item_id = it->item.id != NULL ? it->item.id : "0";
+                const size_t id_len = strlen(item_id);
+
+                if (alive_ids == NULL) {
+                    alive_ids = xstrdup(item_id);
+                    alive_ids_len = id_len;
+                } else {
+                    alive_ids = xrealloc(alive_ids, alive_ids_len + 1 + id_len + 1);
+
+                    /* Append ",<id>" */
+                    alive_ids[alive_ids_len] = ',';
+                    memcpy(&alive_ids[alive_ids_len + 1], item_id, id_len);
+
+                    alive_ids_len += 1 + id_len;
+                    alive_ids[alive_ids_len] = '\0';
+                }
+            }
+
+            char *reply = xasprintf(
+                "\033]99;i=%s:p=alive;%s\033\\",
+                notif->id != NULL ? notif->id : "0",
+                alive_ids != NULL ? alive_ids : "");
+
+            term_to_slave(term, reply, strlen(reply));
+            free(reply);
+            free(alive_ids);
         } else {
             /*
              * Show notification.
@@ -880,9 +1040,11 @@ kitty_notification(struct terminal *term, char *string)
 
 out:
     free(id);
+    free(app_id);
     free(icon_id);
     free(symbolic_icon);
     free(payload);
+    free(category);
 }
 
 void

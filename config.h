@@ -340,6 +340,7 @@ struct config {
 
     struct {
         struct config_spawn_template command;
+        struct config_spawn_template command_action_arg;
         struct config_spawn_template close;
         bool inhibit_when_focused;
     } desktop_notifications;

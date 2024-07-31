@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <unistd.h>
 
+#include <tllist.h>
+
 struct terminal;
 
 enum notify_when {
@@ -30,7 +32,9 @@ struct notification {
     char *id;
     char *title;
     char *body;
+    char *category;
 
+    char *app_id;  /* Custm app-id, overrides the terminal's app-id */
     char *icon_id;
     char *icon_symbolic_name;
     uint8_t *icon_data;
@@ -38,6 +42,9 @@ struct notification {
 
     enum notify_when when;
     enum notify_urgency urgency;
+    int32_t expire_time;
+    tll(char *) actions;
+
     bool focus;
     bool may_be_programatically_closed;
     bool report_activated;
@@ -49,6 +56,7 @@ struct notification {
 
     uint32_t external_id;  /* Daemon assigned notification ID */
     bool activated;        /* User 'activated' the notification */
+    uint32_t activated_button; /* User activated one of the custom actions */
     char *xdg_token;       /* XDG activation token, from daemon */
 
     pid_t pid;             /* Notifier command PID */
@@ -56,6 +64,11 @@ struct notification {
 
     char *stdout_data;     /* Data we've reado from command's stdout */
     size_t stdout_sz;
+
+    /* Used when notification provides raw icon data, and it's
+       bypassing the icon cache */
+    char *icon_path;
+    int icon_fd;
 };
 
 struct notification_icon {
