@@ -1,7 +1,6 @@
 #include "render.h"
 
 #include <string.h>
-#include <wctype.h>
 #include <unistd.h>
 #include <signal.h>
 

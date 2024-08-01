@@ -18,7 +18,6 @@
 #include "log.h"
 
 #include "client-protocol.h"
-#include "shm.h"
 #include "terminal.h"
 #include "util.h"
 #include "wayland.h"

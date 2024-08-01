@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <ctype.h>
 #include <stdbool.h>
 #include <limits.h>
 #include <locale.h>
@@ -35,8 +34,6 @@
 #include "version.h"
 #include "xmalloc.h"
 #include "xsnprintf.h"
-
-#include "char32.h"
 
 #if !defined(__STDC_UTF_32__) || !__STDC_UTF_32__
  #error "char32_t does not use UTF-32"

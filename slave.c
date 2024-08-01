@@ -19,7 +19,6 @@
 
 #include "debug.h"
 #include "macros.h"
-#include "terminal.h"
 #include "tokenize.h"
 #include "util.h"
 #include "xmalloc.h"

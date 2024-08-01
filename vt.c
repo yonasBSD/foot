@@ -17,7 +17,6 @@
 #include "dcs.h"
 #include "debug.h"
 #include "emoji-variation-sequences.h"
-#include "grid.h"
 #include "osc.h"
 #include "sixel.h"
 #include "util.h"
