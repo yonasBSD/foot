@@ -1,6 +1,6 @@
 # Changelog
 
-* [Unreleased](#unreleased)
+* [1.18.0](#1-18-0)
 * [1.17.2](#1-17-2)
 * [1.17.1](#1-17-1)
 * [1.17.0](#1-17-0)
@@ -52,7 +52,8 @@
 * [1.2.0](#1-2-0)
 
 
-## Unreleased
+## 1.18.0
+
 ### Added
 
 * `cursor.blink-rate` option, allowing you to configure the rate the
@@ -136,7 +137,6 @@
   `desktop-notifications.inhibit-when-focused`.
 
 
-### Removed
 ### Fixed
 
 * Crash when zooming in or out, with `dpi-aware=yes`, and the
@@ -170,8 +170,14 @@
 [1742]: https://codeberg.org/dnkl/foot/issues/1742
 
 
-### Security
 ### Contributors
+
+* abs3nt
+* Artturin
+* Craig Barnes
+* Jan Beich
+* Mariusz Bialonczyk
+* Nicolas Kolling Ribas
 
 
 ## 1.17.2
