@@ -799,9 +799,11 @@ struct terminal {
         void *cb_data;
     } shutdown;
 
-    /* Notifications that either haven't been sent yet, or have been
-       sent but not yet dismissed */
-    tll(struct notification) kitty_notifications;
+    /* State, to handle chunked notifications */
+    struct notification kitty_notification;
+
+    /* Currently active notifications, from foot's perspective (their
+       notification helper processes are still running) */
     tll(struct notification) active_notifications;
     struct notification_icon notification_icons[32];
 

@@ -459,14 +459,15 @@ Note: do not set *TERM* here; use the *term* option in the main
 		below. Can be used together with e.g. notify-send's
 		*--replace-id* option.
 		
-		_${action-arg}_ will be expanded to the *command-action-arg*
-		option, for each notification action. There will always be at
-		least one action, the "default" action. Foot uses this to
-		enable window focusing, and reporting notification activation
-		to applications that requested such events.
+		_${action-argument}_ will be expanded to the
+		*command-action-argument* option, for each notification
+		action. There will always be at least one action, the
+		"default" action. Foot uses this to enable window focusing,
+		and reporting notification activation to applications that
+		requested such events.
 		
 		Applications can also define their own custom notification
-		actions. See the *command-action-arg* option for details.
+		actions. See the *command-action-argument* option for details.
 	
 	Ways to trigger notifications
 		Applications can trigger notifications in the following ways:
@@ -496,7 +497,7 @@ Note: do not set *TERM* here; use the *term* option in the main
 		There are two parts to handle this. First, the notification
 		must define an action. For this purpose, foot will add a
 		"default" action to the notification (see the
-		*command-action-arg* option).
+		*command-action-argument* option).
 		
 		Second, foot needs to know when the notification is activated,
 		and it needs to get hold of the XDG activation token.
@@ -524,18 +525,41 @@ xdgtoken=18179adf579a7a904ce73754964b1ec3
 		Foot recognizes the following things from the notification
 		helper's stdout:
 		
-		- _nnn_: integer in base 10, daemon assigned notification ID
-		- *id=*_nnn_: same as plain _nnn_.
+		- _id_: integer in base 10, daemon assigned notification ID
+		- *id=*_id_: same as plain _nnn_.
 		- *default*: the 'default' action was triggered
 		- *action=*_default_: same as _default_
 		- *action=*_n_: application custom action _n_ triggered
+		- _n_: integer in base 10, appearing after the ID; application
+		  custom action _n_ triggered
 		- *xdgtoken=*_xyz_: XDG activation token.
 		
-		Example:
+		Example #1:
 			17++
 action=default++
 xdgtoken=95ebdfe56e4f47ddb5bba9d7dc3a2c35
-
+		
+			Foot recognizes this as:
+			- notification has the daemon assigned ID 17
+			- the user triggered the default action
+			- the notification send an XDG activation token
+		
+		Example #2:
+			17++
+1
+		
+			Foot recognizes this as:
+			- notification has the daemon assigned ID 17
+			- the user triggered the first custom action, "1"
+		
+		Example #3:
+			id=17++
+1
+		
+			Foot recognizes this as:
+			- notification has the daemon assigned ID 17
+			- the user triggered the first custom action, "1
+	
 	Default: _notify-send++
 			--wait++
 			--app-name    ${app-id}++
@@ -545,11 +569,11 @@ xdgtoken=95ebdfe56e4f47ddb5bba9d7dc3a2c35
 			--expire-time ${expire-time}++
 			--hint        STRING:image-path:${icon}++
 			--replace-id  ${replace-id}++
-			${action-arg}++
+			${action-argument}++
 			--print-id++
 			-- ${title} ${body}_.
 
-*command-action-arg*
+*command-action-argument*
 	String to use with *command* to enable passing action/button names
 	to the notification helper.
 
@@ -561,32 +585,32 @@ xdgtoken=95ebdfe56e4f47ddb5bba9d7dc3a2c35
 	
 	Furhermore, the OSC-99 notifications protocol allows applications
 	to define their own actions. Foot uses a combination of the
-	*command* option, and the *command-action-arg* option to pass the
-	names of the actions to the notification helper.
+	*command* option, and the *command-action-argument* option to pass
+	the names of the actions to the notification helper.
 	
 	This option has the following template arguments:
 	
 	- _${action-name}_: the name of the action; *default* for the
 	  default action configured by foot, and _n_, where _n_ is an
 	  integer >= 1, for application defined actions.
-	- _${action-label}_: *Click to activate* for the default action,
-	  and a free-form string for application defined actions.
+	- _${action-label}_: *Activate* for the default action, and a
+	  free-form string for application defined actions.
 	
 	For each notification action (remember, there will always be at
-	least one), *command-action-arg* will be expanded with the
+	least one), *command-action-argument* will be expanded with the
 	action's name and label.
 
-	Then, _${action-arg}_ is expanded *command* to the full list of
-	actions.
+	Then, _${action-argument}_ is expanded *command* to the full list
+	of actions.
 	
-	If *command-action-arg* is set to the empty string, no actions
-	will be passed to *command*. That is, _${action-arg}_ will be
-	replaced with the empty string.
+	If *command-action-argument* is set to the empty string, no
+	actions will be passed to *command*. That is, _${action-argument}_
+	will be replaced with the empty string.
 	
 	Example:
 	
-	*command-action-arg=--action ${action-name}=${action-label}*
-	*command=notify-send ${action-arg} ...*
+	*command-action-argument=--action ${action-name}=${action-label}*++
+*command=notify-send ${action-argument} ...*
 	
 	Assume the application defined two custom actions: *OK* and
 	*Cancel*.

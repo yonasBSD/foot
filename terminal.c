@@ -994,7 +994,7 @@ reload_fonts(struct terminal *term, bool resize_grid)
                 snprintf(size, sizeof(size), ":size=%.2f",
                          term->font_sizes[i][j].pt_size * scale);
 
-            names[i][j] = xstrjoin(font->pattern, size);
+            names[i][j] = xstrjoin(font->pattern, size, 0);
         }
     }
 
@@ -1021,9 +1021,9 @@ reload_fonts(struct terminal *term, bool resize_grid)
 
     char *attrs[4] = {
         [0] = dpi, /* Takes ownership */
-        [1] = xstrjoin(dpi, !custom_bold ? ":weight=bold" : ""),
-        [2] = xstrjoin(dpi, !custom_italic ? ":slant=italic" : ""),
-        [3] = xstrjoin(dpi, !custom_bold_italic ? ":weight=bold:slant=italic" : ""),
+        [1] = xstrjoin(dpi, !custom_bold ? ":weight=bold" : "", 0),
+        [2] = xstrjoin(dpi, !custom_italic ? ":slant=italic" : "", 0),
+        [3] = xstrjoin(dpi, !custom_bold_italic ? ":weight=bold:slant=italic" : "", 0),
     };
 
     struct fcft_font *fonts[4];
@@ -1313,7 +1313,6 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
 #if defined(FOOT_IME_ENABLED) && FOOT_IME_ENABLED
         .ime_enabled = true,
 #endif
-        .kitty_notifications = tll_init(),
         .active_notifications = tll_init(),
     };
 
@@ -1823,11 +1822,7 @@ term_destroy(struct terminal *term)
         tll_remove(term->ptmx_paste_buffers, it);
     }
 
-    tll_foreach(term->kitty_notifications, it) {
-        notify_free(term, &it->item);
-        tll_remove(term->kitty_notifications, it);
-    }
-
+    notify_free(term, &term->kitty_notification);
     tll_foreach(term->active_notifications, it) {
         notify_free(term, &it->item);
         tll_remove(term->active_notifications, it);
@@ -2041,11 +2036,7 @@ term_reset(struct terminal *term, bool hard)
         tll_remove(term->alt.sixel_images, it);
     }
 
-    tll_foreach(term->kitty_notifications, it) {
-        notify_free(term, &it->item);
-        tll_remove(term->kitty_notifications, it);
-    }
-
+    notify_free(term, &term->kitty_notification);
     tll_foreach(term->active_notifications, it) {
         notify_free(term, &it->item);
         tll_remove(term->active_notifications, it);

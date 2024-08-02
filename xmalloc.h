@@ -25,12 +25,16 @@ xmemdup(const void *ptr, size_t size)
 }
 
 static inline char *
-xstrjoin(const char *s1, const char *s2)
+xstrjoin(const char *s1, const char *s2, char delim)
 {
     size_t n1 = strlen(s1);
-    size_t n2 = strlen(s2);
-    char *joined = xmalloc(n1 + n2 + 1);
+    size_t n2 = delim > 0 ? 1 : 0;
+    size_t n3 = strlen(s2);
+
+    char *joined = xmalloc(n1 + n2 + n3 + 1);
     memcpy(joined, s1, n1);
-    memcpy(joined + n1, s2, n2 + 1);
+    if (delim > 0)
+        joined[n1] = delim;
+    memcpy(joined + n1 + n2, s2, n3 + 1);
     return joined;
 }

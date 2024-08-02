@@ -579,7 +579,7 @@ kitty_notification(struct terminal *term, char *string)
 
     char *id = NULL;               /* The 'i' parameter */
     char *app_id = NULL;           /* The 'f' parameter */
-    char *icon_id = NULL;          /* The 'g' parameter */
+    char *icon_cache_id = NULL;    /* The 'g' parameter */
     char *symbolic_icon = NULL;    /* The 'n' parameter */
     char *category = NULL;         /* The 't' parameter */
     char *payload = NULL;
@@ -693,18 +693,24 @@ kitty_notification(struct terminal *term, char *string)
             else if (streq(value, "?")) {
                 /* Query capabilities */
 
-                char when_str[64];
-                strcpy(when_str, "unfocused");
+                const char *reply_id = id != NULL ? id : "0";
+
+                const char *p_caps = "title,body,?,close,alive,icon,buttons";
+                const char *a_caps = "focus,report";
+                const char *u_caps = "0,1,2";
+
+                char when_caps[64];
+                strcpy(when_caps, "unfocused");
                 if (!term->conf->desktop_notifications.inhibit_when_focused)
-                    strcat(when_str, ",always");
+                    strcat(when_caps, ",always");
 
                 const char *terminator = term->vt.osc.bel ? "\a" : "\033\\";
 
                 char reply[128];
                 int n = xsnprintf(
                     reply, sizeof(reply),
-                    "\033]99;i=%s:p=?;p=title,body,?,close,alive,icon,buttons:a=focus,report:o=%s:u=0,1,2:c=1:w=1%s",
-                    id != NULL ? id : "0", when_str, terminator);
+                    "\033]99;i=%s:p=?;p=%s:a=%s:o=%s:u=%s:c=1:w=1%s",
+                    reply_id, p_caps, a_caps, when_caps, u_caps, terminator);
 
                 xassert(n < sizeof(reply));
                 term_to_slave(term, reply, n);
@@ -759,59 +765,78 @@ kitty_notification(struct terminal *term, char *string)
                 if (category == NULL)
                     category = decoded;
                 else {
-                    const size_t old_len = strlen(category);
-                    const size_t new_len = strlen(decoded);
-
                     /* Append, comma separated */
-                    category = xrealloc(category, old_len + 1 + new_len + 1);
-                    category[old_len] = ',';
-                    memcpy(&category[old_len + 1], decoded, new_len);
-                    category[old_len + 1 + new_len] = '\0';
+                    char *old_category = category;
+                    category = xstrjoin(old_category, decoded, ',');
                     free(decoded);
+                    free(old_category);
                 }
             }
             break;
         }
 
         case 'g':
-            /* graphical ID */
-            free(icon_id);
-            icon_id = xstrdup(value);
+            /* graphical ID (see 'n' and 'p=icon') */
+            free(icon_cache_id);
+            icon_cache_id = xstrdup(value);
             break;
 
-        case 'n':
-            /* Symbolic icon name, used with 'g' */
-            free(symbolic_icon);
-            symbolic_icon = base64_decode(value, NULL);
+        case 'n': {
+            /* Symbolic icon name, may used with 'g' */
 
-            /* Translate OSC-99 "special" names */
-            if (symbolic_icon != NULL) {
-                const char *translated_name = NULL;
+            /*
+             * Sigh, protocol says 'n' can be used multiple times, and
+             * that the terminal picks the first one that it can
+             * resolve.
+             *
+             * We can't resolve any icons at all. So, enter
+             * heuristics... let's pick the *shortest* symbolic
+             * name. The idea is that icon *names* are typically
+             * shorter than .desktop names, and macOS bundle
+             * identifiers.
+             */
+            char *maybe_new_symbolic_icon = base64_decode(value, NULL);
+            if (maybe_new_symbolic_icon == NULL)
+                break;
 
-                if (streq(symbolic_icon, "error"))
-                    translated_name = "dialog-error";
-                else if (streq(symbolic_icon, "warn") ||
-                         streq(symbolic_icon, "warning"))
-                    translated_name = "dialog-warning";
-                else if (streq(symbolic_icon, "info"))
-                    translated_name = "dialog-information";
-                else if (streq(symbolic_icon, "question"))
-                    translated_name = "dialog-question";
-                else if (streq(symbolic_icon, "help"))
-                    translated_name = "system-help";
-                else if (streq(symbolic_icon, "file-manager"))
-                    translated_name = "system-file-manager";
-                else if (streq(symbolic_icon, "system-monitor"))
-                    translated_name = "utilities-system-monitor";
-                else if (streq(symbolic_icon, "text-editor"))
-                    translated_name = "text-editor";
+            if (symbolic_icon == NULL ||
+                strlen(maybe_new_symbolic_icon) < strlen(symbolic_icon))
+            {
+                free(symbolic_icon);
+                symbolic_icon = maybe_new_symbolic_icon;
 
-                if (translated_name != NULL) {
-                    free(symbolic_icon);
-                    symbolic_icon = xstrdup(translated_name);
+                /* Translate OSC-99 "special" names */
+                if (symbolic_icon != NULL) {
+                    const char *translated_name = NULL;
+
+                    if (streq(symbolic_icon, "error"))
+                        translated_name = "dialog-error";
+                    else if (streq(symbolic_icon, "warn") ||
+                             streq(symbolic_icon, "warning"))
+                        translated_name = "dialog-warning";
+                    else if (streq(symbolic_icon, "info"))
+                        translated_name = "dialog-information";
+                    else if (streq(symbolic_icon, "question"))
+                        translated_name = "dialog-question";
+                    else if (streq(symbolic_icon, "help"))
+                        translated_name = "system-help";
+                    else if (streq(symbolic_icon, "file-manager"))
+                        translated_name = "system-file-manager";
+                    else if (streq(symbolic_icon, "system-monitor"))
+                        translated_name = "utilities-system-monitor";
+                    else if (streq(symbolic_icon, "text-editor"))
+                        translated_name = "text-editor";
+
+                    if (translated_name != NULL) {
+                        free(symbolic_icon);
+                        symbolic_icon = xstrdup(translated_name);
+                    }
                 }
+            } else {
+                free(maybe_new_symbolic_icon);
             }
             break;
+        }
         }
     }
 
@@ -824,42 +849,28 @@ kitty_notification(struct terminal *term, char *string)
         payload_size = strlen(payload);
     }
 
-    /* Search for an existing (d=0) notification to update */
-    struct notification *notif = NULL;
-    tll_foreach(term->kitty_notifications, it) {
-        if ((id == NULL && it->item.id == NULL) ||
-            (id != NULL && it->item.id != NULL && streq(it->item.id, id)))
-        {
-            /* Found existing notification */
-            notif = &it->item;
-            break;
-        }
+    /* Append metadata to previous notification chunk */
+    struct notification *notif = &term->kitty_notification;
+
+    if (!((id == NULL && notif->id == NULL) ||
+          (id != NULL && notif->id != NULL && streq(id, notif->id))) ||
+        !notif->may_be_programatically_closed)  /* Free:d notification has this as false... */
+    {
+        /* ID mismatch, ignore previous notification state */
+        notify_free(term, notif);
+
+        notif->id = id;
+        notif->when = when;
+        notif->urgency = urgency;
+        notif->expire_time = expire_time;
+        notif->focus = focus;
+        notif->may_be_programatically_closed = true;
+        notif->report_activated = report_activated;
+        notif->report_closed = report_closed;
+
+        id = NULL; /* Prevent double free */
     }
 
-    if (notif == NULL) {
-        tll_push_front(term->kitty_notifications, ((struct notification){
-            .id = id,
-            .when = when,
-            .urgency = urgency,
-            .expire_time = expire_time,
-            .actions = tll_init(),
-            .focus = focus,
-            .may_be_programatically_closed = true,
-            .report_activated = report_activated,
-            .report_closed = report_closed,
-            .stdout_fd = -1,
-        }));
-
-        id = NULL;   /* Prevent double free */
-        notif = &tll_front(term->kitty_notifications);
-    }
-
-    if (notif->pid > 0) {
-        /* Notification has already been completed, ignore new metadata */
-        goto out;
-    }
-
-    /* Update notification metadata */
     if (have_a) {
         notif->focus = focus;
         notif->report_activated = report_activated;
@@ -875,10 +886,10 @@ kitty_notification(struct terminal *term, char *string)
     if (have_w)
         notif->expire_time = expire_time;
 
-    if (icon_id != NULL) {
-        free(notif->icon_id);
-        notif->icon_id = icon_id;
-        icon_id = NULL;  /* Prevent double free */
+    if (icon_cache_id != NULL) {
+        free(notif->icon_cache_id);
+        notif->icon_cache_id = icon_cache_id;
+        icon_cache_id = NULL;  /* Prevent double free */
     }
 
     if (symbolic_icon != NULL) {
@@ -898,15 +909,10 @@ kitty_notification(struct terminal *term, char *string)
             notif->category = category;
             category = NULL;  /* Prevent double free */
         } else {
-            const size_t old_len = strlen(notif->category);
-            const size_t new_len = strlen(category);
-
             /* Append, comma separated */
-            notif->category =
-                xrealloc(notif->category, old_len + 1 + new_len + 1);
-            notif->category[old_len] = ',';
-            memcpy(&notif->category[old_len + 1], category, new_len);
-            notif->category[old_len + 1 + new_len] = '\0';
+            char *new_category = xstrjoin(notif->category, category, ',');
+            free(notif->category);
+            notif->category = new_category;
         }
     }
 
@@ -923,7 +929,7 @@ kitty_notification(struct terminal *term, char *string)
             payload = NULL;
         } else {
             char *old = *ptr;
-            *ptr = xstrjoin(old, payload);
+            *ptr = xstrjoin(old, payload, 0);
             free(old);
         }
         break;
@@ -964,11 +970,11 @@ kitty_notification(struct terminal *term, char *string)
 
     if (done) {
         /* Update icon cache, if necessary */
-        if (notif->icon_id != NULL &&
+        if (notif->icon_cache_id != NULL &&
             (notif->icon_symbolic_name != NULL || notif->icon_data != NULL))
         {
-            notify_icon_del(term, notif->icon_id);
-            notify_icon_add(term, notif->icon_id,
+            notify_icon_del(term, notif->icon_cache_id);
+            notify_icon_add(term, notif->icon_cache_id,
                             notif->icon_symbolic_name,
                             notif->icon_data, notif->icon_data_sz);
 
@@ -985,27 +991,19 @@ kitty_notification(struct terminal *term, char *string)
                 notify_close(term, notif->id);
         } else if (payload_type == PAYLOAD_ALIVE)  {
             char *alive_ids = NULL;
-            size_t alive_ids_len = 0;
 
             tll_foreach(term->active_notifications, it) {
                 /* TODO: check with kitty: use "0" for all
                    notifications with no ID? */
 
                 const char *item_id = it->item.id != NULL ? it->item.id : "0";
-                const size_t id_len = strlen(item_id);
 
-                if (alive_ids == NULL) {
+                if (alive_ids == NULL)
                     alive_ids = xstrdup(item_id);
-                    alive_ids_len = id_len;
-                } else {
-                    alive_ids = xrealloc(alive_ids, alive_ids_len + 1 + id_len + 1);
-
-                    /* Append ",<id>" */
-                    alive_ids[alive_ids_len] = ',';
-                    memcpy(&alive_ids[alive_ids_len + 1], item_id, id_len);
-
-                    alive_ids_len += 1 + id_len;
-                    alive_ids[alive_ids_len] = '\0';
+                else {
+                    char *old_alive_ids = alive_ids;
+                    alive_ids = xstrjoin(old_alive_ids, item_id, ',');
+                    free(old_alive_ids);
                 }
             }
 
@@ -1029,19 +1027,13 @@ kitty_notification(struct terminal *term, char *string)
             }
         }
 
-        tll_foreach(term->kitty_notifications, it) {
-            if (&it->item == notif) {
-                notify_free(term, &it->item);
-                tll_remove(term->kitty_notifications, it);
-                break;
-            }
-        }
+        notify_free(term, notif);
     }
 
 out:
     free(id);
     free(app_id);
-    free(icon_id);
+    free(icon_cache_id);
     free(symbolic_icon);
     free(payload);
     free(category);

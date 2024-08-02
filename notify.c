@@ -23,13 +23,15 @@
 void
 notify_free(struct terminal *term, struct notification *notif)
 {
-    fdm_del(term->fdm, notif->stdout_fd);
+    if (notif->pid > 0)
+        fdm_del(term->fdm, notif->stdout_fd);
+
     free(notif->id);
     free(notif->title);
     free(notif->body);
     free(notif->category);
     free(notif->app_id);
-    free(notif->icon_id);
+    free(notif->icon_cache_id);
     free(notif->icon_symbolic_name);
     free(notif->icon_data);
     free(notif->xdg_token);
@@ -44,6 +46,8 @@ notify_free(struct terminal *term, struct notification *notif)
         if (notif->icon_fd >= 0)
             close(notif->icon_fd);
     }
+
+    memset(notif, 0, sizeof(*notif));
 }
 
 static bool
@@ -119,9 +123,10 @@ consume_stdout(struct notification *notif, bool eof)
             break;
 
         uint32_t maybe_id = 0;
+        uint32_t maybe_button_nr = 0;
 
         /* Check for daemon assigned ID, either '123', or 'id=123' */
-        if (to_integer(line, len, &maybe_id) ||
+        if ((notif->external_id == 0 && to_integer(line, len, &maybe_id)) ||
             (len > 3 && memcmp(line, "id=", 3) == 0 &&
              to_integer(&line[3], len - 3, &maybe_id)))
         {
@@ -140,7 +145,6 @@ consume_stdout(struct notification *notif, bool eof)
         else if (len > 7 && memcmp(line, "action=", 7) == 0) {
             notif->activated = true;
 
-            uint32_t maybe_button_nr;
             if (to_integer(&line[7], len - 7, &maybe_button_nr)) {
                 notif->activated_button = maybe_button_nr;
                 LOG_DBG("custom action %u triggered", notif->activated_button);
@@ -148,6 +152,18 @@ consume_stdout(struct notification *notif, bool eof)
                 LOG_DBG("unrecognized action triggered: %.*s",
                         (int)(len - 7), &line[7]);
             }
+        }
+
+        else if (notif->external_id > 0 &&
+                 to_integer(line, len, &maybe_button_nr) &&
+                 maybe_button_nr > 0 &&
+                 maybe_button_nr <= notif->button_count)
+        {
+            /* Single integer, appearing *after* the ID, and is within
+               the custom button/action range */
+            notif->activated = true;
+            notif->activated_button = maybe_button_nr;
+            LOG_DBG("custom action %u triggered", notif->activated_button);
         }
 
         /* Check for XDG activation token, 'xdgtoken=xyz' */
@@ -272,6 +288,31 @@ notif_done(struct reaper *reaper, pid_t pid, int status, void *data)
     }
 }
 
+static bool
+expand_action_to_argv(struct terminal *term, const char *name, const char *label,
+                      size_t *argc, char ***argv)
+{
+    char **expanded = NULL;
+    size_t count = 0;
+
+    if (!spawn_expand_template(
+        &term->conf->desktop_notifications.command_action_arg, 2,
+        (const char *[]){"action-name", "action-label"},
+        (const char *[]){name, label},
+        &count, &expanded))
+    {
+        return false;
+    }
+
+    /* Append to the "global" actions argv */
+    *argv = xrealloc(*argv, (*argc + count) * sizeof((*argv)[0]));
+    memcpy(&(*argv)[*argc], expanded, count * sizeof(expanded[0]));
+    *argc += count;
+
+    free(expanded);
+    return true;
+}
+
 bool
 notify_notify(struct terminal *term, struct notification *notif)
 {
@@ -309,11 +350,11 @@ notify_notify(struct terminal *term, struct notification *notif)
     /* Icon: symbolic name if present, otherwise a filename */
     const char *icon_name_or_path = "";
 
-    if (notif->icon_id != NULL) {
+    if (notif->icon_cache_id != NULL) {
         for (size_t i = 0; i < ALEN(term->notification_icons); i++) {
             const struct notification_icon *icon = &term->notification_icons[i];
 
-            if (icon->id != NULL && streq(icon->id, notif->icon_id)) {
+            if (icon->id != NULL && streq(icon->id, notif->icon_cache_id)) {
                 /* For now, we set the symbolic name to 'file:///path'
                  * when using a file based icon. */
                 xassert(icon->symbolic_name != NULL);
@@ -397,59 +438,27 @@ notify_notify(struct terminal *term, struct notification *notif)
     xsnprintf(expire_time, sizeof(expire_time), "%d", notif->expire_time);
 
     if (term->conf->desktop_notifications.command_action_arg.argv.args) {
-        struct action {
-            const char *name;
-            const char *label;
-        };
-
-        tll(struct action) actions = tll_init();
-        tll_push_back(actions, ((struct action){"default", "Click to activate"}));
-
-        tll_foreach(notif->actions, it) {
-            tll_push_back(actions, ((struct action){NULL, it->item}));
+        if (!expand_action_to_argv(
+            term, "default", "Activate", &action_argc, &action_argv))
+        {
+            return false;
         }
 
-        size_t action_idx = 0;
-        tll_foreach(actions, it) {
-            const char *name = it->item.name;
-            const char *label = it->item.label;
+        size_t action_idx = 1;
+        tll_foreach(notif->actions, it) {
 
-            /*
-             * Custom actions (buttons) start at 1.
-             *
-             * We always insert our own default action first, causing
-             * all custom actions to start at index 1 in our list.
-             */
-            char numerical_name[16];
-            xsnprintf(numerical_name, sizeof(numerical_name), "%zu", action_idx);
+            /* Custom actions use a numerical name, starting at 1 */
+            char name[16];
+            xsnprintf(name, sizeof(name), "%zu", action_idx++);
 
-            if (name == NULL)
-                name = numerical_name;
-
-            char **expanded = NULL;
-            size_t count = 0;
-
-            if (!spawn_expand_template(
-                &term->conf->desktop_notifications.command_action_arg, 2,
-                (const char *[]){"action-name", "action-label"},
-                (const char *[]){name, label},
-                &count, &expanded))
+            if (!expand_action_to_argv(
+                term, name, it->item, &action_argc, &action_argv))
             {
+                for (size_t i = 0; i < action_argc; i++)
+                    free(action_argv[i]);
+                free(action_argv);
                 return false;
             }
-
-            /* Append to the "global" actions argv */
-            action_argv = xrealloc(
-                action_argv, (action_argc + count) * sizeof(action_argv[0]));
-
-            for (size_t i = 0; i < count; i++)
-                action_argv[action_argc + i] = expanded[i];
-
-            action_argc += count;
-
-            free(expanded);
-            action_idx++;
-            tll_remove(actions, it);
         }
     }
 
@@ -457,33 +466,35 @@ notify_notify(struct terminal *term, struct notification *notif)
         &term->conf->desktop_notifications.command, 10,
         (const char *[]){
             "app-id", "window-title", "icon", "title", "body", "category",
-            "urgency", "expire-time", "replace-id", "action-arg"},
+            "urgency", "expire-time", "replace-id", "action-argument"},
         (const char *[]){
             app_id, term->window_title, icon_name_or_path, title, body,
             notif->category != NULL ? notif->category : "", urgency_str,
             expire_time, replaces_id_str,
 
             /* Custom expansion below, since we need to expand to multiple arguments */
-            "${action-arg}"},
+            "${action-argument}"},
         &argc, &argv))
     {
         return false;
     }
 
+    /* Post-process the expanded argv, and patch in all the --action
+       arguments we expanded earlier */
     for (size_t i = 0; i < argc; i++) {
-        if (!streq(argv[i], "${action-arg}"))
+        if (!streq(argv[i], "${action-argument}"))
             continue;
 
         if (action_argc == 0) {
             free(argv[i]);
 
-            /* Remove ${command-arg}, but include terminating NULL */
+            /* Remove ${command-argument}, but include terminating NULL */
             memmove(&argv[i], &argv[i + 1], (argc - i) * sizeof(argv[0]));
             argc--;
             break;
         }
 
-        /* Remove the "${action-arg}" entry, add all actions argument
+        /* Remove the "${action-argument}" entry, add all actions argument
            from earlier, but include terminating NULL */
         argv = xrealloc(argv, (argc + action_argc) * sizeof(argv[0]));
 
@@ -492,7 +503,7 @@ notify_notify(struct terminal *term, struct notification *notif)
                 &argv[i + 1],
                 (argc - i) * sizeof(argv[0]));  /* Include terminating NULL */
 
-        free(argv[i]); /* Free xstrdup("${action-arg}"); */
+        free(argv[i]); /* Free xstrdup("${action-argument}"); */
 
         /* Insert the action arguments */
         for (size_t j = 0; j < action_argc; j++) {
@@ -501,7 +512,7 @@ notify_notify(struct terminal *term, struct notification *notif)
         }
 
         argc += action_argc;
-        argc--;  /* The ${action-arg} option has been removed */
+        argc--;  /* The ${action-argument} option has been removed */
         break;
     }
 
@@ -518,12 +529,15 @@ notify_notify(struct terminal *term, struct notification *notif)
             /* Non-fatal */
         } else {
             tll_push_back(term->active_notifications, *notif);
+
+            /* We've taken over ownership of all data; clear, so that
+               notify_free() doesn't double free */
             notif->id = NULL;
             notif->title = NULL;
             notif->body = NULL;
             notif->category = NULL;
             notif->app_id = NULL;
-            notif->icon_id = NULL;
+            notif->icon_cache_id = NULL;
             notif->icon_symbolic_name = NULL;
             notif->icon_data = NULL;
             notif->icon_data_sz = 0;
@@ -533,6 +547,7 @@ notify_notify(struct terminal *term, struct notification *notif)
             struct notification *new_notif = &tll_back(term->active_notifications);
 
             /* We don't need these anymore. They'll be free:d by the caller */
+            new_notif->button_count = tll_length(notif->actions);
             memset(&new_notif->actions, 0, sizeof(new_notif->actions));
             notif = new_notif;
         }

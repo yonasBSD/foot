@@ -29,26 +29,28 @@ struct notification {
     /*
      * Set by caller of notify_notify()
      */
-    char *id;
-    char *title;
+    char *id;      /* Internal notification ID */
+
+    char *app_id;  /* Custom app-id, overrides the terminal's app-id if set */
+    char *title;   /* Required */
     char *body;
     char *category;
-
-    char *app_id;  /* Custm app-id, overrides the terminal's app-id */
-    char *icon_id;
-    char *icon_symbolic_name;
-    uint8_t *icon_data;
-    size_t icon_data_sz;
 
     enum notify_when when;
     enum notify_urgency urgency;
     int32_t expire_time;
+
     tll(char *) actions;
 
-    bool focus;
-    bool may_be_programatically_closed;
-    bool report_activated;
-    bool report_closed;
+    char *icon_cache_id;
+    char *icon_symbolic_name;
+    uint8_t *icon_data;
+    size_t icon_data_sz;
+
+    bool focus;    /* Focus the foot window when notification is activated */
+    bool may_be_programatically_closed; /* OSC-99: notification may be programatically closed by the client */
+    bool report_activated;  /* OSC-99: report notification activation to client */
+    bool report_closed;     /* OSC-99: report notification closed to client */
 
     /*
      * Used internally by notify
@@ -56,6 +58,7 @@ struct notification {
 
     uint32_t external_id;  /* Daemon assigned notification ID */
     bool activated;        /* User 'activated' the notification */
+    uint32_t button_count; /* Number of buttons (custom actions) in notification */
     uint32_t activated_button; /* User activated one of the custom actions */
     char *xdg_token;       /* XDG activation token, from daemon */
 

@@ -261,7 +261,7 @@ main(int argc, char *const *argv)
             break;
 
         case 't':
-            tll_push_back(overrides, xstrjoin("term=", optarg));
+            tll_push_back(overrides, xstrjoin("term=", optarg, 0));
             break;
 
         case 'L':
@@ -269,11 +269,11 @@ main(int argc, char *const *argv)
             break;
 
         case 'T':
-            tll_push_back(overrides, xstrjoin("title=", optarg));
+            tll_push_back(overrides, xstrjoin("title=", optarg, 0));
             break;
 
         case 'a':
-            tll_push_back(overrides, xstrjoin("app-id=", optarg));
+            tll_push_back(overrides, xstrjoin("app-id=", optarg, 0));
             break;
 
         case 'D': {
@@ -287,7 +287,7 @@ main(int argc, char *const *argv)
         }
 
         case 'f': {
-            char *font_override = xstrjoin("font=", optarg);
+            char *font_override = xstrjoin("font=", optarg, 0);
             tll_push_back(overrides, font_override);
             break;
         }
@@ -657,4 +657,19 @@ out:
     fcft_fini();
     log_deinit();
     return ret == EXIT_SUCCESS && !as_server ? shutdown_ctx.exit_code : ret;
+}
+
+UNITTEST
+{
+    char *s = xstrjoin("foo", "bar", 0);
+    xassert(streq(s, "foobar"));
+    free(s);
+
+    s = xstrjoin("foo", "bar", ' ');
+    xassert(streq(s, "foo bar"));
+    free(s);
+
+    s = xstrjoin("foo", "bar", ',');
+    xassert(streq(s, "foo,bar"));
+    free(s);
 }
