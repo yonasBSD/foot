@@ -394,7 +394,7 @@ notify_notify(struct terminal *term, struct notification *notif)
                 continue;
 
             /*
-             * When replacing/updating a notificaton, we may have
+             * When replacing/updating a notification, we may have
              * *multiple* notification helpers running for the "same"
              * notification. Make sure only the *last* notification's
              * report closed/activated are honored, to avoid sending
