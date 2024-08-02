@@ -639,6 +639,10 @@ capability in the multi query. This allows us to send a proper
 success/fail flag for each queried capability. Responses for **all**
 queried capabilities are **always** sent. No queries are ever dropped.
 
+All replies are in `tigetstr()` format. That is, given the same
+capability name, foot reply is identical to what `tigetstr()` would
+have returned.
+
 
 # Credits
 
