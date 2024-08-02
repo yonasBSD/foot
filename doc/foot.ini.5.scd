@@ -583,7 +583,7 @@ xdgtoken=95ebdfe56e4f47ddb5bba9d7dc3a2c35
 	application (depending on how the application generated the
 	notification).
 	
-	Furhermore, the OSC-99 notifications protocol allows applications
+	Furthermore, the OSC-99 notifications protocol allows applications
 	to define their own actions. Foot uses a combination of the
 	*command* option, and the *command-action-argument* option to pass
 	the names of the actions to the notification helper.
