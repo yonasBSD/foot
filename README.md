@@ -1,15 +1,4 @@
-# ![Logo: a terminal with a foot shaped prompt](icons/hicolor/48x48/apps/foot.png) foot
-
-The fast, lightweight and minimalistic Wayland terminal emulator.
-
-[![CI status](https://ci.codeberg.org/api/badges/dnkl/foot/status.svg)](https://ci.codeberg.org/dnkl/foot)
-[![Pipeline status](https://gitlab.com/dnkl/foot/badges/master/pipeline.svg)](https://gitlab.com/dnkl/foot/commits/master)
-[![builds.sr.ht status](https://builds.sr.ht/~dnkl/foot.svg)](https://builds.sr.ht/~dnkl/foot?)
-
-[![Packaging status](https://repology.org/badge/vertical-allrepos/foot.svg)](https://repology.org/project/foot/versions)
-
-
-## Index
+# Index
 
 1. [Features](#features)
 1. [Installing](#installing)
@@ -45,6 +34,13 @@ The fast, lightweight and minimalistic Wayland terminal emulator.
 1. [Sponsoring/donations](#sponsoring-donations)
 1. [License](#license)
 
+The fast, lightweight and minimalistic Wayland terminal emulator.
+
+[![status](https://ci.codeberg.org/api/badges/dnkl/foot/status.svg)](https://ci.codeberg.org/dnkl/foot)
+[![Pipeline status](https://gitlab.com/dnkl/foot/badges/master/pipeline.svg)](https://gitlab.com/dnkl/foot/commits/master)
+[![builds.sr.ht status](https://builds.sr.ht/~dnkl/foot.svg)](https://builds.sr.ht/~dnkl/foot?)
+
+[![Packaging status](https://repology.org/badge/vertical-allrepos/foot.svg)](https
 
 ## Features
 
